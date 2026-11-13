@@ -29,7 +29,10 @@ from .bookshelf import Bookshelf
 from .break_info import BreakInfo, Breakable
 from .bricks import Bricks
 from .cactus import Cactus
+from .cake import Cake
 from .calcite import Calcite
+from .campfire import Campfire
+from .candle import Candle
 from .carpet import Carpet
 from .carrot import Carrot
 from .chest import Chest
@@ -80,6 +83,7 @@ from .end_stone import EndStone
 from .ender_chest import EnderChest
 from .farmland import Farmland
 from .fern import Fern
+from .fire import Fire
 from .fletching_table import FletchingTable
 from .flower import Flower
 from .froglight import Froglight
@@ -107,10 +111,13 @@ from .iron_chain import IronChain
 from .iron_ore import IronOre
 from .jukebox import Jukebox
 from .kelp import Kelp
+from .ladder import Ladder
+from .lantern import Lantern
 from .lapis import Lapis
 from .lapis_ore import LapisOre
 from .leaves import Leaves
 from .lectern import Lectern
+from .lever import Lever
 from .light import Light
 from .lily_pad import LilyPad
 from .lit_pumpkin import LitPumpkin
@@ -158,6 +165,7 @@ from .raw_iron import RawIron
 from .red_shrub import RedShrub
 from .redstone_block import RedstoneBlock
 from .redstone_ore import RedstoneOre
+from .redstone_torch import RedstoneTorch
 from .reinforced_deepslate import ReinforcedDeepslate
 from .resin import Resin
 from .resin_bricks import ResinBricks
@@ -192,6 +200,7 @@ from .sulfur_bricks import SulfurBricks
 from .terracotta import Terracotta
 from .tinted_glass import TintedGlass
 from .tnt import TNT
+from .torch import Torch
 from .tuff import Tuff
 from .tuff_bricks import TuffBricks
 from .vine import Vines
@@ -226,7 +235,10 @@ comptime VanillaBlocks = BlockSet[
     Bookshelf,
     Bricks,
     Cactus,
+    Cake,
     Calcite,
+    Campfire,
+    Candle,
     Carpet,
     Carrot,
     Chest,
@@ -279,6 +291,7 @@ comptime VanillaBlocks = BlockSet[
     EnderChest,
     Farmland,
     Fern,
+    Fire,
     FletchingTable,
     Flower,
     Froglight,
@@ -307,10 +320,13 @@ comptime VanillaBlocks = BlockSet[
     IronOre,
     Jukebox,
     Kelp,
+    Ladder,
+    Lantern,
     Lapis,
     LapisOre,
     Leaves,
     Lectern,
+    Lever,
     Light,
     LilyPad,
     LitPumpkin,
@@ -360,6 +376,7 @@ comptime VanillaBlocks = BlockSet[
     RedShrub,
     RedstoneBlock,
     RedstoneOre,
+    RedstoneTorch,
     ReinforcedDeepslate,
     Resin,
     ResinBricks,
@@ -394,6 +411,7 @@ comptime VanillaBlocks = BlockSet[
     TNT,
     Terracotta,
     TintedGlass,
+    Torch,
     Tuff,
     TuffBricks,
     Vines,
