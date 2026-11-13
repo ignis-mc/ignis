@@ -1,7 +1,13 @@
 from ignis.block.bedrock import Bedrock
 from ignis.block.break_info import BreakInfo
 from ignis.block.grass import Grass
-from ignis.block.hash import HASH_CUSTOM_BLOCK_BASE, HASH_GRASS
+from ignis.block.hash import (
+    HASH_CUSTOM_BLOCK_BASE,
+    HASH_GRASS,
+    HASH_NETHER_BRICKS,
+    HASH_SLAB,
+    HASH_STAIRS,
+)
 from ignis.block.register import (
     VanillaBlocks,
     break_info,
@@ -64,6 +70,19 @@ def _break_line(info: Optional[BreakInfo]) -> String:
     )
 
 
+def _fixed_go_hash(kind: UInt64, hash: UInt64) -> UInt64:
+    """Returns the state hash Ignis gives the block Dragonfly registers at a
+    runtime ID. They differ only where Ignis fixes a Dragonfly bug: Go swaps
+    the plain and red nether brick slabs and stairs (see `slab_type.mojo`)."""
+    if kind != HASH_SLAB and kind != HASH_STAIRS:
+        return hash
+    var inner_kind = hash & 0xFFFF
+    var inner_state = (hash >> 16) & 0xFFFF
+    if inner_kind == HASH_NETHER_BRICKS and inner_state <= 1:
+        return hash ^ (1 << 16)
+    return hash
+
+
 def test_vanilla_blocks() raises:
     assert_true(VanillaBlocks.contains(HASH_GRASS))
     assert_true(not VanillaBlocks.contains(HASH_CUSTOM_BLOCK_BASE))
@@ -108,8 +127,11 @@ def test_every_block_matches_dragonfly() raises:
                 kind, UNKNOWN_KIND, String(t"rid {rid} should be unknown")
             )
             continue
-        var want = expected[rid]
-        var name = String(want.split("\t")[1])
+        var parts = expected[rid].split("\t")
+        var name = String(parts[1])
+        var go_hash = _fixed_go_hash(kind, UInt64(Int(parts[3])))
+        var want = String("\t").join(parts[:3])
+        want += String(t"\t{go_hash}\t") + String("\t").join(parts[4:])
         var hash = br.state_hash(r)
         var s = VanillaBlocks.encode(kind, hash)
         assert_true(Bool(s), String(t"rid {rid} ({name}) has no type"))
@@ -120,7 +142,7 @@ def test_every_block_matches_dragonfly() raises:
             t"{rid}\t{name}\t{kind}\t{hash}\t{br.light_block(r)}\t"
             t"{br.filtering_block(r)}\t"
         )
-        var flags = String(want.split("\t")[6])
+        var flags = String(parts[6])
         got += flags + "\t" + _break_line(break_info(kind, hash))
         assert_equal(got, want)
         checked += 1

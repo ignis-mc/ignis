@@ -134,6 +134,7 @@ from .sand import Sand
 from .sandstone import Sandstone
 from .sea_lantern import SeaLantern
 from .shroomlight import Shroomlight
+from .slab import Slab
 from .slime import Slime
 from .smithing_table import SmithingTable
 from .smooth_basalt import SmoothBasalt
@@ -145,6 +146,7 @@ from .spore_blossom import SporeBlossom
 from .stained_glass import StainedGlass
 from .stained_glass_pane import StainedGlassPane
 from .stained_terracotta import StainedTerracotta
+from .stairs import Stairs
 from .stone import Andesite, Diorite, Granite, Stone
 from .stone_bricks import StoneBricks
 from .sulfur import Sulfur
@@ -154,6 +156,7 @@ from .tinted_glass import TintedGlass
 from .tnt import TNT
 from .tuff import Tuff
 from .tuff_bricks import TuffBricks
+from .wall import Wall
 from .wood import Wood
 from .wood_door import WoodDoor
 from .wood_fence import WoodFence
@@ -293,6 +296,7 @@ comptime VanillaBlocks = BlockSet[
     Sandstone,
     SeaLantern,
     Shroomlight,
+    Slab,
     Slime,
     SmithingTable,
     SmoothBasalt,
@@ -304,6 +308,7 @@ comptime VanillaBlocks = BlockSet[
     StainedGlass,
     StainedGlassPane,
     StainedTerracotta,
+    Stairs,
     Stone,
     StoneBricks,
     Sulfur,
@@ -313,6 +318,7 @@ comptime VanillaBlocks = BlockSet[
     TintedGlass,
     Tuff,
     TuffBricks,
+    Wall,
     Wood,
     WoodDoor,
     WoodFence,
