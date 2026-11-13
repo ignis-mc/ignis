@@ -34,7 +34,16 @@ from .cobblestone import Cobblestone
 from .cobweb import Cobweb
 from .concrete import Concrete
 from .concrete_powder import ConcretePowder
+from .copper import Copper
+from .copper_bars import CopperBars
+from .copper_chain import CopperChain
+from .copper_door import CopperDoor
+from .copper_golem_statue import CopperGolemStatue
+from .copper_grate import CopperGrate
+from .copper_lantern import CopperLantern
 from .copper_ore import CopperOre
+from .copper_torch import CopperTorch
+from .copper_trapdoor import CopperTrapdoor
 from .coral_block import CoralBlock
 from .crafting_table import CraftingTable
 from .deepslate import Deepslate
@@ -75,6 +84,8 @@ from .infested_stone import InfestedStone
 from .infested_stone_bricks import InfestedStoneBricks
 from .invisible_bedrock import InvisibleBedrock
 from .iron import Iron
+from .iron_bars import IronBars
+from .iron_chain import IronChain
 from .iron_ore import IronOre
 from .jukebox import Jukebox
 from .lapis import Lapis
@@ -89,6 +100,7 @@ from .mud import Mud
 from .mud_bricks import MudBricks
 from .muddy_mangrove_roots import MuddyMangroveRoots
 from .mycelium import Mycelium
+from .nether_brick_fence import NetherBrickFence
 from .nether_bricks import NetherBricks
 from .nether_gold_ore import NetherGoldOre
 from .nether_wart_block import NetherWartBlock
@@ -143,6 +155,10 @@ from .tnt import TNT
 from .tuff import Tuff
 from .tuff_bricks import TuffBricks
 from .wood import Wood
+from .wood_door import WoodDoor
+from .wood_fence import WoodFence
+from .wood_fence_gate import WoodFenceGate
+from .wood_trapdoor import WoodTrapdoor
 from .wool import Wool
 
 comptime VanillaBlocks = BlockSet[
@@ -173,7 +189,16 @@ comptime VanillaBlocks = BlockSet[
     Cobweb,
     Concrete,
     ConcretePowder,
+    Copper,
+    CopperBars,
+    CopperChain,
+    CopperDoor,
+    CopperGolemStatue,
+    CopperGrate,
+    CopperLantern,
     CopperOre,
+    CopperTorch,
+    CopperTrapdoor,
     CoralBlock,
     CraftingTable,
     Deepslate,
@@ -216,6 +241,8 @@ comptime VanillaBlocks = BlockSet[
     InfestedStoneBricks,
     InvisibleBedrock,
     Iron,
+    IronBars,
+    IronChain,
     IronOre,
     Jukebox,
     Lapis,
@@ -230,6 +257,7 @@ comptime VanillaBlocks = BlockSet[
     MudBricks,
     MuddyMangroveRoots,
     Mycelium,
+    NetherBrickFence,
     NetherBricks,
     NetherGoldOre,
     NetherQuartzOre,
@@ -286,6 +314,10 @@ comptime VanillaBlocks = BlockSet[
     Tuff,
     TuffBricks,
     Wood,
+    WoodDoor,
+    WoodFence,
+    WoodFenceGate,
+    WoodTrapdoor,
     Wool,
 ]
 """Every block type Ignis implements, sorted by name."""
