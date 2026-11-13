@@ -1,21 +1,48 @@
 """Shears, ported from Dragonfly `server/item/shears.go`.
 
-`UseOnBlock` (carving pumpkins) and the tool methods follow with players and
-the tool package.
+`UseOnBlock` (carving pumpkins) follows with players.
 """
 
 from ..world.item import EncodedItem, Item, item_hash
 from .durability import DurabilityInfo, Durable
 from .item import MaxCounter
+from .tool import TYPE_SHEARS, Tool, ToolType
 
 
 @fieldwise_init
-struct Shears(Durable, Equatable, ImplicitlyCopyable, Item, MaxCounter):
+struct Shears(Durable, Equatable, ImplicitlyCopyable, Item, MaxCounter, Tool):
     """A tool used to shear sheep, mine a few types of blocks, and carve
     pumpkins."""
 
     comptime BASE_HASH: UInt64 = item_hash("Shears")
     """`item_hash("Shears")`."""
+
+    def tool_type(self) -> ToolType:
+        """Returns the tool type (Go `ToolType`).
+
+        Returns:
+            `TYPE_SHEARS`.
+        """
+        return TYPE_SHEARS
+
+    def harvest_level(self) -> Int:
+        """Returns the harvest level (Go `HarvestLevel`).
+
+        Returns:
+            1.
+        """
+        return 1
+
+    def base_mining_efficiency(self, block_kind: UInt64) -> Float64:
+        """Returns the base mining efficiency (Go `BaseMiningEfficiency`).
+
+        Args:
+            block_kind: The block's type.
+
+        Returns:
+            1.5 for every block.
+        """
+        return 1.5
 
     def durability_info(self) -> DurabilityInfo:
         """Returns the durability info (Go `DurabilityInfo`).
