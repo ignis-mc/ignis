@@ -1,4 +1,5 @@
 from ignis.internal.fs import (
+    is_dir,
     create,
     exists,
     join,
@@ -60,6 +61,21 @@ def test_make_dir_all_and_many_entries() raises:
     assert_equal(len(list_dir(deep)), 300)
     remove_all(dir)
     assert_false(exists(dir))
+
+
+def test_reading_a_directory_raises() raises:
+    # Regression: read_file trusted lseek(SEEK_END), which reports a huge
+    # size for directories, and aborted allocating it.
+    var dir = temp_dir("fs")
+    assert_true(is_dir(dir))
+    assert_false(is_dir(join(dir, "missing")))
+    with assert_raises(contains="errno 21"):
+        _ = read_file(dir)
+    var big = List[UInt8](length=200000, fill=7)
+    write_file(join(dir, "big"), big, sync=False)
+    assert_false(is_dir(join(dir, "big")))
+    assert_true(read_file(join(dir, "big")) == big)
+    remove_all(dir)
 
 
 def main() raises:

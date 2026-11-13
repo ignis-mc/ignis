@@ -217,16 +217,22 @@ struct File(Movable):
         return end
 
     def read_all(self) raises -> List[UInt8]:
-        """Reads the whole file.
+        """Reads the whole file, until `read` reports its end.
 
         Returns:
             The contents.
 
         Raises:
-            If the kernel reports an error.
+            If the kernel reports an error, such as `EISDIR` for a
+            directory.
         """
         var out = List[UInt8]()
-        _ = self.read_at(out, 0, self.size())
+        var buf = List[UInt8]()
+        while True:
+            var n = self.read_at(buf, len(out), 1 << 16)
+            if n == 0:
+                break
+            out.extend(Span(buf))
         return out^
 
     def sync(self) raises:
@@ -548,3 +554,32 @@ def sync_dir(path: StringSlice) raises:
         If the directory cannot be opened or synced.
     """
     _open(path, _O_RDONLY | _O_DIRECTORY).sync()
+
+
+def is_dir(path: StringSlice) raises -> Bool:
+    """Reports whether a path is a directory.
+
+    Args:
+        path: The path.
+
+    Returns:
+        True if it exists and is a directory.
+
+    Raises:
+        If the path is invalid.
+    """
+    var c = _c_path(path)
+    var fd = syscall6(
+        _SYS_OPENAT,
+        _AT_FDCWD,
+        Int(c.unsafe_ptr()),
+        _O_RDONLY | _O_DIRECTORY | _O_CLOEXEC,
+        0,
+        0,
+        0,
+    )
+    _ = len(c)
+    if fd < 0:
+        return False
+    _ = syscall6(_SYS_CLOSE, fd, 0, 0, 0, 0, 0)
+    return True
