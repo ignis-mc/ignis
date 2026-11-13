@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"math"
 	"os"
 	"path/filepath"
@@ -91,11 +92,13 @@ func defsVectors(out string) {
 	// three times: "effect_tick kind duration_ns tick".
 	speed, _ := effect.ByID(1)
 	heal, _ := effect.ByID(6)
-	for name, e := range map[string]effect.Effect{
+	ticked := map[string]effect.Effect{
 		"lasting":  effect.New(speed.(effect.LastingType), 2, time.Second*3),
 		"infinite": effect.NewInfinite(speed.(effect.LastingType), 1),
 		"instant":  effect.NewInstant(heal, 3),
-	} {
+	}
+	for _, name := range slices.Sorted(maps.Keys(ticked)) {
+		e := ticked[name]
 		for range 3 {
 			e = e.TickDuration()
 		}
@@ -128,10 +131,12 @@ func defsVectors(out string) {
 		}
 	}
 	// Damage sources: "damage_source name resistance armour fire totem".
-	for name, src := range map[string]world.DamageSource{
+	sources := map[string]world.DamageSource{
 		"PoisonDamageSource": effect.PoisonDamageSource{}, "InstantDamageSource": effect.InstantDamageSource{},
 		"WitherDamageSource": effect.WitherDamageSource{}, "ThornsDamageSource": enchantment.ThornsDamageSource{},
-	} {
+	}
+	for _, name := range slices.Sorted(maps.Keys(sources)) {
+		src := sources[name]
 		fmt.Fprintf(&b, "damage_source\t%s\t%s,%s,%s,%s\n", name, boolS(src.ReducedByResistance()), boolS(src.ReducedByArmour()), boolS(src.Fire()), boolS(src.IgnoreTotem()))
 	}
 
