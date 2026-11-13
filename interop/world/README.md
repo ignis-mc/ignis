@@ -13,6 +13,14 @@ expected bytes that the Mojo tests under `test/ignis/world/` compare against:
   that harvest the block and mine it faster as bit masks over the tool list
   in `tools()`, the XP range). `test/ignis/block/test_register.mojo` checks
   every Ignis block type against it.
+- `cube.txt`: `block/cube` and `cube/trace` operations (boxes, rotations,
+  orientations, positions, Go's `math.Sin`/`Cos`, ray traversal and
+  intercepts) as `op<TAB>args<TAB>result`; `test_cube_vectors.mojo` parses
+  the arguments, recomputes and compares.
+- `models.txt`: for every registered state, the model's solid faces and its
+  boxes with air, stone, the same block and a mix of connecting blocks
+  around it; bamboo at several positions; and rays through blocks
+  (`test/ignis/block/model/test_models.mojo`).
 - `vectors.txt`: runtime IDs and block hashes of the implemented blocks,
   network-encoded sub-chunks and biomes, height maps, and the `LevelChunk` and
   `SubChunk` packets Dragonfly's session sends for a few fixed chunks.
