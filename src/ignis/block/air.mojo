@@ -1,0 +1,86 @@
+"""Air, ported from Dragonfly `server/block/air.go`.
+
+Go's `Air` embeds `empty` (model), `replaceable` and `transparent`. Mojo has
+no embedding, so the methods those provide are written out where they are
+ported: `transparent` is `LightDiffuser` returning 0. The model and
+`ReplaceableBy` follow with the model package and `world.Tx`.
+"""
+
+from ..world.block import Block, LightDiffuser
+from ..world.block_state import BlockState
+from ..world.dimension import Dimension, NETHER
+from .hash import HASH_AIR
+
+
+@fieldwise_init
+struct Air(Block, Equatable, ImplicitlyCopyable, LightDiffuser):
+    """The block present in otherwise empty space."""
+
+    comptime BASE_HASH: UInt64 = HASH_AIR
+    """Go `hashAir`."""
+
+    def encode_block(self) -> BlockState:
+        """Encodes the block (Go `EncodeBlock`).
+
+        Returns:
+            `minecraft:air` without properties.
+        """
+        return BlockState("minecraft:air")
+
+    def hash(self) -> UInt64:
+        """Returns the state hash (Go `Hash`).
+
+        Returns:
+            0: air has no state.
+        """
+        return 0
+
+    @staticmethod
+    def from_hash(hash: UInt64) -> Self:
+        """Rebuilds the block from its state hash.
+
+        Args:
+            hash: The state hash.
+
+        Returns:
+            Air.
+        """
+        return Air()
+
+    @staticmethod
+    def all_states() -> List[Self]:
+        """Returns the registered values (Go `RegisterBlock(Air{})`).
+
+        Returns:
+            Air.
+        """
+        return [Air()]
+
+    def light_diffusion_level(self) -> UInt8:
+        """Air lets all light through (Go `transparent`).
+
+        Returns:
+            0.
+        """
+        return 0
+
+    def has_liquid_drops(self) -> Bool:
+        """Reports whether the block drops as an item when liquid flows into
+        it.
+
+        Returns:
+            False.
+        """
+        return False
+
+    def portal_interior(self, target: Dimension) -> Bool:
+        """Reports whether air may fill a portal frame for the target
+        dimension before activation.
+
+        Args:
+            target: The dimension the portal leads to.
+
+        Returns:
+            True for Nether portals.
+        """
+        return target == NETHER

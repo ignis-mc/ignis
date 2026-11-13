@@ -15,9 +15,11 @@ points here.
 - Mojo is pinned to **1.2.x** (`pixi.toml`). Run everything through
   `pixi run <task>`, or put a Mojo 1.2 `mojo` on `PATH`
   (`/home/xd/.local/share/mojo-env/bin/mojo` on the development host).
-- Every compile needs all three include roots:
-  `mojo run -I src -I third_party/protocol/src -I third_party/nethernet/src -D ASSERT=all test/ignis/test_version.mojo`.
-  The test binary accepts `--only <names…>`, `--skip <names…>`.
+- Every compile needs all three include roots, and tests also `-I test`
+  for the shared helpers in `test/support/`:
+  `mojo run -I src -I test -I third_party/protocol/src -I third_party/nethernet/src -D ASSERT=all test/ignis/test_version.mojo`.
+  The test binary accepts `--only <names…>`, `--skip <names…>`. Tests run
+  from the repository root (they read `resources/` and `test/data/`).
 - Tasks: `pixi run test`, `format`, `format-check`, `lint-docs`, `build`,
   `check`.
 - After every edit, compile and run the affected test file. Do not report a
