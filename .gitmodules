@@ -1,0 +1,6 @@
+[submodule "third_party/protocol"]
+	path = third_party/protocol
+	url = https://github.com/ignis-mc/protocol.git
+[submodule "third_party/nethernet"]
+	path = third_party/nethernet
+	url = https://github.com/ignis-mc/nethernet.git
