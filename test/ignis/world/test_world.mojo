@@ -478,6 +478,30 @@ def test_unloaded_chunks_are_saved_and_reloaded() raises:
     assert_equal(len(w.scheduled_updates()), 1)
 
 
+def test_moved_entities_are_saved() raises:
+    # Dragonfly only saves chunks marked modified, and moving entities do
+    # not mark them: an entity that walked into an untouched chunk was lost
+    # on unload, and one that moved inside its chunk kept its old position.
+    var w = new_world()
+    var id = _viewing(w, 1)
+    var a = w.add_entity(new_text[TestEntities]("a", Vec3(2, 0, 2)))
+    var b = w.add_entity(new_text[TestEntities]("b", Vec3(3, 0, 3)))
+    w.save()  # nothing is modified any more
+    w.move_entity(a, Vec3(20, 0, 2), Rotation(), True)  # into chunk (1, 0)
+    w.move_entity(b, Vec3(5, 0, 5), Rotation(), True)  # within (0, 0)
+    w.advance_tick()
+    _ = w.close_loader(id)
+    w.close_unused_chunks()
+    assert_equal(w.entity_count(), 0)
+    _ = w.block(Pos(20, 0, 2))
+    _ = w.block(Pos(5, 0, 5))
+    assert_equal(w.entity_count(), 2)
+    var fa = w.entity(a)
+    assert_equal(fa.take().position(), Vec3(20, 0, 2))
+    var fb = w.entity(b)
+    assert_equal(fb.take().position(), Vec3(5, 0, 5))
+
+
 def test_tick_unloads_unused_chunks() raises:
     var w = new_world()
     w.set_block(Pos(3, 3, 3), Stone())

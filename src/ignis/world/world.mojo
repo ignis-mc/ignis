@@ -16,6 +16,10 @@ by the world and addressed by `LoaderID` (see `loader.mojo`).
 
 Durations are milliseconds (Go `time.Duration`); world ticks are 50 ms.
 
+Fixed from Dragonfly: chunks holding entities are always saved, and an
+entity changing chunk marks both chunks modified (Dragonfly lost entities
+that moved into an unmodified chunk and saved stale positions).
+
 Not ported yet: liquids beyond keeping layer 1 consistent, block entities,
 the light engine, redstone, particles and sounds, structures, lightning,
 sleeping, view layers, portals, and the disk provider. Errors Go logs
@@ -1402,7 +1406,12 @@ struct World[T: WorldTypes](Movable):
 
     def _save_chunk(mut self, ci: Int):
         # Go `saveChunk`.
-        if self._read_only or not self._cols[ci].modified:
+        # Dragonfly saves only chunks marked modified, but entities move
+        # without marking their chunk, so a moved entity was saved at its
+        # old position or lost. Chunks holding entities are always saved.
+        if self._read_only:
+            return
+        if not self._cols[ci].modified and len(self._cols[ci].entities) == 0:
             return
         if self._cols[ci].broken:
             return
@@ -1610,9 +1619,11 @@ struct World[T: WorldTypes](Movable):
                 # that no longer see it and show it to new ones.
                 self._ents[i].chunk = cp
                 self._cols[ci].entities.append(key)
+                self._cols[ci].modified = True
                 var old_viewers = List[LoaderID]()
                 if case .Some(oci) = self._col_index.get(last):
                     _remove_key(self._cols[oci].entities, key)
+                    self._cols[oci].modified = True
                     old_viewers = self._cols[oci].viewers.copy()
                 var new_viewers = self._cols[ci].viewers.copy()
                 var e = self._ents[i].handle.copy()
