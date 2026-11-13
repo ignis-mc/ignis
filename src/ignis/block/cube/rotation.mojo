@@ -1,9 +1,12 @@
-"""Rotations, ported from Dragonfly `server/block/cube/rotation.go`.
+"""Rotations, ported from Dragonfly `server/block/cube/rotation.go`."""
 
-Only the accessors and `Add` are ported so far.
-"""
+from std.math import copysign, floor, trunc
 
-from std.math import trunc
+from ...internal.gomath import go_cos, go_sin
+
+from ...mgl64 import Vec3, deg_to_rad
+from .direction import Direction
+from .orientation import Orientation
 
 
 @fieldwise_init
@@ -48,10 +51,84 @@ struct Rotation(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         """
         return Self(self._yaw + r2._yaw, self._pitch + r2._pitch)._fix()
 
+    def elem(self) -> Tuple[Float64, Float64]:
+        """Returns the yaw and the pitch (Go `Elem`).
+
+        Returns:
+            The yaw and the pitch.
+        """
+        return (self._yaw, self._pitch)
+
+    def opposite(self) -> Self:
+        """Returns the rotation pointing the other way (Go `Opposite`).
+
+        Returns:
+            The yaw turned 180 degrees and the pitch negated.
+        """
+        var fixed = self._fix()
+        return Self(fixed._yaw + 180, -fixed._pitch)._fix()
+
+    def neg(self) -> Self:
+        """Negates both angles (Go `Neg`).
+
+        Returns:
+            The negated rotation.
+        """
+        var fixed = self._fix()
+        return Self(-fixed._yaw, -fixed._pitch)
+
+    def direction(self) -> Direction:
+        """Returns the horizontal direction the rotation points in (Go
+        `Direction`).
+
+        Returns:
+            The direction.
+        """
+        var yaw = self._fix()._yaw
+        if yaw > 45 and yaw <= 135:
+            return Direction.WEST
+        if yaw > -45 and yaw <= 45:
+            return Direction.SOUTH
+        if yaw > -135 and yaw <= -45:
+            return Direction.EAST
+        if yaw <= -135 or yaw > 135:
+            return Direction.NORTH
+        return Direction(0)
+
+    def orientation(self) -> Orientation:
+        """Returns the orientation closest to the yaw (Go `Orientation`).
+
+        Returns:
+            The orientation, 0 to 16.
+        """
+        comptime step = 360 / 16.0
+        var yaw = self._fix()._yaw
+        if yaw < -step / 2:
+            yaw += 360
+        var x = yaw / step
+        # Go math.Round: half away from zero.
+        var r = floor(x + 0.5) if x >= 0 else -floor(-x + 0.5)
+        return Orientation(Int(r))
+
+    def vec3(self) -> Vec3:
+        """Returns the unit direction vector of the rotation (Go `Vec3`).
+
+        Returns:
+            The vector.
+        """
+        var fixed = self._fix()
+        var yaw_rad = deg_to_rad(fixed._yaw)
+        var pitch_rad = deg_to_rad(fixed._pitch)
+        var m = go_cos(pitch_rad)
+        return Vec3(
+            -m * go_sin(yaw_rad), -go_sin(pitch_rad), m * go_cos(yaw_rad)
+        )
+
     def _fix(self) -> Self:
-        # Go `fix`: math.Mod keeps the sign of the dividend.
-        var sign_yaw = 180.0 if self._yaw >= 0 else -180.0
-        var sign_pitch = 90.0 if self._pitch >= 0 else -90.0
+        # Go `fix`: math.Mod keeps the sign of the dividend, and Copysign
+        # gives -0 a negative sign.
+        var sign_yaw = copysign(180.0, self._yaw)
+        var sign_pitch = copysign(90.0, self._pitch)
         return Self(
             _go_mod(self._yaw + sign_yaw, 360) - sign_yaw,
             _go_mod(self._pitch + sign_pitch, 180) - sign_pitch,

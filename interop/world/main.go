@@ -383,6 +383,7 @@ func main() {
 	v := vectors{}
 	blockStates(v, *out)
 	blockDefinitions(*out)
+	cubeVectors(*out)
 	chunkVectors(v, "empty", newChunk())
 	chunkVectors(v, "simple", simpleChunk())
 	chunkVectors(v, "flat", flatChunk(false))
