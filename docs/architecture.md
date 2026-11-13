@@ -267,6 +267,35 @@ worked example.
 - `world.Dimension`: a small value type with `OVERWORLD`, `NETHER` and `END`
   constants (the vanilla set is closed; custom dimensions are values too).
 
+### The server and sessions
+
+Implemented in `ignis.server` (Go `server.go`, `conf.go`) and
+`ignis.session` (Go `session/`), run by `cmd/ignis/main.mojo`.
+
+- **`server.Server.step`** is the loop above: poll the listener, pending
+  connections and sessions; accept and `start_game` with Dragonfly's
+  default `GameData`; turn spawned connections into sessions; handle each
+  session's packets; tick the world on its deadline and the sessions at
+  20 TPS (`send_chunks`); flush every session.
+- **`session.Session[C: session.Conn]`** owns its connection (`NetConn`
+  over the protocol `Conn`, `FakeConn` in tests) and its `player.Player`.
+  `handle_packet` returns a `HandleResult` (moved, metadata changed, chat
+  line) and the server calls the other sessions' `view_*` methods, since a
+  session cannot reach the others.
+- **Chunks go through the world's loaders.** The server adds a loader per
+  session with a `SessionViewer` over the session's `PacketQueue`
+  (`ArcPointer`); the session drains the queue into its connection in
+  order with its own packets.
+- **StartGame must list the data-driven blocks**
+  (`resources/data_driven_blocks.nbt`): they are part of the client's
+  block palette, and without them every sequential runtime ID after them
+  is shifted on the client.
+- Players are not world entities yet: until the player package adds them
+  to the entity set, the server shows every player to every other one.
+- `config.toml` keeps Dragonfly's tables and keys (`[Network] Address`,
+  `[Server] Name`, ...), read by a TOML subset parser
+  (`ignis.internal.toml`).
+
 ## World data
 
 - `resources/block_states.nbt` (with the other Dragonfly resources as they
