@@ -9,21 +9,57 @@ types; `vanilla_block_registry` builds the registry a server uses.
 from ..world.block_registry import BasicBlockRegistry
 from ..world.block_set import BlockSet
 from .air import Air
+from .basalt import Basalt
 from .bedrock import Bedrock
+from .blackstone import Blackstone
 from .break_info import BreakInfo, Breakable
+from .bricks import Bricks
+from .calcite import Calcite
+from .cobblestone import Cobblestone
+from .deepslate import Deepslate
+from .deepslate_bricks import DeepslateBricks
+from .deepslate_tiles import DeepslateTiles
 from .dirt import Dirt
+from .end_bricks import EndBricks
+from .end_stone import EndStone
 from .grass import Grass
+from .nether_bricks import NetherBricks
+from .netherrack import Netherrack
+from .polished_blackstone_brick import PolishedBlackstoneBrick
+from .polished_tuff import PolishedTuff
+from .smooth_basalt import SmoothBasalt
 from .stone import Andesite, Diorite, Granite, Stone
+from .stone_bricks import StoneBricks
+from .tuff import Tuff
+from .tuff_bricks import TuffBricks
 
 comptime VanillaBlocks = BlockSet[
     Air,
     Andesite,
+    Basalt,
     Bedrock,
+    Blackstone,
+    Bricks,
+    Calcite,
+    Cobblestone,
+    Deepslate,
+    DeepslateBricks,
+    DeepslateTiles,
     Diorite,
     Dirt,
+    EndBricks,
+    EndStone,
     Granite,
     Grass,
+    NetherBricks,
+    Netherrack,
+    PolishedBlackstoneBrick,
+    PolishedTuff,
+    SmoothBasalt,
     Stone,
+    StoneBricks,
+    Tuff,
+    TuffBricks,
 ]
 """Every block type Ignis implements, sorted by name."""
 
