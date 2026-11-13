@@ -40,7 +40,7 @@ def _line(br: BasicBlockRegistry, rid: UInt32) raises -> String:
     for i in range(4):
         var b = UInt8((hash >> UInt32(24 - 8 * i)) & 0xFF)
         hex += hex_encode(Span([b]))
-    var s = br.state(rid)
+    ref s = br.state(rid)
     return String(t"{rid}\t{hex}\t{s.name}\t{s.properties}")
 
 
@@ -68,7 +68,7 @@ def test_sample_lines() raises:
             var rid = UInt32(Int(line.split("\t", 1)[0]))
             assert_equal(_line(br, rid), String(line))
             # Name and properties lead back to the same runtime ID and hash.
-            var s = br.state(rid)
+            ref s = br.state(rid)
             assert_equal(
                 br.state_to_runtime_id(s.name, s.properties).value(), rid
             )

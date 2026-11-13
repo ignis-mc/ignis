@@ -429,16 +429,17 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
             return None
         return self._states[Int(runtime_id)].copy()
 
-    def state(self, runtime_id: UInt32) -> BlockState:
-        """Returns the state of a runtime ID known to be valid.
+    def state(ref self, runtime_id: UInt32) -> ref[self._states[0]] BlockState:
+        """Returns the state of a runtime ID known to be valid, without
+        copying it.
 
         Args:
             runtime_id: A runtime ID below `block_count()`.
 
         Returns:
-            A copy of the state.
+            A reference to the state.
         """
-        return self._states[Int(runtime_id)].copy()
+        return self._states[Int(runtime_id)]
 
     def state_to_runtime_id(
         self, name: StringSlice, properties: Properties
