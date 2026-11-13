@@ -24,3 +24,19 @@ interop/mcdb/run_world.sh     # Dragonfly mcdb <-> ignis.world.mcdb
 
 `ldbtool.mojo` and `worldtool.mojo` are the Mojo halves; they share the
 workload and fixture definitions in `test/support/`.
+
+## Vanilla client check (manual)
+
+With the minecraft MCP (`mcp-call`, see its headless skill), a world
+created and saved by the vanilla 1.26.60 client was:
+
+1. dumped with `world-dump <copy> <out> lenient` and
+   `worldtool dump <copy> <out> lenient` after removing `level.dat` from
+   the copies (Dragonfly v0.11.6 cannot decode a 1.26.60 `level.dat`; it
+   has `editorLevelMigrationVersion`): identical;
+2. edited with `worldtool tower <world> <cx> <cz> "Ignis Mojo"` (which also
+   rewrites every table) and opened in the vanilla client, which showed the
+   tower and the renamed world;
+3. dumped again after the client saved on top of Ignis's table: identical.
+
+`test/data/mcdb/vanilla-1.26.60-level.dat` is that world's `level.dat`.

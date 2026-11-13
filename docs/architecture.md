@@ -32,7 +32,7 @@ loop:
 | `world.World` + `World.Exec(func(*Tx))` | `world.World`; transactions are direct calls during the loop |
 | `session.Session` (one goroutine per player) | `session.Session` stepped by the loop |
 | `minecraft.Listener` (gophertunnel) | the server-side `Listener` in the `protocol` submodule |
-| goleveldb / mcdb | to be decided; worlds start as generated/in-memory |
+| goleveldb / mcdb | `ignis.leveldb` (goleveldb's format, synchronous flush, compaction in bounded steps) / `ignis.world.mcdb` |
 
 ## Polymorphism
 
@@ -131,6 +131,15 @@ behaviour as `BlockSet` does. Item IDs come from `vanilla_items.nbt`.
   (`StartGame` leaves `UseBlockNetworkIDHashes` off), `LevelChunk` with
   biomes only and sub-chunk requests answered with network-encoded
   sub-chunks (`ignis.session.chunk`).
-- Not ported yet: the disk encoding (needs the block state upgrader), the
-  light engine (server-side only; the client computes its own light), and
-  the client blob cache.
+- Worlds on disk use the vanilla format through `ignis.world.mcdb` over
+  `ignis.leveldb`. Disk chunk encoding is `chunk.disk_encode`/`disk_decode`;
+  stored block states are upgraded with `df-mc/worldupgrader`'s schemas
+  and `legacy_states.nbt` (`chunk.conversion.Upgrades`, loaded once and
+  owned by the provider; Ignis has no globals). The provider shares the
+  world's registry as `ArcPointer[BasicBlockRegistry]`.
+- LevelDB work is synchronous: a write appends to the journal and the
+  memtable; a full memtable (4 MiB) is written as a level-0 table in the
+  writing call, followed by at most two compaction steps. Long pauses can
+  be avoided by calling `DB.compact_once()` from idle time.
+- Not ported yet: the light engine (server-side only; the client computes
+  its own light) and the client blob cache.

@@ -177,17 +177,29 @@ def write_fixture(dir: StringSlice, br: ArcPointer[BasicBlockRegistry]) raises:
 
 
 def _quote(s: String) -> String:
-    # Go %q for the strings the fixtures and test worlds hold.
+    # Go %q (strconv.Quote) for ASCII and control characters.
     var out = String('"')
     for cp in s.codepoint_slices():
+        var b = cp.as_bytes()
+        var c = Int(b[0]) if len(b) == 1 else 0x100
         if cp == '"' or cp == "\\":
             out += "\\" + String(cp)
-        elif cp == "\n":
+        elif c == 7:
+            out += "\\a"
+        elif c == 8:
+            out += "\\b"
+        elif c == 12:
+            out += "\\f"
+        elif c == 10:
             out += "\\n"
-        elif cp == "\t":
-            out += "\\t"
-        elif cp == "\r":
+        elif c == 13:
             out += "\\r"
+        elif c == 9:
+            out += "\\t"
+        elif c == 11:
+            out += "\\v"
+        elif c < 0x20 or c == 0x7F:
+            out += "\\x" + _hex(UInt64(c), 2)
         else:
             out += cp
     return out + '"'
