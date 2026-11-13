@@ -1,16 +1,23 @@
 """Dirt, ported from Dragonfly `server/block/dirt.go`.
 
-`SoilFor`, `Till`, `Shovel`, `BreakInfo` and `spreadDirt` follow with
-`world.Tx`, the item package and the plant blocks they refer to.
+TODO(world-runtime): SoilFor, Till, Shovel, spreadDirt and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
+from .break_info import (
+    ALWAYS_HARVESTABLE,
+    SHOVEL_EFFECTIVE,
+    BreakInfo,
+    Breakable,
+    new_break_info,
+)
 from .hash import HASH_DIRT
 
 
 @fieldwise_init
-struct Dirt(Block, Equatable, ImplicitlyCopyable):
+struct Dirt(Block, Breakable, Equatable, ImplicitlyCopyable, Item):
     """A block found abundantly in most biomes under a layer of grass."""
 
     comptime BASE_HASH: UInt64 = HASH_DIRT
@@ -61,3 +68,31 @@ struct Dirt(Block, Equatable, ImplicitlyCopyable):
             Coarse dirt and dirt.
         """
         return [Dirt(coarse=True), Dirt()]
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`).
+
+        Returns:
+            `minecraft:coarse_dirt` or `minecraft:dirt`, metadata 0.
+        """
+        if self.coarse:
+            return EncodedItem("minecraft:coarse_dirt", 0)
+        return EncodedItem("minecraft:dirt", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `RegisterItem` calls
+        in `register.go`).
+
+        Returns:
+            Coarse dirt and dirt.
+        """
+        return [Dirt(coarse=True), Dirt()]
+
+    def break_info(self) -> BreakInfo:
+        """Returns the break info (Go `BreakInfo`).
+
+        Returns:
+            The hardness, blast resistance and tools.
+        """
+        return new_break_info(0.5, ALWAYS_HARVESTABLE, SHOVEL_EFFECTIVE)

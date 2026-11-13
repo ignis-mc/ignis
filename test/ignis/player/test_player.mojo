@@ -1,4 +1,4 @@
-from ignis.internal.mgl64 import Vec3
+from ignis.mgl64 import Vec3
 from ignis.player.player import Player
 from ignis.world.game_mode import GAME_MODE_CREATIVE, GAME_MODE_SURVIVAL
 from minecraft.protocol.uuid import UUID

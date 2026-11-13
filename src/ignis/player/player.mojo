@@ -12,7 +12,7 @@ that a `Player` is cheap to copy.
 from minecraft.protocol.uuid import UUID
 
 from ..block.cube.rotation import Rotation
-from ..internal.mgl64 import Vec3, float_equal
+from ..mgl64 import Vec3, approx_equal, float_equal
 from ..world.game_mode import GAME_MODE_SURVIVAL, GameMode
 
 
@@ -261,13 +261,13 @@ struct Player(Copyable):
             the new position (Go calls `ViewEntityMovement` here).
         """
         if (
-            delta_pos.approx_equal(Vec3())
+            approx_equal(delta_pos, Vec3())
             and float_equal(delta_yaw, 0)
             and float_equal(delta_pitch, 0)
         ):
             self._on_ground = True
             return False
-        self._pos = self._pos + delta_pos
+        self._pos = self._pos.add(delta_pos)
         self._rot = self._rot.add(Rotation(delta_yaw, delta_pitch))
         return True
 

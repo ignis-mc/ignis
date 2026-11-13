@@ -22,7 +22,7 @@ distance setting, and neither does Ignis yet.
 from std.os.path import exists
 
 from ..internal.toml import TomlDocument, parse_toml, toml_quote
-from ..world.game_mode import GAME_MODE_SURVIVAL, GameMode, game_mode_by_name
+from ..world.game_mode import GAME_MODE_SURVIVAL, GameMode, game_mode_by_id
 
 
 struct UserConfig(Copyable, Defaultable):
@@ -171,6 +171,23 @@ struct UserConfig(Copyable, Defaultable):
             raise Error(t"config: unknown game mode {self.world_game_mode}")
         c.default_game_mode = mode.value()
         return c^
+
+
+def game_mode_by_name(name: StringSlice) -> Optional[GameMode]:
+    """Looks a game mode up by the name `config.toml` uses.
+
+    Args:
+        name: `survival`, `creative`, `adventure`, `spectator`, or the ID
+            `0` to `3`.
+
+    Returns:
+        The game mode, or `None` if the name is unknown.
+    """
+    for i in range(4):
+        var mode = game_mode_by_id(i).value()
+        if name == String(mode) or name == String(i):
+            return mode
+    return None
 
 
 def _bool(b: Bool) -> String:

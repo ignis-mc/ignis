@@ -14,13 +14,17 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"math"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
 
 	"github.com/df-mc/dragonfly/server/block"
+	"github.com/df-mc/dragonfly/server/item"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/dragonfly/server/world/biome"
 	"github.com/df-mc/dragonfly/server/world/chunk"
@@ -371,6 +375,20 @@ func chunkVectors(v vectors, name string, c *chunk.Chunk) {
 	v.hex(name+".sub_chunk", marshal(subChunkPacket(world.SubChunkPos{3, 0, -2}, offsets, c)))
 }
 
+// randVectors writes the first values of the generator Dragonfly's worlds
+// use (rand.New over rand.PCG), seeded with (1, 2).
+func randVectors(v vectors) {
+	r := rand.New(rand.NewPCG(1, 2))
+	v.int("rand.uint64.0", r.Uint64())
+	v.int("rand.uint64.1", r.Uint64())
+	v.int("rand.intn_8400", r.IntN(8400))
+	v.int("rand.intn_600", r.IntN(600))
+	v.int("rand.int32", r.Int32())
+	v.int("rand.intn_pow2", r.IntN(1<<20))
+	v.int("rand.intn_large", r.IntN(1000000007))
+	v["rand.float64_bits"] = fmt.Sprintf("%016x", math.Float64bits(r.Float64()))
+}
+
 func main() {
 	out := flag.String("out", "../../test/data/world", "output directory")
 	flag.Parse()
@@ -379,6 +397,7 @@ func main() {
 	br.Finalize()
 	v := vectors{}
 	blockStates(v, *out)
+	blockDefinitions(*out)
 	chunkVectors(v, "empty", newChunk())
 	chunkVectors(v, "simple", simpleChunk())
 	chunkVectors(v, "flat", flatChunk(false))
@@ -391,5 +410,59 @@ func main() {
 	for i := range widths {
 		v.hex(fmt.Sprintf("mixed.sub.%02d", i), data.SubChunks[i])
 	}
+	randVectors(v)
 	v.write(filepath.Join(*out, "vectors.txt"))
+}
+
+// tools are the tools a BreakInfo's Harvestable and Effective are evaluated
+// with: bit i of the masks in blocks.txt is tools[i]. Ignis builds the same
+// list from (tool type, harvest level) pairs.
+func tools() []item.Tool {
+	out := []item.Tool{item.ToolNone{}}
+	for _, tier := range item.ToolTiers() {
+		out = append(out, item.Pickaxe{Tier: tier}, item.Axe{Tier: tier}, item.Hoe{Tier: tier}, item.Shovel{Tier: tier}, item.Sword{Tier: tier})
+	}
+	return append(out, item.Shears{})
+}
+
+// blockDefinitions writes blocks.txt: one line per runtime ID that has a
+// registered block (not an unknown state), as
+// "rid<TAB>type<TAB>base hash<TAB>state hash<TAB>light<TAB>filter<TAB>flags<TAB>break",
+// flags being bits nbt|randomtick<<1|liquid<<2|liquiddisplacing<<3 and break
+// "-" for blocks that are not Breakable, otherwise the IEEE bits of hardness
+// and blast resistance in hex, the harvestable and effective tool masks in
+// hex and the XP drop range.
+func blockDefinitions(out string) {
+	ts := tools()
+	var b strings.Builder
+	for rid := uint32(0); rid < uint32(br.BlockCount()); rid++ {
+		blk, _ := br.BlockByRuntimeID(rid)
+		typ := reflect.TypeOf(blk).Name()
+		if typ == "unknownBlock" {
+			continue
+		}
+		base, state := blk.Hash()
+		flags := 0
+		for i, f := range []bool{br.NBTBlock(rid), br.RandomTickBlock(rid), br.LiquidBlock(rid), br.LiquidDisplacingBlock(rid)} {
+			if f {
+				flags |= 1 << i
+			}
+		}
+		brk := "-"
+		if bb, ok := blk.(block.Breakable); ok {
+			info := bb.BreakInfo()
+			var harvest, effective uint64
+			for i, t := range ts {
+				if info.Harvestable(t) {
+					harvest |= 1 << i
+				}
+				if info.Effective(t) {
+					effective |= 1 << i
+				}
+			}
+			brk = fmt.Sprintf("%016x,%016x,%x,%x,%d,%d", math.Float64bits(info.Hardness), math.Float64bits(info.BlastResistance), harvest, effective, info.XPDrops[0], info.XPDrops[1])
+		}
+		fmt.Fprintf(&b, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%s\n", rid, typ, base, state, br.LightBlock(rid), br.FilteringBlock(rid), flags, brk)
+	}
+	must(os.WriteFile(filepath.Join(out, "blocks.txt"), []byte(b.String()), 0o644))
 }

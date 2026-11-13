@@ -1,0 +1,186 @@
+"""`Wall`, ported from Dragonfly `server/block/wall.go`.
+
+Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
+with liquids.
+
+TODO(world-runtime): Model, NeighbourUpdateTick, UseOnBlock, ConnectionType,
+WithConnectionType, calculateConnections, calculatePost, EncodeItem and the
+drops.
+"""
+
+from ..world.block import Block, LightDiffuser
+from ..world.block_state import BlockState, Properties
+from .break_info import (
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
+    BreakInfo,
+    Breakable,
+    new_break_info,
+)
+from .hash import HASH_WALL, AnyBlock, hash_block, unhash_block
+from .register import break_info
+from .wall_connection_type import WallConnectionType, wall_connection_types
+from .wall_type import encode_wall_block, wall_blocks
+
+
+struct Wall(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+    """A block similar to fences that prevents players from jumping over it and connects to more
+    blocks."""
+
+    comptime BASE_HASH: UInt64 = HASH_WALL
+    """Go `hashWall`."""
+
+    var block: AnyBlock
+    """The block the wall is made of."""
+    var north_connection: WallConnectionType
+    """The connection to the north of the post."""
+    var east_connection: WallConnectionType
+    """The connection to the east of the post."""
+    var south_connection: WallConnectionType
+    """The connection to the south of the post."""
+    var west_connection: WallConnectionType
+    """The connection to the west of the post."""
+    var post: Bool
+    """Whether the wall extends to the full height of a block."""
+
+    def __init__(
+        out self,
+        *,
+        block: AnyBlock,
+        north_connection: WallConnectionType = WallConnectionType.NONE,
+        east_connection: WallConnectionType = WallConnectionType.NONE,
+        south_connection: WallConnectionType = WallConnectionType.NONE,
+        west_connection: WallConnectionType = WallConnectionType.NONE,
+        post: Bool = False,
+    ):
+        """Creates the block; `block` is required, the other fields default to Go zero values.
+
+        Args:
+            block: The block the wall is made of.
+            north_connection: The connection to the north of the post.
+            east_connection: The connection to the east of the post.
+            south_connection: The connection to the south of the post.
+            west_connection: The connection to the west of the post.
+            post: Whether the wall extends to the full height of a block.
+        """
+        self.block = block
+        self.north_connection = north_connection
+        self.east_connection = east_connection
+        self.south_connection = south_connection
+        self.west_connection = west_connection
+        self.post = post
+
+    def __eq__(self, other: Self) -> Bool:
+        """Compares two blocks.
+
+        Args:
+            other: The block to compare with.
+
+        Returns:
+            True if both are in the same state.
+        """
+        return self.hash() == other.hash()
+
+    def encode_block(self) -> BlockState:
+        """Encodes the block (Go `EncodeBlock`).
+
+        Returns:
+            The name and properties.
+        """
+        return BlockState(
+            String(t"minecraft:{encode_wall_block(self.block)}_wall"),
+            Properties()
+            .with_string(
+                "wall_connection_type_north", String(self.north_connection)
+            )
+            .with_string(
+                "wall_connection_type_east", String(self.east_connection)
+            )
+            .with_string(
+                "wall_connection_type_south", String(self.south_connection)
+            )
+            .with_string(
+                "wall_connection_type_west", String(self.west_connection)
+            )
+            .with_byte("wall_post_bit", UInt8(self.post)),
+        )
+
+    def hash(self) -> UInt64:
+        """Returns the state hash (Go `Hash`).
+
+        Returns:
+            The fields packed into bits.
+        """
+        return (
+            hash_block(self.block)
+            | UInt64(self.north_connection.uint8()) << 32
+            | UInt64(self.east_connection.uint8()) << 34
+            | UInt64(self.south_connection.uint8()) << 36
+            | UInt64(self.west_connection.uint8()) << 38
+            | (UInt64(1) if self.post else UInt64(0)) << 40
+        )
+
+    @staticmethod
+    def from_hash(hash: UInt64) -> Self:
+        """Rebuilds the block from its state hash.
+
+        Args:
+            hash: The state hash.
+
+        Returns:
+            The block.
+        """
+        return Wall(
+            block=unhash_block(hash & 0xFFFFFFFF),
+            north_connection=WallConnectionType(Int((hash >> 32) & 0x3)),
+            east_connection=WallConnectionType(Int((hash >> 34) & 0x3)),
+            south_connection=WallConnectionType(Int((hash >> 36) & 0x3)),
+            west_connection=WallConnectionType(Int((hash >> 38) & 0x3)),
+            post=(hash >> 40) & 0x1 != 0,
+        )
+
+    @staticmethod
+    def all_states() -> List[Self]:
+        """Returns the registered values (Go `register.go`).
+
+        Returns:
+            Every state of the block.
+        """
+        var out = List[Self]()
+        for b in wall_blocks():
+            for north in wall_connection_types():
+                for east in wall_connection_types():
+                    for south in wall_connection_types():
+                        for west in wall_connection_types():
+                            for post in [False, True]:
+                                out.append(
+                                    Wall(
+                                        block=b,
+                                        north_connection=north,
+                                        east_connection=east,
+                                        south_connection=south,
+                                        west_connection=west,
+                                        post=post,
+                                    )
+                                )
+        return out^
+
+    def break_info(self) -> BreakInfo:
+        """Returns the break info (Go `BreakInfo`).
+
+        Returns:
+            The hardness, blast resistance and tools.
+        """
+        var info = break_info(self.block.kind, self.block.state).value()
+        return new_break_info(
+            info.hardness, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
+        ).with_blast_resistance(info.blast_resistance)
+
+    def light_diffusion_level(self) -> UInt8:
+        """Returns the light the block takes away (Go
+        `LightDiffusionLevel`).
+
+        Returns:
+            The diffusion level, 0 to 15.
+        """
+        return 0

@@ -19,5 +19,10 @@ def test_behaviour() raises:
     assert_false(Air().has_liquid_drops())
 
 
+def test_encode_item() raises:
+    assert_equal(Air().encode_item().name, "minecraft:air")
+    assert_equal(len(Air.all_items()), 1)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

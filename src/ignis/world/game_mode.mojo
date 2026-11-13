@@ -1,153 +1,123 @@
 """Game modes, ported from Dragonfly `server/world/game_mode.go`.
 
-Go's `GameMode` is an interface with four vanilla implementations compared
-by identity. Here, as with `Dimension`, it is a small value type: the
-vanilla modes are the `GAME_MODE_*` constants, and the methods read the
-flags each Go type returns.
+Go's `GameMode` is an interface with four vanilla implementations and a
+registry from IDs. The set is closed, so here a game mode is its ID and the
+methods answer per ID; the `GAME_MODE_*` constants are Go's `GameMode*`
+variables.
 """
 
 
 @fieldwise_init
 struct GameMode(Equatable, ImplicitlyCopyable, Writable):
-    """A game mode: what a player in it may do."""
+    """A game mode a player may have (Go `GameMode`)."""
 
     var id: Int
-    """The ID Go's `GameModeID` returns."""
-    var name: StaticString
-    """The lower-case name, as used in `config.toml`."""
-    var _allows_editing: Bool
-    var _allows_taking_damage: Bool
-    var _creative_inventory: Bool
-    var _has_collision: Bool
-    var _allows_flying: Bool
-    var _allows_interaction: Bool
-    var _visible: Bool
+    """The ID the game mode is registered with (Go `GameModeID`): 0
+    survival, 1 creative, 2 adventure, 3 spectator."""
 
     def allows_editing(self) -> Bool:
-        """Reports whether the player may place and break blocks.
+        """Reports whether a player can edit the world.
 
         Returns:
-            Go `AllowsEditing`.
+            True in survival and creative.
         """
-        return self._allows_editing
+        return self.id <= 1
 
     def allows_taking_damage(self) -> Bool:
-        """Reports whether the player can be hurt.
+        """Reports whether a player can take damage.
 
         Returns:
-            Go `AllowsTakingDamage`.
+            True in survival and adventure.
         """
-        return self._allows_taking_damage
+        return self.id == 0 or self.id == 2
 
     def creative_inventory(self) -> Bool:
-        """Reports whether the player has the creative inventory.
+        """Reports whether a player has the creative inventory.
 
         Returns:
-            Go `CreativeInventory`.
+            True in creative.
         """
-        return self._creative_inventory
+        return self.id == 1
 
     def has_collision(self) -> Bool:
-        """Reports whether the player collides with blocks.
+        """Reports whether a player collides with blocks and entities.
 
         Returns:
-            Go `HasCollision`.
+            False in spectator.
         """
-        return self._has_collision
+        return self.id != 3
 
     def allows_flying(self) -> Bool:
-        """Reports whether the player may fly.
+        """Reports whether a player can fly.
 
         Returns:
-            Go `AllowsFlying`.
+            True in creative and spectator.
         """
-        return self._allows_flying
+        return self.id == 1 or self.id == 3
 
     def allows_interaction(self) -> Bool:
-        """Reports whether the player may interact with the world.
+        """Reports whether a player can interact with entities and use
+        items.
 
         Returns:
-            Go `AllowsInteraction`.
+            False in spectator.
         """
-        return self._allows_interaction
+        return self.id != 3
 
     def visible(self) -> Bool:
-        """Reports whether other players can see the player.
+        """Reports whether a player is visible to others.
 
         Returns:
-            Go `Visible`.
+            False in spectator.
         """
-        return self._visible
+        return self.id != 3
 
-    def __eq__(self, other: Self) -> Bool:
-        """Compares game modes by ID.
-
-        Args:
-            other: The other game mode.
+    def instant_portal_travel(self) -> Bool:
+        """Reports whether a player travels through nether portals at once.
 
         Returns:
-            True if both are the same mode.
+            True in creative.
         """
-        return self.id == other.id
+        return self.id == 1
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the name.
+        """Writes the game mode's name.
 
         Args:
-            writer: The writer.
+            writer: The destination.
         """
-        writer.write(self.name)
+        if self.id == 0:
+            writer.write("survival")
+        elif self.id == 1:
+            writer.write("creative")
+        elif self.id == 2:
+            writer.write("adventure")
+        else:
+            writer.write("spectator")
 
 
-comptime GAME_MODE_SURVIVAL = GameMode(
-    0, "survival", True, True, False, True, False, True, True
-)
-"""Go `GameModeSurvival`."""
-comptime GAME_MODE_CREATIVE = GameMode(
-    1, "creative", True, False, True, True, True, True, True
-)
-"""Go `GameModeCreative`."""
-comptime GAME_MODE_ADVENTURE = GameMode(
-    2, "adventure", False, True, False, True, False, True, True
-)
-"""Go `GameModeAdventure`."""
-comptime GAME_MODE_SPECTATOR = GameMode(
-    3, "spectator", False, False, False, False, True, False, False
-)
-"""Go `GameModeSpectator`."""
+comptime GAME_MODE_SURVIVAL = GameMode(0)
+"""Limited supplies; blocks take time to break (Go `GameModeSurvival`)."""
+comptime GAME_MODE_CREATIVE = GameMode(1)
+"""Infinite blocks and items, instant breaking, flying (Go
+`GameModeCreative`)."""
+comptime GAME_MODE_ADVENTURE = GameMode(2)
+"""No placing or breaking blocks (Go `GameModeAdventure`)."""
+comptime GAME_MODE_SPECTATOR = GameMode(3)
+"""Invisible, flying, no interaction, no collision (Go
+`GameModeSpectator`)."""
 
 
 def game_mode_by_id(id: Int) -> Optional[GameMode]:
-    """Looks a game mode up by ID (Go `GameModeByID`).
+    """Looks up a game mode by ID (Go `GameModeByID`).
 
     Args:
-        id: 0 survival, 1 creative, 2 adventure or 3 spectator.
+        id: 0 to 3.
 
     Returns:
-        The game mode, or `None` for any other ID.
+        The game mode, or None for other IDs (Go returns survival and
+        false).
     """
-    if id == 0:
-        return GAME_MODE_SURVIVAL
-    if id == 1:
-        return GAME_MODE_CREATIVE
-    if id == 2:
-        return GAME_MODE_ADVENTURE
-    if id == 3:
-        return GAME_MODE_SPECTATOR
-    return None
-
-
-def game_mode_by_name(name: StringSlice) -> Optional[GameMode]:
-    """Looks a game mode up by its lower-case name or numeric ID.
-
-    Args:
-        name: `survival`, `creative`, `adventure`, `spectator` or `0`-`3`.
-
-    Returns:
-        The game mode, or `None` if the name is unknown.
-    """
-    for i in range(4):
-        var mode = game_mode_by_id(i).value()
-        if name == mode.name or name == String(i):
-            return mode
-    return None
+    if id < 0 or id > 3:
+        return None
+    return GameMode(id)

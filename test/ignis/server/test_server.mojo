@@ -63,7 +63,7 @@ def test_parse_skin() raises:
 
 
 def test_flat_world_spawn() raises:
-    var w = flat_world(Config())
+    var w = flat_world(Config(), 0)
     assert_equal(w.spawn().y(), -59)
     assert_equal(w.name(), "World")
 

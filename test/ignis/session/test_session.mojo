@@ -2,7 +2,9 @@ from ignis.block.bedrock import Bedrock
 from ignis.block.dirt import Dirt
 from ignis.block.grass import Grass
 from ignis.block.register import vanilla_block_registry
-from ignis.internal.mgl64 import Vec3
+from ignis.block.register import VanillaBlocks
+from ignis.entity.register import VanillaEntities
+from ignis.mgl64 import Vec3
 from ignis.player.player import Player
 from ignis.session.session import (
     SELF_ENTITY_RUNTIME_ID,
@@ -17,9 +19,14 @@ from ignis.world.game_mode import (
     GAME_MODE_SPECTATOR,
     GAME_MODE_SURVIVAL,
 )
+from ignis.session.viewer import SessionViewer
+from ignis.world.conf import Config as WorldConfig
 from ignis.world.generator.flat import Flat
+from ignis.world.handler import NopHandler
 from ignis.world.position import ChunkPos
-from ignis.world.world import Settings, World
+from ignis.world.provider import MemoryProvider
+from ignis.world.world import World, WorldTypes
+from std.memory import ArcPointer
 from minecraft.protocol.block_pos import SubChunkPos as ProtocolSubChunkPos
 from minecraft.protocol.math import Vec3 as ProtocolVec3
 from minecraft.protocol.packet.add_player import AddPlayer
@@ -76,7 +83,16 @@ from std.testing import (
 from support.fake_conn import FakeConn
 
 
-def _world() raises -> World[Flat]:
+struct _Types(WorldTypes):
+    comptime Generator = Flat
+    comptime Provider = MemoryProvider
+    comptime Viewer = SessionViewer
+    comptime Handler = NopHandler
+    comptime Blocks = VanillaBlocks
+    comptime Entities = VanillaEntities
+
+
+def _world() raises -> World[_Types]:
     var br = vanilla_block_registry()
     var layers: List[UInt32] = [
         br.block_runtime_id(Grass()),
@@ -84,7 +100,16 @@ def _world() raises -> World[Flat]:
         br.block_runtime_id(Dirt()),
         br.block_runtime_id(Bedrock()),
     ]
-    return World(br^, Flat(Plains(), layers^), Settings())
+    var conf = WorldConfig[_Types](
+        Flat(Plains(), layers^), MemoryProvider(), ArcPointer(br^)
+    )
+    conf.seed = (UInt64(1), UInt64(2))
+    return conf^.new(0)
+
+
+def _spawn(mut s: Session[FakeConn], mut w: World[_Types]):
+    var id = w.add_loader(Int(s.chunk_radius), SessionViewer(s.queue()))
+    s.spawn(w, id)
 
 
 def _player(name: String, n: UInt8) raises -> Player:
@@ -125,7 +150,7 @@ def test_spawn_packets() raises:
     var w = _world()
     var s = _session("Steve", 1)
     s.conn.clear()
-    s.spawn(w)
+    _spawn(s, w)
     var ids = s.conn.ids()
     assert_equal(ids[0], ID_NETWORK_CHUNK_PUBLISHER_UPDATE)
     assert_equal(ids[1], ID_AVAILABLE_ACTOR_IDENTIFIERS)
@@ -138,14 +163,14 @@ def test_spawn_packets() raises:
 def test_send_chunks_and_sub_chunks() raises:
     var w = _world()
     var s = _session("Steve", 1)
-    s.spawn(w)
+    _spawn(s, w)
     s.conn.clear()
     s.send_chunks(w)
     var chunks = s.conn.all[LevelChunk]()
     assert_equal(len(chunks), 4)
     assert_equal(chunks[0].position.x, 0)
     assert_equal(chunks[0].position.z, 0)
-    while s.chunk_loader().value().queued_count() > 0:
+    for _ in range(10):
         s.send_chunks(w)
     # Radius 2 holds 21 chunks.
     assert_equal(s.conn.count(ID_LEVEL_CHUNK), 21)
@@ -174,19 +199,23 @@ def test_send_chunks_and_sub_chunks() raises:
 def test_request_chunk_radius() raises:
     var w = _world()
     var s = _session("Steve", 1)
-    s.spawn(w)
+    _spawn(s, w)
     var req = RequestChunkRadius()
     req.chunk_radius = 16
     _ = s.handle_packet(_packet(req), w)
     assert_equal(s.chunk_radius, 4)
     assert_equal(s.conn.last[ChunkRadiusUpdated]().chunk_radius, 4)
-    assert_equal(s.chunk_loader().value().radius(), 4)
+    s.send_chunks(w)
+    for _ in range(20):
+        s.send_chunks(w)
+    # Radius 4 holds 69 chunks (rounded distance at most 4).
+    assert_equal(s.conn.count(ID_LEVEL_CHUNK), 69)
 
 
 def test_player_auth_input_moves() raises:
     var w = _world()
     var s = _session("Steve", 1)
-    s.spawn(w)
+    _spawn(s, w)
     var pk = PlayerAuthInput()
     pk.position = ProtocolVec3(3.5, Float32(-59 + 1.62), -2.25)
     pk.yaw = 90
@@ -194,9 +223,9 @@ def test_player_auth_input_moves() raises:
     pk.head_yaw = 90
     var res = s.handle_packet(_packet(pk), w)
     assert_true(res.moved)
-    assert_almost_equal(s.player.position().x, 3.5)
-    assert_almost_equal(s.player.position().y, -59, atol=1e-5)
-    assert_almost_equal(s.player.position().z, -2.25)
+    assert_almost_equal(s.player.position().x(), 3.5)
+    assert_almost_equal(s.player.position().y(), -59, atol=1e-5)
+    assert_almost_equal(s.player.position().z(), -2.25)
     assert_almost_equal(s.player.rotation().yaw(), 90)
     assert_almost_equal(s.player.rotation().pitch(), 10)
     # The same input again is no movement.
@@ -211,7 +240,7 @@ def test_player_auth_input_nan_keeps_position() raises:
     pk.position = ProtocolVec3(0.5, nan[DType.float32](), 0.5)
     var res = s.handle_packet(_packet(pk), w)
     assert_false(res.moved)
-    assert_almost_equal(s.player.position().y, -59, atol=1e-5)
+    assert_almost_equal(s.player.position().y(), -59, atol=1e-5)
 
 
 def test_text_chat() raises:

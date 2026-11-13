@@ -11,6 +11,11 @@ Differences from Go, all from the single-threaded design:
   handle) and is stepped by the server's loop: `handle_packet` replaces the
   `handlePackets` goroutine, and the server calls `send_chunks` once per
   tick in place of the `background` goroutine.
+- The world owns the session's chunk loader and its viewer
+  (`session.viewer.SessionViewer`), which queues what the world shows into
+  a `PacketQueue` the session shares; the session writes the queue in order
+  with its own packets. Players are not world entities yet, so the server
+  shows them to each other directly.
 - Go's player reaches its viewers through the world; here `handle_packet`
   reports what changed (`HandleResult`) and the server, which owns every
   session, calls the `view_*` methods of the others.
@@ -25,6 +30,7 @@ moving the player 1.62 blocks down; Ignis substitutes the eye position.
 """
 
 from std.collections import Dict
+from std.memory import ArcPointer
 from std.math import isinf, isnan
 
 from minecraft.nbt.encode import encode as encode_nbt
@@ -50,6 +56,7 @@ from minecraft.protocol.ability import (
 )
 from minecraft.protocol.attribute import Attribute
 from minecraft.protocol.block_pos import BlockPos
+from minecraft.protocol.math import Vec3 as ProtocolVec3
 from minecraft.protocol.block_pos import SubChunkPos as ProtocolSubChunkPos
 from minecraft.protocol.command import COMMAND_PERMISSION_LEVEL_ANY
 from minecraft.protocol.entity_metadata import (
@@ -154,21 +161,15 @@ from minecraft.protocol.sub_chunk import (
 from minecraft.protocol.uuid import UUID
 
 from ..block.cube.rotation import Rotation
-from ..internal.mgl64 import Vec3, float_equal
+from ..mgl64 import Vec3, float_equal
 from ..player.player import BBOX_HEIGHT, BBOX_WIDTH, EYE_HEIGHT, Player
-from ..world.chunk.chunk import Chunk
-from ..world.dimension import Dimension
 from ..world.game_mode import GAME_MODE_SPECTATOR, GameMode
-from ..world.generator import Generator
-from ..world.loader import Loader, Viewer
+from ..world.loader import LoaderID
 from ..world.position import ChunkPos, SubChunkPos
-from ..world.world import World, chunk_pos_from_block
-from .chunk import (
-    network_chunk,
-    sub_chunk_entry_with_height_map,
-    sub_chunk_index,
-)
+from ..world.world import World, WorldTypes
+from .chunk import sub_chunk_entry, sub_chunk_index
 from .conn import Conn
+from .viewer import PacketQueue
 
 
 comptime SELF_ENTITY_RUNTIME_ID: UInt64 = 1
@@ -328,15 +329,44 @@ def player_metadata(p: Player) raises -> EntityMetadata:
     return m^
 
 
+def vec32_to64(v: ProtocolVec3) -> Vec3:
+    """Widens a network vector (Go `vec32To64`).
+
+    Args:
+        v: The vector.
+
+    Returns:
+        The same vector in `Float64`.
+    """
+    return Vec3(Float64(v.x), Float64(v.y), Float64(v.z))
+
+
+def vec64_to32(v: Vec3) -> ProtocolVec3:
+    """Narrows a vector for the network (Go `vec64To32`).
+
+    Args:
+        v: The vector.
+
+    Returns:
+        The vector in `Float32`.
+    """
+    return ProtocolVec3(Float32(v.x()), Float32(v.y()), Float32(v.z()))
+
+
+def _block_chunk_key(pos: Vec3) -> ChunkPos:
+    """Go's `ChunkPos{int32(pos[0]) << 4, int32(pos[2]) << 4}`."""
+    return ChunkPos(Int32(pos.x()) << 4, Int32(pos.z()) << 4)
+
+
 def _block_pos(v: Vec3) -> BlockPos:
     var b = BlockPos()
-    b.x = Int32(v.x)
-    b.y = Int32(v.y)
-    b.z = Int32(v.z)
+    b.x = Int32(v.x())
+    b.y = Int32(v.y())
+    b.z = Int32(v.z())
     return b
 
 
-struct Session[C: Conn](Movable, Viewer):
+struct Session[C: Conn](Movable):
     """A connected player: decodes its packets and writes what it sees (Go
     `session.Session`).
 
@@ -356,7 +386,8 @@ struct Session[C: Conn](Movable, Viewer):
     var max_chunk_radius: Int32
     """The largest radius allowed (Go `maxChunkRadius`)."""
     var _conf: Config
-    var _loader: Optional[Loader]
+    var _loader: Optional[LoaderID]
+    var _queue: ArcPointer[PacketQueue]
     var _current_entity_runtime_id: UInt64
     var _entity_runtime_ids: Dict[String, UInt64]
     var _teleport_pos: Optional[Vec3]
@@ -392,6 +423,7 @@ struct Session[C: Conn](Movable, Viewer):
         self.max_chunk_radius = Int32(conf.max_chunk_radius)
         self._conf = conf.copy()
         self._loader = None
+        self._queue = ArcPointer(PacketQueue())
         self._current_entity_runtime_id = 1
         self._entity_runtime_ids = Dict[String, UInt64]()
         self._teleport_pos = None
@@ -435,8 +467,31 @@ struct Session[C: Conn](Movable, Viewer):
         except e:
             self._write_error = String(e)
 
+    def queue(self) -> ArcPointer[PacketQueue]:
+        """Returns the queue the session's world viewer writes into.
+
+        Returns:
+            A reference to the shared queue, for `SessionViewer`.
+        """
+        return self._queue
+
+    def drain_queue(mut self):
+        """Writes what the world viewer queued to the connection."""
+        if len(self._queue[].packets) == 0:
+            return
+        var n = len(self._queue[].packets)
+        for i in range(n):
+            if self._write_error:
+                break
+            try:
+                self.conn.write(self._queue[].packets[i].copy())
+            except e:
+                self._write_error = String(e)
+        self._queue[].packets.clear()
+
     def flush(mut self):
-        """Sends the queued packets as one batch."""
+        """Sends the queued packets, the viewer's included, as one batch."""
+        self.drain_queue()
         if self._write_error:
             return
         try:
@@ -456,23 +511,24 @@ struct Session[C: Conn](Movable, Viewer):
     # Spawning and chunks
     # ===------------------------------------------------------------------=== #
 
-    def spawn[G: Generator & Copyable & Deinitable](mut self, mut w: World[G]):
+    def spawn[T: WorldTypes](mut self, mut w: World[T], loader: LoaderID):
         """Shows the player its world (Go `Spawn`): starts the chunk
         loader, the entity identifiers, the game mode and the player's own
         metadata.
 
         Parameters:
-            G: The world's generator type.
+            T: The world's types.
 
         Args:
             w: The world the player spawns in.
+            loader: The loader the server added for the session, with a
+                `SessionViewer` over `queue()` (Go `NewLoader`).
         """
         var pos = self.player.position()
         self._dimension = Int32(w.dimension().id)
-        self._loader = Loader(
-            Int(self.chunk_radius), chunk_pos_from_block(pos.x, pos.z)
-        )
-        self._last_chunk_pos = chunk_pos_from_block(pos.x, pos.z)
+        self._loader = loader
+        w.move_loader(loader, pos)
+        self._last_chunk_pos = _block_chunk_key(pos)
         var pub = NetworkChunkPublisherUpdate()
         pub.position = _block_pos(pos)
         pub.radius = UInt32(self.chunk_radius) << 4
@@ -481,10 +537,19 @@ struct Session[C: Conn](Movable, Viewer):
         self.send_game_mode()
         self.view_entity_state(self.player.copy())
 
-    def close(mut self):
-        """Stops loading chunks (the world part of Go `close`)."""
-        if self._loader:
-            self._loader.value().close()
+    def close[T: WorldTypes](mut self, mut w: World[T]):
+        """Stops loading chunks (the world part of Go `close`).
+
+        Parameters:
+            T: The world's types.
+
+        Args:
+            w: The world the session's loader is in.
+        """
+        if case .Some(id) = self._loader:
+            _ = w.close_loader(id)
+            self._loader = None
+        self.drain_queue()
 
     def into_conn(deinit self) -> Self.C:
         """Ends the session and returns its connection, such as to keep
@@ -495,67 +560,53 @@ struct Session[C: Conn](Movable, Viewer):
         """
         return self.conn^
 
-    def chunk_loader(ref self) -> ref[self._loader] Optional[Loader]:
-        """Returns the chunk loader, set once the player spawned.
+    def loader(self) -> Optional[LoaderID]:
+        """Returns the session's chunk loader, set once the player spawned.
 
         Returns:
             The loader, or `None` before `spawn`.
         """
         return self._loader
 
-    def send_chunks[
-        G: Generator & Copyable & Deinitable
-    ](mut self, mut w: World[G]):
+    def send_chunks[T: WorldTypes](mut self, mut w: World[T]):
         """Moves the chunk loader to the player and sends up to four new
         chunks (Go `sendChunks`, run every tick).
 
         Parameters:
-            G: The world's generator type.
+            T: The world's types.
 
         Args:
             w: The world.
         """
         if not self._loader:
             return
+        var id = self._loader.value()
         var pos = self.player.position()
-        var loader = self._loader.take()
-        loader.move(pos)
+        w.move_loader(id, pos)
         # Go compares the block position shifted left by 4, which changes
         # whenever the block does; the publisher update follows blocks.
-        var chunk_pos = ChunkPos(Int32(pos.x) << 4, Int32(pos.z) << 4)
+        var chunk_pos = _block_chunk_key(pos)
         if chunk_pos != self._last_chunk_pos:
             self._last_chunk_pos = chunk_pos
             var pub = NetworkChunkPublisherUpdate()
             pub.position = _block_pos(pos)
             pub.radius = UInt32(self.chunk_radius) << 4
             self.write_packet(pub)
-        loader.load(w, self, _CHUNKS_PER_TICK)
-        self._loader = loader^
-
-    def view_chunk(mut self, pos: ChunkPos, dim: Dimension, mut c: Chunk):
-        """Sends a chunk's biomes; the client then requests its sub-chunks
-        (Go `ViewChunk` and `sendNetworkChunk`).
-
-        Args:
-            pos: The position of the chunk.
-            dim: The dimension of the chunk.
-            c: The chunk.
-        """
-        var pk = network_chunk(pos, Int32(dim.id), c)
-        self.write_packet(pk)
+        w.load(id, _CHUNKS_PER_TICK)
+        self.drain_queue()
 
     def view_sub_chunks[
-        G: Generator & Copyable & Deinitable
+        T: WorldTypes
     ](
         mut self,
         centre: SubChunkPos,
         offsets: List[SubChunkOffset],
-        mut w: World[G],
+        mut w: World[T],
     ):
         """Answers a sub-chunk request (Go `ViewSubChunks`).
 
         Parameters:
-            G: The world's generator type.
+            T: The world's types.
 
         Args:
             centre: The centre of the request.
@@ -563,6 +614,7 @@ struct Session[C: Conn](Movable, Viewer):
             w: The world.
         """
         var r = w.range()
+        var br = w.block_registry()
         var pk = SubChunk()
         pk.dimension = Int32(w.dimension().id)
         pk.position = ProtocolSubChunkPos()
@@ -582,19 +634,16 @@ struct Session[C: Conn](Movable, Viewer):
                 centre.x() + Int32(offset.x), centre.z() + Int32(offset.z)
             )
             var loaded = False
-            if self._loader:
-                loaded = self._loader.value().chunk_loaded(col_pos)
+            if case .Some(id) = self._loader:
+                loaded = w.loader_has_chunk(id, col_pos)
             if not loaded:
                 var e = SubChunkEntry()
                 e.result = SUB_CHUNK_RESULT_CHUNK_NOT_FOUND
                 e.offset = offset
                 pk.sub_chunk_entries.append(e^)
                 continue
-            var chunk_map = w.height_map(col_pos)
             pk.sub_chunk_entries.append(
-                sub_chunk_entry_with_height_map(
-                    offset, ind.value(), w.chunk(col_pos), chunk_map
-                )
+                sub_chunk_entry(offset, ind.value(), w.chunk(col_pos), br[])
             )
         self.write_packet(pk)
 
@@ -603,13 +652,13 @@ struct Session[C: Conn](Movable, Viewer):
     # ===------------------------------------------------------------------=== #
 
     def handle_packet[
-        G: Generator & Copyable & Deinitable
-    ](mut self, pk: PacketData, mut w: World[G]) raises -> HandleResult:
+        T: WorldTypes
+    ](mut self, pk: PacketData, mut w: World[T]) raises -> HandleResult:
         """Handles one packet from the client (Go `handlePacket`). Packets
         without a ported handler are ignored, as Go ignores unhandled IDs.
 
         Parameters:
-            G: The world's generator type.
+            T: The world's types.
 
         Args:
             pk: The packet.
@@ -648,8 +697,8 @@ struct Session[C: Conn](Movable, Viewer):
             if radius > self.max_chunk_radius:
                 radius = self.max_chunk_radius
             self.chunk_radius = radius
-            if self._loader:
-                self._loader.value().change_radius(Int(radius))
+            if case .Some(id) = self._loader:
+                w.change_loader_radius(id, Int(radius))
             var upd = ChunkRadiusUpdated()
             upd.chunk_radius = radius
             self.write_packet(upd)
@@ -676,15 +725,15 @@ struct Session[C: Conn](Movable, Viewer):
         if _bad(pk.head_yaw):
             pk.head_yaw = Float32(rot.yaw())
         if _bad(pk.position.x):
-            pk.position.x = Float32(pos.x)
+            pk.position.x = Float32(pos.x())
         if _bad(pk.position.y):
-            pk.position.y = Float32(pos.y + EYE_HEIGHT)
+            pk.position.y = Float32(pos.y() + EYE_HEIGHT)
         if _bad(pk.position.z):
-            pk.position.z = Float32(pos.z)
+            pk.position.z = Float32(pos.z())
 
         pk.position.y = pk.position.y - Float32(EYE_HEIGHT)
-        var new_pos = Vec3.from_protocol(pk.position)
-        var delta_pos = new_pos - pos
+        var new_pos = vec32_to64(pk.position)
+        var delta_pos = new_pos.sub(pos)
         var delta_yaw = Float64(pk.yaw) - rot.yaw()
         var delta_pitch = Float64(pk.pitch) - rot.pitch()
 
@@ -694,7 +743,7 @@ struct Session[C: Conn](Movable, Viewer):
             or not float_equal(delta_pitch, 0)
         ):
             if case .Some(expected) = self._teleport_pos:
-                if (new_pos - expected).len() > 1:
+                if new_pos.sub(expected).len() > 1:
                     # Moved before the teleport arrived: ignore until the
                     # client catches up.
                     return False
@@ -973,7 +1022,7 @@ struct Session[C: Conn](Movable, Viewer):
         pk.game_type = game_type_from_mode(p.game_mode())
         pk.head_yaw = Float32(rot.yaw())
         pk.pitch = Float32(rot.pitch())
-        pk.position = p.position().to_protocol()
+        pk.position = vec64_to32(p.position())
         pk.uuid = p.uuid()
         pk.username = p.name()
         pk.yaw = Float32(rot.yaw())
@@ -1035,8 +1084,8 @@ struct Session[C: Conn](Movable, Viewer):
             flags |= MOVE_FLAG_TELEPORT
         var pk = MoveActorAbsolute()
         pk.entity_runtime_id = id
-        pk.position = (pos + Vec3(0, EYE_HEIGHT, 0)).to_protocol()
-        pk.rotation = Vec3(rot.pitch(), rot.yaw(), rot.yaw()).to_protocol()
+        pk.position = vec64_to32(pos.add(Vec3(0, EYE_HEIGHT, 0)))
+        pk.rotation = vec64_to32(Vec3(rot.pitch(), rot.yaw(), rot.yaw()))
         pk.flags = flags
         self.write_packet(pk)
 
@@ -1060,7 +1109,7 @@ struct Session[C: Conn](Movable, Viewer):
         self.write_packet(motion)
         var pk = MovePlayer()
         pk.entity_runtime_id = id
-        pk.position = (position + Vec3(0, EYE_HEIGHT, 0)).to_protocol()
+        pk.position = vec64_to32(position.add(Vec3(0, EYE_HEIGHT, 0)))
         pk.pitch = Float32(rot.pitch())
         pk.yaw = Float32(rot.yaw())
         pk.head_yaw = Float32(rot.yaw())

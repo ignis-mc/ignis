@@ -29,10 +29,10 @@ loop:
 | Dragonfly | Ignis |
 | --- | --- |
 | `server.Server` with its goroutines | `server.Server` owning listeners, sessions and worlds, driven by the loop |
-| `world.World` + `World.Exec(func(*Tx))` | `world.World`; transactions are direct calls during the loop |
+| `world.World` + `World.Exec(func(*Tx))` | `world.World[T]`; transactions are direct calls during the loop, `Tx` is an alias of `World` |
 | `session.Session` (one goroutine per player) | `session.Session` stepped by the loop |
 | `minecraft.Listener` (gophertunnel) | the server-side `Listener` in the `protocol` submodule |
-| goleveldb / mcdb | to be decided; worlds start as generated/in-memory |
+| goleveldb / mcdb | to be decided; worlds use `NopProvider` or `MemoryProvider` |
 
 ## Polymorphism
 
@@ -46,8 +46,10 @@ compile-time type list for dynamic dispatch.
 ### Blocks
 
 Implemented in `ignis.world` (`block.mojo`, `block_registry.mojo`,
-`block_set.mojo`) with air, stone, grass, dirt and bedrock in `ignis.block`
-as the worked example.
+`block_set.mojo`). `ignis.block` defines all 225 Dragonfly block types
+(state, encoding, hash, registration, light and break data); their
+behaviour (`world.Tx`, items, entities) is listed per module after
+`TODO(world-runtime):`.
 
 - **A block type is a struct conforming to `world.Block`**:
   `BASE_HASH` (the type's `hash*` constant from Go's generated
@@ -76,18 +78,22 @@ as the worked example.
   trait that loops over `Ts` at compile time, keeps the types for which
   `conforms_to(T, Trait)` holds, compares `kind` with `T.BASE_HASH` and
   calls `T.from_hash(state_hash)` (see the example in `block_set.mojo` and
-  `test/ignis/world/test_block_set.mojo`). Registry flags that Go derives
-  from interfaces (`LightEmitter`, `LightDiffuser`, later `NBTer`,
-  `RandomTicker`, `Liquid`, `LiquidDisplacer`) are computed the same way in
+  `test/ignis/world/test_block_set.mojo`). A behaviour the world calls
+  also gets a method in the `BlockTypes` trait, which `BlockSet`
+  implements. Registry flags that Go derives
+  from interfaces (`LightEmitter`, `LightDiffuser`, `RandomTicker`, later
+  `NBTer`, `Liquid`, `LiquidDisplacer`) are computed the same way in
   `register_block[T]`.
 - **Go's embedded helper structs** (`solid`, `transparent`, `empty`,
   `replaceable`, ...) cannot be embedded in Mojo: write the methods they
   supply on each block and say which helper they come from (Air's
   `light_diffusion_level` is Go's `transparent`).
-- Mojo allows circular imports between packages, so `ignis.world` code may
-  import `ignis.block.register.VanillaBlocks` for dispatch even though
-  `ignis.block` imports `ignis.world`. If the world later needs custom
-  blocks, make it generic over the block set instead.
+- Mojo allows circular imports between packages and modules (the world
+  and the block, entity and handler traits refer to each other). The world
+  is generic over its block set (`WorldTypes.Blocks`, any `BlockTypes`),
+  so tests and custom servers can add block types; `BlockTypes` lists the
+  dispatchers a world needs (scheduled, neighbour and random ticks, block
+  items).
 
 Porting a block type, mechanically:
 
@@ -95,11 +101,50 @@ Porting a block type, mechanically:
    fields in Go's order (`snake_case`), `BASE_HASH = HASH_X`, `hash` copied
    from `hash.go`, `from_hash` unpacking the same bits, `encode_block`,
    `all_states` from the `RegisterBlock` calls (or Go's `allX()`), and each
-   ported method. Methods that need unported packages wait for them.
-2. Conform to the behaviour traits it implements in Go.
-3. Add the type to `VanillaBlocks` in `block/register.mojo`.
-4. Test: `from_hash(b.hash()) == b` for `all_states()`, `encode_block`, and
-   the runtime IDs and `block_hash` against values from `interop/world`.
+   ported method. Methods that need unported packages wait for them; the
+   module docstring lists them after `TODO(world-runtime):` with their Go
+   names.
+2. The constructor takes every field as a keyword argument defaulting to
+   Go's zero value, so `Log(wood=WoodType.SPRUCE)` reads like
+   `Log{Wood: SpruceWood()}`.
+3. Conform to the behaviour traits it implements in Go (`Breakable`,
+   `LightEmitter`, `LightDiffuser`, ...). Go's embedded `transparent`
+   becomes `light_diffusion_level() -> 0`.
+4. Add the type to `VanillaBlocks` in `block/register.mojo` (sorted by
+   name).
+5. Test: `test/ignis/block/test_register.mojo` checks every runtime ID
+   against `test/data/world/blocks.txt` from `interop/world` (type, state
+   hash, encoded state, light, break info); add unit tests for anything
+   non-trivial.
+
+Conventions shared by the block port:
+
+- **Enumerations** (Go `WoodType{wood}` with `OakWood()` constructors, or
+  `cube.Direction` integer constants) are small structs with `comptime`
+  members: `WoodType.OAK`, `Colour.LIGHT_BLUE`, `Direction.NORTH`,
+  `Face.UP`, `Axis.Y`. `uint8()` (or `Int(x)` for the `cube` integers) and
+  `T(v)` convert to and from the hashed value, `write_to` is Go's
+  `String()`, and `wood_types()` etc. list every value as Go's
+  `WoodTypes()` does.
+- **`BreakInfo`** is data: `hardness`, `blast_resistance`, `xp_drops` and
+  two `ToolFilter`s (tool types plus a minimum harvest level) for Go's
+  `Harvestable` and `Effective` closures. Drops, break handlers and break
+  durations need items and `world.Tx` and come with them.
+- **Data that Go keeps outside the state** (NBT fields such as a note
+  block's pitch or a chest's custom name) are fields too, compared by
+  `__eq__` but not hashed, so `from_hash` gives their zero values as Go's
+  registry does. Fields whose types are not ported yet (inventories,
+  `item.Stack`, entity handles) are in the module's TODO list.
+- **Name clashes**: Go's `block.String` is `StringBlock`, so that importing
+  it does not shadow the built-in `String`.
+- **Dragonfly bugs fixed while keeping the wire states**: plain and red
+  nether brick slabs and stairs are no longer swapped
+  (`slab_type.mojo`, `stairs_type.mojo`; `test_register` maps Go's state
+  hashes for those values), and `Attachment.rotate_right` rotates right.
+- **Blocks that hold a block** (Go `Slab{Block: Planks{}}`) store it as an
+  `AnyBlock`: the type's `BASE_HASH` and the block's `hash()`, which is what
+  Go's `hashBlock` packs into the outer hash. `get[T]()` is Go's type
+  assertion.
 
 `BasicBlockRegistry.finalize` checks what Go's `Finalize` checks: every
 registered state is unique, no two blocks share a block hash, no network
@@ -107,16 +152,118 @@ hash collides, and air exists.
 
 ### Items
 
-Not ported yet; the plan follows blocks. Each item type conforms to an
-`item.Item` trait (`BASE_HASH`, `encode_item() -> (name, meta)`, `hash`,
-`from_hash`); an item of unknown type is its `(kind, state hash)` pair, or
-the runtime ID for blocks used as items; an `ItemSet[*Ts]` dispatches
-behaviour as `BlockSet` does. Item IDs come from `vanilla_items.nbt`.
+Implemented in `ignis.world.item` (Go `world/item.go`) and `ignis.item`
+with stick, diamond, coal, beef and shears, and the five ported blocks as
+block items.
+
+- **An item type is a struct conforming to `world.Item`**: `BASE_HASH`,
+  `encode_item() -> EncodedItem` (Go `EncodeItem`'s name and meta),
+  `hash()`, `from_hash()` and `all_items()` (the `RegisterItem` calls).
+  Dragonfly has no item hashes, so an item's `BASE_HASH` is
+  `item_hash("GoTypeName")` (FNV-1a 64, computed at compile time). A block
+  that is an item conforms to both `Block` and `Item` and keeps its block
+  `BASE_HASH`; the two traits share `hash` and `from_hash`.
+- **An item of unknown type is an `AnyItem`** (`kind`, `hash`, `block`).
+  `it.get[Stick]()` replaces Go's `it.(Stick)`.
+- **`ItemRegistry`** replaces Go's item globals: it loads
+  `resources/vanilla_items.nbt` (runtime IDs exactly as Dragonfly assigns
+  them, and the StartGame item table via `item_entries()`), and items are
+  registered into it (`ignis.item.register.vanilla_item_registry`).
+- **`item.Stack`** holds an `AnyItem` plus an `ItemInfo` (max count,
+  durability, ...) computed from the type's traits (`MaxCounter`,
+  `Durable`, `Repairable`) when the stack is created, so stack methods need
+  no dispatch. Stacks start with network ID 0; the layer that sends them
+  assigns IDs (Go uses a global counter).
+- **`item.ItemSet[*Ts]`** registers item types and is where item behaviour
+  dispatch goes (`Usable`, `Consumable`, ...), as `BlockSet` does for
+  blocks. `BlockSet.block_item`/`encode_block_item` give a block as an item.
+- The network form of stacks is `ignis.session.item` (`stack_from_item`,
+  `stack_to_item`), byte-exact against Dragonfly.
+
+### The world and transactions
+
+`ignis.world.World[T: WorldTypes]` is Go's `World` with the methods of
+`Tx`, `ticker`, `Loader` and `weather`. `WorldTypes` names, at compile
+time, everything Go configures with interface values:
+
+```mojo
+struct ServerWorld(WorldTypes):
+    comptime Generator = Flat          # world.Generator
+    comptime Provider = MemoryProvider # world.Provider
+    comptime Viewer = SessionViewer    # what loaders show the world to
+    comptime Handler = ServerHandler   # world.Handler
+    comptime Blocks = VanillaBlocks    # world.BlockTypes (BlockSet)
+    comptime Entities = VanillaEntities  # world.EntityTypes (EntitySet)
+```
+
+- **Transactions**: `Tx` is an alias of `World`. Go's
+  `w.Exec(func(tx *Tx) { tx.SetBlock(...) })` is `w.set_block(...)`.
+  Callbacks that Go passes a `*Tx` (block ticks, entity ticks, handlers)
+  receive `mut tx: World[T]`, generic over `T`.
+- **Ticking**: the loop calls `w.tick(now_ms)` when `w.next_deadline_ms()`
+  passes; it runs every 50 ms tick that is due (`advance_tick`, Go
+  `ticker.tick`) and the periodic unload and save. Worlds without viewers
+  do not tick unless `Config.synchronous`.
+- **Chunks** load synchronously on the loop: from the provider, else from
+  the generator. `Loader` loads are bounded by the `n` passed to
+  `w.load(id, n)`, which is how a session limits generation per tick.
+- **Callbacks into the world's own parts**: the world takes its handler
+  (and a ticking entity) out of itself while calling it, so the callee can
+  use the world mutably. A handler cannot reach itself through `tx`, and an
+  entity cannot look itself up while it ticks.
+- **Durations** are milliseconds (Go `time.Duration`); `delay_ms // 50`
+  ticks, as Go divides by `time.Second / 20`.
+- **Randomness**: `ignis.internal.rand` is Go's `math/rand/v2` PCG and
+  `Rand`, so seeded worlds draw Dragonfly's numbers.
+- **Errors** Go logs (provider failures) go to `World.last_error`.
+
+### Viewers and loaders
+
+- **`world.Viewer`** is a trait whose methods all have empty default bodies
+  (Go's `NopViewer` embedding). Blocks are runtime IDs; entity methods are
+  generic over the entity set (`view_entity[E](e: EntityHandle[E])`).
+- **The world owns its loaders and their viewers.** Go's `Loader` is held
+  by the session and points at the world; here `w.add_loader(radius,
+  viewer^) -> LoaderID` moves the viewer into the world, `move_loader`,
+  `load`, `change_loader_radius` replace the loader's methods, and
+  `close_loader(id)` gives the viewer back (Go `ChangeWorld` is
+  close-then-add). A session reaches its viewer with `w.viewer(id)`, or
+  shares state with it (a packet queue) through an `ArcPointer`.
+- `test/support/world_runtime.mojo` has a `RecordingViewer` that records
+  every call, which is how the world tests check notifications.
+
+### Entities
+
+Implemented in `ignis.world.entity` with `ignis.entity.text.Text` as the
+worked example.
+
+- **An entity type is a struct conforming to `world.EntityType`**: its
+  `IDENTIFIER` (Go `EncodeEntity`), `bbox`, `encode_nbt` and `decode_nbt`.
+  The struct is also the entity's behaviour state (Go `EntityData.Data`);
+  Go's separate `EntityType` value and opened `Entity` collapse into it.
+- **An entity is an `EntityHandle[E]`**: its UUID, the shared `EntityData`
+  (position, velocity, rotation, name, fire, age) and `state: E.State`,
+  a `Variant` over the types of the entity set `E = EntitySet[*Ts]`. The
+  world owns the handles of its entities and addresses them by UUID;
+  `remove_entity` gives the handle back so it can join another world.
+- **Behaviours** some types have become traits refining `EntityType`
+  (`TickerEntity`, `NetworkEncodedEntity`), dispatched by `EntitySet` with
+  `comptime if conforms_to(...)`. A ticking entity is taken out of the
+  world during `tick(mut self, id, mut data, mut tx, current)` and returns
+  an optional `EntityMovement` that the world shows to viewers (Go
+  `Movement.Send`). An entity that removes itself while ticking is removed
+  when its tick ends.
+- `EntitySet.wrap(T())` builds a state; `e.state[T]` / `e.state.isa[T]()`
+  replace Go's type assertions where the set is concrete.
+- Adding a type is: write the struct, add it to the `EntitySet` the server
+  uses (`ignis.entity.register.VanillaEntities`). Player types will join it
+  with the player package; keep large state behind an `OwnedPointer`
+  (moved structs must stay small).
 
 ### Other interfaces
 
-- `world.Generator`, `world.Biome`: traits; a world is generic over its
-  generator, and biomes are stored by ID (`encode_biome`).
+- `world.Generator`, `world.Provider`, `world.Handler`: traits named in
+  `WorldTypes`; biomes are stored by ID (`encode_biome`).
 - `world.Dimension`: a small value type with `OVERWORLD`, `NETHER` and `END`
   constants (the vanilla set is closed; custom dimensions are values too).
 
@@ -131,6 +278,12 @@ behaviour as `BlockSet` does. Item IDs come from `vanilla_items.nbt`.
   (`StartGame` leaves `UseBlockNetworkIDHashes` off), `LevelChunk` with
   biomes only and sub-chunk requests answered with network-encoded
   sub-chunks (`ignis.session.chunk`).
-- Not ported yet: the disk encoding (needs the block state upgrader), the
-  light engine (server-side only; the client computes its own light), and
-  the client blob cache.
+- `resources/vanilla_items.nbt` holds the item runtime IDs and the
+  StartGame item table.
+- Providers store `chunk.Column`s: the chunk, its entities as NBT (Go's
+  `encodeNBT` fields plus the type's), and its scheduled block updates.
+  `MemoryProvider` keeps them in memory; unloaded chunks come back intact.
+- Not ported yet: the disk encoding and provider (needs the block state
+  upgrader), the light engine (server-side only; the client computes its
+  own light), block entities, liquids, redstone, and the client blob
+  cache.

@@ -1,204 +1,135 @@
-"""Chunk loaders, ported from Dragonfly `server/world/loader.go`.
+"""Loaders, ported from Dragonfly `server/world/loader.go`.
 
-A `Loader` tracks which chunks around a position a viewer has been sent.
-Dragonfly loads chunks asynchronously and keeps a `pending` set; here the
-world generates chunks on the loop thread, so a chunk is loaded and viewed
-in the same `load` call and nothing is ever pending. The loader does not
-hold its world or viewer (Mojo has no shared references); `load` takes both.
+A loader loads the chunks around a position for its `Viewer`, nearest
+first, and moves with it. In Go a `Loader` is an object the session holds,
+pointing at its world. Here the world owns its loaders, keyed by a
+`LoaderID`, because it must reach their viewers whenever something
+changes; Go's loader methods are `World` methods taking the ID:
+
+| Go | Ignis |
+| --- | --- |
+| `NewLoader(r, w, v)` | `w.add_loader(r, v^) -> LoaderID` |
+| `l.Move(tx, pos)` | `w.move_loader(id, pos)` |
+| `l.Load(tx, n)` | `w.load(id, n)` |
+| `l.ChangeRadius(tx, r)` | `w.change_loader_radius(id, r)` |
+| `l.Chunk(pos)` | `w.loader_has_chunk(id, pos)` |
+| `l.Close(tx)` | `w.close_loader(id) -> V` |
+| `l.ChangeWorld(tx, w2)` | `v = w.close_loader(id)`, then `w2.add_loader(r, v^)` |
+
+Chunks load synchronously on the loop (generation is bounded by the `n`
+passed to `load`), so Go's pending set and asynchronous callbacks are not
+needed.
 """
 
-from std.collections import Dict
-from std.math import sqrt
+from std.collections import Dict, Set
+from std.math import floor, sqrt
 
-from ..internal.mgl64 import Vec3
-from .chunk.chunk import Chunk
-from .dimension import Dimension
-from .generator import Generator
 from .position import ChunkPos
-from .world import World, chunk_key, chunk_pos_from_block
+from .viewer import Viewer
 
-
-trait Viewer:
-    """Something that is shown the chunks a `Loader` loads (the chunk part
-    of Go's `world.Viewer`)."""
-
-    def view_chunk(mut self, pos: ChunkPos, dim: Dimension, mut c: Chunk):
-        """Shows a chunk (Go `ViewChunk`).
-
-        Args:
-            pos: The position of the chunk.
-            dim: The dimension of the chunk's world.
-            c: The chunk; mutable so its height map can be cached.
-        """
-        ...
+comptime LoaderID = UInt64
+"""The world-local identifier of a loader."""
 
 
 def chunk_distance(a: ChunkPos, b: ChunkPos) -> Int32:
-    """Returns the rounded Euclidean distance between two chunk positions
-    (Go `chunkDistance`).
+    """Returns the rounded distance between two chunk positions (Go
+    `chunkDistance`).
 
     Args:
         a: The first position.
         b: The second position.
 
     Returns:
-        The distance in chunks.
+        The Euclidean distance rounded half away from zero.
     """
     var dx = Float64(a.x()) - Float64(b.x())
     var dz = Float64(a.z()) - Float64(b.z())
-    return Int32(round(sqrt(dx * dx + dz * dz)))
+    return Int32(Int(floor(sqrt(dx * dx + dz * dz) + 0.5)))
 
 
-struct Loader(Movable):
-    """Loads the chunks within a radius around a position for a viewer."""
+struct Loader[V: Viewer](Movable):
+    """The state of one loader (Go `Loader`).
 
-    var _r: Int
-    var _pos: ChunkPos
-    var _load_queue: List[ChunkPos]
-    var _loaded: Dict[Int, ChunkPos]
-    var _closed: Bool
+    Parameters:
+        V: The viewer type.
+    """
 
-    def __init__(out self, chunk_radius: Int, pos: ChunkPos):
-        """Creates a loader around a chunk (Go `NewLoader` and `world`).
+    var r: Int
+    """The chunk radius."""
+    var viewer: Self.V
+    """The viewer chunks and changes are shown to."""
+    var pos: ChunkPos
+    """The chunk the loader is in."""
+    var load_queue: List[ChunkPos]
+    """Chunks to load, nearest first."""
+    var loaded: Set[ChunkPos]
+    """Chunks the viewer is viewing."""
+
+    def __init__(out self, r: Int, var viewer: Self.V):
+        """Creates a loader at chunk (0, 0) with an empty queue.
 
         Args:
-            chunk_radius: The radius in chunks.
-            pos: The chunk to centre on.
+            r: The chunk radius.
+            viewer: The viewer.
         """
-        self._r = chunk_radius
-        self._pos = pos
-        self._load_queue = List[ChunkPos]()
-        self._loaded = Dict[Int, ChunkPos]()
-        self._closed = False
-        self._populate_load_queue()
+        self.r = r
+        self.viewer = viewer^
+        self.pos = ChunkPos(0, 0)
+        self.load_queue = List[ChunkPos]()
+        self.loaded = Set[ChunkPos]()
 
-    def radius(self) -> Int:
-        """Returns the chunk radius.
+    def into_viewer(deinit self) -> Self.V:
+        """Consumes the loader, giving its viewer back.
 
         Returns:
-            The radius in chunks.
+            The viewer.
         """
-        return self._r
+        return self.viewer^
 
-    def pos(self) -> ChunkPos:
-        """Returns the chunk the loader is centred on.
-
-        Returns:
-            The centre chunk.
-        """
-        return self._pos
-
-    def change_radius(mut self, new: Int):
-        """Changes the radius, forgetting chunks now outside it (Go
-        `ChangeRadius`).
-
-        Args:
-            new: The new radius in chunks.
-        """
-        self._r = new
-        self._evict_unused()
-        self._populate_load_queue()
-
-    def move(mut self, pos: Vec3):
-        """Moves the loader to the chunk holding a position (Go `Move`).
-
-        Args:
-            pos: The new position.
-        """
-        var chunk_pos = chunk_pos_from_block(pos.x, pos.z)
-        if chunk_pos == self._pos:
-            return
-        self._pos = chunk_pos
-        self._evict_unused()
-        self._populate_load_queue()
-
-    def load[
-        G: Generator & Copyable & Deinitable, V: Viewer
-    ](mut self, mut w: World[G], mut viewer: V, n: Int):
-        """Loads and shows up to `n` queued chunks (Go `Load` and
-        `viewChunk`).
-
-        Parameters:
-            G: The world's generator type.
-            V: The viewer type.
-
-        Args:
-            w: The world to take the chunks from.
-            viewer: The viewer to show them to.
-            n: The most chunks to load.
-        """
-        var i = 0
-        while i < n:
-            if self._closed or len(self._load_queue) == 0:
-                return
-            var pos = self._load_queue.pop(0)
-            i += 1
-            var key = chunk_key(pos)
-            if key in self._loaded or not self._within_load_radius(pos):
-                continue
-            viewer.view_chunk(pos, w.dimension(), w.chunk(pos))
-            self._loaded[key] = pos
-
-    def chunk_loaded(self, pos: ChunkPos) -> Bool:
-        """Reports whether the loader has shown a chunk (Go `Chunk`'s ok).
+    def within_load_radius(self, pos: ChunkPos) -> Bool:
+        """Reports whether a chunk is within the loader's radius (Go
+        `withinLoadRadius`).
 
         Args:
             pos: The chunk position.
 
         Returns:
-            True if the chunk was shown and is still within the radius.
+            True if within the radius.
         """
-        return chunk_key(pos) in self._loaded
+        return chunk_distance(pos, self.pos) <= Int32(self.r)
 
-    def loaded_count(self) -> Int:
-        """Counts the chunks shown.
+    def queue_load(mut self, pos: ChunkPos):
+        """Queues a chunk again unless it is loaded, queued or out of range
+        (Go `queueLoad`).
 
-        Returns:
-            The number of loaded chunks.
+        Args:
+            pos: The chunk position.
         """
-        return len(self._loaded)
+        if not self.within_load_radius(pos) or pos in self.loaded:
+            return
+        for q in self.load_queue:
+            if q == pos:
+                return
+        self.load_queue.append(pos)
 
-    def queued_count(self) -> Int:
-        """Counts the chunks waiting to be loaded.
-
-        Returns:
-            The length of the load queue.
-        """
-        return len(self._load_queue)
-
-    def close(mut self):
-        """Forgets every chunk and stops loading (Go `Close`)."""
-        self._loaded = Dict[Int, ChunkPos]()
-        self._load_queue = List[ChunkPos]()
-        self._closed = True
-
-    def _evict_unused(mut self):
-        var keep = Dict[Int, ChunkPos]()
-        for item in self._loaded.items():
-            if self._within_load_radius(item.value):
-                keep[item.key] = item.value
-        self._loaded = keep^
-
-    def _within_load_radius(self, pos: ChunkPos) -> Bool:
-        return chunk_distance(pos, self._pos) <= Int32(self._r)
-
-    def _populate_load_queue(mut self):
-        var r = Int32(self._r)
-        var queue = List[List[ChunkPos]]()
-        for _ in range(Int(r) + 1):
-            queue.append(List[ChunkPos]())
-        var x = -r
-        while x <= r:
-            var z = -r
-            while z <= r:
-                var pos = ChunkPos(x + self._pos.x(), z + self._pos.z())
-                var dist = chunk_distance(pos, self._pos)
-                z += 1
-                if dist > r or chunk_key(pos) in self._loaded:
+    def populate_load_queue(mut self):
+        """Rebuilds the load queue: every chunk within the radius that is
+        not loaded yet, nearest first (Go `populateLoadQueue`)."""
+        var r = Int32(self.r)
+        var queue = Dict[Int32, List[ChunkPos]]()
+        for x in range(-r, r + 1):
+            for z in range(-r, r + 1):
+                var pos = ChunkPos(x + self.pos.x(), z + self.pos.z())
+                var dist = chunk_distance(pos, self.pos)
+                if dist > r or pos in self.loaded:
                     continue
-                queue[Int(dist)].append(pos)
-            x += 1
-        self._load_queue.clear()
-        for ring in queue:
-            for pos in ring:
-                self._load_queue.append(pos)
+                if dist not in queue:
+                    queue[dist] = List[ChunkPos]()
+                try:
+                    queue[dist].append(pos)
+                except:
+                    pass
+        self.load_queue.clear()
+        for i in range(r + 1):
+            if case .Some(ref l) = queue.get(i):
+                self.load_queue.extend(l.copy())

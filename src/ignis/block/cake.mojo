@@ -1,0 +1,159 @@
+"""`Cake`, ported from Dragonfly `server/block/cake.go`.
+
+Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
+with liquids.
+
+TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, Activate, Ignite,
+SideClosed, Model, HasLiquidDrops, EncodeItem and the drops.
+"""
+
+from ..item.optional_colour import OptionalColour, optional_colours
+from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_state import BlockState, Properties
+from .break_info import (
+    ALWAYS_HARVESTABLE,
+    NEVER_HARVESTABLE,
+    NOTHING_EFFECTIVE,
+    BreakInfo,
+    Breakable,
+    new_break_info,
+)
+from .hash import HASH_CAKE
+
+
+struct Cake(
+    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+):
+    """An edible block."""
+
+    comptime BASE_HASH: UInt64 = HASH_CAKE
+    """Go `hashCake`."""
+
+    var bites: Int
+    """The number of bites taken out of the cake, 0 to 6."""
+    var candle: Bool
+    """Whether a candle is placed on the cake."""
+    var candle_colour: OptionalColour
+    """The colour of the candle on the cake."""
+    var candle_lit: Bool
+    """Whether the candle on the cake is lit."""
+
+    def __init__(
+        out self,
+        *,
+        bites: Int = 0,
+        candle: Bool = False,
+        candle_colour: OptionalColour = OptionalColour.NONE,
+        candle_lit: Bool = False,
+    ):
+        """Creates the block; omitted fields take Go zero values.
+
+        Args:
+            bites: The number of bites taken out of the cake, 0 to 6.
+            candle: Whether a candle is placed on the cake.
+            candle_colour: The colour of the candle on the cake.
+            candle_lit: Whether the candle on the cake is lit.
+        """
+        self.bites = bites
+        self.candle = candle
+        self.candle_colour = candle_colour
+        self.candle_lit = candle_lit
+
+    def __eq__(self, other: Self) -> Bool:
+        """Compares two blocks.
+
+        Args:
+            other: The block to compare with.
+
+        Returns:
+            True if both are in the same state.
+        """
+        return self.hash() == other.hash()
+
+    def encode_block(self) -> BlockState:
+        """Encodes the block (Go `EncodeBlock`).
+
+        Returns:
+            The name and properties.
+        """
+        if self.candle:
+            return BlockState(
+                "minecraft:" + self.candle_colour.prepend("candle_cake"),
+                Properties().with_bool("lit", self.candle_lit),
+            )
+        return BlockState(
+            "minecraft:cake",
+            Properties().with_int("bite_counter", Int32(self.bites)),
+        )
+
+    def hash(self) -> UInt64:
+        """Returns the state hash (Go `Hash`).
+
+        Returns:
+            The fields packed into bits.
+        """
+        return (
+            UInt64(self.bites)
+            | (UInt64(1) if self.candle else UInt64(0)) << 8
+            | UInt64(self.candle_colour.uint8()) << 9
+            | (UInt64(1) if self.candle_lit else UInt64(0)) << 14
+        )
+
+    @staticmethod
+    def from_hash(hash: UInt64) -> Self:
+        """Rebuilds the block from its state hash.
+
+        Args:
+            hash: The state hash.
+
+        Returns:
+            The block.
+        """
+        return Cake(
+            bites=Int(hash & 0xFF),
+            candle=(hash >> 8) & 0x1 != 0,
+            candle_colour=OptionalColour(Int((hash >> 9) & 0x1F)),
+            candle_lit=(hash >> 14) & 0x1 != 0,
+        )
+
+    @staticmethod
+    def all_states() -> List[Self]:
+        """Returns the registered values (Go `register.go`).
+
+        Returns:
+            Every state of the block.
+        """
+        var out = List[Self]()
+        for bites in range(7):
+            out.append(Cake(bites=bites))
+        for c in optional_colours():
+            out.append(Cake(candle_colour=c, candle=True))
+            out.append(Cake(candle_colour=c, candle=True, candle_lit=True))
+        return out^
+
+    def break_info(self) -> BreakInfo:
+        """Returns the break info (Go `BreakInfo`).
+
+        Returns:
+            The hardness, blast resistance and tools.
+        """
+        if self.candle:
+            return new_break_info(0.5, ALWAYS_HARVESTABLE, NOTHING_EFFECTIVE)
+        return new_break_info(0.5, NEVER_HARVESTABLE, NOTHING_EFFECTIVE)
+
+    def light_emission_level(self) -> UInt8:
+        """Returns the light the block emits (Go `LightEmissionLevel`).
+
+        Returns:
+            The light level, 0 to 15.
+        """
+        return 3 if self.candle and self.candle_lit else 0
+
+    def light_diffusion_level(self) -> UInt8:
+        """Returns the light the block takes away (Go
+        `LightDiffusionLevel`).
+
+        Returns:
+            The diffusion level, 0 to 15.
+        """
+        return 0

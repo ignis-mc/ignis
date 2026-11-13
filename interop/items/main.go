@@ -109,22 +109,26 @@ func canonical(v any) string {
 		}
 		return "{" + strings.Join(parts, ",") + "}"
 	}
+	// gophertunnel decodes arrays into Go arrays and lists into slices,
+	// typed ([]int32, []string) when the elements allow it.
 	rv := reflect.ValueOf(v)
-	if rv.Kind() == reflect.Array || rv.Kind() == reflect.Slice {
+	switch rv.Kind() {
+	case reflect.Array:
 		prefix := map[reflect.Kind]string{reflect.Uint8: "B", reflect.Int32: "I", reflect.Int64: "L"}[rv.Type().Elem().Kind()]
 		if prefix == "" {
-			// Typed slices such as []string encode as lists.
-			parts := make([]string, rv.Len())
-			for i := range parts {
-				parts[i] = canonical(rv.Index(i).Interface())
-			}
-			return "[" + strings.Join(parts, ",") + "]"
+			panic(fmt.Sprintf("array %T", v))
 		}
 		parts := make([]string, rv.Len())
 		for i := range parts {
 			parts[i] = fmt.Sprint(rv.Index(i).Interface())
 		}
 		return prefix + "[" + strings.Join(parts, ",") + "]"
+	case reflect.Slice:
+		parts := make([]string, rv.Len())
+		for i := range parts {
+			parts[i] = canonical(rv.Index(i).Interface())
+		}
+		return "[" + strings.Join(parts, ",") + "]"
 	}
 	panic(fmt.Sprintf("canonical: %T", v))
 }

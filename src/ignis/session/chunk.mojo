@@ -27,7 +27,6 @@ from ..world.chunk.block_registry import BlockRegistry
 from ..world.chunk.chunk import Chunk
 from ..world.chunk.encode import encode_biomes, encode_sub_chunk
 from ..world.chunk.encoding import NetworkEncoding
-from ..world.chunk.heightmap import HeightMap
 from ..world.position import ChunkPos, SubChunkPos
 
 
@@ -98,25 +97,6 @@ def sub_chunk_entry[
         network-encoded sub-chunk, or an all-air result.
     """
     var chunk_map = col.height_map(br)
-    return sub_chunk_entry_with_height_map(offset, ind, col, chunk_map)
-
-
-def sub_chunk_entry_with_height_map(
-    offset: SubChunkOffset, ind: Int16, col: Chunk, chunk_map: HeightMap
-) -> SubChunkEntry:
-    """Builds a `SubChunk` entry like `sub_chunk_entry`, from the chunk's
-    already computed height map (for callers that cannot lend the chunk and
-    the registry at once, such as the world).
-
-    Args:
-        offset: The requested offset, echoed in the entry.
-        ind: The index of the sub-chunk in the chunk.
-        col: The chunk.
-        chunk_map: The chunk's height map (`Chunk.height_map`).
-
-    Returns:
-        The entry.
-    """
     var sub_map_type = HEIGHT_MAP_DATA_HAS_DATA
     var sub_map = ProtocolHeightMap()
     var higher = True

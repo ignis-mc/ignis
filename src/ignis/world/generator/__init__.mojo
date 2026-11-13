@@ -15,7 +15,7 @@ from ..dimension import Dimension
 from ..position import ChunkPos
 
 
-trait Generator:
+trait Generator(Deinitable, Movable):
     """Generates chunks the world's provider does not have."""
 
     def generate_chunk(self, pos: ChunkPos, mut chunk: Chunk):

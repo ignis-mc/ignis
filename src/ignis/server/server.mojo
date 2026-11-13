@@ -10,8 +10,11 @@ session, calls their `view_*` methods.
 Simplifications for the first playable milestone, to be replaced as the
 world runtime is ported:
 
-- One overworld with a flat generator; no player or world provider.
-- Every player sees every other player, regardless of distance (Go shows
+- One overworld with a flat generator in memory (`MemoryProvider`); no
+  player provider.
+- Players are not world entities yet (they join the entity set with the
+  player package), so the server shows them to each other directly, and
+  every player sees every other player regardless of distance (Go shows
   the entities of the chunks a viewer has loaded).
 """
 
@@ -57,15 +60,27 @@ from ..block.bedrock import Bedrock
 from ..block.dirt import Dirt
 from ..block.grass import Grass
 from ..block.register import vanilla_block_registry
-from ..internal.mgl64 import Vec3
+from ..block.register import VanillaBlocks
+from ..entity.register import VanillaEntities
+from ..mgl64 import Vec3
 from ..player.player import EYE_HEIGHT, Player
 from ..session.conn import NetConn
 from ..session.session import Config as SessionConfig
-from ..session.session import HandleResult, Session, load_biome_definitions
+from ..session.session import (
+    HandleResult,
+    Session,
+    load_biome_definitions,
+    vec64_to32,
+)
+from ..session.viewer import SessionViewer
 from ..world.biome.plains import Plains
+from ..world.block_registry import BasicBlockRegistry
+from ..world.conf import Config as WorldConfig
 from ..world.game_mode import GAME_MODE_SPECTATOR
 from ..world.generator.flat import Flat
-from ..world.world import TICK_MS, Settings, World
+from ..world.handler import NopHandler
+from ..world.provider import MemoryProvider
+from ..world.world import TICK_MS, World, WorldTypes
 from .conf import Config
 
 
@@ -212,12 +227,31 @@ def parse_skin(data: ClientData) raises -> Skin:
     return s^
 
 
-def flat_world(conf: Config) raises -> World[Flat]:
+struct ServerWorld(WorldTypes):
+    """The world types of the server (what Go's `server.Config` sets with
+    interface values)."""
+
+    comptime Generator = Flat
+    """Dragonfly's default flat generator."""
+    comptime Provider = MemoryProvider
+    """Worlds are kept in memory until the disk provider is ported."""
+    comptime Viewer = SessionViewer
+    """Loaders show the world to sessions."""
+    comptime Handler = NopHandler
+    """No world handler yet."""
+    comptime Blocks = VanillaBlocks
+    """Every ported block type."""
+    comptime Entities = VanillaEntities
+    """Every ported entity type."""
+
+
+def flat_world(conf: Config, now_ms: Int) raises -> World[ServerWorld]:
     """Creates Dragonfly's default world: a flat plains world of grass, two
-    dirt layers and bedrock (Go `Config.Generator`'s default).
+    dirt layers and bedrock (Go `Config.Generator`'s default), in memory.
 
     Args:
         conf: The server settings, for the world name and game mode.
+        now_ms: The current monotonic time.
 
     Returns:
         The world.
@@ -232,10 +266,13 @@ def flat_world(conf: Config) raises -> World[Flat]:
         br.block_runtime_id(Dirt()),
         br.block_runtime_id(Bedrock()),
     ]
-    var settings = Settings()
-    settings.name = conf.world_name.copy()
-    settings.default_game_mode = conf.default_game_mode
-    return World(br^, Flat(Plains(), layers^), settings^)
+    var wc = WorldConfig[ServerWorld](
+        Flat(Plains(), layers^), MemoryProvider(), ArcPointer(br^)
+    )
+    var w = wc^.new(now_ms)
+    w.settings().name = conf.world_name.copy()
+    w.set_default_game_mode(conf.default_game_mode)
+    return w^
 
 
 struct Server(Movable):
@@ -246,7 +283,7 @@ struct Server(Movable):
     """The settings."""
     var listener: Listener[DefaultKeySet]
     """The NetherNet listener."""
-    var world: World[Flat]
+    var world: World[ServerWorld]
     """The world every player joins."""
     var sessions: List[Session[NetConn]]
     """The sessions of spawned players."""
@@ -267,7 +304,7 @@ struct Server(Movable):
         Raises:
             If a resource cannot be loaded or the address cannot be bound.
         """
-        var world = flat_world(conf)
+        var world = flat_world(conf, monotonic_ms())
         var items = item_entries(conf.vanilla_items_path)
         var biomes = load_biome_definitions(conf.biome_definitions_path)
         var blocks = data_driven_block_entries(conf.data_driven_blocks_path)
@@ -355,6 +392,8 @@ struct Server(Movable):
         self._poll_closing(now)
         self._handle_sessions(now)
 
+        if now >= self.world.next_deadline_ms():
+            _ = self.world.tick(now)
         var ticks = 0
         while now >= self._next_tick and ticks < _MAX_CATCH_UP_TICKS:
             self._tick()
@@ -386,15 +425,15 @@ struct Server(Movable):
         data.entity_runtime_id = 1
         data.world_name = self.conf.name.copy()
         data.base_game_version = String(CURRENT_VERSION)
-        data.time = self.world.time()
+        data.time = Int64(self.world.time())
         data.difficulty = 2
         data.player_game_mode = Int32(mode.id)
         if mode == GAME_MODE_SPECTATOR:
             data.player_game_mode = GAME_TYPE_SPECTATOR
         data.player_permissions = UInt8(PERMISSION_LEVEL_MEMBER)
-        data.player_position = (
-            self._spawn_position() + Vec3(0, EYE_HEIGHT, 0)
-        ).to_protocol()
+        data.player_position = vec64_to32(
+            self._spawn_position().add(Vec3(0, EYE_HEIGHT, 0))
+        )
         data.dimension = Int32(self.world.dimension().id)
         data.items = self._items.copy()
         data.custom_blocks = self._custom_blocks.copy()
@@ -524,7 +563,11 @@ struct Server(Movable):
             var other_skin = self.sessions[j].join_skin.copy()
             self.sessions[n].add_to_player_list(other, other_skin^)
         self.sessions[n].send_session_to_self()
-        self.sessions[n].spawn(self.world)
+        var loader = self.world.add_loader(
+            Int(self.sessions[n].chunk_radius),
+            SessionViewer(self.sessions[n].queue()),
+        )
+        self.sessions[n].spawn(self.world, loader)
         # World.AddEntity: viewers see the new player and it sees them.
         for j in range(n):
             self.sessions[j].view_entity(me)
@@ -586,15 +629,11 @@ struct Server(Movable):
                 s.send_message(line)
 
     def _tick(mut self):
-        """Runs one world tick and the per-tick session work (Go's world
-        ticker and each session's `background` loop)."""
-        var send_time = self.world.tick()
-        var time = self.world.time()
+        """Runs the per-tick session work (each session's `background`
+        loop in Go); the world ticks on its own deadline."""
         for _i in range(len(self.sessions)):
             ref s = self.sessions[_i]
             s.send_chunks(self.world)
-            if send_time:
-                s.view_time(time)
 
     def _remove_closed_sessions(mut self):
         """Removes sessions whose connection closed (Go `Session.close`
@@ -610,7 +649,7 @@ struct Server(Movable):
             if s.write_error():
                 reason = s.write_error().value()
             var gone = self.sessions.pop(i)
-            gone.close()
+            gone.close(self.world)
             var p = gone.player.copy()
             for _i in range(len(self.sessions)):
                 ref other = self.sessions[_i]

@@ -4,26 +4,30 @@ from ignis.world.game_mode import (
     GAME_MODE_SPECTATOR,
     GAME_MODE_SURVIVAL,
     game_mode_by_id,
-    game_mode_by_name,
 )
-from std.testing import TestSuite, assert_false, assert_true
+from std.testing import TestSuite, assert_equal, assert_false, assert_true
 
 
-def test_flags() raises:
-    assert_true(GAME_MODE_CREATIVE.allows_flying())
+def test_capabilities_match_go() raises:
+    assert_true(GAME_MODE_SURVIVAL.allows_editing())
+    assert_true(GAME_MODE_SURVIVAL.allows_taking_damage())
     assert_false(GAME_MODE_SURVIVAL.allows_flying())
+    assert_true(GAME_MODE_CREATIVE.creative_inventory())
+    assert_true(GAME_MODE_CREATIVE.allows_flying())
+    assert_false(GAME_MODE_CREATIVE.allows_taking_damage())
+    assert_true(GAME_MODE_CREATIVE.instant_portal_travel())
     assert_false(GAME_MODE_ADVENTURE.allows_editing())
+    assert_true(GAME_MODE_ADVENTURE.allows_interaction())
     assert_false(GAME_MODE_SPECTATOR.has_collision())
     assert_false(GAME_MODE_SPECTATOR.visible())
-    assert_true(GAME_MODE_CREATIVE.creative_inventory())
+    assert_false(GAME_MODE_SPECTATOR.allows_interaction())
+    assert_true(GAME_MODE_SPECTATOR.allows_flying())
 
 
-def test_lookup() raises:
+def test_by_id() raises:
     assert_true(game_mode_by_id(1).value() == GAME_MODE_CREATIVE)
     assert_false(game_mode_by_id(4))
-    assert_true(game_mode_by_name("spectator").value() == GAME_MODE_SPECTATOR)
-    assert_true(game_mode_by_name("2").value() == GAME_MODE_ADVENTURE)
-    assert_false(game_mode_by_name("hardcore"))
+    assert_equal(String(GAME_MODE_SPECTATOR), "spectator")
 
 
 def main() raises:

@@ -1,9 +1,16 @@
-"""Rotations, ported from Dragonfly `server/block/cube/rotation.go`."""
+"""Rotations, ported from Dragonfly `server/block/cube/rotation.go`.
+
+Only the accessors and `Add` are ported so far.
+"""
+
+from std.math import trunc
 
 
 @fieldwise_init
-struct Rotation(Equatable, ImplicitlyCopyable, Writable):
-    """A yaw and pitch in degrees (Go `cube.Rotation`, `[2]float64`)."""
+struct Rotation(Defaultable, Equatable, ImplicitlyCopyable, Writable):
+    """The rotation of an object in degrees: a yaw in (-180, 180] and a pitch
+    in [-90, 90], positive looking down (Go `cube.Rotation`, `[2]float64`).
+    """
 
     var _yaw: Float64
     var _pitch: Float64
@@ -14,7 +21,7 @@ struct Rotation(Equatable, ImplicitlyCopyable, Writable):
         self._pitch = 0
 
     def yaw(self) -> Float64:
-        """Returns the yaw (Go `Yaw`).
+        """Returns the yaw (Go `r[0]`).
 
         Returns:
             The yaw in degrees.
@@ -22,64 +29,43 @@ struct Rotation(Equatable, ImplicitlyCopyable, Writable):
         return self._yaw
 
     def pitch(self) -> Float64:
-        """Returns the pitch (Go `Pitch`).
+        """Returns the pitch (Go `r[1]`).
 
         Returns:
             The pitch in degrees.
         """
         return self._pitch
 
-    def add(self, r: Self) -> Self:
-        """Adds two rotations and wraps the result into range (Go `Add`).
+    def add(self, r2: Self) -> Self:
+        """Adds two rotations element-wise, wrapping the yaw and clamping the
+        pitch into range (Go `Add`).
 
         Args:
-            r: The rotation to add.
+            r2: The rotation to add.
 
         Returns:
-            The sum, yaw in [-180, 180) and pitch in [-90, 90) as Go's `fix`
-            leaves them.
+            The sum.
         """
-        return Self(self._yaw + r._yaw, self._pitch + r._pitch).fix()
+        return Self(self._yaw + r2._yaw, self._pitch + r2._pitch)._fix()
 
-    def fix(self) -> Self:
-        """Wraps yaw and pitch into range (Go `fix`).
-
-        Returns:
-            The rotation with `math.Mod` applied as Go does.
-        """
-        var sign_yaw = _copysign(180, self._yaw)
-        var sign_pitch = _copysign(90, self._pitch)
+    def _fix(self) -> Self:
+        # Go `fix`: math.Mod keeps the sign of the dividend.
+        var sign_yaw = 180.0 if self._yaw >= 0 else -180.0
+        var sign_pitch = 90.0 if self._pitch >= 0 else -90.0
         return Self(
-            _fmod(self._yaw + sign_yaw, 360) - sign_yaw,
-            _fmod(self._pitch + sign_pitch, 180) - sign_pitch,
+            _go_mod(self._yaw + sign_yaw, 360) - sign_yaw,
+            _go_mod(self._pitch + sign_pitch, 180) - sign_pitch,
         )
 
-    def __eq__(self, o: Self) -> Bool:
-        """Compares exactly.
-
-        Args:
-            o: The other rotation.
-
-        Returns:
-            True if yaw and pitch are equal.
-        """
-        return self._yaw == o._yaw and self._pitch == o._pitch
-
     def write_to(self, mut writer: Some[Writer]):
-        """Writes `[yaw pitch]`, like Go's `%v`.
+        """Writes the rotation as `[yaw pitch]`.
 
         Args:
-            writer: The writer.
+            writer: The destination.
         """
         writer.write("[", self._yaw, " ", self._pitch, "]")
 
 
-def _copysign(magnitude: Float64, sign: Float64) -> Float64:
-    if sign < 0 or (sign == 0 and 1 / sign < 0):
-        return -magnitude
-    return magnitude
-
-
-def _fmod(a: Float64, b: Float64) -> Float64:
-    """Go `math.Mod`: the remainder with the sign of `a`."""
-    return a - b * Float64(Int(a / b))
+def _go_mod(x: Float64, y: Float64) -> Float64:
+    """Go `math.Mod`: the remainder of x/y with the sign of x."""
+    return x - y * trunc(x / y)
