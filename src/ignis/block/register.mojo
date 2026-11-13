@@ -123,6 +123,7 @@ from .ladder import Ladder
 from .lantern import Lantern
 from .lapis import Lapis
 from .lapis_ore import LapisOre
+from .lava import Lava
 from .leaves import Leaves
 from .lectern import Lectern
 from .lever import Lever
@@ -174,6 +175,7 @@ from .red_shrub import RedShrub
 from .redstone_block import RedstoneBlock
 from .redstone_ore import RedstoneOre
 from .redstone_torch import RedstoneTorch
+from .redstone_wire import RedstoneWire
 from .reinforced_deepslate import ReinforcedDeepslate
 from .resin import Resin
 from .resin_bricks import ResinBricks
@@ -206,6 +208,7 @@ from .stone import Andesite, Diorite, Granite, Stone
 from .stone_bricks import StoneBricks
 from .stonecutter import Stonecutter
 from .straw_bed import StrawBed
+from .string import StringBlock
 from .sugar_cane import SugarCane
 from .sulfur import Sulfur
 from .sulfur_bricks import SulfurBricks
@@ -217,6 +220,7 @@ from .tuff import Tuff
 from .tuff_bricks import TuffBricks
 from .vine import Vines
 from .wall import Wall
+from .water import Water
 from .wheat_seeds import WheatSeeds
 from .wood import Wood
 from .wood_door import WoodDoor
@@ -344,6 +348,7 @@ comptime VanillaBlocks = BlockSet[
     Lantern,
     Lapis,
     LapisOre,
+    Lava,
     Leaves,
     Lectern,
     Lever,
@@ -397,6 +402,7 @@ comptime VanillaBlocks = BlockSet[
     RedstoneBlock,
     RedstoneOre,
     RedstoneTorch,
+    RedstoneWire,
     ReinforcedDeepslate,
     Resin,
     ResinBricks,
@@ -429,6 +435,7 @@ comptime VanillaBlocks = BlockSet[
     StoneBricks,
     Stonecutter,
     StrawBed,
+    StringBlock,
     SugarCane,
     Sulfur,
     SulfurBricks,
@@ -440,6 +447,7 @@ comptime VanillaBlocks = BlockSet[
     TuffBricks,
     Vines,
     Wall,
+    Water,
     WheatSeeds,
     Wood,
     WoodDoor,

@@ -100,8 +100,7 @@ def test_every_block_matches_dragonfly() raises:
     """Every runtime ID Dragonfly registers a block for (`blocks.txt` from
     `interop/world`) holds a block of the same type and state here, which
     encodes to the registered name and properties and has the same light
-    values and break info. Runtime IDs of types not ported yet must stay
-    unknown."""
+    values and break info, and every other runtime ID stays unknown."""
     var br = vanilla_block_registry()
     var expected = Dict[Int, String]()
     var types = Dict[UInt64, String]()
@@ -146,9 +145,9 @@ def test_every_block_matches_dragonfly() raises:
         got += flags + "\t" + _break_line(break_info(kind, hash))
         assert_equal(got, want)
         checked += 1
-    print("checked", checked, "states;", len(missing), "types not ported:")
     for m in missing:
-        print(" ", m)
+        print("not ported:", m)
+    assert_equal(len(missing), 0, "every Dragonfly block type is ported")
     assert_equal(checked, len(expected))
 
 
