@@ -16,10 +16,13 @@ from .bamboo_mosaic import BambooMosaic
 from .basalt import Basalt
 from .bedrock import Bedrock
 from .blackstone import Blackstone
+from .blue_ice import BlueIce
+from .bone import Bone
 from .break_info import BreakInfo, Breakable
 from .bricks import Bricks
 from .calcite import Calcite
 from .carpet import Carpet
+from .clay import Clay
 from .coal import Coal
 from .coal_ore import CoalOre
 from .cobblestone import Cobblestone
@@ -32,28 +35,44 @@ from .deepslate_tiles import DeepslateTiles
 from .diamond import Diamond
 from .diamond_ore import DiamondOre
 from .dirt import Dirt
+from .dirt_path import DirtPath
+from .dried_kelp import DriedKelp
 from .emerald import Emerald
 from .emerald_ore import EmeraldOre
 from .end_bricks import EndBricks
 from .end_stone import EndStone
+from .farmland import Farmland
 from .glass import Glass
 from .glass_pane import GlassPane
 from .glazed_terracotta import GlazedTerracotta
+from .glowstone import Glowstone
 from .gold import Gold
 from .gold_ore import GoldOre
 from .grass import Grass
+from .gravel import Gravel
+from .hay_bale import HayBale
+from .honeycomb import Honeycomb
+from .ice import Ice
 from .iron import Iron
 from .iron_ore import IronOre
 from .lapis import Lapis
 from .lapis_ore import LapisOre
 from .leaves import Leaves
 from .log import Log
+from .magma import Magma
+from .mud import Mud
+from .mud_bricks import MudBricks
+from .muddy_mangrove_roots import MuddyMangroveRoots
+from .mycelium import Mycelium
 from .nether_bricks import NetherBricks
 from .nether_gold_ore import NetherGoldOre
 from .netherite import Netherite
 from .netherrack import Netherrack
 from .obsidian import Obsidian
+from .packed_ice import PackedIce
+from .packed_mud import PackedMud
 from .planks import Planks
+from .podzol import Podzol
 from .polished_blackstone_brick import PolishedBlackstoneBrick
 from .polished_tuff import PolishedTuff
 from .quartz import ChiseledQuartz, Quartz, QuartzPillar
@@ -63,7 +82,17 @@ from .raw_copper import RawCopper
 from .raw_gold import RawGold
 from .raw_iron import RawIron
 from .redstone_block import RedstoneBlock
+from .redstone_ore import RedstoneOre
+from .sand import Sand
+from .sandstone import Sandstone
+from .sea_lantern import SeaLantern
+from .shroomlight import Shroomlight
+from .slime import Slime
 from .smooth_basalt import SmoothBasalt
+from .snow import Snow
+from .soul_sand import SoulSand
+from .soul_soil import SoulSoil
+from .sponge import Sponge
 from .stained_glass import StainedGlass
 from .stained_glass_pane import StainedGlassPane
 from .stained_terracotta import StainedTerracotta
@@ -86,10 +115,13 @@ comptime VanillaBlocks = BlockSet[
     Basalt,
     Bedrock,
     Blackstone,
+    BlueIce,
+    Bone,
     Bricks,
     Calcite,
     Carpet,
     ChiseledQuartz,
+    Clay,
     Coal,
     CoalOre,
     Cobblestone,
@@ -103,30 +135,46 @@ comptime VanillaBlocks = BlockSet[
     DiamondOre,
     Diorite,
     Dirt,
+    DirtPath,
+    DriedKelp,
     Emerald,
     EmeraldOre,
     EndBricks,
     EndStone,
+    Farmland,
     Glass,
     GlassPane,
     GlazedTerracotta,
+    Glowstone,
     Gold,
     GoldOre,
     Granite,
     Grass,
+    Gravel,
+    HayBale,
+    Honeycomb,
+    Ice,
     Iron,
     IronOre,
     Lapis,
     LapisOre,
     Leaves,
     Log,
+    Magma,
+    Mud,
+    MudBricks,
+    MuddyMangroveRoots,
+    Mycelium,
     NetherBricks,
     NetherGoldOre,
     NetherQuartzOre,
     Netherite,
     Netherrack,
     Obsidian,
+    PackedIce,
+    PackedMud,
     Planks,
+    Podzol,
     PolishedBlackstoneBrick,
     PolishedTuff,
     Quartz,
@@ -136,7 +184,17 @@ comptime VanillaBlocks = BlockSet[
     RawGold,
     RawIron,
     RedstoneBlock,
+    RedstoneOre,
+    Sand,
+    Sandstone,
+    SeaLantern,
+    Shroomlight,
+    Slime,
     SmoothBasalt,
+    Snow,
+    SoulSand,
+    SoulSoil,
+    Sponge,
     StainedGlass,
     StainedGlassPane,
     StainedTerracotta,

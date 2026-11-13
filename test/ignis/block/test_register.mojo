@@ -124,7 +124,9 @@ def test_every_block_matches_dragonfly() raises:
         got += flags + "\t" + _break_line(break_info(kind, hash))
         assert_equal(got, want)
         checked += 1
-    print("checked", checked, "states;", len(missing), "types not ported")
+    print("checked", checked, "states;", len(missing), "types not ported:")
+    for m in missing:
+        print(" ", m)
     assert_equal(checked, len(expected))
 
 
