@@ -4,7 +4,12 @@ Go generates these with `cmd/blockhash` as an `iota` sequence; the values
 here are the same, so `BlockRegistry.block_hash` matches Dragonfly's
 `BlockHash` for every ported block. Each block type uses its constant as
 `BASE_HASH`.
+
+`AnyBlock` and `hash_block` serve the blocks that wrap another block (Go
+`Slab.Block`, `Stairs.Block`, `Wall.Block` are `world.Block` values).
 """
+
+from ..world.block import Block
 
 comptime HASH_AIR: UInt64 = 0
 """Base hash of `Air` (Go `hashAir`)."""
@@ -458,3 +463,99 @@ comptime HASH_WOOL: UInt64 = 224
 """Base hash of `Wool` (Go `hashWool`)."""
 comptime HASH_CUSTOM_BLOCK_BASE: UInt64 = 225
 """The first base hash after the vanilla ones (Go `hashCustomBlockBase`)."""
+
+
+@fieldwise_init
+struct AnyBlock(Equatable, ImplicitlyCopyable, Writable):
+    """A block of any type, held as the two values of its Go `Hash()`.
+
+    Blocks that hold another block (Go `Slab{Block: Planks{}}`) store it this
+    way: unlike a runtime ID it needs no registry, and `get` rebuilds the
+    typed value.
+    """
+
+    var kind: UInt64
+    """The `BASE_HASH` of the block's type."""
+    var state: UInt64
+    """The block's `hash()`."""
+
+    def __init__[T: Block](out self, b: T):
+        """Wraps a typed block.
+
+        Parameters:
+            T: The block type.
+
+        Args:
+            b: The block.
+        """
+        self.kind = T.BASE_HASH
+        self.state = b.hash()
+
+    def __eq__(self, other: Self) -> Bool:
+        """Compares two blocks.
+
+        Args:
+            other: The block to compare with.
+
+        Returns:
+            True if both are the same block in the same state.
+        """
+        return self.kind == other.kind and self.state == other.state
+
+    def is_a[T: Block](self) -> Bool:
+        """Reports whether the block is a `T` (Go `_, ok := b.(T)`).
+
+        Parameters:
+            T: The block type.
+
+        Returns:
+            True if the block has type `T`.
+        """
+        return self.kind == T.BASE_HASH
+
+    def get[T: Block](self) -> Optional[T]:
+        """Returns the block as a `T` (Go `b, ok := b.(T)`).
+
+        Parameters:
+            T: The block type.
+
+        Returns:
+            The block, or None if it has another type.
+        """
+        if self.kind != T.BASE_HASH:
+            return None
+        return T.from_hash(self.state)
+
+    def write_to(self, mut writer: Some[Writer]):
+        """Writes the block as `kind:state`.
+
+        Args:
+            writer: The destination.
+        """
+        writer.write(self.kind, ":", self.state)
+
+
+def hash_block(b: AnyBlock) -> UInt64:
+    """Packs a block's type and state into 32 bits (Go `hashBlock`). The
+    wrapped blocks of slabs, stairs and walls all fit in 16 bits each.
+
+    Args:
+        b: The block.
+
+    Returns:
+        `kind | state << 16`.
+    """
+    debug_assert(b.kind <= 0xFFFF and b.state <= 0xFFFF, "hash too large")
+    return b.kind | (b.state << 16)
+
+
+def unhash_block(h: UInt64) -> AnyBlock:
+    """Unpacks a block packed with `hash_block`.
+
+    Args:
+        h: The packed value; only the low 32 bits are read.
+
+    Returns:
+        The block.
+    """
+    return AnyBlock(kind=h & 0xFFFF, state=(h >> 16) & 0xFFFF)

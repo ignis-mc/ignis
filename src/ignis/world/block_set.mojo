@@ -27,6 +27,7 @@ from ..block.cube.pos import Pos
 from ..item.item import item_info
 from .block import Block, NeighbourUpdateTicker, RandomTicker, ScheduledTicker
 from .block_registry import BasicBlockRegistry
+from .block_state import BlockState
 from .item import AnyItem, EncodedItem, Item, RegisteredItem
 from .world import World, WorldTypes
 
@@ -320,6 +321,24 @@ struct BlockSet[*Ts: Block](BlockTypes):
                     _random_tick(B.from_hash(hash), pos, tx)
                     return True
         return False
+
+    @staticmethod
+    def encode(kind: UInt64, hash: UInt64) -> Optional[BlockState]:
+        """Encodes a block of any type in the set (Go `b.EncodeBlock()` on a
+        `world.Block`).
+
+        Args:
+            kind: The `BASE_HASH` of the block's type.
+            hash: The block's state hash.
+
+        Returns:
+            The state, or None if no type in the set has that base hash.
+        """
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            if kind == T.BASE_HASH:
+                return T.from_hash(hash).encode_block()
+        return None
 
 
 def _scheduled_tick[
