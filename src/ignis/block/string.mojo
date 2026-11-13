@@ -8,6 +8,7 @@ hook logic, HasLiquidDrops, Model, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -18,15 +19,23 @@ from .break_info import (
 )
 from .connections import Connections, all_connections
 from .hash import HASH_STRING
+from .model.empty import Empty as EmptyModel
 
 
 struct StringBlock(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A tripwire: string placed as a block (Go `String`)."""
 
     comptime BASE_HASH: UInt64 = HASH_STRING
     """Go `hashString`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var attached: Bool
     """Whether the string is connected to tripwire hooks."""
@@ -158,3 +167,11 @@ struct StringBlock(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

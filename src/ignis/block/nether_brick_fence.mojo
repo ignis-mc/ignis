@@ -9,6 +9,7 @@ EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -19,15 +20,23 @@ from .break_info import (
 )
 from .connections import Connections, all_connections
 from .hash import HASH_NETHER_BRICK_FENCE
+from .model.fence import Fence as FenceModel
 
 
 struct NetherBrickFence(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A fence made of nether bricks."""
 
     comptime BASE_HASH: UInt64 = HASH_NETHER_BRICK_FENCE
     """Go `hashNetherBrickFence`."""
+    comptime ModelType = FenceModel
+    """The model type (Go `Model`)."""
 
     var connections: Connections
     """The sides the fence connects on."""
@@ -112,3 +121,11 @@ struct NetherBrickFence(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> FenceModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return FenceModel()

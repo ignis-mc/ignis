@@ -9,6 +9,7 @@ UseOnBlock, FlammabilityInfo, EncodeItem and the drops.
 
 from ..item.colour import Colour, colours
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -18,13 +19,23 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_CARPET
+from .model.carpet import Carpet as CarpetModel
 
 
-struct Carpet(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Carpet(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A colourful decorative block that can be placed on top of any block."""
 
     comptime BASE_HASH: UInt64 = HASH_CARPET
     """Go `hashCarpet`."""
+    comptime ModelType = CarpetModel
+    """The model type (Go `Model`)."""
 
     var colour: Colour
     """The colour of the carpet."""
@@ -104,3 +115,11 @@ struct Carpet(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> CarpetModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return CarpetModel()

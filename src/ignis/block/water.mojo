@@ -11,15 +11,21 @@ NeighbourUpdateTick, the `world.Liquid` methods.
 from std.os import abort
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .hash import HASH_WATER
+from .model.empty import Empty as EmptyModel
 
 
-struct Water(Block, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Water(
+    Block, Equatable, ImplicitlyCopyable, LightDiffuser, ModelledBlock
+):
     """A natural fluid that generates abundantly in the world."""
 
     comptime BASE_HASH: UInt64 = HASH_WATER
     """Go `hashWater`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var still: Bool
     """Whether the liquid is still, a source block that does not flow."""
@@ -123,3 +129,11 @@ struct Water(Block, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 2
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

@@ -5,19 +5,28 @@ EntityInside.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .cube.axis import Axis
 from .hash import HASH_PORTAL
+from .model.portal import Portal as PortalModel
 
 
 struct Portal(
-    Block, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """The translucent part of the nether portal that teleports the player to and from the nether.
     """
 
     comptime BASE_HASH: UInt64 = HASH_PORTAL
     """Go `hashPortal`."""
+    comptime ModelType = PortalModel
+    """The model type (Go `Model`)."""
 
     var axis: Axis
     """The axis the portal faces."""
@@ -97,3 +106,11 @@ struct Portal(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> PortalModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return PortalModel(axis=self.axis)

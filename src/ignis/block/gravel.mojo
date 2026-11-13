@@ -5,6 +5,7 @@ of `gravityAffected`, EncodeItem and the drops (flint).
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,13 +15,16 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_GRAVEL
+from .model.solid import Solid as SolidModel
 
 
-struct Gravel(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Gravel(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A block affected by gravity."""
 
     comptime BASE_HASH: UInt64 = HASH_GRAVEL
     """Go `hashGravel`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Gravel{}`)."""
@@ -81,3 +85,11 @@ struct Gravel(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.6, ALWAYS_HARVESTABLE, SHOVEL_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

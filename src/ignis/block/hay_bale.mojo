@@ -5,6 +5,7 @@ FlammabilityInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -15,14 +16,17 @@ from .break_info import (
 )
 from .cube.axis import Axis, axes
 from .hash import HASH_HAY_BALE
+from .model.solid import Solid as SolidModel
 
 
-struct HayBale(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct HayBale(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A decorative, flammable block that can also be used to feed horses, breed llamas, reduce fall damage, and extend campfire smokes.
     """
 
     comptime BASE_HASH: UInt64 = HASH_HAY_BALE
     """Go `hashHayBale`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var axis: Axis
     """The axis the block faces."""
@@ -98,3 +102,11 @@ struct HayBale(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.5, ALWAYS_HARVESTABLE, HOE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

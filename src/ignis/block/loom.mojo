@@ -5,6 +5,7 @@ EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .block import horizontal_direction
 from .break_info import (
@@ -16,13 +17,16 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_LOOM
+from .model.solid import Solid as SolidModel
 
 
-struct Loom(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Loom(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A block used to apply patterns on banners."""
 
     comptime BASE_HASH: UInt64 = HASH_LOOM
     """Go `hashLoom`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var facing: Direction
     """The direction the loom faces."""
@@ -98,3 +102,11 @@ struct Loom(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(2.5, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

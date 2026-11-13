@@ -9,6 +9,7 @@ EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -19,16 +20,25 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_ENDER_CHEST
+from .model.chest import Chest as ChestModel
 
 
 struct EnderChest(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A type of chest whose contents are exclusive to each player, and can be accessed from
     anywhere."""
 
     comptime BASE_HASH: UInt64 = HASH_ENDER_CHEST
     """Go `hashEnderChest`."""
+    comptime ModelType = ChestModel
+    """The model type (Go `Model`)."""
 
     var facing: Direction
     """The direction the chest faces."""
@@ -123,3 +133,11 @@ struct EnderChest(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> ChestModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return ChestModel()

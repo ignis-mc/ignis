@@ -6,6 +6,7 @@ FuelInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -15,13 +16,16 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_JUKEBOX
+from .model.solid import Solid as SolidModel
 
 
-struct Jukebox(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Jukebox(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A block used to play music discs."""
 
     comptime BASE_HASH: UInt64 = HASH_JUKEBOX
     """Go `hashJukebox`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Jukebox{}`)."""
@@ -84,3 +88,11 @@ struct Jukebox(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             2, ALWAYS_HARVESTABLE, AXE_EFFECTIVE
         ).with_blast_resistance(6)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

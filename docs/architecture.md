@@ -142,6 +142,24 @@ Conventions shared by the block port:
   Go's `hashBlock` packs into the outer hash. `get[T]()` is Go's type
   assertion.
 
+Block models (`ignis.block.model`, Go `server/block/model`) follow the same
+shape:
+
+- Each Go model type is a struct conforming to `world.BlockModel`
+  (`bbox[S: BlockSource](pos, src)`, `face_solid[S](pos, face, src)`) with
+  a unique `MODEL_ID`. A block type conforms to `world.ModelledBlock`:
+  `comptime ModelType` names its model type and `model()` builds it (Go
+  `Model()`).
+- `world.BlockSource` (Go `world.BlockSource`) returns the runtime ID at a
+  position and maps runtime IDs to the registry's `kind` and state hash, so
+  that models can look at their neighbours; the world and transactions
+  implement it.
+- For a block of unknown type (an `AnyBlock`, e.g. from
+  `register.block_at(src, pos)`), `register.block_model_bbox`,
+  `block_model_face_solid` and `block_model_as[M]` (Go's type assertion
+  `b.Model().(model.Fence)`) dispatch over `VanillaBlocks`; states without
+  a type have Go's `unknownModel`, a solid full cube.
+
 `BasicBlockRegistry.finalize` checks what Go's `Finalize` checks: every
 registered state is unique, no two blocks share a block hash, no network
 hash collides, and air exists.

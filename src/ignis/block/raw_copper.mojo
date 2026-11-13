@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     HARVEST_LEVEL_STONE,
@@ -14,13 +15,18 @@ from .break_info import (
     pickaxe_harvestable_from,
 )
 from .hash import HASH_RAW_COPPER
+from .model.solid import Solid as SolidModel
 
 
-struct RawCopper(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct RawCopper(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A raw metal block equivalent to nine raw copper."""
 
     comptime BASE_HASH: UInt64 = HASH_RAW_COPPER
     """Go `hashRawCopper`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `RawCopper{}`)."""
@@ -83,3 +89,11 @@ struct RawCopper(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             5, pickaxe_harvestable_from(HARVEST_LEVEL_STONE), PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

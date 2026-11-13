@@ -7,6 +7,7 @@ EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -17,13 +18,16 @@ from .break_info import (
 )
 from .cube.face import Face
 from .hash import HASH_BARREL
+from .model.solid import Solid as SolidModel
 
 
-struct Barrel(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Barrel(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A fisherman's job site block, used to store items."""
 
     comptime BASE_HASH: UInt64 = HASH_BARREL
     """Go `hashBarrel`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var facing: Face
     """The direction the barrel faces."""
@@ -120,3 +124,11 @@ struct Barrel(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(2.5, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

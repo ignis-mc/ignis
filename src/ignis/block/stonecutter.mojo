@@ -5,6 +5,7 @@ the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -15,14 +16,19 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_STONECUTTER
+from .model.stonecutter import Stonecutter as StonecutterModel
 
 
-struct Stonecutter(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Stonecutter(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A block used to cut stone-like materials into their slabs, stairs and walls.
     """
 
     comptime BASE_HASH: UInt64 = HASH_STONECUTTER
     """Go `hashStonecutter`."""
+    comptime ModelType = StonecutterModel
+    """The model type (Go `Model`)."""
 
     var facing: Direction
     """The direction the stonecutter faces."""
@@ -98,3 +104,11 @@ struct Stonecutter(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(3.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE)
+
+    def model(self) -> StonecutterModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return StonecutterModel()

@@ -8,6 +8,7 @@ ScheduledTick, SideClosed, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -18,13 +19,23 @@ from .break_info import (
 )
 from .coral_type import CoralType, coral_types
 from .hash import HASH_CORAL
+from .model.empty import Empty as EmptyModel
 
 
-struct Coral(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Coral(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A non-solid block that comes in 5 variants."""
 
     comptime BASE_HASH: UInt64 = HASH_CORAL
     """Go `hashCoral`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var type: CoralType
     """The type of coral."""
@@ -117,3 +128,11 @@ struct Coral(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

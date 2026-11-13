@@ -7,15 +7,21 @@ TODO(world-runtime): SideClosed, EncodeItem.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .hash import HASH_BARRIER
+from .model.solid import Solid as SolidModel
 
 
-struct Barrier(Block, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Barrier(
+    Block, Equatable, ImplicitlyCopyable, LightDiffuser, ModelledBlock
+):
     """A transparent solid block used to create invisible boundaries."""
 
     comptime BASE_HASH: UInt64 = HASH_BARRIER
     """Go `hashBarrier`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Barrier{}`)."""
@@ -77,3 +83,11 @@ struct Barrier(Block, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

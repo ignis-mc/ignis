@@ -5,6 +5,7 @@ EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .block import UNKNOWN_FACE
 from .break_info import (
@@ -17,15 +18,24 @@ from .break_info import (
 from .cube.face import Face, faces
 from .fire_type import FireType
 from .hash import HASH_TORCH
+from .model.empty import Empty as EmptyModel
 
 
 struct Torch(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A non-solid blocks that emits light."""
 
     comptime BASE_HASH: UInt64 = HASH_TORCH
     """Go `hashTorch`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var facing: Face
     """The face the torch is attached to; `UNKNOWN_FACE` stands for standing."""
@@ -137,3 +147,11 @@ struct Torch(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

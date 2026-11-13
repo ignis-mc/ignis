@@ -6,6 +6,7 @@ drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .blackstone import Blackstone
 from .break_info import (
@@ -17,6 +18,7 @@ from .break_info import (
 )
 from .end_bricks import EndBricks
 from .hash import HASH_SLAB, AnyBlock, hash_block, unhash_block
+from .model.slab import Slab as SlabModel
 from .polished_blackstone_brick import PolishedBlackstoneBrick
 from .purpur import Purpur
 from .quartz import Quartz
@@ -28,11 +30,20 @@ from .stone_bricks import StoneBricks
 from .stone_bricks_type import StoneBricksType
 
 
-struct Slab(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Slab(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A half block that allows entities to walk up blocks without jumping."""
 
     comptime BASE_HASH: UInt64 = HASH_SLAB
     """Go `hashSlab`."""
+    comptime ModelType = SlabModel
+    """The model type (Go `Model`)."""
 
     var block: AnyBlock
     """The block the slab is made of."""
@@ -164,3 +175,11 @@ struct Slab(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 15 if self.double else 0
+
+    def model(self) -> SlabModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SlabModel(double=self.double, top=self.top)

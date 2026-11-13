@@ -9,6 +9,7 @@ RandomTick (attemptOxidation), EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     HARVEST_LEVEL_STONE,
@@ -20,17 +21,26 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_COPPER_TRAPDOOR
+from .model.trapdoor import Trapdoor as TrapdoorModel
 from .oxidation_type import OxidationType, oxidation_types
 from .oxidizable import Oxidisable, copper_block_name
 
 
 struct CopperTrapdoor(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, Oxidisable
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+    Oxidisable,
 ):
     """A copper trapdoor, opened and closed by players."""
 
     comptime BASE_HASH: UInt64 = HASH_COPPER_TRAPDOOR
     """Go `hashCopperTrapdoor`."""
+    comptime ModelType = TrapdoorModel
+    """The model type (Go `Model`)."""
 
     var oxidation: OxidationType
     """The level of oxidation of the block."""
@@ -196,3 +206,11 @@ struct CopperTrapdoor(
         var b = self
         b.oxidation = o
         return b
+
+    def model(self) -> TrapdoorModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return TrapdoorModel(facing=self.facing, open=self.open, top=self.top)

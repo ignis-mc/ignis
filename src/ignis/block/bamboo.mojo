@@ -5,6 +5,7 @@ grow, Model, FuelInfo, FlammabilityInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .bamboo_leaf_size import BambooLeafSize, bamboo_leaf_sizes
 from .break_info import (
@@ -15,13 +16,23 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_BAMBOO
+from .model.bamboo import Bamboo as BambooModel
 
 
-struct Bamboo(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Bamboo(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A woody plant that grows quickly."""
 
     comptime BASE_HASH: UInt64 = HASH_BAMBOO
     """Go `hashBamboo`."""
+    comptime ModelType = BambooModel
+    """The model type (Go `Model`)."""
 
     var ready: Bool
     """Whether the bamboo is ready to grow."""
@@ -134,3 +145,11 @@ struct Bamboo(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> BambooModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return BambooModel(thick=self.thick)

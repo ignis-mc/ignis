@@ -8,6 +8,7 @@ Model, FlammabilityInfo, FuelInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -18,17 +19,25 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_WOOD_FENCE_GATE
+from .model.fence_gate import FenceGate as FenceGateModel
 from .wood_type import WoodType, wood_types
 
 
 struct WoodFenceGate(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A wooden fence gate that blocks entities, opened and closed by players.
     """
 
     comptime BASE_HASH: UInt64 = HASH_WOOD_FENCE_GATE
     """Go `hashWoodFenceGate`."""
+    comptime ModelType = FenceGateModel
+    """The model type (Go `Model`)."""
 
     var wood: WoodType
     """The type of wood."""
@@ -158,3 +167,11 @@ struct WoodFenceGate(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> FenceGateModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return FenceGateModel(facing=self.facing, open=self.open)

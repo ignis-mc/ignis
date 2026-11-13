@@ -5,6 +5,7 @@ CompostChance, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,15 +15,23 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_SPORE_BLOSSOM
+from .model.empty import Empty as EmptyModel
 
 
 struct SporeBlossom(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A decorative block."""
 
     comptime BASE_HASH: UInt64 = HASH_SPORE_BLOSSOM
     """Go `hashSporeBlossom`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `SporeBlossom{}`)."""
@@ -92,3 +101,11 @@ struct SporeBlossom(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

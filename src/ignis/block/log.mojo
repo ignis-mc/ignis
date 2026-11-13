@@ -5,6 +5,7 @@ FuelInfo and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -15,15 +16,18 @@ from .break_info import (
 )
 from .cube.axis import Axis
 from .hash import HASH_LOG
+from .model.solid import Solid as SolidModel
 from .wood_type import WoodType, wood_types
 
 
-struct Log(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Log(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A naturally occurring block found in trees, used to craft other blocks.
     """
 
     comptime BASE_HASH: UInt64 = HASH_LOG
     """Go `hashLog`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var wood: WoodType
     """The type of wood."""
@@ -130,3 +134,11 @@ struct Log(Block, Breakable, Equatable, ImplicitlyCopyable):
         if self.wood == WoodType.MANGROVE and not self.stripped:
             return info.with_blast_resistance(0.4)
         return info
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

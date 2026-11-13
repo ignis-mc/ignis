@@ -5,6 +5,7 @@ SmeltInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,13 +15,16 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_SPONGE
+from .model.solid import Solid as SolidModel
 
 
-struct Sponge(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Sponge(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A block that can be used to remove water around itself when placed."""
 
     comptime BASE_HASH: UInt64 = HASH_SPONGE
     """Go `hashSponge`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var wet: Bool
     """Whether the sponge is wet."""
@@ -90,3 +94,11 @@ struct Sponge(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.6, ALWAYS_HARVESTABLE, NOTHING_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

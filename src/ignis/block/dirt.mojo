@@ -5,6 +5,7 @@ drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,14 +15,17 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_DIRT
+from .model.solid import Solid as SolidModel
 
 
 @fieldwise_init
-struct Dirt(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Dirt(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A block found abundantly in most biomes under a layer of grass."""
 
     comptime BASE_HASH: UInt64 = HASH_DIRT
     """Go `hashDirt`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var coarse: Bool
     """Whether the dirt is coarse dirt; grass does not spread onto it."""
@@ -76,3 +80,11 @@ struct Dirt(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.5, ALWAYS_HARVESTABLE, SHOVEL_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

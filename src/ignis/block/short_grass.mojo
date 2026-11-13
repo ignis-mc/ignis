@@ -7,6 +7,7 @@ BoneMeal, CompostChance, FlammabilityInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -16,15 +17,23 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_SHORT_GRASS
+from .model.empty import Empty as EmptyModel
 
 
 struct ShortGrass(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """Vegetation blocks generated on grass."""
 
     comptime BASE_HASH: UInt64 = HASH_SHORT_GRASS
     """Go `hashShortGrass`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var double: Bool
     """Unused by Dragonfly: it is not part of the state."""
@@ -101,3 +110,11 @@ struct ShortGrass(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

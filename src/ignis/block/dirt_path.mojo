@@ -4,6 +4,7 @@ TODO(world-runtime): Till, NeighbourUpdateTick, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -13,14 +14,24 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_DIRT_PATH
+from .model.tilled_grass import TilledGrass as TilledGrassModel
 
 
-struct DirtPath(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct DirtPath(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A decorative block that can be created by using a shovel on grass or dirt.
     """
 
     comptime BASE_HASH: UInt64 = HASH_DIRT_PATH
     """Go `hashDirtPath`."""
+    comptime ModelType = TilledGrassModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `DirtPath{}`)."""
@@ -90,3 +101,11 @@ struct DirtPath(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> TilledGrassModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return TilledGrassModel()

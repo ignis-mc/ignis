@@ -6,6 +6,7 @@ FlammabilityInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -15,14 +16,24 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_SAPLING
+from .model.empty import Empty as EmptyModel
 from .sapling_type import SaplingType, sapling_types
 
 
-struct Sapling(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Sapling(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A plant that grows into a tree."""
 
     comptime BASE_HASH: UInt64 = HASH_SAPLING
     """Go `hashSapling`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var type: SaplingType
     """The type of the sapling."""
@@ -117,3 +128,11 @@ struct Sapling(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

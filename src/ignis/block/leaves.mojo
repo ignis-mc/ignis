@@ -9,6 +9,7 @@ NeighbourUpdateTick, FlammabilityInfo, CompostChance, SideClosed, the drops
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -21,14 +22,24 @@ from .break_info import (
 )
 from .hash import HASH_LEAVES
 from .leaves_type import LeavesType, leaves_types
+from .model.leaves import Leaves as LeavesModel
 
 
-struct Leaves(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Leaves(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """Blocks that grow as part of trees which mainly drop saplings and sticks.
     """
 
     comptime BASE_HASH: UInt64 = HASH_LEAVES
     """Go `hashLeaves`."""
+    comptime ModelType = LeavesModel
+    """The model type (Go `Model`)."""
 
     var type: LeavesType
     """The type of leaves."""
@@ -145,3 +156,11 @@ struct Leaves(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 1
+
+    def model(self) -> LeavesModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return LeavesModel()

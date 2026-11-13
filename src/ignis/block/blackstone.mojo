@@ -5,6 +5,7 @@ nuggets).
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .blackstone_type import BlackstoneType, blackstone_types
 from .break_info import (
@@ -15,13 +16,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_BLACKSTONE
+from .model.solid import Solid as SolidModel
 
 
-struct Blackstone(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Blackstone(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A naturally generating block in the nether, similar to cobblestone."""
 
     comptime BASE_HASH: UInt64 = HASH_BLACKSTONE
     """Go `hashBlackstone`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var type: BlackstoneType
     """The type of blackstone."""
@@ -97,3 +103,11 @@ struct Blackstone(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             hardness, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

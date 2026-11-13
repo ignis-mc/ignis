@@ -1,7 +1,6 @@
-"""Axes, ported from the block parts of Dragonfly
-`server/block/cube/axis.go` (`Vec3` follows with the maths package).
-"""
+"""Axes, ported from Dragonfly `server/block/cube/axis.go`."""
 
+from ...mgl64 import Vec3
 from .face import Face
 
 
@@ -75,6 +74,18 @@ struct Axis(Equatable, ImplicitlyCopyable, Intable, Writable):
         if self == Axis.Y:
             return (Face.DOWN, Face.UP)
         return (Face.NORTH, Face.SOUTH)
+
+    def vec3(self) -> Vec3:
+        """Returns the unit vector along the axis (Go `Vec3`).
+
+        Returns:
+            The vector.
+        """
+        if self == Axis.X:
+            return Vec3(1, 0, 0)
+        if self == Axis.Y:
+            return Vec3(0, 1, 0)
+        return Vec3(0, 0, 1)
 
     def write_to(self, mut writer: Some[Writer]):
         """Writes the axis as `x`, `y` or `z` (Go `String`).

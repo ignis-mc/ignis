@@ -12,15 +12,26 @@ methods.
 from std.os import abort
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .hash import HASH_LAVA
+from .model.empty import Empty as EmptyModel
 
 
-struct Lava(Block, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter):
+struct Lava(
+    Block,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
+):
     """A light-emitting fluid block that causes fire damage."""
 
     comptime BASE_HASH: UInt64 = HASH_LAVA
     """Go `hashLava`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var still: Bool
     """Whether the liquid is still, a source block that does not flow."""
@@ -130,3 +141,11 @@ struct Lava(Block, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter):
             The diffusion level, 0 to 15.
         """
         return 2
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

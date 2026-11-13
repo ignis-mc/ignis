@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -13,13 +14,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_QUARTZ_BRICKS
+from .model.solid import Solid as SolidModel
 
 
-struct QuartzBricks(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct QuartzBricks(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A mineral block that only generates in ancient cities."""
 
     comptime BASE_HASH: UInt64 = HASH_QUARTZ_BRICKS
     """Go `hashQuartzBricks`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `QuartzBricks{}`)."""
@@ -80,3 +86,11 @@ struct QuartzBricks(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.8, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

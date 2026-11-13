@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -13,13 +14,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_NETHER_GOLD_ORE
+from .model.solid import Solid as SolidModel
 
 
-struct NetherGoldOre(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct NetherGoldOre(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A variant of gold ore found exclusively in the nether."""
 
     comptime BASE_HASH: UInt64 = HASH_NETHER_GOLD_ORE
     """Go `hashNetherGoldOre`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `NetherGoldOre{}`)."""
@@ -82,3 +88,11 @@ struct NetherGoldOre(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             3, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_xp_drop_range(0, 1)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()
