@@ -150,3 +150,12 @@ struct NetConn(Conn):
             If the connection is closed.
         """
         self.conn.flush()
+
+    def into_inner(deinit self) -> MinecraftConn:
+        """Unwraps the connection, such as to keep polling it while it
+        closes.
+
+        Returns:
+            The wrapped connection.
+        """
+        return self.conn^

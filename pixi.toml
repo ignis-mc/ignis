@@ -16,8 +16,12 @@ mojo = ">=1.2.0,<1.3.0"
 [tasks]
 test = { cmd = "bash scripts/run_tests.sh", description = "Run every unit test file" }
 format = { cmd = "mojo format src test", description = "Format all Mojo sources" }
-format-check = { cmd = "bash scripts/check_format.sh", description = "Fail if formatting would change anything" }
+format-serve = { cmd = "mojo run -I src -I third_party/protocol/src -I third_party/nethernet/src cmd/ignis/main.mojo", description = "Run the server (reads or writes config.toml; extra flags: -config PATH -addr HOST:PORT -offline)" }
+server-build = { cmd = "mkdir -p build && mojo build -I src -I third_party/protocol/src -I third_party/nethernet/src cmd/ignis/main.mojo -o build/ignis", description = "Build the server binary into build/ignis" }
+check = { cmd = "bash scripts/check_format.sh", description = "Fail if formatting would change anything" }
 lint-docs = { cmd = "bash scripts/lint_docs.sh", description = "Fail on missing or malformed docstrings" }
 build = { cmd = "bash scripts/build_packages.sh", description = "Precompile the packages" }
+serve = { cmd = "mojo run -I src -I third_party/protocol/src -I third_party/nethernet/src cmd/ignis/main.mojo", description = "Run the server (reads or writes config.toml; extra flags: -config PATH -addr HOST:PORT -offline)" }
+server-build = { cmd = "mkdir -p build && mojo build -I src -I third_party/protocol/src -I third_party/nethernet/src cmd/ignis/main.mojo -o build/ignis", description = "Build the server binary into build/ignis" }
 check = { depends-on = ["format-check", "lint-docs", "test"], description = "Everything CI runs except interop" }
 
