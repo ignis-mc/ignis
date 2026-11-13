@@ -1,7 +1,7 @@
 """The Mojo side of the world interop checks (see `run_world.sh`).
 
     worldtool write <dir>
-    worldtool dump <dir> <out.txt>
+    worldtool dump <dir> <out.txt> [lenient]
 
 `write` stores the fixture world of `world.go` with `ignis.world.mcdb`;
 `dump` writes what the provider loads in `world.go`'s dump format.
@@ -23,7 +23,8 @@ def main() raises:
         write_fixture(String(args[2]), br)
     elif cmd == "dump":
         var db = DB.open(String(args[2]), br)
-        write_file(String(args[3]), dump(db).as_bytes(), sync=False)
+        var lenient = len(args) > 4 and String(args[4]) == "lenient"
+        write_file(String(args[3]), dump(db, lenient).as_bytes(), sync=False)
         db.close()
     else:
         raise Error("usage: worldtool write|dump ...")

@@ -7,7 +7,7 @@
 //	go run . ldb-fixtures <outdir>
 //	go run . upgrade-vectors <legacy_states.nbt> <out.txt>
 //	go run . world-write <dir>
-//	go run . world-dump <dir> <out.txt>
+//	go run . world-dump <dir> <out.txt> [lenient]
 package main
 
 import (
@@ -47,7 +47,7 @@ func run(args []string) error {
 	case "world-write":
 		return worldWrite(args[1])
 	case "world-dump":
-		return worldDump(args[1], args[2])
+		return worldDump(args[1], args[2], len(args) > 3 && args[3] == "lenient")
 	case "ldb-dump":
 		return ldbDump(args[1], args[2])
 	}

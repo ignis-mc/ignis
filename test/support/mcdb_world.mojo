@@ -177,12 +177,19 @@ def write_fixture(dir: StringSlice, br: ArcPointer[BasicBlockRegistry]) raises:
 
 
 def _quote(s: String) -> String:
-    # Go %q for the ASCII strings of the fixture.
+    # Go %q for the strings the fixtures and test worlds hold.
     var out = String('"')
     for cp in s.codepoint_slices():
         if cp == '"' or cp == "\\":
-            out += "\\"
-        out += cp
+            out += "\\" + String(cp)
+        elif cp == "\n":
+            out += "\\n"
+        elif cp == "\t":
+            out += "\\t"
+        elif cp == "\r":
+            out += "\\r"
+        else:
+            out += cp
     return out + '"'
 
 
@@ -259,8 +266,48 @@ def _pad2(i: Int) -> String:
     return String("0", i) if i < 10 else String(i)
 
 
-def dump(mut db: DB) raises -> String:
-    """Go `worldDump`: everything the provider returns, one fact per line."""
+def _column_keys(db: DB) raises -> List[Tuple[Dimension, ChunkPos]]:
+    # Go columnKeys: the version keys of every column.
+    var out = List[Tuple[Dimension, ChunkPos]]()
+    var seen = List[String]()
+    var it = db.ldb().new_iterator()
+    while it.next():
+        var k = it.key()
+        var n = len(k)
+        if (n != 9 and n != 13) or (k[n - 1] != 0x2C and k[n - 1] != 0x76):
+            continue
+        var id = 0
+        if n > 9:
+            id = (
+                Int(k[8])
+                | (Int(k[9]) << 8)
+                | (Int(k[10]) << 16)
+                | (Int(k[11]) << 24)
+            )
+        var x = Int32(
+            UInt32(k[0])
+            | (UInt32(k[1]) << 8)
+            | (UInt32(k[2]) << 16)
+            | (UInt32(k[3]) << 24)
+        )
+        var z = Int32(
+            UInt32(k[4])
+            | (UInt32(k[5]) << 8)
+            | (UInt32(k[6]) << 16)
+            | (UInt32(k[7]) << 24)
+        )
+        var key = String(id, " ", x, " ", z)
+        if key in seen:
+            continue
+        seen.append(key)
+        var dim = OVERWORLD if id == 0 else (NETHER if id == 1 else END)
+        out.append((dim, ChunkPos(x, z)))
+    return out^
+
+
+def dump(mut db: DB, lenient: Bool = False) raises -> String:
+    """Go `worldDump`: everything the provider returns, one fact per line.
+    With `lenient`, each column loads on its own and failures are ERR."""
     var s = db.settings().value().copy()
     var out = String(
         "settings ",
@@ -297,11 +344,29 @@ def dump(mut db: DB) raises -> String:
     else:
         out += "player [0 0 0] false <nil>\n"
     var lines = List[String]()
-    var it = ColumnIterator(db, IteratorRange())
-    while it.next(db):
-        ref col = it.column().value()
-        var cp = it.position()
-        var p = String(it.dimension().id, " ", cp.x(), " ", cp.z())
+    if lenient:
+        for k in _column_keys(db):
+            var p = String(k[0].id, " ", k[1].x(), " ", k[1].z())
+            try:
+                var col = db.read_column(k[1], k[0])
+                _column_lines(p, col.value(), lines)
+            except:
+                lines.append(p + " ERR")
+    else:
+        var it = ColumnIterator(db, IteratorRange())
+        while it.next(db):
+            var cp = it.position()
+            var p = String(it.dimension().id, " ", cp.x(), " ", cp.z())
+            _column_lines(p, it.column().value(), lines)
+    sort(lines)
+    for l in lines:
+        out += l
+        out += "\n"
+    return out^
+
+
+def _column_lines(p: String, col: Column, mut lines: List[String]) raises:
+    if True:
         ref c = col.chunk
         for i in range(len(c.sub())):
             ref layers = c.sub()[i].layers()
@@ -350,8 +415,3 @@ def dump(mut db: DB) raises -> String:
             lines.append(
                 String(p, " scheduled ", _pos(u.pos), " ", u.block, " ", u.tick)
             )
-    sort(lines)
-    for l in lines:
-        out += l
-        out += "\n"
-    return out^

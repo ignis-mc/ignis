@@ -15,6 +15,7 @@ import (
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/dragonfly/server/world/chunk"
 	"github.com/df-mc/dragonfly/server/world/mcdb"
+	"github.com/df-mc/goleveldb/leveldb"
 	"github.com/google/uuid"
 )
 
@@ -157,9 +158,52 @@ func storageHash(s *chunk.PalettedStorage) string {
 	return fmt.Sprintf("%x", h.Sum(nil))[:16]
 }
 
+// columnKeys lists the columns of a world by scanning its version keys
+// with goleveldb, as mcdb.ColumnIterator does.
+func columnKeys(dir string) ([]fixtureColumn, error) {
+	ldb, err := leveldb.OpenFile(dir+"/db", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer ldb.Close()
+	var out []fixtureColumn
+	seen := map[[3]int32]bool{}
+	it := ldb.NewIterator(nil, nil)
+	for it.Next() {
+		k := it.Key()
+		n := len(k)
+		if (n != 9 && n != 13) || (k[n-1] != ',' && k[n-1] != 'v') {
+			continue
+		}
+		dim := world.Dimension(world.Overworld)
+		id := int32(0)
+		if n > 9 {
+			id = int32(binary.LittleEndian.Uint32(k[8:12]))
+			dim, _ = world.DimensionByID(int(id))
+		}
+		pos := world.ChunkPos{int32(binary.LittleEndian.Uint32(k[:4])), int32(binary.LittleEndian.Uint32(k[4:8]))}
+		if seen[[3]int32{id, pos[0], pos[1]}] {
+			continue
+		}
+		seen[[3]int32{id, pos[0], pos[1]}] = true
+		out = append(out, fixtureColumn{pos: pos, dim: dim})
+	}
+	it.Release()
+	return out, it.Error()
+}
+
 // worldDump opens a world with Dragonfly and writes everything the
-// provider returns, one fact per line.
-func worldDump(dir, out string) error {
+// provider returns, one fact per line. With lenient set, every column is
+// loaded on its own and a column that fails to load is a single ERR line
+// (for worlds with blocks the registry lacks).
+func worldDump(dir, out string, lenient bool) error {
+	var keys []fixtureColumn
+	if lenient {
+		var err error
+		if keys, err = columnKeys(dir); err != nil {
+			return err
+		}
+	}
 	db, err := mcdb.Open(dir)
 	if err != nil {
 		return err
@@ -177,11 +221,45 @@ func worldDump(dir, out string) error {
 	pos, ok, err := db.LoadPlayerSpawnPosition(fixturePlayer)
 	fmt.Fprintf(w, "player %v %v %v\n", [3]int(pos), ok, err)
 	var lines []string
-	it := db.NewColumnIterator(nil)
-	for it.Next() {
-		col, cp := it.Column(), it.Position()
-		id, _ := world.DimensionID(it.Dimension())
-		p := fmt.Sprintf("%d %d %d", id, cp[0], cp[1])
+	if lenient {
+		for _, k := range keys {
+			id, _ := world.DimensionID(k.dim)
+			col, err := db.LoadColumn(k.pos, k.dim)
+			if err != nil {
+				lines = append(lines, fmt.Sprintf("%d %d %d ERR", id, k.pos[0], k.pos[1]))
+				continue
+			}
+			lines = append(lines, columnLines(fmt.Sprintf("%d %d %d", id, k.pos[0], k.pos[1]), col)...)
+		}
+	} else {
+		it := db.NewColumnIterator(nil)
+		for it.Next() {
+			cp := it.Position()
+			id, _ := world.DimensionID(it.Dimension())
+			lines = append(lines, columnLines(fmt.Sprintf("%d %d %d", id, cp[0], cp[1]), it.Column())...)
+		}
+		it.Release()
+		if err := it.Error(); err != nil {
+			return err
+		}
+	}
+	sort.Strings(lines)
+	for _, l := range lines {
+		fmt.Fprintln(w, l)
+	}
+	if err := w.Flush(); err != nil {
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	return db.Close()
+}
+
+// columnLines dumps one column.
+func columnLines(p string, col *chunk.Column) []string {
+	var lines []string
+	{
 		c := col.Chunk
 		for i, sub := range c.Sub() {
 			layers := sub.Layers()
@@ -215,19 +293,5 @@ func worldDump(dir, out string) error {
 			lines = append(lines, fmt.Sprintf("%s scheduled %v %d %d", p, [3]int(u.Pos), u.Block, u.Tick))
 		}
 	}
-	it.Release()
-	if err := it.Error(); err != nil {
-		return err
-	}
-	sort.Strings(lines)
-	for _, l := range lines {
-		fmt.Fprintln(w, l)
-	}
-	if err := w.Flush(); err != nil {
-		return err
-	}
-	if err := f.Close(); err != nil {
-		return err
-	}
-	return db.Close()
+	return lines
 }

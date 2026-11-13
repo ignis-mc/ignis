@@ -191,6 +191,39 @@ def test_compact_all_drops_deleted_and_overwritten() raises:
     remove_all(dir)
 
 
+def test_overwrites_stay_bounded() raises:
+    # A world saves the same chunks over and over: 20 MiB of writes over 50
+    # keys must not leave 20 MiB of tables behind.
+    var dir = temp_dir("ldb")
+    var o = Options()
+    o.write_buffer = 64 * KIB
+    o.compaction_table_size = 32 * KIB
+    o.compaction_total_size = 128 * KIB
+    var db = DB(dir, o^)
+    var value = List[UInt8](capacity=10000)
+    for round in range(40):
+        for k in range(50):
+            value.clear()
+            for i in range(10000):
+                value.append(UInt8((i * 31 + k * 7 + round) & 0xFF))
+            db.put(_b(String("chunk-", k)), value)
+    var total = 0
+    var files = 0
+    for name in list_dir(dir):
+        if name.endswith(".ldb"):
+            total += len(read_file(join(dir, name)))
+            files += 1
+    # 50 live values of 10 KB, compressed; allow for one memtable's worth of
+    # level-0 tables and not-yet-merged older versions.
+    assert_true(total < 1500 * 1000, String("tables hold ", total, " bytes"))
+    assert_true(files < 40, String(files, " tables"))
+    for k in range(50):
+        var v = db.get(_b(String("chunk-", k))).value().copy()
+        assert_equal(v[0], UInt8((k * 7 + 39) & 0xFF))
+    _ = db^
+    remove_all(dir)
+
+
 def test_iterator_seek_and_batch() raises:
     var dir = temp_dir("ldb")
     var db = DB(dir)
