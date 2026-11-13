@@ -7,6 +7,7 @@ drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -18,15 +19,24 @@ from .break_info import (
 from .cube.axis import Axis
 from .cube.face import Face, faces
 from .hash import HASH_END_ROD
+from .model.end_rod import EndRod as EndRodModel
 
 
 struct EndRod(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A decorative light source that emits white particles."""
 
     comptime BASE_HASH: UInt64 = HASH_END_ROD
     """Go `hashEndRod`."""
+    comptime ModelType = EndRodModel
+    """The model type (Go `Model`)."""
 
     var facing: Face
     """The direction the end rod faces."""
@@ -120,3 +130,11 @@ struct EndRod(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EndRodModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EndRodModel(axis=self.facing.axis())

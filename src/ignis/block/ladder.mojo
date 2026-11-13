@@ -8,6 +8,7 @@ SideClosed, Model, FuelInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .block import UNKNOWN_DIRECTION
 from .break_info import (
@@ -19,14 +20,24 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_LADDER
+from .model.ladder import Ladder as LadderModel
 
 
-struct Ladder(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Ladder(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A wooden block used for climbing walls either vertically or horizontally.
     """
 
     comptime BASE_HASH: UInt64 = HASH_LADDER
     """Go `hashLadder`."""
+    comptime ModelType = LadderModel
+    """The model type (Go `Model`)."""
 
     var facing: Direction
     """The direction the ladder faces; `UNKNOWN_DIRECTION` encodes as 0."""
@@ -113,3 +124,11 @@ struct Ladder(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> LadderModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return LadderModel(facing=self.facing)

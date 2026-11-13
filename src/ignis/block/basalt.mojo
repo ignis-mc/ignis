@@ -5,6 +5,7 @@ drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -15,13 +16,16 @@ from .break_info import (
 )
 from .cube.axis import Axis, axes
 from .hash import HASH_BASALT
+from .model.solid import Solid as SolidModel
 
 
-struct Basalt(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Basalt(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A type of igneous rock found in the nether."""
 
     comptime BASE_HASH: UInt64 = HASH_BASALT
     """Go `hashBasalt`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var polished: Bool
     """Whether the basalt is polished."""
@@ -108,3 +112,11 @@ struct Basalt(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             1.25, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(4.2)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

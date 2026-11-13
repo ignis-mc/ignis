@@ -6,6 +6,7 @@ TODO(world-runtime): UseOnBlock, EncodeItem and the drops.
 
 from ..item.colour import Colour, colours
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .block import UNKNOWN_DIRECTION
 from .break_info import (
@@ -17,13 +18,18 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_GLAZED_TERRACOTTA
+from .model.solid import Solid as SolidModel
 
 
-struct GlazedTerracotta(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct GlazedTerracotta(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A vibrant solid block that comes in the 16 regular dye colours."""
 
     comptime BASE_HASH: UInt64 = HASH_GLAZED_TERRACOTTA
     """Go `hashGlazedTerracotta`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var colour: Colour
     """The colour of the glazed terracotta."""
@@ -117,3 +123,11 @@ struct GlazedTerracotta(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(1.4, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

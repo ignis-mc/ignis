@@ -4,6 +4,7 @@ TODO(world-runtime): SmeltInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -13,14 +14,19 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_SANDSTONE
+from .model.solid import Solid as SolidModel
 from .sandstone_type import SandstoneType, sandstone_types
 
 
-struct Sandstone(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Sandstone(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A solid block commonly found in deserts and beaches underneath sand."""
 
     comptime BASE_HASH: UInt64 = HASH_SANDSTONE
     """Go `hashSandstone`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var type: SandstoneType
     """The type of sandstone."""
@@ -114,3 +120,11 @@ struct Sandstone(Block, Breakable, Equatable, ImplicitlyCopyable):
                 2, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
             ).with_blast_resistance(6)
         return new_break_info(0.8, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

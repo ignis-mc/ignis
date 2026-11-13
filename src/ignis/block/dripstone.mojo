@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -13,13 +14,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_DRIPSTONE
+from .model.solid import Solid as SolidModel
 
 
-struct Dripstone(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Dripstone(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A rock block that allows pointed dripstone to grow beneath it."""
 
     comptime BASE_HASH: UInt64 = HASH_DRIPSTONE
     """Go `hashDripstone`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Dripstone{}`)."""
@@ -82,3 +88,11 @@ struct Dripstone(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             1.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(1)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

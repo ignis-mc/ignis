@@ -5,6 +5,7 @@ SmeltInfo and the drops.
 """
 
 from ..world.block import Block, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     HARVEST_LEVEL_IRON,
@@ -15,16 +16,19 @@ from .break_info import (
     pickaxe_harvestable_from,
 )
 from .hash import HASH_REDSTONE_ORE
+from .model.solid import Solid as SolidModel
 from .ore_type import OreType, ore_types
 
 
 struct RedstoneOre(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter
+    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
 ):
     """A common ore that lights up when touched."""
 
     comptime BASE_HASH: UInt64 = HASH_REDSTONE_ORE
     """Go `hashRedstoneOre`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var type: OreType
     """The rock the ore is embedded in."""
@@ -124,3 +128,11 @@ struct RedstoneOre(
             The light level, 0 to 15.
         """
         return 9 if self.lit else 0
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

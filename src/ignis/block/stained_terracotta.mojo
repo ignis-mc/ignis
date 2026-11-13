@@ -6,6 +6,7 @@ TODO(world-runtime): SoilFor, EncodeItem and the drops.
 
 from ..item.colour import Colour, colours
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -15,14 +16,19 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_STAINED_TERRACOTTA
+from .model.solid import Solid as SolidModel
 
 
-struct StainedTerracotta(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct StainedTerracotta(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A block formed from clay, with a hardness and blast resistance comparable to stone.
     """
 
     comptime BASE_HASH: UInt64 = HASH_STAINED_TERRACOTTA
     """Go `hashStainedTerracotta`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var colour: Colour
     """The colour of the terracotta."""
@@ -93,3 +99,11 @@ struct StainedTerracotta(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(1.25, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

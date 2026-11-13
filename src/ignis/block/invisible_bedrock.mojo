@@ -5,15 +5,21 @@ TODO(world-runtime): EncodeItem.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .hash import HASH_INVISIBLE_BEDROCK
+from .model.solid import Solid as SolidModel
 
 
-struct InvisibleBedrock(Block, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct InvisibleBedrock(
+    Block, Equatable, ImplicitlyCopyable, LightDiffuser, ModelledBlock
+):
     """An indestructible, solid block, similar to a barrier."""
 
     comptime BASE_HASH: UInt64 = HASH_INVISIBLE_BEDROCK
     """Go `hashInvisibleBedrock`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `InvisibleBedrock{}`)."""
@@ -75,3 +81,11 @@ struct InvisibleBedrock(Block, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

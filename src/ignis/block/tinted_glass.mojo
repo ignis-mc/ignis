@@ -4,6 +4,7 @@ TODO(world-runtime): PreventsSuffocation, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -13,13 +14,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_TINTED_GLASS
+from .model.solid import Solid as SolidModel
 
 
-struct TintedGlass(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct TintedGlass(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A decorative, fully transparent solid block that blocks light."""
 
     comptime BASE_HASH: UInt64 = HASH_TINTED_GLASS
     """Go `hashTintedGlass`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `TintedGlass{}`)."""
@@ -82,3 +88,11 @@ struct TintedGlass(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             0.3, ALWAYS_HARVESTABLE, NOTHING_EFFECTIVE
         ).with_blast_resistance(0.3)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

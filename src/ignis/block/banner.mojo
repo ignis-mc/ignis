@@ -6,6 +6,7 @@ EncodeNBT, FlammabilityInfo, FuelInfo, EncodeItem and the drops.
 
 from ..item.colour import Colour
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .attachment import (
     Attachment,
@@ -24,13 +25,18 @@ from .break_info import (
 from .cube.direction import directions
 from .cube.orientation import Orientation
 from .hash import HASH_BANNER
+from .model.empty import Empty as EmptyModel
 
 
-struct Banner(Block, Breakable, Copyable, Equatable, LightDiffuser):
+struct Banner(
+    Block, Breakable, Copyable, Equatable, LightDiffuser, ModelledBlock
+):
     """A tall decorative block that can be customised."""
 
     comptime BASE_HASH: UInt64 = HASH_BANNER
     """Go `hashBanner`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var colour: Colour
     """The colour of the banner."""
@@ -148,3 +154,11 @@ struct Banner(Block, Breakable, Copyable, Equatable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

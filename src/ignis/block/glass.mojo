@@ -4,6 +4,7 @@ TODO(world-runtime): the `silkTouchOnlyDrop` drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -13,14 +14,24 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_GLASS
+from .model.solid import Solid as SolidModel
 
 
-struct Glass(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Glass(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A decorative, fully transparent solid block that can be dyed into stained glass.
     """
 
     comptime BASE_HASH: UInt64 = HASH_GLASS
     """Go `hashGlass`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Glass{}`)."""
@@ -90,3 +101,11 @@ struct Glass(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

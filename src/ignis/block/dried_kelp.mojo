@@ -5,6 +5,7 @@ and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,13 +15,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_DRIED_KELP
+from .model.solid import Solid as SolidModel
 
 
-struct DriedKelp(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct DriedKelp(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A block made from dried kelp."""
 
     comptime BASE_HASH: UInt64 = HASH_DRIED_KELP
     """Go `hashDriedKelp`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `DriedKelp{}`)."""
@@ -83,3 +89,11 @@ struct DriedKelp(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             0.5, ALWAYS_HARVESTABLE, HOE_EFFECTIVE
         ).with_blast_resistance(2.5)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

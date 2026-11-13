@@ -5,6 +5,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the `oneOf` drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -14,13 +15,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_DEEPSLATE_BRICKS
+from .model.solid import Solid as SolidModel
 
 
-struct DeepslateBricks(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct DeepslateBricks(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A brick variant of deepslate."""
 
     comptime BASE_HASH: UInt64 = HASH_DEEPSLATE_BRICKS
     """Go `hashDeepslateBricks`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var cracked: Bool
     """Whether the block is cracked."""
@@ -92,3 +98,11 @@ struct DeepslateBricks(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             3.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

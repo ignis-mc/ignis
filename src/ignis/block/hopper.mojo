@@ -10,6 +10,7 @@ DecodeNBT, the break handler, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -20,14 +21,24 @@ from .break_info import (
 )
 from .cube.face import Face, faces
 from .hash import HASH_HOPPER
+from .model.hopper import Hopper as HopperModel
 
 
-struct Hopper(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Hopper(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A block used to collect item entities directly above it, as well as to transfer items into
     and out of other containers."""
 
     comptime BASE_HASH: UInt64 = HASH_HOPPER
     """Go `hashHopper`."""
+    comptime ModelType = HopperModel
+    """The model type (Go `Model`)."""
 
     var facing: Face
     """The direction the hopper faces."""
@@ -149,3 +160,11 @@ struct Hopper(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> HopperModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return HopperModel()

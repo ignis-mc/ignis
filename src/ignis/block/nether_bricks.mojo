@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the `oneOf` drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -13,14 +14,19 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_NETHER_BRICKS
+from .model.solid import Solid as SolidModel
 from .nether_bricks_type import NetherBricksType, nether_bricks_types
 
 
-struct NetherBricks(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct NetherBricks(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A block made from four nether bricks."""
 
     comptime BASE_HASH: UInt64 = HASH_NETHER_BRICKS
     """Go `hashNetherBricks`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var type: NetherBricksType
     """The type of nether bricks."""
@@ -93,3 +99,11 @@ struct NetherBricks(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             2, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

@@ -5,6 +5,7 @@ TODO(world-runtime): Instrument, FlammabilityInfo, EncodeItem and the drops.
 
 from ..item.colour import Colour, colours
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,14 +15,17 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_WOOL
+from .model.solid import Solid as SolidModel
 
 
-struct Wool(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Wool(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A colourful block that can be obtained by killing or shearing sheep, or crafted using
     four string."""
 
     comptime BASE_HASH: UInt64 = HASH_WOOL
     """Go `hashWool`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var colour: Colour
     """The colour of the wool."""
@@ -92,3 +96,11 @@ struct Wool(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.8, ALWAYS_HARVESTABLE, SHEARS_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

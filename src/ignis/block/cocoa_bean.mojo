@@ -5,6 +5,7 @@ UseOnBlock, RandomTick, Model, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .block import horizontal_direction
 from .break_info import (
@@ -16,15 +17,23 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_COCOA_BEAN
+from .model.cocoa_bean import CocoaBean as CocoaBeanModel
 
 
 struct CocoaBean(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A crop block found in jungle biomes."""
 
     comptime BASE_HASH: UInt64 = HASH_COCOA_BEAN
     """Go `hashCocoaBean`."""
+    comptime ModelType = CocoaBeanModel
+    """The model type (Go `Model`)."""
 
     var facing: Direction
     """The direction from the cocoa bean to the log."""
@@ -122,3 +131,11 @@ struct CocoaBean(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> CocoaBeanModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return CocoaBeanModel(facing=self.facing, age=self.age)

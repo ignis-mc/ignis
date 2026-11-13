@@ -8,6 +8,7 @@ Strip, RandomTick (attemptOxidation), EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -18,17 +19,26 @@ from .break_info import (
 )
 from .connections import Connections, all_connections
 from .hash import HASH_COPPER_BARS
+from .model.thin import Thin as ThinModel
 from .oxidation_type import OxidationType, oxidation_types
 from .oxidizable import Oxidisable, copper_block_name
 
 
 struct CopperBars(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, Oxidisable
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+    Oxidisable,
 ):
     """A pane-like block made of copper."""
 
     comptime BASE_HASH: UInt64 = HASH_COPPER_BARS
     """Go `hashCopperBars`."""
+    comptime ModelType = ThinModel
+    """The model type (Go `Model`)."""
 
     var oxidation: OxidationType
     """The level of oxidation of the block."""
@@ -169,3 +179,11 @@ struct CopperBars(
         var b = self
         b.oxidation = o
         return b
+
+    def model(self) -> ThinModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return ThinModel()

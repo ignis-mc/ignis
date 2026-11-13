@@ -10,6 +10,7 @@ FuelInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .attachment import (
     Attachment,
@@ -27,14 +28,24 @@ from .break_info import (
 from .cube.direction import directions
 from .cube.orientation import Orientation
 from .hash import HASH_SIGN
+from .model.empty import Empty as EmptyModel
 from .wood_type import WoodType, wood_types
 
 
-struct Sign(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Sign(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A non-solid block that can display text."""
 
     comptime BASE_HASH: UInt64 = HASH_SIGN
     """Go `hashSign`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var wood: WoodType
     """The type of wood of the sign."""
@@ -153,3 +164,11 @@ struct Sign(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

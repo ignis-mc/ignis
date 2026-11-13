@@ -5,16 +5,22 @@ TODO(world-runtime): Model, UseOnBlock, EncodeItem.
 """
 
 from ..world.block import Block, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .cube.direction import Direction, directions
 from .hash import HASH_END_PORTAL_FRAME
+from .model.end_portal_frame import EndPortalFrame as EndPortalFrameModel
 
 
-struct EndPortalFrame(Block, Equatable, ImplicitlyCopyable, LightEmitter):
+struct EndPortalFrame(
+    Block, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+):
     """A block that makes up an end portal."""
 
     comptime BASE_HASH: UInt64 = HASH_END_PORTAL_FRAME
     """Go `hashEndPortalFrame`."""
+    comptime ModelType = EndPortalFrameModel
+    """The model type (Go `Model`)."""
 
     var eye: Bool
     """Whether the frame has an eye of ender inserted."""
@@ -101,3 +107,11 @@ struct EndPortalFrame(Block, Equatable, ImplicitlyCopyable, LightEmitter):
             The light level, 0 to 15.
         """
         return 1
+
+    def model(self) -> EndPortalFrameModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EndPortalFrameModel()

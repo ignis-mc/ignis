@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     HARVEST_LEVEL_DIAMOND,
@@ -14,13 +15,18 @@ from .break_info import (
     pickaxe_harvestable_from,
 )
 from .hash import HASH_ANCIENT_DEBRIS
+from .model.solid import Solid as SolidModel
 
 
-struct AncientDebris(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct AncientDebris(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A rare ore found within the nether."""
 
     comptime BASE_HASH: UInt64 = HASH_ANCIENT_DEBRIS
     """Go `hashAncientDebris`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `AncientDebris{}`)."""
@@ -85,3 +91,11 @@ struct AncientDebris(Block, Breakable, Equatable, ImplicitlyCopyable):
             pickaxe_harvestable_from(HARVEST_LEVEL_DIAMOND),
             PICKAXE_EFFECTIVE,
         ).with_blast_resistance(1200)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

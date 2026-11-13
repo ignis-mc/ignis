@@ -4,6 +4,7 @@ TODO(world-runtime): Instrument, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -13,13 +14,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_HONEYCOMB
+from .model.solid import Solid as SolidModel
 
 
-struct Honeycomb(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Honeycomb(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A decorative block crafted from honeycombs."""
 
     comptime BASE_HASH: UInt64 = HASH_HONEYCOMB
     """Go `hashHoneycomb`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Honeycomb{}`)."""
@@ -80,3 +86,11 @@ struct Honeycomb(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.6, ALWAYS_HARVESTABLE, NOTHING_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

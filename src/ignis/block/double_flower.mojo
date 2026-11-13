@@ -5,6 +5,7 @@ BoneMeal, CompostChance, FlammabilityInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -15,15 +16,23 @@ from .break_info import (
 )
 from .double_flower_type import DoubleFlowerType, double_flower_types
 from .hash import HASH_DOUBLE_FLOWER
+from .model.empty import Empty as EmptyModel
 
 
 struct DoubleFlower(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A two block high flower consisting of an upper and lower part."""
 
     comptime BASE_HASH: UInt64 = HASH_DOUBLE_FLOWER
     """Go `hashDoubleFlower`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var upper_part: Bool
     """Whether this is the upper part of the plant."""
@@ -121,3 +130,11 @@ struct DoubleFlower(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

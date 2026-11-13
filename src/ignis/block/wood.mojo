@@ -5,6 +5,7 @@ FuelInfo and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -15,14 +16,17 @@ from .break_info import (
 )
 from .cube.axis import Axis
 from .hash import HASH_WOOD
+from .model.solid import Solid as SolidModel
 from .wood_type import WoodType, wood_types
 
 
-struct Wood(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Wood(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A block with the log texture on all six sides."""
 
     comptime BASE_HASH: UInt64 = HASH_WOOD
     """Go `hashWood`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var wood: WoodType
     """The type of wood."""
@@ -126,3 +130,11 @@ struct Wood(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(2.0, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

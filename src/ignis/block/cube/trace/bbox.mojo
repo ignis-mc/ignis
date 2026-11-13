@@ -5,10 +5,11 @@
 from ....mgl64 import Vec3, float_equal
 from ..bbox import BBox
 from ..face import Face
+from .result import Result
 
 
 @fieldwise_init
-struct BBoxResult(ImplicitlyCopyable):
+struct BBoxResult(ImplicitlyCopyable, Result):
     """The result of a ray hitting a box (Go `trace.BBoxResult`)."""
 
     var _bb: BBox

@@ -10,6 +10,7 @@ the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -21,17 +22,26 @@ from .break_info import (
 from .copper_golem_pose import CopperGolemPose
 from .cube.direction import Direction, directions
 from .hash import HASH_COPPER_GOLEM_STATUE
+from .model.solid import Solid as SolidModel
 from .oxidation_type import OxidationType, oxidation_types
 from .oxidizable import Oxidisable, copper_block_name
 
 
 struct CopperGolemStatue(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, Oxidisable
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+    Oxidisable,
 ):
     """A decorative statue left behind by a copper golem."""
 
     comptime BASE_HASH: UInt64 = HASH_COPPER_GOLEM_STATUE
     """Go `hashCopperGolemStatue`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var facing: Direction
     """The direction the statue faces."""
@@ -181,3 +191,11 @@ struct CopperGolemStatue(
         var b = self
         b.oxidation = o
         return b
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

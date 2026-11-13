@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -13,14 +14,19 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_PRISMARINE
+from .model.solid import Solid as SolidModel
 from .prismarine_type import PrismarineType, prismarine_types
 
 
-struct Prismarine(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Prismarine(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A type of stone that appears underwater in ruins and ocean monuments."""
 
     comptime BASE_HASH: UInt64 = HASH_PRISMARINE
     """Go `hashPrismarine`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var type: PrismarineType
     """The type of prismarine."""
@@ -93,3 +99,11 @@ struct Prismarine(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             1.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

@@ -10,6 +10,7 @@ TODO(world-runtime): NeighbourUpdateTick, DeriveState, SideClosed, the
 
 from ..item.colour import Colour, colours
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -20,16 +21,24 @@ from .break_info import (
 )
 from .connections import Connections, all_connections
 from .hash import HASH_STAINED_GLASS_PANE
+from .model.thin import Thin as ThinModel
 
 
 struct StainedGlassPane(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A transparent block that can be used as a more efficient alternative to glass blocks.
     """
 
     comptime BASE_HASH: UInt64 = HASH_STAINED_GLASS_PANE
     """Go `hashStainedGlassPane`."""
+    comptime ModelType = ThinModel
+    """The model type (Go `Model`)."""
 
     var colour: Colour
     """The colour of the pane."""
@@ -129,3 +138,11 @@ struct StainedGlassPane(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> ThinModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return ThinModel()

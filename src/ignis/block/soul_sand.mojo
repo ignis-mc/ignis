@@ -4,6 +4,7 @@ TODO(world-runtime): SoilFor, Instrument, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -13,13 +14,16 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_SOUL_SAND
+from .model.solid import Solid as SolidModel
 
 
-struct SoulSand(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct SoulSand(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A block found naturally only in the nether."""
 
     comptime BASE_HASH: UInt64 = HASH_SOUL_SAND
     """Go `hashSoulSand`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `SoulSand{}`)."""
@@ -80,3 +84,11 @@ struct SoulSand(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.5, ALWAYS_HARVESTABLE, SHOVEL_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

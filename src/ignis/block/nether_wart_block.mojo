@@ -5,6 +5,7 @@ TODO(world-runtime): CompostChance, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,14 +15,19 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_NETHER_WART_BLOCK
+from .model.solid import Solid as SolidModel
 
 
-struct NetherWartBlock(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct NetherWartBlock(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A decorative block found in crimson forests and crafted from nether wart.
     """
 
     comptime BASE_HASH: UInt64 = HASH_NETHER_WART_BLOCK
     """Go `hashNetherWartBlock`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var warped: Bool
     """Whether the block is a warped wart block."""
@@ -91,3 +97,11 @@ struct NetherWartBlock(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(1, ALWAYS_HARVESTABLE, HOE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()
