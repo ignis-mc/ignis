@@ -1,0 +1,146 @@
+settings "Ignis Fixture" spawn=[1 70 2] time=6000 cycle=false rain=12000 raining=true thunder=24000 thundering=true weather=true tick=99999 mode=1 difficulty=3 range=4
+player [-5 64 9] true <nil>
+0 -1 2 biomes a6619f482fee91a3
+0 -1 2 blockentity [-14 5 35] {"CustomName":"Fixture chest","Findable":0b,"Items":[{"Count":64b,"Name":"minecraft:stone","Slot":0b}],"id":"Chest","x":-14i,"y":5i,"z":35i}
+0 -1 2 blockentity [-7 -60 47] {"Text":"hello","id":"Sign","x":-7i,"y":-60i,"z":47i}
+0 -1 2 legacy false
+0 -1 2 sub 00 layers=1 ff78aa85285039b2
+0 -1 2 sub 01 layers=1 6a495f1428bb772f
+0 -1 2 sub 02 layers=1 aaf767c421e37e46
+0 -1 2 sub 03 layers=1 ffa031c393033409
+0 -1 2 sub 04 layers=1 2a0a93f050f6f755
+0 -1 2 sub 05 layers=1 c7b4dddf3bb4d0f3
+0 -1 2 sub 06 layers=1 9178a365e737b159
+0 -1 2 sub 07 layers=1 365ddbd778c8d02e
+0 -1 2 sub 08 layers=1 07764408780813e4
+0 -1 2 sub 09 layers=1 d85b2262116e3460
+0 -1 2 sub 10 layers=1 2e6621af9fa5f795
+0 -1 2 sub 11 layers=1 0b39736529f76387
+0 -1 2 sub 12 layers=0 
+0 -1 2 sub 13 layers=0 
+0 -1 2 sub 14 layers=0 
+0 -1 2 sub 15 layers=0 
+0 -1 2 sub 16 layers=0 
+0 -1 2 sub 17 layers=0 
+0 -1 2 sub 18 layers=0 
+0 -1 2 sub 19 layers=0 
+0 -1 2 sub 20 layers=0 
+0 -1 2 sub 21 layers=0 
+0 -1 2 sub 22 layers=1 0654edee259f154a
+0 -1 2 sub 23 layers=0 
+0 -1 2 tick 0
+0 0 0 biomes a6619f482fee91a3
+0 0 0 entity -4294967295 {"Health":10s,"Pos":[f3fc00000,f428c0000,fc0100000],"Rotation":[f42b40000,f00000000],"Saddled":1b,"UniqueID":-4294967295l,"definitions":["+minecraft:pig","+minecraft:pig_adult"],"identifier":"minecraft:pig"}
+0 0 0 entity 77 {"Age":1200i,"Item":{"Count":3b,"Damage":0s,"Name":"minecraft:diamond"},"Pos":[f40400000,f42810000,f40400000],"UniqueID":77l,"identifier":"minecraft:item"}
+0 0 0 legacy false
+0 0 0 sub 00 layers=1 973d4d761ffec5ea
+0 0 0 sub 01 layers=1 1bdb32d144435979
+0 0 0 sub 02 layers=1 2d3e565e9d38d5cd
+0 0 0 sub 03 layers=1 bf381bf3c2856a13
+0 0 0 sub 04 layers=1 75647576aaae0116
+0 0 0 sub 05 layers=1 69299ebba038f336
+0 0 0 sub 06 layers=1 6fba8ed7e4e08f75
+0 0 0 sub 07 layers=2 21a8dcedb576f321 8c2faa7c1dec69b6
+0 0 0 sub 08 layers=0 
+0 0 0 sub 09 layers=0 
+0 0 0 sub 10 layers=0 
+0 0 0 sub 11 layers=0 
+0 0 0 sub 12 layers=0 
+0 0 0 sub 13 layers=0 
+0 0 0 sub 14 layers=0 
+0 0 0 sub 15 layers=0 
+0 0 0 sub 16 layers=0 
+0 0 0 sub 17 layers=0 
+0 0 0 sub 18 layers=0 
+0 0 0 sub 19 layers=0 
+0 0 0 sub 20 layers=0 
+0 0 0 sub 21 layers=0 
+0 0 0 sub 22 layers=0 
+0 0 0 sub 23 layers=0 
+0 0 0 tick 0
+0 1 1 biomes 15b82568e44292e7
+0 1 1 legacy false
+0 1 1 sub 00 layers=1 6692e662217fff85
+0 1 1 sub 01 layers=0 
+0 1 1 sub 02 layers=0 
+0 1 1 sub 03 layers=0 
+0 1 1 sub 04 layers=0 
+0 1 1 sub 05 layers=0 
+0 1 1 sub 06 layers=0 
+0 1 1 sub 07 layers=0 
+0 1 1 sub 08 layers=0 
+0 1 1 sub 09 layers=0 
+0 1 1 sub 10 layers=0 
+0 1 1 sub 11 layers=0 
+0 1 1 sub 12 layers=0 
+0 1 1 sub 13 layers=0 
+0 1 1 sub 14 layers=0 
+0 1 1 sub 15 layers=0 
+0 1 1 sub 16 layers=0 
+0 1 1 sub 17 layers=0 
+0 1 1 sub 18 layers=0 
+0 1 1 sub 19 layers=0 
+0 1 1 sub 20 layers=0 
+0 1 1 sub 21 layers=0 
+0 1 1 sub 22 layers=0 
+0 1 1 sub 23 layers=0 
+0 1 1 tick 0
+0 5 -7 biomes 6cfb2bbe7511b194
+0 5 -7 legacy false
+0 5 -7 scheduled [80 10 -112] 3317 1240
+0 5 -7 scheduled [81 -64 -100] 14825 1300
+0 5 -7 sub 00 layers=0 
+0 5 -7 sub 01 layers=0 
+0 5 -7 sub 02 layers=0 
+0 5 -7 sub 03 layers=0 
+0 5 -7 sub 04 layers=0 
+0 5 -7 sub 05 layers=0 
+0 5 -7 sub 06 layers=0 
+0 5 -7 sub 07 layers=0 
+0 5 -7 sub 08 layers=0 
+0 5 -7 sub 09 layers=0 
+0 5 -7 sub 10 layers=0 
+0 5 -7 sub 11 layers=0 
+0 5 -7 sub 12 layers=0 
+0 5 -7 sub 13 layers=0 
+0 5 -7 sub 14 layers=0 
+0 5 -7 sub 15 layers=0 
+0 5 -7 sub 16 layers=0 
+0 5 -7 sub 17 layers=0 
+0 5 -7 sub 18 layers=0 
+0 5 -7 sub 19 layers=0 
+0 5 -7 sub 20 layers=0 
+0 5 -7 sub 21 layers=0 
+0 5 -7 sub 22 layers=0 
+0 5 -7 sub 23 layers=0 
+0 5 -7 tick 1234
+1 0 0 biomes fa43239bcee7b97c
+1 0 0 legacy false
+1 0 0 sub 00 layers=1 96b3fcd422213b54
+1 0 0 sub 01 layers=1 c3757b6e38f361cd
+1 0 0 sub 02 layers=1 7bea758841405c7a
+1 0 0 sub 03 layers=0 
+1 0 0 sub 04 layers=0 
+1 0 0 sub 05 layers=0 
+1 0 0 sub 06 layers=0 
+1 0 0 sub 07 layers=0 
+1 0 0 tick 0
+2 -3 -3 biomes 8a39d2abd3999ab7
+2 -3 -3 legacy false
+2 -3 -3 sub 00 layers=0 
+2 -3 -3 sub 01 layers=0 
+2 -3 -3 sub 02 layers=0 
+2 -3 -3 sub 03 layers=1 da99613d5ac78d88
+2 -3 -3 sub 04 layers=0 
+2 -3 -3 sub 05 layers=0 
+2 -3 -3 sub 06 layers=0 
+2 -3 -3 sub 07 layers=0 
+2 -3 -3 sub 08 layers=0 
+2 -3 -3 sub 09 layers=0 
+2 -3 -3 sub 10 layers=0 
+2 -3 -3 sub 11 layers=0 
+2 -3 -3 sub 12 layers=0 
+2 -3 -3 sub 13 layers=0 
+2 -3 -3 sub 14 layers=0 
+2 -3 -3 sub 15 layers=0 
+2 -3 -3 tick 0

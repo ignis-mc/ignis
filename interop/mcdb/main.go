@@ -6,6 +6,8 @@
 //	go run . ldb-dump <dir> <out.txt>
 //	go run . ldb-fixtures <outdir>
 //	go run . upgrade-vectors <legacy_states.nbt> <out.txt>
+//	go run . world-write <dir>
+//	go run . world-dump <dir> <out.txt>
 package main
 
 import (
@@ -42,6 +44,10 @@ func run(args []string) error {
 		return ldbFixtures(args[1])
 	case "upgrade-vectors":
 		return upgradeVectors(args[1], args[2])
+	case "world-write":
+		return worldWrite(args[1])
+	case "world-dump":
+		return worldDump(args[1], args[2])
 	case "ldb-dump":
 		return ldbDump(args[1], args[2])
 	}
