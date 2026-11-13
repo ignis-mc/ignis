@@ -11,14 +11,17 @@ from ..world.block_set import BlockSet
 from .air import Air
 from .amethyst import Amethyst
 from .ancient_debris import AncientDebris
+from .anvil import Anvil
 from .bamboo import Bamboo
 from .bamboo_block import BambooBlock
 from .bamboo_mosaic import BambooMosaic
 from .bamboo_sapling import BambooSapling
+from .banner import Banner
 from .barrel import Barrel
 from .barrier import Barrier
 from .basalt import Basalt
 from .beacon import Beacon
+from .bed import Bed
 from .bedrock import Bedrock
 from .beetroot_seeds import BeetrootSeeds
 from .blackstone import Blackstone
@@ -27,6 +30,7 @@ from .blue_ice import BlueIce
 from .bone import Bone
 from .bookshelf import Bookshelf
 from .break_info import BreakInfo, Breakable
+from .brewing_stand import BrewingStand
 from .bricks import Bricks
 from .cactus import Cactus
 from .cake import Cake
@@ -44,6 +48,7 @@ from .coal_ore import CoalOre
 from .cobblestone import Cobblestone
 from .cobweb import Cobweb
 from .cocoa_bean import CocoaBean
+from .composter import Composter
 from .concrete import Concrete
 from .concrete_powder import ConcretePowder
 from .copper import Copper
@@ -60,6 +65,7 @@ from .coral import Coral
 from .coral_block import CoralBlock
 from .crafting_table import CraftingTable
 from .deadbush import DeadBush
+from .decorated_pot import DecoratedPot
 from .deepslate import Deepslate
 from .deepslate_bricks import DeepslateBricks
 from .deepslate_tiles import DeepslateTiles
@@ -96,6 +102,7 @@ from .gold import Gold
 from .gold_ore import GoldOre
 from .grass import Grass
 from .gravel import Gravel
+from .grindstone import Grindstone
 from .hay_bale import HayBale
 from .honeycomb import Honeycomb
 from .hopper import Hopper
@@ -109,6 +116,7 @@ from .iron import Iron
 from .iron_bars import IronBars
 from .iron_chain import IronChain
 from .iron_ore import IronOre
+from .item_frame import ItemFrame
 from .jukebox import Jukebox
 from .kelp import Kelp
 from .ladder import Ladder
@@ -177,6 +185,9 @@ from .sea_pickle import SeaPickle
 from .shelf_mushroom import ShelfMushroom
 from .short_grass import ShortGrass
 from .shroomlight import Shroomlight
+from .shulker_box import ShulkerBox
+from .sign import Sign
+from .skull import Skull
 from .slab import Slab
 from .slime import Slime
 from .smithing_table import SmithingTable
@@ -194,6 +205,7 @@ from .stairs import Stairs
 from .stone import Andesite, Diorite, Granite, Stone
 from .stone_bricks import StoneBricks
 from .stonecutter import Stonecutter
+from .straw_bed import StrawBed
 from .sugar_cane import SugarCane
 from .sulfur import Sulfur
 from .sulfur_bricks import SulfurBricks
@@ -218,14 +230,17 @@ comptime VanillaBlocks = BlockSet[
     Amethyst,
     AncientDebris,
     Andesite,
+    Anvil,
     Bamboo,
     BambooBlock,
     BambooMosaic,
     BambooSapling,
+    Banner,
     Barrel,
     Barrier,
     Basalt,
     Beacon,
+    Bed,
     Bedrock,
     BeetrootSeeds,
     Blackstone,
@@ -233,6 +248,7 @@ comptime VanillaBlocks = BlockSet[
     BlueIce,
     Bone,
     Bookshelf,
+    BrewingStand,
     Bricks,
     Cactus,
     Cake,
@@ -251,6 +267,7 @@ comptime VanillaBlocks = BlockSet[
     Cobblestone,
     Cobweb,
     CocoaBean,
+    Composter,
     Concrete,
     ConcretePowder,
     Copper,
@@ -267,6 +284,7 @@ comptime VanillaBlocks = BlockSet[
     CoralBlock,
     CraftingTable,
     DeadBush,
+    DecoratedPot,
     Deepslate,
     DeepslateBricks,
     DeepslateTiles,
@@ -305,6 +323,7 @@ comptime VanillaBlocks = BlockSet[
     Granite,
     Grass,
     Gravel,
+    Grindstone,
     HayBale,
     Honeycomb,
     Hopper,
@@ -318,6 +337,7 @@ comptime VanillaBlocks = BlockSet[
     IronBars,
     IronChain,
     IronOre,
+    ItemFrame,
     Jukebox,
     Kelp,
     Ladder,
@@ -388,6 +408,9 @@ comptime VanillaBlocks = BlockSet[
     ShelfMushroom,
     ShortGrass,
     Shroomlight,
+    ShulkerBox,
+    Sign,
+    Skull,
     Slab,
     Slime,
     SmithingTable,
@@ -405,6 +428,7 @@ comptime VanillaBlocks = BlockSet[
     Stone,
     StoneBricks,
     Stonecutter,
+    StrawBed,
     SugarCane,
     Sulfur,
     SulfurBricks,
