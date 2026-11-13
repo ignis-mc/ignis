@@ -19,9 +19,12 @@ from .blackstone import Blackstone
 from .break_info import BreakInfo, Breakable
 from .bricks import Bricks
 from .calcite import Calcite
+from .carpet import Carpet
 from .coal import Coal
 from .coal_ore import CoalOre
 from .cobblestone import Cobblestone
+from .concrete import Concrete
+from .concrete_powder import ConcretePowder
 from .copper_ore import CopperOre
 from .deepslate import Deepslate
 from .deepslate_bricks import DeepslateBricks
@@ -33,6 +36,9 @@ from .emerald import Emerald
 from .emerald_ore import EmeraldOre
 from .end_bricks import EndBricks
 from .end_stone import EndStone
+from .glass import Glass
+from .glass_pane import GlassPane
+from .glazed_terracotta import GlazedTerracotta
 from .gold import Gold
 from .gold_ore import GoldOre
 from .grass import Grass
@@ -58,11 +64,17 @@ from .raw_gold import RawGold
 from .raw_iron import RawIron
 from .redstone_block import RedstoneBlock
 from .smooth_basalt import SmoothBasalt
+from .stained_glass import StainedGlass
+from .stained_glass_pane import StainedGlassPane
+from .stained_terracotta import StainedTerracotta
 from .stone import Andesite, Diorite, Granite, Stone
 from .stone_bricks import StoneBricks
+from .terracotta import Terracotta
+from .tinted_glass import TintedGlass
 from .tuff import Tuff
 from .tuff_bricks import TuffBricks
 from .wood import Wood
+from .wool import Wool
 
 comptime VanillaBlocks = BlockSet[
     Air,
@@ -76,10 +88,13 @@ comptime VanillaBlocks = BlockSet[
     Blackstone,
     Bricks,
     Calcite,
+    Carpet,
     ChiseledQuartz,
     Coal,
     CoalOre,
     Cobblestone,
+    Concrete,
+    ConcretePowder,
     CopperOre,
     Deepslate,
     DeepslateBricks,
@@ -92,6 +107,9 @@ comptime VanillaBlocks = BlockSet[
     EmeraldOre,
     EndBricks,
     EndStone,
+    Glass,
+    GlassPane,
+    GlazedTerracotta,
     Gold,
     GoldOre,
     Granite,
@@ -119,11 +137,17 @@ comptime VanillaBlocks = BlockSet[
     RawIron,
     RedstoneBlock,
     SmoothBasalt,
+    StainedGlass,
+    StainedGlassPane,
+    StainedTerracotta,
     Stone,
     StoneBricks,
+    Terracotta,
+    TintedGlass,
     Tuff,
     TuffBricks,
     Wood,
+    Wool,
 ]
 """Every block type Ignis implements, sorted by name."""
 
