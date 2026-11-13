@@ -11,6 +11,8 @@ from ..world.block_set import BlockSet
 from .air import Air
 from .amethyst import Amethyst
 from .ancient_debris import AncientDebris
+from .bamboo_block import BambooBlock
+from .bamboo_mosaic import BambooMosaic
 from .basalt import Basalt
 from .bedrock import Bedrock
 from .blackstone import Blackstone
@@ -38,11 +40,14 @@ from .iron import Iron
 from .iron_ore import IronOre
 from .lapis import Lapis
 from .lapis_ore import LapisOre
+from .leaves import Leaves
+from .log import Log
 from .nether_bricks import NetherBricks
 from .nether_gold_ore import NetherGoldOre
 from .netherite import Netherite
 from .netherrack import Netherrack
 from .obsidian import Obsidian
+from .planks import Planks
 from .polished_blackstone_brick import PolishedBlackstoneBrick
 from .polished_tuff import PolishedTuff
 from .quartz import ChiseledQuartz, Quartz, QuartzPillar
@@ -52,18 +57,20 @@ from .raw_copper import RawCopper
 from .raw_gold import RawGold
 from .raw_iron import RawIron
 from .redstone_block import RedstoneBlock
-from .redstone_ore import RedstoneOre
 from .smooth_basalt import SmoothBasalt
 from .stone import Andesite, Diorite, Granite, Stone
 from .stone_bricks import StoneBricks
 from .tuff import Tuff
 from .tuff_bricks import TuffBricks
+from .wood import Wood
 
 comptime VanillaBlocks = BlockSet[
     Air,
     Amethyst,
     AncientDebris,
     Andesite,
+    BambooBlock,
+    BambooMosaic,
     Basalt,
     Bedrock,
     Blackstone,
@@ -93,12 +100,15 @@ comptime VanillaBlocks = BlockSet[
     IronOre,
     Lapis,
     LapisOre,
+    Leaves,
+    Log,
     NetherBricks,
     NetherGoldOre,
     NetherQuartzOre,
     Netherite,
     Netherrack,
     Obsidian,
+    Planks,
     PolishedBlackstoneBrick,
     PolishedTuff,
     Quartz,
@@ -108,12 +118,12 @@ comptime VanillaBlocks = BlockSet[
     RawGold,
     RawIron,
     RedstoneBlock,
-    RedstoneOre,
     SmoothBasalt,
     Stone,
     StoneBricks,
     Tuff,
     TuffBricks,
+    Wood,
 ]
 """Every block type Ignis implements, sorted by name."""
 
