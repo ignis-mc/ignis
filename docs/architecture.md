@@ -46,8 +46,10 @@ compile-time type list for dynamic dispatch.
 ### Blocks
 
 Implemented in `ignis.world` (`block.mojo`, `block_registry.mojo`,
-`block_set.mojo`) with air, stone, grass, dirt and bedrock in `ignis.block`
-as the worked example.
+`block_set.mojo`). `ignis.block` defines all 225 Dragonfly block types
+(state, encoding, hash, registration, light and break data); their
+behaviour (`world.Tx`, items, entities) is listed per module after
+`TODO(world-runtime):`.
 
 - **A block type is a struct conforming to `world.Block`**:
   `BASE_HASH` (the type's `hash*` constant from Go's generated
@@ -124,6 +126,17 @@ Conventions shared by the block port:
   two `ToolFilter`s (tool types plus a minimum harvest level) for Go's
   `Harvestable` and `Effective` closures. Drops, break handlers and break
   durations need items and `world.Tx` and come with them.
+- **Data that Go keeps outside the state** (NBT fields such as a note
+  block's pitch or a chest's custom name) are fields too, compared by
+  `__eq__` but not hashed, so `from_hash` gives their zero values as Go's
+  registry does. Fields whose types are not ported yet (inventories,
+  `item.Stack`, entity handles) are in the module's TODO list.
+- **Name clashes**: Go's `block.String` is `StringBlock`, so that importing
+  it does not shadow the built-in `String`.
+- **Dragonfly bugs fixed while keeping the wire states**: plain and red
+  nether brick slabs and stairs are no longer swapped
+  (`slab_type.mojo`, `stairs_type.mojo`; `test_register` maps Go's state
+  hashes for those values), and `Attachment.rotate_right` rotates right.
 - **Blocks that hold a block** (Go `Slab{Block: Planks{}}`) store it as an
   `AnyBlock`: the type's `BASE_HASH` and the block's `hash()`, which is what
   Go's `hashBlock` packs into the outer hash. `get[T]()` is Go's type

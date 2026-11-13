@@ -141,6 +141,9 @@ def test_every_block_matches_dragonfly() raises:
             t"{rid}\t{name}\t{kind}\t{hash}\t{br.light_block(r)}\t"
             t"{br.filtering_block(r)}\t"
         )
+        # TODO(world-runtime): compare the registry flags (NBT, random tick,
+        # liquid, liquid displacing) once those traits exist; blocks.txt has
+        # Dragonfly's values.
         var flags = String(parts[6])
         got += flags + "\t" + _break_line(break_info(kind, hash))
         assert_equal(got, want)
