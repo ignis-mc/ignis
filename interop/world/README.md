@@ -21,6 +21,14 @@ expected bytes that the Mojo tests under `test/ignis/world/` compare against:
   boxes with air, stone, the same block and a mix of connecting blocks
   around it; bamboo at several positions; and rays through blocks
   (`test/ignis/block/model/test_models.mojo`).
+- `defs.txt`: every biome with its data and the marshalled
+  `BiomeDefinitionList` packet; every effect (ID, lasting, colour),
+  `ResultingColour`, `TickDuration`, the effect multipliers and damage
+  sources; every enchantment (name, levels, costs, rarity, compatibility
+  with each other and with 20 items, per-type values). Checked by
+  `test/ignis/world/biome/test_register.mojo`,
+  `test/ignis/entity/effect/test_register.mojo` and
+  `test/ignis/item/enchantment/test_register.mojo`.
 - `vectors.txt`: runtime IDs and block hashes of the implemented blocks,
   network-encoded sub-chunks and biomes, height maps, and the `LevelChunk` and
   `SubChunk` packets Dragonfly's session sends for a few fixed chunks.
