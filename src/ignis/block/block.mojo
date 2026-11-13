@@ -14,3 +14,22 @@ comptime UNKNOWN_DIRECTION = Direction(4)
 `unknownDirection`)."""
 comptime UNKNOWN_FACE = Face(6)
 """A face past the six real ones (Go `unknownFace`)."""
+
+
+def horizontal_direction(d: Direction) -> Direction:
+    """Converts a direction to the legacy horizontal direction some block
+    properties use (Go `horizontalDirection`).
+
+    Args:
+        d: The direction.
+
+    Returns:
+        North for south, south for west, west for north, east for east.
+    """
+    if d == Direction.SOUTH:
+        return Direction.NORTH
+    if d == Direction.WEST:
+        return Direction.SOUTH
+    if d == Direction.NORTH:
+        return Direction.WEST
+    return Direction.EAST

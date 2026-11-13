@@ -11,20 +11,25 @@ from ..world.block_set import BlockSet
 from .air import Air
 from .amethyst import Amethyst
 from .ancient_debris import AncientDebris
+from .bamboo import Bamboo
 from .bamboo_block import BambooBlock
 from .bamboo_mosaic import BambooMosaic
+from .bamboo_sapling import BambooSapling
 from .barrier import Barrier
 from .basalt import Basalt
 from .beacon import Beacon
 from .bedrock import Bedrock
+from .beetroot_seeds import BeetrootSeeds
 from .blackstone import Blackstone
 from .blue_ice import BlueIce
 from .bone import Bone
 from .bookshelf import Bookshelf
 from .break_info import BreakInfo, Breakable
 from .bricks import Bricks
+from .cactus import Cactus
 from .calcite import Calcite
 from .carpet import Carpet
+from .carrot import Carrot
 from .cinnabar import Cinnabar
 from .cinnabar_bricks import CinnabarBricks
 from .clay import Clay
@@ -32,6 +37,7 @@ from .coal import Coal
 from .coal_ore import CoalOre
 from .cobblestone import Cobblestone
 from .cobweb import Cobweb
+from .cocoa_bean import CocoaBean
 from .concrete import Concrete
 from .concrete_powder import ConcretePowder
 from .copper import Copper
@@ -44,8 +50,10 @@ from .copper_lantern import CopperLantern
 from .copper_ore import CopperOre
 from .copper_torch import CopperTorch
 from .copper_trapdoor import CopperTrapdoor
+from .coral import Coral
 from .coral_block import CoralBlock
 from .crafting_table import CraftingTable
+from .deadbush import DeadBush
 from .deepslate import Deepslate
 from .deepslate_bricks import DeepslateBricks
 from .deepslate_tiles import DeepslateTiles
@@ -53,6 +61,8 @@ from .diamond import Diamond
 from .diamond_ore import DiamondOre
 from .dirt import Dirt
 from .dirt_path import DirtPath
+from .double_flower import DoubleFlower
+from .double_tall_grass import DoubleTallGrass
 from .dragon_egg import DragonEgg
 from .dried_kelp import DriedKelp
 from .dripstone import Dripstone
@@ -65,7 +75,9 @@ from .end_portal_frame import EndPortalFrame
 from .end_rod import EndRod
 from .end_stone import EndStone
 from .farmland import Farmland
+from .fern import Fern
 from .fletching_table import FletchingTable
+from .flower import Flower
 from .froglight import Froglight
 from .glass import Glass
 from .glass_pane import GlassPane
@@ -88,13 +100,17 @@ from .iron_bars import IronBars
 from .iron_chain import IronChain
 from .iron_ore import IronOre
 from .jukebox import Jukebox
+from .kelp import Kelp
 from .lapis import Lapis
 from .lapis_ore import LapisOre
 from .leaves import Leaves
 from .light import Light
+from .lily_pad import LilyPad
+from .lit_pumpkin import LitPumpkin
 from .log import Log
 from .magma import Magma
 from .melon import Melon
+from .melon_seeds import MelonSeeds
 from .moss_carpet import MossCarpet
 from .mud import Mud
 from .mud_bricks import MudBricks
@@ -103,6 +119,8 @@ from .mycelium import Mycelium
 from .nether_brick_fence import NetherBrickFence
 from .nether_bricks import NetherBricks
 from .nether_gold_ore import NetherGoldOre
+from .nether_sprouts import NetherSprouts
+from .nether_wart import NetherWart
 from .nether_wart_block import NetherWartBlock
 from .netherite import Netherite
 from .netherrack import Netherrack
@@ -110,6 +128,7 @@ from .note import Note
 from .obsidian import Obsidian
 from .packed_ice import PackedIce
 from .packed_mud import PackedMud
+from .pink_petals import PinkPetals
 from .planks import Planks
 from .podzol import Podzol
 from .polished_blackstone_brick import PolishedBlackstoneBrick
@@ -117,7 +136,10 @@ from .polished_cinnabar import PolishedCinnabar
 from .polished_sulfur import PolishedSulfur
 from .polished_tuff import PolishedTuff
 from .portal import Portal
+from .potato import Potato
 from .prismarine import Prismarine
+from .pumpkin import Pumpkin
+from .pumpkin_seeds import PumpkinSeeds
 from .purpur import Purpur, PurpurPillar
 from .quartz import ChiseledQuartz, Quartz, QuartzPillar
 from .quartz_bricks import QuartzBricks
@@ -125,6 +147,7 @@ from .quartz_ore import NetherQuartzOre
 from .raw_copper import RawCopper
 from .raw_gold import RawGold
 from .raw_iron import RawIron
+from .red_shrub import RedShrub
 from .redstone_block import RedstoneBlock
 from .redstone_ore import RedstoneOre
 from .reinforced_deepslate import ReinforcedDeepslate
@@ -132,7 +155,11 @@ from .resin import Resin
 from .resin_bricks import ResinBricks
 from .sand import Sand
 from .sandstone import Sandstone
+from .sapling import Sapling
 from .sea_lantern import SeaLantern
+from .sea_pickle import SeaPickle
+from .shelf_mushroom import ShelfMushroom
+from .short_grass import ShortGrass
 from .shroomlight import Shroomlight
 from .slab import Slab
 from .slime import Slime
@@ -149,6 +176,7 @@ from .stained_terracotta import StainedTerracotta
 from .stairs import Stairs
 from .stone import Andesite, Diorite, Granite, Stone
 from .stone_bricks import StoneBricks
+from .sugar_cane import SugarCane
 from .sulfur import Sulfur
 from .sulfur_bricks import SulfurBricks
 from .terracotta import Terracotta
@@ -156,7 +184,9 @@ from .tinted_glass import TintedGlass
 from .tnt import TNT
 from .tuff import Tuff
 from .tuff_bricks import TuffBricks
+from .vine import Vines
 from .wall import Wall
+from .wheat_seeds import WheatSeeds
 from .wood import Wood
 from .wood_door import WoodDoor
 from .wood_fence import WoodFence
@@ -169,19 +199,24 @@ comptime VanillaBlocks = BlockSet[
     Amethyst,
     AncientDebris,
     Andesite,
+    Bamboo,
     BambooBlock,
     BambooMosaic,
+    BambooSapling,
     Barrier,
     Basalt,
     Beacon,
     Bedrock,
+    BeetrootSeeds,
     Blackstone,
     BlueIce,
     Bone,
     Bookshelf,
     Bricks,
+    Cactus,
     Calcite,
     Carpet,
+    Carrot,
     ChiseledQuartz,
     Cinnabar,
     CinnabarBricks,
@@ -190,6 +225,7 @@ comptime VanillaBlocks = BlockSet[
     CoalOre,
     Cobblestone,
     Cobweb,
+    CocoaBean,
     Concrete,
     ConcretePowder,
     Copper,
@@ -202,8 +238,10 @@ comptime VanillaBlocks = BlockSet[
     CopperOre,
     CopperTorch,
     CopperTrapdoor,
+    Coral,
     CoralBlock,
     CraftingTable,
+    DeadBush,
     Deepslate,
     DeepslateBricks,
     DeepslateTiles,
@@ -212,6 +250,8 @@ comptime VanillaBlocks = BlockSet[
     Diorite,
     Dirt,
     DirtPath,
+    DoubleFlower,
+    DoubleTallGrass,
     DragonEgg,
     DriedKelp,
     Dripstone,
@@ -224,7 +264,9 @@ comptime VanillaBlocks = BlockSet[
     EndRod,
     EndStone,
     Farmland,
+    Fern,
     FletchingTable,
+    Flower,
     Froglight,
     Glass,
     GlassPane,
@@ -248,13 +290,17 @@ comptime VanillaBlocks = BlockSet[
     IronChain,
     IronOre,
     Jukebox,
+    Kelp,
     Lapis,
     LapisOre,
     Leaves,
     Light,
+    LilyPad,
+    LitPumpkin,
     Log,
     Magma,
     Melon,
+    MelonSeeds,
     MossCarpet,
     Mud,
     MudBricks,
@@ -264,6 +310,8 @@ comptime VanillaBlocks = BlockSet[
     NetherBricks,
     NetherGoldOre,
     NetherQuartzOre,
+    NetherSprouts,
+    NetherWart,
     NetherWartBlock,
     Netherite,
     Netherrack,
@@ -271,6 +319,7 @@ comptime VanillaBlocks = BlockSet[
     Obsidian,
     PackedIce,
     PackedMud,
+    PinkPetals,
     Planks,
     Podzol,
     PolishedBlackstoneBrick,
@@ -278,7 +327,10 @@ comptime VanillaBlocks = BlockSet[
     PolishedSulfur,
     PolishedTuff,
     Portal,
+    Potato,
     Prismarine,
+    Pumpkin,
+    PumpkinSeeds,
     Purpur,
     PurpurPillar,
     Quartz,
@@ -287,6 +339,7 @@ comptime VanillaBlocks = BlockSet[
     RawCopper,
     RawGold,
     RawIron,
+    RedShrub,
     RedstoneBlock,
     RedstoneOre,
     ReinforcedDeepslate,
@@ -294,7 +347,11 @@ comptime VanillaBlocks = BlockSet[
     ResinBricks,
     Sand,
     Sandstone,
+    Sapling,
     SeaLantern,
+    SeaPickle,
+    ShelfMushroom,
+    ShortGrass,
     Shroomlight,
     Slab,
     Slime,
@@ -311,6 +368,7 @@ comptime VanillaBlocks = BlockSet[
     Stairs,
     Stone,
     StoneBricks,
+    SugarCane,
     Sulfur,
     SulfurBricks,
     TNT,
@@ -318,7 +376,9 @@ comptime VanillaBlocks = BlockSet[
     TintedGlass,
     Tuff,
     TuffBricks,
+    Vines,
     Wall,
+    WheatSeeds,
     Wood,
     WoodDoor,
     WoodFence,

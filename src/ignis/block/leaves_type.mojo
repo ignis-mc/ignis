@@ -2,6 +2,7 @@
 """
 
 from ..internal.enum import enum_name
+from .sapling_type import SaplingType
 from .wood_type import WoodType
 
 
@@ -84,6 +85,22 @@ struct LeavesType(Equatable, ImplicitlyCopyable, Writable):
                 Int(self._t),
             )
         )
+
+    def sapling(self) -> Optional[SaplingType]:
+        """Returns the sapling the leaves drop (Go `Sapling`).
+
+        Returns:
+            The sapling type, or None for mangrove and azalea leaves.
+        """
+        if self._t <= 5:
+            return SaplingType(Int(self._t))
+        if self == LeavesType.CHERRY:
+            return SaplingType.CHERRY
+        if self == LeavesType.PALE_OAK:
+            return SaplingType.PALE_OAK
+        if self._t >= 11:
+            return SaplingType.POPLAR
+        return None
 
     def wood(self) -> Optional[WoodType]:
         """Returns the wood type of trees with the leaves (Go `Wood`).
