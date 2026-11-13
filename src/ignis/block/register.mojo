@@ -13,22 +13,30 @@ from .amethyst import Amethyst
 from .ancient_debris import AncientDebris
 from .bamboo_block import BambooBlock
 from .bamboo_mosaic import BambooMosaic
+from .barrier import Barrier
 from .basalt import Basalt
+from .beacon import Beacon
 from .bedrock import Bedrock
 from .blackstone import Blackstone
 from .blue_ice import BlueIce
 from .bone import Bone
+from .bookshelf import Bookshelf
 from .break_info import BreakInfo, Breakable
 from .bricks import Bricks
 from .calcite import Calcite
 from .carpet import Carpet
+from .cinnabar import Cinnabar
+from .cinnabar_bricks import CinnabarBricks
 from .clay import Clay
 from .coal import Coal
 from .coal_ore import CoalOre
 from .cobblestone import Cobblestone
+from .cobweb import Cobweb
 from .concrete import Concrete
 from .concrete_powder import ConcretePowder
 from .copper_ore import CopperOre
+from .coral_block import CoralBlock
+from .crafting_table import CraftingTable
 from .deepslate import Deepslate
 from .deepslate_bricks import DeepslateBricks
 from .deepslate_tiles import DeepslateTiles
@@ -36,12 +44,20 @@ from .diamond import Diamond
 from .diamond_ore import DiamondOre
 from .dirt import Dirt
 from .dirt_path import DirtPath
+from .dragon_egg import DragonEgg
 from .dried_kelp import DriedKelp
+from .dripstone import Dripstone
 from .emerald import Emerald
 from .emerald_ore import EmeraldOre
+from .enchanting_table import EnchantingTable
 from .end_bricks import EndBricks
+from .end_portal import EndPortal
+from .end_portal_frame import EndPortalFrame
+from .end_rod import EndRod
 from .end_stone import EndStone
 from .farmland import Farmland
+from .fletching_table import FletchingTable
+from .froglight import Froglight
 from .glass import Glass
 from .glass_pane import GlassPane
 from .glazed_terracotta import GlazedTerracotta
@@ -53,28 +69,44 @@ from .gravel import Gravel
 from .hay_bale import HayBale
 from .honeycomb import Honeycomb
 from .ice import Ice
+from .infested_cobblestone import InfestedCobblestone
+from .infested_deepslate import InfestedDeepslate
+from .infested_stone import InfestedStone
+from .infested_stone_bricks import InfestedStoneBricks
+from .invisible_bedrock import InvisibleBedrock
 from .iron import Iron
 from .iron_ore import IronOre
+from .jukebox import Jukebox
 from .lapis import Lapis
 from .lapis_ore import LapisOre
 from .leaves import Leaves
+from .light import Light
 from .log import Log
 from .magma import Magma
+from .melon import Melon
+from .moss_carpet import MossCarpet
 from .mud import Mud
 from .mud_bricks import MudBricks
 from .muddy_mangrove_roots import MuddyMangroveRoots
 from .mycelium import Mycelium
 from .nether_bricks import NetherBricks
 from .nether_gold_ore import NetherGoldOre
+from .nether_wart_block import NetherWartBlock
 from .netherite import Netherite
 from .netherrack import Netherrack
+from .note import Note
 from .obsidian import Obsidian
 from .packed_ice import PackedIce
 from .packed_mud import PackedMud
 from .planks import Planks
 from .podzol import Podzol
 from .polished_blackstone_brick import PolishedBlackstoneBrick
+from .polished_cinnabar import PolishedCinnabar
+from .polished_sulfur import PolishedSulfur
 from .polished_tuff import PolishedTuff
+from .portal import Portal
+from .prismarine import Prismarine
+from .purpur import Purpur, PurpurPillar
 from .quartz import ChiseledQuartz, Quartz, QuartzPillar
 from .quartz_bricks import QuartzBricks
 from .quartz_ore import NetherQuartzOre
@@ -83,23 +115,31 @@ from .raw_gold import RawGold
 from .raw_iron import RawIron
 from .redstone_block import RedstoneBlock
 from .redstone_ore import RedstoneOre
+from .reinforced_deepslate import ReinforcedDeepslate
+from .resin import Resin
+from .resin_bricks import ResinBricks
 from .sand import Sand
 from .sandstone import Sandstone
 from .sea_lantern import SeaLantern
 from .shroomlight import Shroomlight
 from .slime import Slime
+from .smithing_table import SmithingTable
 from .smooth_basalt import SmoothBasalt
 from .snow import Snow
 from .soul_sand import SoulSand
 from .soul_soil import SoulSoil
 from .sponge import Sponge
+from .spore_blossom import SporeBlossom
 from .stained_glass import StainedGlass
 from .stained_glass_pane import StainedGlassPane
 from .stained_terracotta import StainedTerracotta
 from .stone import Andesite, Diorite, Granite, Stone
 from .stone_bricks import StoneBricks
+from .sulfur import Sulfur
+from .sulfur_bricks import SulfurBricks
 from .terracotta import Terracotta
 from .tinted_glass import TintedGlass
+from .tnt import TNT
 from .tuff import Tuff
 from .tuff_bricks import TuffBricks
 from .wood import Wood
@@ -112,22 +152,30 @@ comptime VanillaBlocks = BlockSet[
     Andesite,
     BambooBlock,
     BambooMosaic,
+    Barrier,
     Basalt,
+    Beacon,
     Bedrock,
     Blackstone,
     BlueIce,
     Bone,
+    Bookshelf,
     Bricks,
     Calcite,
     Carpet,
     ChiseledQuartz,
+    Cinnabar,
+    CinnabarBricks,
     Clay,
     Coal,
     CoalOre,
     Cobblestone,
+    Cobweb,
     Concrete,
     ConcretePowder,
     CopperOre,
+    CoralBlock,
+    CraftingTable,
     Deepslate,
     DeepslateBricks,
     DeepslateTiles,
@@ -136,12 +184,20 @@ comptime VanillaBlocks = BlockSet[
     Diorite,
     Dirt,
     DirtPath,
+    DragonEgg,
     DriedKelp,
+    Dripstone,
     Emerald,
     EmeraldOre,
+    EnchantingTable,
     EndBricks,
+    EndPortal,
+    EndPortalFrame,
+    EndRod,
     EndStone,
     Farmland,
+    FletchingTable,
+    Froglight,
     Glass,
     GlassPane,
     GlazedTerracotta,
@@ -154,13 +210,22 @@ comptime VanillaBlocks = BlockSet[
     HayBale,
     Honeycomb,
     Ice,
+    InfestedCobblestone,
+    InfestedDeepslate,
+    InfestedStone,
+    InfestedStoneBricks,
+    InvisibleBedrock,
     Iron,
     IronOre,
+    Jukebox,
     Lapis,
     LapisOre,
     Leaves,
+    Light,
     Log,
     Magma,
+    Melon,
+    MossCarpet,
     Mud,
     MudBricks,
     MuddyMangroveRoots,
@@ -168,15 +233,23 @@ comptime VanillaBlocks = BlockSet[
     NetherBricks,
     NetherGoldOre,
     NetherQuartzOre,
+    NetherWartBlock,
     Netherite,
     Netherrack,
+    Note,
     Obsidian,
     PackedIce,
     PackedMud,
     Planks,
     Podzol,
     PolishedBlackstoneBrick,
+    PolishedCinnabar,
+    PolishedSulfur,
     PolishedTuff,
+    Portal,
+    Prismarine,
+    Purpur,
+    PurpurPillar,
     Quartz,
     QuartzBricks,
     QuartzPillar,
@@ -185,21 +258,29 @@ comptime VanillaBlocks = BlockSet[
     RawIron,
     RedstoneBlock,
     RedstoneOre,
+    ReinforcedDeepslate,
+    Resin,
+    ResinBricks,
     Sand,
     Sandstone,
     SeaLantern,
     Shroomlight,
     Slime,
+    SmithingTable,
     SmoothBasalt,
     Snow,
     SoulSand,
     SoulSoil,
     Sponge,
+    SporeBlossom,
     StainedGlass,
     StainedGlassPane,
     StainedTerracotta,
     Stone,
     StoneBricks,
+    Sulfur,
+    SulfurBricks,
+    TNT,
     Terracotta,
     TintedGlass,
     Tuff,
