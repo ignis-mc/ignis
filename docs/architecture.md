@@ -95,11 +95,39 @@ Porting a block type, mechanically:
    fields in Go's order (`snake_case`), `BASE_HASH = HASH_X`, `hash` copied
    from `hash.go`, `from_hash` unpacking the same bits, `encode_block`,
    `all_states` from the `RegisterBlock` calls (or Go's `allX()`), and each
-   ported method. Methods that need unported packages wait for them.
-2. Conform to the behaviour traits it implements in Go.
-3. Add the type to `VanillaBlocks` in `block/register.mojo`.
-4. Test: `from_hash(b.hash()) == b` for `all_states()`, `encode_block`, and
-   the runtime IDs and `block_hash` against values from `interop/world`.
+   ported method. Methods that need unported packages wait for them; the
+   module docstring lists them after `TODO(world-runtime):` with their Go
+   names.
+2. The constructor takes every field as a keyword argument defaulting to
+   Go's zero value, so `Log(wood=WoodType.SPRUCE)` reads like
+   `Log{Wood: SpruceWood()}`.
+3. Conform to the behaviour traits it implements in Go (`Breakable`,
+   `LightEmitter`, `LightDiffuser`, ...). Go's embedded `transparent`
+   becomes `light_diffusion_level() -> 0`.
+4. Add the type to `VanillaBlocks` in `block/register.mojo` (sorted by
+   name).
+5. Test: `test/ignis/block/test_register.mojo` checks every runtime ID
+   against `test/data/world/blocks.txt` from `interop/world` (type, state
+   hash, encoded state, light, break info); add unit tests for anything
+   non-trivial.
+
+Conventions shared by the block port:
+
+- **Enumerations** (Go `WoodType{wood}` with `OakWood()` constructors, or
+  `cube.Direction` integer constants) are small structs with `comptime`
+  members: `WoodType.OAK`, `Colour.LIGHT_BLUE`, `Direction.NORTH`,
+  `Face.UP`, `Axis.Y`. `uint8()` (or `Int(x)` for the `cube` integers) and
+  `T(v)` convert to and from the hashed value, `write_to` is Go's
+  `String()`, and `wood_types()` etc. list every value as Go's
+  `WoodTypes()` does.
+- **`BreakInfo`** is data: `hardness`, `blast_resistance`, `xp_drops` and
+  two `ToolFilter`s (tool types plus a minimum harvest level) for Go's
+  `Harvestable` and `Effective` closures. Drops, break handlers and break
+  durations need items and `world.Tx` and come with them.
+- **Blocks that hold a block** (Go `Slab{Block: Planks{}}`) store it as an
+  `AnyBlock`: the type's `BASE_HASH` and the block's `hash()`, which is what
+  Go's `hashBlock` packs into the outer hash. `get[T]()` is Go's type
+  assertion.
 
 `BasicBlockRegistry.finalize` checks what Go's `Finalize` checks: every
 registered state is unique, no two blocks share a block hash, no network

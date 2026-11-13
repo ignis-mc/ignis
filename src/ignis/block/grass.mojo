@@ -1,16 +1,23 @@
 """Grass blocks, ported from Dragonfly `server/block/grass.go`.
 
-`RandomTick`, `BoneMeal`, `SoilFor`, `Till`, `Shovel` and `BreakInfo` follow
-with `world.Tx`, the item package and the plant blocks they refer to.
+TODO(world-runtime): RandomTick, BoneMeal, SoilFor, Till, Shovel,
+CompostChance, EncodeItem and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_state import BlockState
+from .break_info import (
+    ALWAYS_HARVESTABLE,
+    SHOVEL_EFFECTIVE,
+    BreakInfo,
+    Breakable,
+    new_break_info,
+)
 from .hash import HASH_GRASS
 
 
 @fieldwise_init
-struct Grass(Block, Equatable, ImplicitlyCopyable):
+struct Grass(Block, Breakable, Equatable, ImplicitlyCopyable):
     """Grass blocks generate abundantly across the surface of the world."""
 
     comptime BASE_HASH: UInt64 = HASH_GRASS
@@ -52,3 +59,11 @@ struct Grass(Block, Equatable, ImplicitlyCopyable):
             Grass.
         """
         return [Grass()]
+
+    def break_info(self) -> BreakInfo:
+        """Returns the break info (Go `BreakInfo`).
+
+        Returns:
+            The hardness, blast resistance and tools.
+        """
+        return new_break_info(0.6, ALWAYS_HARVESTABLE, SHOVEL_EFFECTIVE)
