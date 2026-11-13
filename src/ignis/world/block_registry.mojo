@@ -27,7 +27,7 @@ from minecraft.nbt.decode import decode_from
 from minecraft.nbt.nbt import NETWORK_LITTLE_ENDIAN
 
 from ..internal.fnv import fnv1_64
-from .block import Block, LightDiffuser, LightEmitter
+from .block import Block, LightDiffuser, LightEmitter, RandomTicker
 from .block_state import (
     BlockState,
     Properties,
@@ -296,8 +296,10 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
             info.set_light_filter(_diffusion[T](b))
         comptime if conforms_to(T, LightEmitter):
             info.set_light(_emission[T](b))
-        # TODO: NBTer, RandomTicker, Liquid and LiquidDisplacer flags once
-        # those traits are ported with world.Tx.
+        comptime if conforms_to(T, RandomTicker):
+            info.set(_FLAG_RANDOM_TICK)
+        # TODO: NBTer, Liquid and LiquidDisplacer flags once block entities
+        # and liquids are ported.
         self._block_infos[rid] = info
 
     def finalize(mut self) raises:

@@ -1,0 +1,182 @@
+"""Viewers, ported from Dragonfly `server/world/viewer.go`.
+
+A viewer sees the parts of a world its `Loader` has loaded: chunks, block
+changes, entities, time and weather. Sessions implement `Viewer` to turn
+these calls into packets. The world owns each loader's viewer (`World.viewer`
+gives it back to drain), so a session keeps whatever it must share with its
+viewer, such as a packet queue, behind an `ArcPointer`.
+
+Every method has an empty default body, which replaces Go's `NopViewer`
+embedding: implement only what you need. Entity methods are generic over the
+world's entity set. Blocks are runtime IDs, as everywhere in Ignis.
+
+Not ported yet (they need unported types): `ViewEntityGameMode`,
+`ViewEntityDisplacement`, `ViewFurnaceUpdate`, `ViewBrewingUpdate`,
+`ViewEntityAction`, `ViewEntityState`, `ViewEntityAnimation`,
+`ViewParticle`, `ViewSound`, `ViewBlockAction`, `ViewEmote`, `ViewSkin`,
+`ViewEntityWake`, and the block entities passed to `ViewChunk`.
+"""
+
+from ..block.cube.pos import Pos
+from ..block.cube.rotation import Rotation
+from ..mgl64 import Vec3
+from .chunk.chunk import Chunk
+from .dimension import Dimension
+from .entity import EntityHandle, EntityTypes
+from .position import ChunkPos
+
+
+trait Viewer(Deinitable, Movable):
+    """Something that views a part of a world (Go `Viewer`)."""
+
+    def view_entity[E: EntityTypes](mut self, e: EntityHandle[E]):
+        """Starts viewing an entity that came into range (Go `ViewEntity`).
+
+        Parameters:
+            E: The world's entity set.
+
+        Args:
+            e: The entity.
+        """
+        pass
+
+    def hide_entity[E: EntityTypes](mut self, e: EntityHandle[E]):
+        """Stops viewing an entity that left range or the world (Go
+        `HideEntity`).
+
+        Parameters:
+            E: The world's entity set.
+
+        Args:
+            e: The entity.
+        """
+        pass
+
+    def view_entity_movement[
+        E: EntityTypes
+    ](mut self, e: EntityHandle[E], pos: Vec3, rot: Rotation, on_ground: Bool,):
+        """Views an entity moving to a new position and rotation (Go
+        `ViewEntityMovement`).
+
+        Parameters:
+            E: The world's entity set.
+
+        Args:
+            e: The entity.
+            pos: The new position.
+            rot: The new rotation.
+            on_ground: Whether the entity is on the ground.
+        """
+        pass
+
+    def view_entity_velocity[
+        E: EntityTypes
+    ](mut self, e: EntityHandle[E], vel: Vec3):
+        """Views the velocity of an entity (Go `ViewEntityVelocity`).
+
+        Parameters:
+            E: The world's entity set.
+
+        Args:
+            e: The entity.
+            vel: The velocity.
+        """
+        pass
+
+    def view_entity_teleport[
+        E: EntityTypes
+    ](mut self, e: EntityHandle[E], pos: Vec3):
+        """Views an entity teleporting (Go `ViewEntityTeleport`).
+
+        Parameters:
+            E: The world's entity set.
+
+        Args:
+            e: The entity.
+            pos: The target position.
+        """
+        pass
+
+    def view_entity_items[E: EntityTypes](mut self, e: EntityHandle[E]):
+        """Views the items an entity holds (Go `ViewEntityItems`).
+
+        Parameters:
+            E: The world's entity set.
+
+        Args:
+            e: The entity.
+        """
+        pass
+
+    def view_entity_armour[E: EntityTypes](mut self, e: EntityHandle[E]):
+        """Views the armour an entity wears (Go `ViewEntityArmour`).
+
+        Parameters:
+            E: The world's entity set.
+
+        Args:
+            e: The entity.
+        """
+        pass
+
+    def view_chunk(mut self, pos: ChunkPos, dim: Dimension, c: Chunk):
+        """Views a chunk the loader loaded (Go `ViewChunk`).
+
+        Args:
+            pos: The chunk's position.
+            dim: The world's dimension.
+            c: The chunk.
+        """
+        pass
+
+    def view_time(mut self, t: Int):
+        """Views the time of day (Go `ViewTime`); called when it changes and
+        every second.
+
+        Args:
+            t: The time.
+        """
+        pass
+
+    def view_time_cycle(mut self, do_day_light_cycle: Bool):
+        """Views whether time advances (Go `ViewTimeCycle`).
+
+        Args:
+            do_day_light_cycle: Whether it does.
+        """
+        pass
+
+    def view_block_update(mut self, pos: Pos, rid: UInt32, layer: Int):
+        """Views a block being set (Go `ViewBlockUpdate`).
+
+        Args:
+            pos: The position.
+            rid: The runtime ID of the new block.
+            layer: The layer: 0, or 1 for liquids inside blocks.
+        """
+        pass
+
+    def view_world_spawn(mut self, pos: Pos):
+        """Views the world's spawn position (Go `ViewWorldSpawn`).
+
+        Args:
+            pos: The spawn position.
+        """
+        pass
+
+    def view_weather(mut self, raining: Bool, thunder: Bool):
+        """Views the weather (Go `ViewWeather`).
+
+        Args:
+            raining: Whether it rains.
+            thunder: Whether it thunders.
+        """
+        pass
+
+
+struct NopViewer(Defaultable, Viewer):
+    """A viewer that ignores everything (Go `NopViewer`)."""
+
+    def __init__(out self):
+        """Creates the viewer."""
+        pass
