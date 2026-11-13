@@ -5,6 +5,7 @@ UseOnBlock, CompostChance, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,15 +15,23 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_MOSS_CARPET
+from .model.carpet import Carpet as CarpetModel
 
 
 struct MossCarpet(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A thin decorative variant of the moss block."""
 
     comptime BASE_HASH: UInt64 = HASH_MOSS_CARPET
     """Go `hashMossCarpet`."""
+    comptime ModelType = CarpetModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `MossCarpet{}`)."""
@@ -92,3 +101,11 @@ struct MossCarpet(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> CarpetModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return CarpetModel()

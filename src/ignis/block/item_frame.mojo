@@ -9,6 +9,7 @@ break handler, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -19,15 +20,23 @@ from .break_info import (
 )
 from .cube.face import Face, faces
 from .hash import HASH_ITEM_FRAME
+from .model.empty import Empty as EmptyModel
 
 
 struct ItemFrame(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A block that displays an item."""
 
     comptime BASE_HASH: UInt64 = HASH_ITEM_FRAME
     """Go `hashItemFrame`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var facing: Face
     """The face of the block the frame is attached to."""
@@ -143,3 +152,11 @@ struct ItemFrame(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

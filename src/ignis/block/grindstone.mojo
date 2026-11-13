@@ -5,6 +5,7 @@ NeighbourUpdateTick, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .block import horizontal_direction
 from .break_info import (
@@ -14,19 +15,28 @@ from .break_info import (
     Breakable,
     new_break_info,
 )
+from .cube.axis import Axis
 from .cube.direction import Direction, directions
 from .grindstone_attachment import GrindstoneAttachment, grindstone_attachments
 from .hash import HASH_GRINDSTONE
+from .model.grindstone import Grindstone as GrindstoneModel
 
 
 struct Grindstone(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A block that repairs items and tools as well as removing enchantments from them.
     """
 
     comptime BASE_HASH: UInt64 = HASH_GRINDSTONE
     """Go `hashGrindstone`."""
+    comptime ModelType = GrindstoneModel
+    """The model type (Go `Model`)."""
 
     var attach: GrindstoneAttachment
     """How the grindstone is attached."""
@@ -128,3 +138,14 @@ struct Grindstone(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> GrindstoneModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        var axis = Axis.Y
+        if self.attach == GrindstoneAttachment.WALL:
+            axis = self.facing.face().axis()
+        return GrindstoneModel(axis=axis)

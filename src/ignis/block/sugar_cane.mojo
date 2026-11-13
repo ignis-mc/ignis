@@ -5,6 +5,7 @@ canGrowHere, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,15 +15,23 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_SUGAR_CANE
+from .model.empty import Empty as EmptyModel
 
 
 struct SugarCane(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A plant block that generates naturally near water."""
 
     comptime BASE_HASH: UInt64 = HASH_SUGAR_CANE
     """Go `hashSugarCane`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var age: Int
     """The growth state, 0 to 15."""
@@ -105,3 +114,11 @@ struct SugarCane(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

@@ -61,9 +61,20 @@ struct Face(Equatable, ImplicitlyCopyable, Intable, Writable):
         """Returns the opposite face.
 
         Returns:
-            The face on the other side of the block.
+            The face on the other side of the block; up for down and for
+            values outside the six faces (Go's `default` case).
         """
-        return Face(Int(self._v ^ 1))
+        if self == Face.UP:
+            return Face.DOWN
+        if self == Face.NORTH:
+            return Face.SOUTH
+        if self == Face.SOUTH:
+            return Face.NORTH
+        if self == Face.WEST:
+            return Face.EAST
+        if self == Face.EAST:
+            return Face.WEST
+        return Face.UP
 
     def axis(self) -> Axis:
         """Returns the axis the face is on.

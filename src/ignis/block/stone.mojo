@@ -5,6 +5,7 @@ TODO(world-runtime): SmeltInfo and the `oneOf` drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
@@ -15,13 +16,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_ANDESITE, HASH_DIORITE, HASH_GRANITE, HASH_STONE
+from .model.solid import Solid as SolidModel
 
 
-struct Stone(Block, Breakable, Equatable, ImplicitlyCopyable, Item):
+struct Stone(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A block found underground in the world or on mountains."""
 
     comptime BASE_HASH: UInt64 = HASH_STONE
     """Go `hashStone`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var smooth: Bool
     """Whether the stone is its smooth variant."""
@@ -118,12 +124,22 @@ struct Stone(Block, Breakable, Equatable, ImplicitlyCopyable, Item):
             1.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
 
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
 
-struct Granite(Block, Breakable, Equatable, ImplicitlyCopyable):
+        Returns:
+            The model.
+        """
+        return SolidModel()
+
+
+struct Granite(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A type of igneous rock."""
 
     comptime BASE_HASH: UInt64 = HASH_GRANITE
     """Go `hashGranite`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var polished: Bool
     """Whether the granite is polished."""
@@ -196,12 +212,22 @@ struct Granite(Block, Breakable, Equatable, ImplicitlyCopyable):
             1.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
 
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
 
-struct Diorite(Block, Breakable, Equatable, ImplicitlyCopyable):
+        Returns:
+            The model.
+        """
+        return SolidModel()
+
+
+struct Diorite(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A type of igneous rock."""
 
     comptime BASE_HASH: UInt64 = HASH_DIORITE
     """Go `hashDiorite`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var polished: Bool
     """Whether the diorite is polished."""
@@ -274,12 +300,22 @@ struct Diorite(Block, Breakable, Equatable, ImplicitlyCopyable):
             1.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
 
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
 
-struct Andesite(Block, Breakable, Equatable, ImplicitlyCopyable):
+        Returns:
+            The model.
+        """
+        return SolidModel()
+
+
+struct Andesite(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A type of igneous rock."""
 
     comptime BASE_HASH: UInt64 = HASH_ANDESITE
     """Go `hashAndesite`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var polished: Bool
     """Whether the andesite is polished."""
@@ -351,3 +387,11 @@ struct Andesite(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             1.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

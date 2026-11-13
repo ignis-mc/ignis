@@ -1,17 +1,21 @@
 """Bedrock, ported from Dragonfly `server/block/bedrock.go`."""
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .hash import HASH_BEDROCK
+from .model.solid import Solid as SolidModel
 
 
 @fieldwise_init
-struct Bedrock(Block, Equatable, ImplicitlyCopyable, Item):
+struct Bedrock(Block, Equatable, ImplicitlyCopyable, Item, ModelledBlock):
     """A block that is indestructible in survival."""
 
     comptime BASE_HASH: UInt64 = HASH_BEDROCK
     """Go `hashBedrock`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var infinite_burning: Bool
     """Whether the bedrock burns forever, as under end crystals on the end
@@ -86,3 +90,11 @@ struct Bedrock(Block, Equatable, ImplicitlyCopyable, Item):
             True.
         """
         return True
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

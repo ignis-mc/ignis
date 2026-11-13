@@ -4,17 +4,26 @@ TODO(world-runtime): Model, HasLiquidDrops, Portal, EntityInside.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .hash import HASH_END_PORTAL
+from .model.empty import Empty as EmptyModel
 
 
 struct EndPortal(
-    Block, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A portal that transports an entity to the End."""
 
     comptime BASE_HASH: UInt64 = HASH_END_PORTAL
     """Go `hashEndPortal`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `EndPortal{}`)."""
@@ -84,3 +93,11 @@ struct EndPortal(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

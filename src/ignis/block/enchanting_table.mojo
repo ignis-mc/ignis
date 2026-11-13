@@ -9,6 +9,7 @@ EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -18,16 +19,25 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_ENCHANTING_TABLE
+from .model.enchanting_table import EnchantingTable as EnchantingTableModel
 
 
 struct EnchantingTable(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A block that allows players to spend their experience point levels to enchant tools, weapons,
     books, armour, and certain other items."""
 
     comptime BASE_HASH: UInt64 = HASH_ENCHANTING_TABLE
     """Go `hashEnchantingTable`."""
+    comptime ModelType = EnchantingTableModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `EnchantingTable{}`)."""
@@ -107,3 +117,11 @@ struct EnchantingTable(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EnchantingTableModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EnchantingTableModel()

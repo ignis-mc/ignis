@@ -7,6 +7,7 @@ of `gravityAffected`, EncodeItem and the drops.
 
 from ..item.colour import Colour, colours
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -16,13 +17,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_CONCRETE_POWDER
+from .model.solid import Solid as SolidModel
 
 
-struct ConcretePowder(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct ConcretePowder(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A gravity affected block that comes in 16 different colours."""
 
     comptime BASE_HASH: UInt64 = HASH_CONCRETE_POWDER
     """Go `hashConcretePowder`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var colour: Colour
     """The colour of the concrete powder."""
@@ -93,3 +99,11 @@ struct ConcretePowder(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.5, ALWAYS_HARVESTABLE, SHOVEL_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

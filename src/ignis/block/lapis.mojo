@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     HARVEST_LEVEL_STONE,
@@ -14,13 +15,16 @@ from .break_info import (
     pickaxe_harvestable_from,
 )
 from .hash import HASH_LAPIS
+from .model.solid import Solid as SolidModel
 
 
-struct Lapis(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Lapis(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A decorative mineral block crafted from lapis lazuli."""
 
     comptime BASE_HASH: UInt64 = HASH_LAPIS
     """Go `hashLapis`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Lapis{}`)."""
@@ -83,3 +87,11 @@ struct Lapis(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             3, pickaxe_harvestable_from(HARVEST_LEVEL_STONE), PICKAXE_EFFECTIVE
         )
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

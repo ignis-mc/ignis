@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the `oneOf` drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -13,13 +14,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_TUFF_BRICKS
+from .model.solid import Solid as SolidModel
 
 
-struct TuffBricks(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct TuffBricks(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A brick variant of tuff."""
 
     comptime BASE_HASH: UInt64 = HASH_TUFF_BRICKS
     """Go `hashTuffBricks`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var chiseled: Bool
     """Whether the bricks are chiseled."""
@@ -91,3 +97,11 @@ struct TuffBricks(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             1.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

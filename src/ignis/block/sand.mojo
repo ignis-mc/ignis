@@ -5,6 +5,7 @@ of `gravityAffected`, SmeltInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,13 +15,16 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_SAND
+from .model.solid import Solid as SolidModel
 
 
-struct Sand(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Sand(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A block affected by gravity, found in deserts and beaches."""
 
     comptime BASE_HASH: UInt64 = HASH_SAND
     """Go `hashSand`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var red: Bool
     """Whether the sand is red sand."""
@@ -90,3 +94,11 @@ struct Sand(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.5, ALWAYS_HARVESTABLE, SHOVEL_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

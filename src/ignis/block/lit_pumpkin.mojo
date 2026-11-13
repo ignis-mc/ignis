@@ -4,6 +4,7 @@ TODO(world-runtime): UseOnBlock, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,15 +15,18 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_LIT_PUMPKIN
+from .model.solid import Solid as SolidModel
 
 
 struct LitPumpkin(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter
+    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
 ):
     """A jack o'lantern: a carved pumpkin with a torch inside."""
 
     comptime BASE_HASH: UInt64 = HASH_LIT_PUMPKIN
     """Go `hashLitPumpkin`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var facing: Direction
     """The direction the pumpkin faces."""
@@ -106,3 +110,11 @@ struct LitPumpkin(
             The light level, 0 to 15.
         """
         return 15
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

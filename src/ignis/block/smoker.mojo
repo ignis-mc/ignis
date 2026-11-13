@@ -7,6 +7,7 @@ EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -17,14 +18,19 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_SMOKER
+from .model.solid import Solid as SolidModel
 
 
-struct Smoker(Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter):
+struct Smoker(
+    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+):
     """A type of furnace that cooks food items, similar to a furnace, but twice as fast.
     """
 
     comptime BASE_HASH: UInt64 = HASH_SMOKER
     """Go `hashSmoker`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var facing: Direction
     """The direction the front of the block faces."""
@@ -121,3 +127,11 @@ struct Smoker(Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter):
             The light level, 0 to 15.
         """
         return 13 if self.lit else 0
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

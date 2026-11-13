@@ -6,6 +6,7 @@ EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -16,13 +17,23 @@ from .break_info import (
 )
 from .flower_type import FlowerType, flower_types
 from .hash import HASH_FLOWER
+from .model.empty import Empty as EmptyModel
 
 
-struct Flower(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Flower(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A non-solid plant that occur in a variety of shapes and colours."""
 
     comptime BASE_HASH: UInt64 = HASH_FLOWER
     """Go `hashFlower`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var type: FlowerType
     """The type of flower."""
@@ -102,3 +113,11 @@ struct Flower(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

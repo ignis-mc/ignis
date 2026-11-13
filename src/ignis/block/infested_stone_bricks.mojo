@@ -5,6 +5,7 @@ TODO(world-runtime): the `silkTouchOnlyDrop` drops and the silverfish spawn.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -14,14 +15,19 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_INFESTED_STONE_BRICKS
+from .model.solid import Solid as SolidModel
 from .stone_bricks_type import StoneBricksType, stone_bricks_types
 
 
-struct InfestedStoneBricks(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct InfestedStoneBricks(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A stone bricks block that hides a silverfish."""
 
     comptime BASE_HASH: UInt64 = HASH_INFESTED_STONE_BRICKS
     """Go `hashInfestedStoneBricks`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var type: StoneBricksType
     """The type of stone bricks."""
@@ -94,3 +100,11 @@ struct InfestedStoneBricks(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             0.75, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(0.75)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

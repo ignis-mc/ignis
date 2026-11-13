@@ -23,10 +23,13 @@ where `_random_tick[T: RandomTicker]` is a plain generic function. Inside the
 a type to the set is all a new block needs.
 """
 
+from ..block.cube.face import Face
 from ..block.cube.pos import Pos
 from ..item.item import item_info
 from .block import Block, NeighbourUpdateTicker, RandomTicker, ScheduledTicker
+from .block_model import ModelledBlock, UnknownModel
 from .block_registry import BasicBlockRegistry
+from .block_source import BlockSource
 from .block_state import BlockState
 from .item import AnyItem, EncodedItem, Item, RegisteredItem
 from .world import World, WorldTypes
@@ -132,6 +135,28 @@ trait BlockTypes:
         ...
 
     @staticmethod
+    def face_solid[
+        S: BlockSource
+    ](kind: UInt64, hash: UInt64, pos: Pos, face: Face, src: S) -> Bool:
+        """Reports whether a face of a block's model is solid (Go
+        `b.Model().FaceSolid(pos, face, src)`).
+
+        Parameters:
+            S: The block source type.
+
+        Args:
+            kind: The block's type base hash.
+            hash: The block's state hash.
+            pos: The position of the block.
+            face: The face.
+            src: The blocks around it.
+
+        Returns:
+            True if the face is solid; always for types without a model.
+        """
+        ...
+
+    @staticmethod
     def block_item(kind: UInt64, hash: UInt64) -> Optional[RegisteredItem]:
         """Returns a block as an item, if its type is an item.
 
@@ -194,6 +219,33 @@ struct BlockSet[*Ts: Block](BlockTypes):
             if kind == Self.Ts[i].BASE_HASH:
                 return True
         return False
+
+    @staticmethod
+    def face_solid[
+        S: BlockSource
+    ](kind: UInt64, hash: UInt64, pos: Pos, face: Face, src: S) -> Bool:
+        """Reports whether a face of a block's model is solid (Go
+        `b.Model().FaceSolid(pos, face, src)`).
+
+        Parameters:
+            S: The block source type.
+
+        Args:
+            kind: The block's type base hash.
+            hash: The block's state hash.
+            pos: The position of the block.
+            face: The face.
+            src: The blocks around it.
+
+        Returns:
+            True if the face is solid; always for types without a model.
+        """
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, ModelledBlock):
+                if kind == B.BASE_HASH:
+                    return _face_solid(B.from_hash(hash), pos, face, src)
+        return UnknownModel().face_solid(pos, face, src)
 
     @staticmethod
     def block_item(kind: UInt64, hash: UInt64) -> Optional[RegisteredItem]:
@@ -357,6 +409,12 @@ def _random_tick[
     B: RandomTicker, T: WorldTypes
 ](b: B, pos: Pos, mut tx: World[T]):
     b.random_tick(pos, tx)
+
+
+def _face_solid[
+    B: ModelledBlock, S: BlockSource
+](b: B, pos: Pos, face: Face, src: S) -> Bool:
+    return b.model().face_solid(pos, face, src)
 
 
 def _block_item[T: Item](b: T) -> RegisteredItem:

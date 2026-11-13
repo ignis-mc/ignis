@@ -5,6 +5,7 @@ hydrated), EntityLand, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,14 +15,17 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_FARMLAND
+from .model.tilled_grass import TilledGrass as TilledGrassModel
 
 
-struct Farmland(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Farmland(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A block that crops are grown on, created by using a hoe on dirt or grass.
     """
 
     comptime BASE_HASH: UInt64 = HASH_FARMLAND
     """Go `hashFarmland`."""
+    comptime ModelType = TilledGrassModel
+    """The model type (Go `Model`)."""
 
     var hydration: Int
     """How hydrated the farmland is, 0 to 7."""
@@ -95,3 +99,11 @@ struct Farmland(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.6, ALWAYS_HARVESTABLE, SHOVEL_EFFECTIVE)
+
+    def model(self) -> TilledGrassModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return TilledGrassModel()

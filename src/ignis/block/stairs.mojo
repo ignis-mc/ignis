@@ -9,20 +9,31 @@ SideClosed, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import BreakInfo, Breakable, new_break_info
 from .cube.direction import Direction
 from .hash import HASH_STAIRS, AnyBlock, hash_block, unhash_block
+from .model.stair import Stair as StairModel
 from .register import break_info
 from .stairs_corner import StairsCorner, stairs_corners
 from .stairs_type import encode_stairs_block, stairs_blocks
 
 
-struct Stairs(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Stairs(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A block that allows entities to walk up blocks without jumping."""
 
     comptime BASE_HASH: UInt64 = HASH_STAIRS
     """Go `hashStairs`."""
+    comptime ModelType = StairModel
+    """The model type (Go `Model`)."""
 
     var block: AnyBlock
     """The block the stairs are made of."""
@@ -150,6 +161,20 @@ struct Stairs(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> StairModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return StairModel(
+            facing=self.facing,
+            upside_down=self.upside_down,
+            corner=self.corner != StairsCorner.NONE,
+            inner=self.corner.inner(),
+            left=self.corner.left(),
+        )
 
 
 def to_stairs_direction(v: Direction) -> Int32:

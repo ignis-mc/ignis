@@ -7,6 +7,7 @@ from std.memory import ArcPointer
 
 from ignis.block.air import Air
 from ignis.block.bedrock import Bedrock
+from ignis.block.carpet import Carpet
 from ignis.block.cube.bbox import BBox
 from ignis.block.cube.pos import Pos
 from ignis.block.cube.rotation import Rotation
@@ -127,6 +128,7 @@ struct RandomProbe(Block, Equatable, ImplicitlyCopyable, RandomTicker):
 comptime TestBlocks = BlockSet[
     Air,
     Bedrock,
+    Carpet,
     Dirt,
     Grass,
     Stone,

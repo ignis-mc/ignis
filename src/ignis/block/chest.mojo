@@ -11,6 +11,7 @@ EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -21,13 +22,23 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_CHEST
+from .model.chest import Chest as ChestModel
 
 
-struct Chest(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Chest(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A container block which may be used to store items."""
 
     comptime BASE_HASH: UInt64 = HASH_CHEST
     """Go `hashChest`."""
+    comptime ModelType = ChestModel
+    """The model type (Go `Model`)."""
 
     var facing: Direction
     """The direction the chest faces."""
@@ -124,3 +135,11 @@ struct Chest(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> ChestModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return ChestModel()

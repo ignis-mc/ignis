@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -13,15 +14,24 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_SEA_LANTERN
+from .model.solid import Solid as SolidModel
 
 
 struct SeaLantern(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """An underwater light source block."""
 
     comptime BASE_HASH: UInt64 = HASH_SEA_LANTERN
     """Go `hashSeaLantern`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `SeaLantern{}`)."""
@@ -99,3 +109,11 @@ struct SeaLantern(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

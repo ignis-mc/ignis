@@ -10,6 +10,7 @@ drops.
 
 from ..item.optional_colour import OptionalColour, optional_colours
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -19,15 +20,24 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_CANDLE
+from .model.candle import Candle as CandleModel
 
 
 struct Candle(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A dyeable block that emits light when lit with a flint and steel."""
 
     comptime BASE_HASH: UInt64 = HASH_CANDLE
     """Go `hashCandle`."""
+    comptime ModelType = CandleModel
+    """The model type (Go `Model`)."""
 
     var colour: OptionalColour
     """The colour of the candle, or none."""
@@ -146,3 +156,11 @@ struct Candle(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> CandleModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return CandleModel(count=self.additional_candles + 1)

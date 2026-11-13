@@ -8,6 +8,7 @@ RedstoneStrongPower, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -19,13 +20,23 @@ from .break_info import (
 from .cube.direction import Direction
 from .cube.face import Face, faces
 from .hash import HASH_LEVER
+from .model.empty import Empty as EmptyModel
 
 
-struct Lever(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Lever(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A non-solid block that can provide switchable redstone power."""
 
     comptime BASE_HASH: UInt64 = HASH_LEVER
     """Go `hashLever`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var powered: Bool
     """Whether the lever is switched on."""
@@ -146,3 +157,11 @@ struct Lever(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

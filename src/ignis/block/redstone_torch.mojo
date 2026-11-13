@@ -6,6 +6,7 @@ ScheduledTick, the break handler clearing burnout, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .block import UNKNOWN_FACE
 from .break_info import (
@@ -17,15 +18,24 @@ from .break_info import (
 )
 from .cube.face import Face, faces
 from .hash import HASH_REDSTONE_TORCH
+from .model.empty import Empty as EmptyModel
 
 
 struct RedstoneTorch(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A non-solid block that emits light and redstone power."""
 
     comptime BASE_HASH: UInt64 = HASH_REDSTONE_TORCH
     """Go `hashRedstoneTorch`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var facing: Face
     """The face the torch is attached to; `UNKNOWN_FACE` stands for standing."""
@@ -136,3 +146,11 @@ struct RedstoneTorch(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

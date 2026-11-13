@@ -5,6 +5,7 @@ RepairsWoodTools.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,13 +15,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_BAMBOO_MOSAIC
+from .model.solid import Solid as SolidModel
 
 
-struct BambooMosaic(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct BambooMosaic(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A decorative wooden block crafted from bamboo slabs."""
 
     comptime BASE_HASH: UInt64 = HASH_BAMBOO_MOSAIC
     """Go `hashBambooMosaic`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `BambooMosaic{}`)."""
@@ -83,3 +89,11 @@ struct BambooMosaic(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             2, ALWAYS_HARVESTABLE, AXE_EFFECTIVE
         ).with_blast_resistance(3)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

@@ -6,6 +6,7 @@ BoneMeal, UseOnBlock, CompostChance, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -15,13 +16,23 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_CARROT
+from .model.empty import Empty as EmptyModel
 
 
-struct Carrot(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Carrot(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A crop that can be consumed raw."""
 
     comptime BASE_HASH: UInt64 = HASH_CARROT
     """Go `hashCarrot`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var growth: Int
     """The growth stage of the crop, 0 to 7 (Go `crop.Growth`)."""
@@ -104,3 +115,11 @@ struct Carrot(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

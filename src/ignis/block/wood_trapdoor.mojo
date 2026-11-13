@@ -8,6 +8,7 @@ FlammabilityInfo, FuelInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -18,16 +19,24 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_WOOD_TRAPDOOR
+from .model.trapdoor import Trapdoor as TrapdoorModel
 from .wood_type import WoodType, wood_types
 
 
 struct WoodTrapdoor(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A wooden trapdoor, opened and closed by players."""
 
     comptime BASE_HASH: UInt64 = HASH_WOOD_TRAPDOOR
     """Go `hashWoodTrapdoor`."""
+    comptime ModelType = TrapdoorModel
+    """The model type (Go `Model`)."""
 
     var wood: WoodType
     """The type of wood."""
@@ -152,3 +161,11 @@ struct WoodTrapdoor(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> TrapdoorModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return TrapdoorModel(facing=self.facing, open=self.open, top=self.top)

@@ -4,6 +4,7 @@ TODO(world-runtime): Instrument, Friction, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -13,13 +14,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_PACKED_ICE
+from .model.solid import Solid as SolidModel
 
 
-struct PackedIce(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct PackedIce(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """An opaque solid block variant of ice that does not melt."""
 
     comptime BASE_HASH: UInt64 = HASH_PACKED_ICE
     """Go `hashPackedIce`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `PackedIce{}`)."""
@@ -80,3 +86,11 @@ struct PackedIce(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.5, ALWAYS_HARVESTABLE, PICKAXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

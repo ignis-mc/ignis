@@ -5,6 +5,7 @@ Activate, RedstoneUpdate, FuelInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,13 +15,16 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_NOTE
+from .model.solid import Solid as SolidModel
 
 
-struct Note(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Note(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A musical block that emits sounds when powered or punched."""
 
     comptime BASE_HASH: UInt64 = HASH_NOTE
     """Go `hashNote`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var pitch: Int
     """The current pitch the note block is set to, 0 to 24."""
@@ -96,3 +100,11 @@ struct Note(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.8, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

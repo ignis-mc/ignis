@@ -7,15 +7,26 @@ TODO(world-runtime): SideClosed, EncodeItem.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .hash import HASH_LIGHT
+from .model.empty import Empty as EmptyModel
 
 
-struct Light(Block, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter):
+struct Light(
+    Block,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
+):
     """An invisible block that can produce any light level."""
 
     comptime BASE_HASH: UInt64 = HASH_LIGHT
     """Go `hashLight`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var level: Int
     """The light level the block emits, 0 to 15."""
@@ -95,3 +106,11 @@ struct Light(Block, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

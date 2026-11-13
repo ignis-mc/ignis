@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_HARVESTABLE,
@@ -12,13 +13,16 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_AMETHYST
+from .model.solid import Solid as SolidModel
 
 
-struct Amethyst(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Amethyst(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A decorative block crafted from amethyst shards."""
 
     comptime BASE_HASH: UInt64 = HASH_AMETHYST
     """Go `hashAmethyst`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Amethyst{}`)."""
@@ -79,3 +83,11 @@ struct Amethyst(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(1.5, PICKAXE_HARVESTABLE, PICKAXE_HARVESTABLE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

@@ -5,6 +5,7 @@ CompostChance and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
@@ -15,14 +16,19 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_GRASS
+from .model.solid import Solid as SolidModel
 
 
 @fieldwise_init
-struct Grass(Block, Breakable, Equatable, ImplicitlyCopyable, Item):
+struct Grass(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """Grass blocks generate abundantly across the surface of the world."""
 
     comptime BASE_HASH: UInt64 = HASH_GRASS
     """Go `hashGrass`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`).
@@ -86,3 +92,11 @@ struct Grass(Block, Breakable, Equatable, ImplicitlyCopyable, Item):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.6, ALWAYS_HARVESTABLE, SHOVEL_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

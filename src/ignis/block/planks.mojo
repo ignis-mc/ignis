@@ -5,6 +5,7 @@ RepairsWoodTools.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,15 +15,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_PLANKS
+from .model.solid import Solid as SolidModel
 from .wood_type import WoodType, wood_types
 
 
-struct Planks(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Planks(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """Common blocks used in crafting recipes, made by crafting logs into planks.
     """
 
     comptime BASE_HASH: UInt64 = HASH_PLANKS
     """Go `hashPlanks`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var wood: WoodType
     """The type of wood of the planks."""
@@ -95,3 +99,11 @@ struct Planks(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             2, ALWAYS_HARVESTABLE, AXE_EFFECTIVE
         ).with_blast_resistance(3)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

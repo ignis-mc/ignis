@@ -6,6 +6,7 @@ drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -16,13 +17,16 @@ from .break_info import (
 )
 from .cube.axis import Axis, axes
 from .hash import HASH_CHISELED_QUARTZ, HASH_QUARTZ, HASH_QUARTZ_PILLAR
+from .model.solid import Solid as SolidModel
 
 
-struct Quartz(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Quartz(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A mineral block used only for decoration."""
 
     comptime BASE_HASH: UInt64 = HASH_QUARTZ
     """Go `hashQuartz`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var smooth: Bool
     """Whether the quartz is smooth quartz."""
@@ -98,12 +102,24 @@ struct Quartz(Block, Breakable, Equatable, ImplicitlyCopyable):
             ).with_blast_resistance(6)
         return new_break_info(0.8, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE)
 
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
 
-struct ChiseledQuartz(Block, Breakable, Equatable, ImplicitlyCopyable):
+        Returns:
+            The model.
+        """
+        return SolidModel()
+
+
+struct ChiseledQuartz(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A chiseled variant of quartz."""
 
     comptime BASE_HASH: UInt64 = HASH_CHISELED_QUARTZ
     """Go `hashChiseledQuartz`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `ChiseledQuartz{}`)."""
@@ -168,12 +184,24 @@ struct ChiseledQuartz(Block, Breakable, Equatable, ImplicitlyCopyable):
         """
         return new_break_info(0.8, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE)
 
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
 
-struct QuartzPillar(Block, Breakable, Equatable, ImplicitlyCopyable):
+        Returns:
+            The model.
+        """
+        return SolidModel()
+
+
+struct QuartzPillar(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A pillar variant of quartz."""
 
     comptime BASE_HASH: UInt64 = HASH_QUARTZ_PILLAR
     """Go `hashQuartzPillar`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var axis: Axis
     """The axis the pillar faces."""
@@ -247,3 +275,11 @@ struct QuartzPillar(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.8, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

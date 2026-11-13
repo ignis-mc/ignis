@@ -8,6 +8,7 @@ SmeltInfo, CompostChance, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -17,13 +18,23 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_KELP
+from .model.empty import Empty as EmptyModel
 
 
-struct Kelp(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Kelp(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """An underwater block that can grow on top of itself."""
 
     comptime BASE_HASH: UInt64 = HASH_KELP
     """Go `hashKelp`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var age: Int
     """The age of the kelp, 0 to 25; at 25 it no longer grows."""
@@ -106,3 +117,11 @@ struct Kelp(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

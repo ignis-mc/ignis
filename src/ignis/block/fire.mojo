@@ -8,17 +8,28 @@ the fire spread helpers.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .connections import FireConnections, all_fire_connections
 from .fire_type import FireType
 from .hash import HASH_FIRE
+from .model.empty import Empty as EmptyModel
 
 
-struct Fire(Block, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter):
+struct Fire(
+    Block,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
+):
     """A non-solid block that can spread to nearby flammable blocks."""
 
     comptime BASE_HASH: UInt64 = HASH_FIRE
     """Go `hashFire`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var type: FireType
     """The type of fire."""
@@ -132,3 +143,11 @@ struct Fire(Block, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

@@ -4,6 +4,7 @@ TODO(world-runtime): CompostChance, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -13,15 +14,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_SHROOMLIGHT
+from .model.solid import Solid as SolidModel
 
 
 struct Shroomlight(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter
+    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
 ):
     """A light emitting block that generates in huge fungi."""
 
     comptime BASE_HASH: UInt64 = HASH_SHROOMLIGHT
     """Go `hashShroomlight`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Shroomlight{}`)."""
@@ -90,3 +94,11 @@ struct Shroomlight(
             The light level, 0 to 15.
         """
         return 15
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

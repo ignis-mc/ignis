@@ -5,6 +5,7 @@ TODO(world-runtime): SoilFor, UseOnBlock, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -15,13 +16,18 @@ from .break_info import (
 )
 from .cube.axis import Axis, axes
 from .hash import HASH_MUDDY_MANGROVE_ROOTS
+from .model.solid import Solid as SolidModel
 
 
-struct MuddyMangroveRoots(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct MuddyMangroveRoots(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A decorative variant of mangrove roots."""
 
     comptime BASE_HASH: UInt64 = HASH_MUDDY_MANGROVE_ROOTS
     """Go `hashMuddyMangroveRoots`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var axis: Axis
     """The axis the roots face."""
@@ -95,3 +101,11 @@ struct MuddyMangroveRoots(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.7, ALWAYS_HARVESTABLE, SHOVEL_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

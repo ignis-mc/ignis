@@ -8,6 +8,7 @@ BoneMeal, CompostChance, FlammabilityInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -18,15 +19,23 @@ from .break_info import (
 )
 from .double_tall_grass_type import DoubleTallGrassType, double_tall_grass_types
 from .hash import HASH_DOUBLE_TALL_GRASS
+from .model.empty import Empty as EmptyModel
 
 
 struct DoubleTallGrass(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A two block high variety of grass."""
 
     comptime BASE_HASH: UInt64 = HASH_DOUBLE_TALL_GRASS
     """Go `hashDoubleTallGrass`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var upper_part: Bool
     """Whether this is the upper part of the plant."""
@@ -124,3 +133,11 @@ struct DoubleTallGrass(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

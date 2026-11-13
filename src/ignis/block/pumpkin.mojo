@@ -6,6 +6,7 @@ the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -16,13 +17,16 @@ from .break_info import (
 )
 from .cube.direction import Direction
 from .hash import HASH_PUMPKIN
+from .model.solid import Solid as SolidModel
 
 
-struct Pumpkin(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Pumpkin(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A crop block; carved, it can be worn as a helmet."""
 
     comptime BASE_HASH: UInt64 = HASH_PUMPKIN
     """Go `hashPumpkin`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var carved: Bool
     """Whether the pumpkin is carved."""
@@ -112,3 +116,11 @@ struct Pumpkin(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(1, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

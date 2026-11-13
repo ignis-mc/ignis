@@ -4,6 +4,7 @@ TODO(world-runtime): EntityLand, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -13,13 +14,23 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_SLIME
+from .model.solid import Solid as SolidModel
 
 
-struct Slime(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Slime(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A storage block equivalent to nine slimeballs."""
 
     comptime BASE_HASH: UInt64 = HASH_SLIME
     """Go `hashSlime`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Slime{}`)."""
@@ -89,3 +100,11 @@ struct Slime(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

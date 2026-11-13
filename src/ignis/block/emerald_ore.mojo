@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     HARVEST_LEVEL_IRON,
@@ -14,14 +15,19 @@ from .break_info import (
     pickaxe_harvestable_from,
 )
 from .hash import HASH_EMERALD_ORE
+from .model.solid import Solid as SolidModel
 from .ore_type import OreType, ore_types
 
 
-struct EmeraldOre(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct EmeraldOre(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """An ore generating in mountain biomes."""
 
     comptime BASE_HASH: UInt64 = HASH_EMERALD_ORE
     """Go `hashEmeraldOre`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var type: OreType
     """The rock the ore is embedded in."""
@@ -99,3 +105,11 @@ struct EmeraldOre(Block, Breakable, Equatable, ImplicitlyCopyable):
         if self.type == OreType.DEEPSLATE:
             i = i.with_blast_resistance(3)
         return i
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

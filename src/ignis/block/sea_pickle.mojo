@@ -9,6 +9,7 @@ the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -18,15 +19,24 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_SEA_PICKLE
+from .model.empty import Empty as EmptyModel
 
 
 struct SeaPickle(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A small stationary underwater block that emits light."""
 
     comptime BASE_HASH: UInt64 = HASH_SEA_PICKLE
     """Go `hashSeaPickle`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var additional_count: Int
     """The number of additional sea pickles clustered together."""
@@ -131,3 +141,11 @@ struct SeaPickle(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

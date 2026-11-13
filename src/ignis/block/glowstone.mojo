@@ -5,6 +5,7 @@ RedstoneNonConductive, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,13 +15,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_GLOWSTONE
+from .model.solid import Solid as SolidModel
 
 
-struct Glowstone(Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter):
+struct Glowstone(
+    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+):
     """A naturally generating block found in the nether that emits light."""
 
     comptime BASE_HASH: UInt64 = HASH_GLOWSTONE
     """Go `hashGlowstone`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Glowstone{}`)."""
@@ -89,3 +95,11 @@ struct Glowstone(Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter):
             The light level, 0 to 15.
         """
         return 15
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

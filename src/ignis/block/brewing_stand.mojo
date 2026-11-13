@@ -9,6 +9,7 @@ EncodeNBT, DecodeNBT, the break handler, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -18,16 +19,24 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_BREWING_STAND
+from .model.brewing_stand import BrewingStand as BrewingStandModel
 
 
 struct BrewingStand(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A block used for brewing potions, splash potions, and lingering potions.
     """
 
     comptime BASE_HASH: UInt64 = HASH_BREWING_STAND
     """Go `hashBrewingStand`."""
+    comptime ModelType = BrewingStandModel
+    """The model type (Go `Model`)."""
 
     var left_slot: Bool
     """Whether the left slot holds a potion."""
@@ -143,3 +152,11 @@ struct BrewingStand(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> BrewingStandModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return BrewingStandModel()
