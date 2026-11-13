@@ -362,7 +362,9 @@ struct DB(Movable):
     # Reads
     # ===------------------------------------------------------------------=== #
 
-    def get(self, key: Span[UInt8, _]) raises -> Optional[List[UInt8]]:
+    def get(
+        self, key: Span[mut=False, UInt8, _]
+    ) raises -> Optional[List[UInt8]]:
         """Returns the value of a key (Go `DB.Get`; None replaces
         `ErrNotFound`).
 
@@ -420,7 +422,7 @@ struct DB(Movable):
                 return e[1].copy()
         return None
 
-    def has(self, key: Span[UInt8, _]) raises -> Bool:
+    def has(self, key: Span[mut=False, UInt8, _]) raises -> Bool:
         """Reports whether a key is present (Go `DB.Has`).
 
         Args:
@@ -455,7 +457,11 @@ struct DB(Movable):
     # Writes
     # ===------------------------------------------------------------------=== #
 
-    def put(mut self, key: Span[UInt8, _], value: Span[UInt8, _]) raises:
+    def put(
+        mut self,
+        key: Span[mut=False, UInt8, _],
+        value: Span[mut=False, UInt8, _],
+    ) raises:
         """Sets a key (Go `DB.Put`).
 
         Args:
@@ -469,7 +475,7 @@ struct DB(Movable):
         b.put(key, value)
         self.write(b)
 
-    def delete(mut self, key: Span[UInt8, _]) raises:
+    def delete(mut self, key: Span[mut=False, UInt8, _]) raises:
         """Deletes a key (Go `DB.Delete`).
 
         Args:
@@ -757,7 +763,7 @@ struct DB(Movable):
 
 
 def _apply_batch_record(
-    rec: Span[UInt8, _], seq: UInt64, mut mem: MemDB
+    rec: Span[mut=False, UInt8, _], seq: UInt64, mut mem: MemDB
 ) raises -> UInt64:
     # Go decodeBatchToMem; returns the new last sequence number.
     var hdr = decode_batch_header(rec)

@@ -21,7 +21,10 @@ comptime COMPARER_NAME = "leveldb.BytewiseComparator"
 
 
 def make_internal_key(
-    mut out: List[UInt8], ukey: Span[UInt8, _], seq: UInt64, kt: UInt8
+    mut out: List[UInt8],
+    ukey: Span[mut=False, UInt8, _],
+    seq: UInt64,
+    kt: UInt8,
 ):
     """Appends an internal key (Go `makeInternalKey`).
 
@@ -35,7 +38,9 @@ def make_internal_key(
     put_u64(out, (seq << 8) | UInt64(kt))
 
 
-def internal_key(ukey: Span[UInt8, _], seq: UInt64, kt: UInt8) -> List[UInt8]:
+def internal_key(
+    ukey: Span[mut=False, UInt8, _], seq: UInt64, kt: UInt8
+) -> List[UInt8]:
     """Builds an internal key.
 
     Args:
@@ -51,7 +56,7 @@ def internal_key(ukey: Span[UInt8, _], seq: UInt64, kt: UInt8) -> List[UInt8]:
     return out^
 
 
-def ukey(ikey: Span[UInt8, _]) -> Span[UInt8, ikey.origin]:
+def ukey(ikey: Span[mut=False, UInt8, _]) -> Span[UInt8, ikey.origin]:
     """Returns the user key part of an internal key.
 
     Args:
@@ -63,7 +68,7 @@ def ukey(ikey: Span[UInt8, _]) -> Span[UInt8, ikey.origin]:
     return ikey[: len(ikey) - 8]
 
 
-def key_num(ikey: Span[UInt8, _]) -> UInt64:
+def key_num(ikey: Span[mut=False, UInt8, _]) -> UInt64:
     """Returns the packed `seq << 8 | type` of an internal key.
 
     Args:
@@ -75,7 +80,7 @@ def key_num(ikey: Span[UInt8, _]) -> UInt64:
     return get_u64(ikey, len(ikey) - 8)
 
 
-def key_seq(ikey: Span[UInt8, _]) -> UInt64:
+def key_seq(ikey: Span[mut=False, UInt8, _]) -> UInt64:
     """Returns the sequence number of an internal key.
 
     Args:
@@ -87,7 +92,7 @@ def key_seq(ikey: Span[UInt8, _]) -> UInt64:
     return key_num(ikey) >> 8
 
 
-def key_type(ikey: Span[UInt8, _]) -> UInt8:
+def key_type(ikey: Span[mut=False, UInt8, _]) -> UInt8:
     """Returns the type byte of an internal key.
 
     Args:
@@ -99,7 +104,7 @@ def key_type(ikey: Span[UInt8, _]) -> UInt8:
     return ikey[len(ikey) - 8]
 
 
-def valid_internal_key(ikey: Span[UInt8, _]) -> Bool:
+def valid_internal_key(ikey: Span[mut=False, UInt8, _]) -> Bool:
     """Reports whether bytes form a well-formed internal key.
 
     Args:
@@ -111,7 +116,9 @@ def valid_internal_key(ikey: Span[UInt8, _]) -> Bool:
     return len(ikey) >= 8 and key_type(ikey) <= KEY_TYPE_VAL
 
 
-def compare_internal(a: Span[UInt8, _], b: Span[UInt8, _]) -> Int:
+def compare_internal(
+    a: Span[mut=False, UInt8, _], b: Span[mut=False, UInt8, _]
+) -> Int:
     """Compares internal keys (Go `iComparer.Compare`).
 
     Args:
@@ -133,7 +140,9 @@ def compare_internal(a: Span[UInt8, _], b: Span[UInt8, _]) -> Int:
     return 0
 
 
-def separator(a: Span[UInt8, _], b: Span[UInt8, _]) -> Optional[List[UInt8]]:
+def separator(
+    a: Span[mut=False, UInt8, _], b: Span[mut=False, UInt8, _]
+) -> Optional[List[UInt8]]:
     """A short internal key in `[a, b)` (Go `iComparer.Separator` over
     `bytesComparer.Separator`), or None to use `a` itself.
 
@@ -162,7 +171,7 @@ def separator(a: Span[UInt8, _], b: Span[UInt8, _]) -> Optional[List[UInt8]]:
     return None
 
 
-def successor(b: Span[UInt8, _]) -> Optional[List[UInt8]]:
+def successor(b: Span[mut=False, UInt8, _]) -> Optional[List[UInt8]]:
     """A short internal key not less than `b` (Go `iComparer.Successor`), or
     None to use `b` itself.
 

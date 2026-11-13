@@ -58,7 +58,7 @@ struct BlockHandle(Equatable, ImplicitlyCopyable, Writable):
         put_uvarint(out, UInt64(self.length))
 
     @staticmethod
-    def decode(data: Span[UInt8, _], mut pos: Int) raises -> Self:
+    def decode(data: Span[mut=False, UInt8, _], mut pos: Int) raises -> Self:
         """Reads a handle.
 
         Args:
@@ -101,7 +101,11 @@ struct BlockBuilder(Movable):
         self.prev_key = List[UInt8]()
         self._restarts = List[UInt32]()
 
-    def append(mut self, key: Span[UInt8, _], value: Span[UInt8, _]):
+    def append(
+        mut self,
+        key: Span[mut=False, UInt8, _],
+        value: Span[mut=False, UInt8, _],
+    ):
         """Appends an entry; keys must be appended in order.
 
         Args:
@@ -241,7 +245,7 @@ struct TableWriter(Movable):
         self._out.extend(Span(stored))
         return bh
 
-    def _flush_pending(mut self, key: Span[UInt8, _], has_key: Bool):
+    def _flush_pending(mut self, key: Span[mut=False, UInt8, _], has_key: Bool):
         if not self._pending:
             return
         var sep: Optional[List[UInt8]]
@@ -267,7 +271,11 @@ struct TableWriter(Movable):
         if self._filter:
             self._filter.value().flush(len(self._out))
 
-    def append(mut self, key: Span[UInt8, _], value: Span[UInt8, _]) raises:
+    def append(
+        mut self,
+        key: Span[mut=False, UInt8, _],
+        value: Span[mut=False, UInt8, _],
+    ) raises:
         """Appends an entry (Go `Writer.Append`).
 
         Args:
@@ -402,7 +410,7 @@ struct BlockIter(Movable):
             self._value_pos : self._value_pos + self._value_len
         ]
 
-    def _key_less(self, target: Span[UInt8, _]) -> Bool:
+    def _key_less(self, target: Span[mut=False, UInt8, _]) -> Bool:
         if self._internal:
             return compare_internal(Span(self._key), target) < 0
         return compare_bytes(Span(self._key), target) < 0
@@ -427,24 +435,35 @@ struct BlockIter(Movable):
         self._valid = True
 
     def first(mut self) raises:
-        """Moves to the first entry."""
+        """Moves to the first entry.
+
+        Raises:
+            If a block cannot be read or is corrupt.
+        """
         self._key.clear()
         self._valid = False
         self._next = 0
         self.next()
 
     def next(mut self) raises:
-        """Moves to the next entry; becomes invalid past the last."""
+        """Moves to the next entry; becomes invalid past the last.
+
+        Raises:
+            If a block cannot be read or is corrupt.
+        """
         if self._next >= self._restarts_off:
             self._valid = False
             return
         self._decode_at(self._next)
 
-    def seek(mut self, target: Span[UInt8, _]) raises:
+    def seek(mut self, target: Span[mut=False, UInt8, _]) raises:
         """Moves to the first entry whose key is not less than `target`.
 
         Args:
             target: The key.
+
+        Raises:
+            If a block cannot be read or is corrupt.
         """
         # Binary search for the last restart point with a key < target.
         var lo = 0
@@ -464,7 +483,9 @@ struct BlockIter(Movable):
             self.next()
 
 
-def read_footer(data: Span[UInt8, _]) raises -> Tuple[BlockHandle, BlockHandle]:
+def read_footer(
+    data: Span[mut=False, UInt8, _]
+) raises -> Tuple[BlockHandle, BlockHandle]:
     """Parses a table footer.
 
     Args:
@@ -490,7 +511,7 @@ def read_footer(data: Span[UInt8, _]) raises -> Tuple[BlockHandle, BlockHandle]:
 
 
 def check_block(
-    stored: Span[UInt8, _], bh: BlockHandle, verify: Bool
+    stored: Span[mut=False, UInt8, _], bh: BlockHandle, verify: Bool
 ) raises -> List[UInt8]:
     """Checks a stored block's trailer and decompresses it.
 
@@ -617,7 +638,7 @@ struct Table(Copyable, Movable):
         """
         return self._index_handles[i]
 
-    def find_block(self, ikey: Span[UInt8, _]) -> Int:
+    def find_block(self, ikey: Span[mut=False, UInt8, _]) -> Int:
         """Returns the first data block whose index key is not less than
         `ikey`, which is the only block that can hold it.
 
@@ -653,7 +674,7 @@ struct Table(Copyable, Movable):
         return BlockIter(_read_block(f, self._index_handles[i], True), True)
 
     def get(
-        self, ikey: Span[UInt8, _]
+        self, ikey: Span[mut=False, UInt8, _]
     ) raises -> Optional[Tuple[List[UInt8], List[UInt8]]]:
         """Finds the first entry not less than `ikey` with the same user key.
 

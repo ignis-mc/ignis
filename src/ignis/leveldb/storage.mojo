@@ -63,7 +63,7 @@ def file_name(fd: FileDesc) -> String:
     return String(_pad6(fd.num), ".tmp")
 
 
-def _parse_num(b: Span[UInt8, _]) -> Optional[Int]:
+def _parse_num(b: Span[mut=False, UInt8, _]) -> Optional[Int]:
     if len(b) == 0 or len(b) > 18:
         return None
     var n = 0

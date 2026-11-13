@@ -87,23 +87,34 @@ struct TableStream(Movable):
             self._block = b^
 
     def first(mut self) raises:
-        """Moves to the first entry."""
+        """Moves to the first entry.
+
+        Raises:
+            If a block cannot be read or is corrupt.
+        """
         self._ti = 0
         self._bi = 0
         self._block = None
         self._settle()
 
     def next(mut self) raises:
-        """Moves to the next entry."""
+        """Moves to the next entry.
+
+        Raises:
+            If a block cannot be read or is corrupt.
+        """
         if self._block:
             self._block.value().next()
         self._settle()
 
-    def seek(mut self, ikey: Span[UInt8, _]) raises:
+    def seek(mut self, ikey: Span[mut=False, UInt8, _]) raises:
         """Moves to the first entry not less than `ikey`.
 
         Args:
             ikey: The internal key.
+
+        Raises:
+            If a block cannot be read or is corrupt.
         """
         self._block = None
         var lo = 0
@@ -174,7 +185,7 @@ struct MemStream(Movable):
         if self._node != 0:
             self._node = self._mem.next(self._node)
 
-    def seek(mut self, ikey: Span[UInt8, _]):
+    def seek(mut self, ikey: Span[mut=False, UInt8, _]):
         """Moves to the first entry not less than `ikey`.
 
         Args:
@@ -253,18 +264,25 @@ struct MergedStream(Movable):
             self.value = List[UInt8](self._tables[best].value())
 
     def first(mut self) raises:
-        """Moves to the first entry."""
+        """Moves to the first entry.
+
+        Raises:
+            If a block cannot be read or is corrupt.
+        """
         if self._mem:
             self._mem.value().first()
         for i in range(len(self._tables)):
             self._tables[i].first()
         self._pick()
 
-    def seek(mut self, ikey: Span[UInt8, _]) raises:
+    def seek(mut self, ikey: Span[mut=False, UInt8, _]) raises:
         """Moves to the first entry not less than `ikey`.
 
         Args:
             ikey: The internal key.
+
+        Raises:
+            If a block cannot be read or is corrupt.
         """
         if self._mem:
             self._mem.value().seek(ikey)
@@ -273,7 +291,11 @@ struct MergedStream(Movable):
         self._pick()
 
     def next(mut self) raises:
-        """Moves to the next entry."""
+        """Moves to the next entry.
+
+        Raises:
+            If a block cannot be read or is corrupt.
+        """
         if self._cur == -1:
             self._mem.value().next()
         elif self._cur >= 0:
@@ -360,12 +382,15 @@ struct Iterator(Movable):
 
         Returns:
             True if there is one.
+
+        Raises:
+            If a block cannot be read or is corrupt.
         """
         self._started = True
         self._m.first()
         return self._fill(False)
 
-    def seek(mut self, key: Span[UInt8, _]) raises -> Bool:
+    def seek(mut self, key: Span[mut=False, UInt8, _]) raises -> Bool:
         """Moves to the first live entry with a key not less than `key` (Go
         `Seek`).
 
@@ -374,6 +399,9 @@ struct Iterator(Movable):
 
         Returns:
             True if there is one.
+
+        Raises:
+            If a block cannot be read or is corrupt.
         """
         self._started = True
         self._m.seek(Span(internal_key(key, KEY_MAX_SEQ, KEY_TYPE_VAL)))
@@ -385,6 +413,9 @@ struct Iterator(Movable):
 
         Returns:
             True if there is one.
+
+        Raises:
+            If a block cannot be read or is corrupt.
         """
         if not self._started:
             return self.first()

@@ -122,7 +122,7 @@ struct SessionRecord(Copyable, Defaultable, Movable):
             out.extend(Span(t.imax))
 
     @staticmethod
-    def decode(data: Span[UInt8, _]) raises -> Self:
+    def decode(data: Span[mut=False, UInt8, _]) raises -> Self:
         """Parses an edit (Go `sessionRecord.decode`).
 
         Args:
@@ -170,7 +170,9 @@ struct SessionRecord(Copyable, Defaultable, Movable):
         return r^
 
 
-def _read_bytes(data: Span[UInt8, _], mut pos: Int) raises -> List[UInt8]:
+def _read_bytes(
+    data: Span[mut=False, UInt8, _], mut pos: Int
+) raises -> List[UInt8]:
     var n = read_varint_int(data, pos)
     if pos + n > len(data):
         raise Error("leveldb: manifest corrupted: short read")

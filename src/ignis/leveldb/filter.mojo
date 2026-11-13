@@ -19,13 +19,13 @@ from .util import get_u32, hash, hash_signed_tail, put_u32
 comptime FILTER_NAME = "leveldb.BuiltinBloomFilter2"
 """The filter policy name written to the metaindex."""
 comptime GO_FILTER_NAME = "leveldb.BuiltinBloomFilter"
-"""goleveldb's name for the same policy."""
+"""The name goleveldb gives the same policy."""
 comptime FILTER_BASE_LG = 11
 """A filter covers each 2 KiB of data block offsets (Go `filterBaseLg`)."""
 comptime _SEED = UInt32(0xBC9F1D34)
 
 
-def _bloom_contains(filter: Span[UInt8, _], kh0: UInt32) -> Bool:
+def _bloom_contains(filter: Span[mut=False, UInt8, _], kh0: UInt32) -> Bool:
     var n_bytes = len(filter) - 1
     var n_bits = UInt32(n_bytes * 8)
     var k = filter[n_bytes]
@@ -39,7 +39,9 @@ def _bloom_contains(filter: Span[UInt8, _], kh0: UInt32) -> Bool:
     return True
 
 
-def bloom_may_contain(filter: Span[UInt8, _], key: Span[UInt8, _]) -> Bool:
+def bloom_may_contain(
+    filter: Span[mut=False, UInt8, _], key: Span[mut=False, UInt8, _]
+) -> Bool:
     """Reports whether a bloom filter may contain a key (Go
     `bloomFilter.Contains`, checking both hash variants).
 
@@ -86,7 +88,7 @@ struct BloomGenerator(Movable, Sized):
         """
         return len(self._hashes)
 
-    def add(mut self, key: Span[UInt8, _]):
+    def add(mut self, key: Span[mut=False, UInt8, _]):
         """Adds a user key.
 
         Args:
@@ -136,7 +138,7 @@ struct FilterBlockWriter(Movable):
         self._buf = List[UInt8]()
         self._offsets = List[UInt32]()
 
-    def add(mut self, ukey: Span[UInt8, _]):
+    def add(mut self, ukey: Span[mut=False, UInt8, _]):
         """Adds the user key of an appended entry.
 
         Args:
@@ -204,7 +206,9 @@ struct FilterBlockReader(Copyable, Movable):
         self._base_lg = base_lg
         self._data = data^
 
-    def may_contain(self, block_offset: Int, ukey: Span[UInt8, _]) -> Bool:
+    def may_contain(
+        self, block_offset: Int, ukey: Span[mut=False, UInt8, _]
+    ) -> Bool:
         """Reports whether the data block at `block_offset` may hold a key.
 
         Args:

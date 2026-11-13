@@ -20,3 +20,15 @@ def remove_all(path: StringSlice) raises:
         except:
             remove_all(p)
     remove_dir(path)
+
+
+def copy_dir(src: StringSlice, dst: StringSlice) raises:
+    """Copies the regular files of a directory (not recursive) into a new
+    directory."""
+    from ignis.internal.fs import read_file, write_file
+
+    make_dir_all(dst)
+    for name in list_dir(src):
+        write_file(
+            join(dst, name), Span(read_file(join(src, name))), sync=False
+        )

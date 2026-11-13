@@ -99,7 +99,7 @@ struct MemDB(Copyable, Movable, Sized):
         var o = self._nodes[node + _N_KV] + self._nodes[node + _N_KEY]
         return Span(self._kv)[o : o + self._nodes[node + _N_VAL]]
 
-    def _find_ge(mut self, key: Span[UInt8, _]) -> Tuple[Int, Bool]:
+    def _find_ge(mut self, key: Span[mut=False, UInt8, _]) -> Tuple[Int, Bool]:
         var node = 0
         var h = self._max_height - 1
         while True:
@@ -115,7 +115,7 @@ struct MemDB(Copyable, Movable, Sized):
                     return (next, cmp == 0)
                 h -= 1
 
-    def find_ge(self, key: Span[UInt8, _]) -> Int:
+    def find_ge(self, key: Span[mut=False, UInt8, _]) -> Int:
         """Finds the first node whose key is not less than `key`.
 
         Args:
@@ -157,7 +157,11 @@ struct MemDB(Copyable, Movable, Sized):
         """
         return self._nodes[node + _N_NEXT]
 
-    def put(mut self, key: Span[UInt8, _], value: Span[UInt8, _]):
+    def put(
+        mut self,
+        key: Span[mut=False, UInt8, _],
+        value: Span[mut=False, UInt8, _],
+    ):
         """Inserts an entry, replacing the value of an identical key (Go
         `DB.Put`).
 

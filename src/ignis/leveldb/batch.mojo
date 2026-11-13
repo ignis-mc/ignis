@@ -57,7 +57,10 @@ struct Batch(Copyable, Defaultable, Movable, Sized):
         return self._len
 
     def _append(
-        mut self, kt: UInt8, key: Span[UInt8, _], value: Span[UInt8, _]
+        mut self,
+        kt: UInt8,
+        key: Span[mut=False, UInt8, _],
+        value: Span[mut=False, UInt8, _],
     ):
         self._data.append(kt)
         put_uvarint(self._data, UInt64(len(key)))
@@ -68,7 +71,11 @@ struct Batch(Copyable, Defaultable, Movable, Sized):
         self._len += 1
         self._internal_len += len(key) + len(value) + 8
 
-    def put(mut self, key: Span[UInt8, _], value: Span[UInt8, _]):
+    def put(
+        mut self,
+        key: Span[mut=False, UInt8, _],
+        value: Span[mut=False, UInt8, _],
+    ):
         """Appends a put of `key` to `value` (Go `Batch.Put`).
 
         Args:
@@ -77,7 +84,7 @@ struct Batch(Copyable, Defaultable, Movable, Sized):
         """
         self._append(KEY_TYPE_VAL, key, value)
 
-    def delete(mut self, key: Span[UInt8, _]):
+    def delete(mut self, key: Span[mut=False, UInt8, _]):
         """Appends a delete of `key` (Go `Batch.Delete`).
 
         Args:
@@ -121,7 +128,9 @@ struct Batch(Copyable, Defaultable, Movable, Sized):
         out.extend(Span(self._data))
 
 
-def decode_batch_header(data: Span[UInt8, _]) raises -> Tuple[UInt64, Int]:
+def decode_batch_header(
+    data: Span[mut=False, UInt8, _]
+) raises -> Tuple[UInt64, Int]:
     """Reads a batch header (Go `decodeBatchHeader`).
 
     Args:
@@ -138,7 +147,7 @@ def decode_batch_header(data: Span[UInt8, _]) raises -> Tuple[UInt64, Int]:
     return (get_u64(data, 0), Int(get_u32(data, 8)))
 
 
-def decode_batch(data: Span[UInt8, _]) raises -> List[BatchRecord]:
+def decode_batch(data: Span[mut=False, UInt8, _]) raises -> List[BatchRecord]:
     """Splits batch records (without the header) (Go `decodeBatch`).
 
     Args:

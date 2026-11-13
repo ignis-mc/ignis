@@ -42,7 +42,9 @@ struct JournalWriter(Movable):
         """
         self._offset = offset % BLOCK_SIZE
 
-    def append(mut self, record: Span[UInt8, _], mut out: List[UInt8]):
+    def append(
+        mut self, record: Span[mut=False, UInt8, _], mut out: List[UInt8]
+    ):
         """Frames one record and appends the bytes to `out`.
 
         Args:

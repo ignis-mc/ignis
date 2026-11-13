@@ -18,7 +18,9 @@ def put_uvarint(mut out: List[UInt8], x: UInt64):
     out.append(UInt8(v))
 
 
-def read_uvarint(data: Span[UInt8, _], mut pos: Int) raises -> UInt64:
+def read_uvarint(
+    data: Span[mut=False, UInt8, _], mut pos: Int
+) raises -> UInt64:
     """Reads an unsigned varint (Go `binary.Uvarint`).
 
     Args:
@@ -47,7 +49,9 @@ def read_uvarint(data: Span[UInt8, _], mut pos: Int) raises -> UInt64:
     raise Error("leveldb: varint overflows 64 bits")
 
 
-def read_varint_int(data: Span[UInt8, _], mut pos: Int) raises -> Int:
+def read_varint_int(
+    data: Span[mut=False, UInt8, _], mut pos: Int
+) raises -> Int:
     """Reads an unsigned varint that must fit a non-negative `Int`.
 
     Args:
@@ -90,7 +94,7 @@ def put_u64(mut out: List[UInt8], x: UInt64):
         out.append(UInt8((x >> UInt64(8 * i)) & 0xFF))
 
 
-def get_u32(data: Span[UInt8, _], pos: Int) -> UInt32:
+def get_u32(data: Span[mut=False, UInt8, _], pos: Int) -> UInt32:
     """Reads a little-endian uint32; the caller checks the bounds.
 
     Args:
@@ -108,7 +112,7 @@ def get_u32(data: Span[UInt8, _], pos: Int) -> UInt32:
     )
 
 
-def get_u64(data: Span[UInt8, _], pos: Int) -> UInt64:
+def get_u64(data: Span[mut=False, UInt8, _], pos: Int) -> UInt64:
     """Reads a little-endian uint64; the caller checks the bounds.
 
     Args:
@@ -124,7 +128,7 @@ def get_u64(data: Span[UInt8, _], pos: Int) -> UInt64:
     return x
 
 
-def masked_crc(data: Span[UInt8, _]) -> UInt32:
+def masked_crc(data: Span[mut=False, UInt8, _]) -> UInt32:
     """Returns LevelDB's masked CRC-32C of the data (Go `util.NewCRC(b).Value`).
 
     Args:
@@ -137,7 +141,7 @@ def masked_crc(data: Span[UInt8, _]) -> UInt32:
     return ((c >> 15) | (c << 17)) + 0xA282EAD8
 
 
-def hash(data: Span[UInt8, _], seed: UInt32) -> UInt32:
+def hash(data: Span[mut=False, UInt8, _], seed: UInt32) -> UInt32:
     """LevelDB's murmur-like hash with unsigned tail bytes (Go `util.Hash`).
 
     Args:
@@ -168,7 +172,7 @@ def hash(data: Span[UInt8, _], seed: UInt32) -> UInt32:
     return h
 
 
-def hash_signed_tail(data: Span[UInt8, _], seed: UInt32) -> UInt32:
+def hash_signed_tail(data: Span[mut=False, UInt8, _], seed: UInt32) -> UInt32:
     """The same hash with tail bytes sign-extended, as C++ LevelDB computed it
     on `char`-signed platforms before 1.21. Filters written by such builds
     are only consistent with this variant.
@@ -201,7 +205,9 @@ def hash_signed_tail(data: Span[UInt8, _], seed: UInt32) -> UInt32:
     return h
 
 
-def compare_bytes(a: Span[UInt8, _], b: Span[UInt8, _]) -> Int:
+def compare_bytes(
+    a: Span[mut=False, UInt8, _], b: Span[mut=False, UInt8, _]
+) -> Int:
     """Compares two byte strings lexicographically (Go `bytes.Compare`).
 
     Args:

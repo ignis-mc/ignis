@@ -16,7 +16,9 @@ comptime NUM_LEVELS = 7
 """The number of levels (C++ `config::kNumLevels`, goleveldb's default)."""
 
 
-def _overlaps(t: Table, umin: Span[UInt8, _], umax: Span[UInt8, _]) -> Bool:
+def _overlaps(
+    t: Table, umin: Span[mut=False, UInt8, _], umax: Span[mut=False, UInt8, _]
+) -> Bool:
     return not (
         compare_bytes(ukey(Span(t.imax)), umin) < 0
         or compare_bytes(ukey(Span(t.imin)), umax) > 0
@@ -122,7 +124,10 @@ struct Version(Copyable, Movable):
         l.insert(i, t^)
 
     def overlapping(
-        self, level: Int, umin: Span[UInt8, _], umax: Span[UInt8, _]
+        self,
+        level: Int,
+        umin: Span[mut=False, UInt8, _],
+        umax: Span[mut=False, UInt8, _],
     ) -> List[Int]:
         """Returns the indices of the tables of a level whose user key range
         intersects `[umin, umax]`.
@@ -141,7 +146,9 @@ struct Version(Copyable, Movable):
                 out.append(i)
         return out^
 
-    def base_level_for_key(self, level: Int, uk: Span[UInt8, _]) -> Bool:
+    def base_level_for_key(
+        self, level: Int, uk: Span[mut=False, UInt8, _]
+    ) -> Bool:
         """Reports whether no level deeper than `level` may hold `uk`, so a
         deletion marker for it can be dropped.
 

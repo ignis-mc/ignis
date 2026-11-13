@@ -11,7 +11,7 @@ trap 'rm -rf "$work"' EXIT
 seed="${SEED:-7}"
 n="${N:-3000}"
 (cd "$here" && go build -o "$work/go-tool" .)
-mojo build -I "$root/src" -I "$root/third_party/protocol/src" \
+mojo build -I "$root/src" -I "$root/test" -I "$root/third_party/protocol/src" \
     -I "$root/third_party/nethernet/src" -D ASSERT=all \
     "$here/ldbtool.mojo" -o "$work/mojo-tool"
 G="$work/go-tool"

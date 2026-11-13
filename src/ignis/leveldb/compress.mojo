@@ -27,7 +27,7 @@ comptime MAX_BLOCK_LEN = 64 * 1024 * 1024
 """The largest decompressed block accepted."""
 
 
-def adler32(data: Span[UInt8, _]) -> UInt32:
+def adler32(data: Span[mut=False, UInt8, _]) -> UInt32:
     """Computes the Adler-32 checksum (RFC 1950).
 
     Args:
@@ -51,7 +51,9 @@ def adler32(data: Span[UInt8, _]) -> UInt32:
     return (b << 16) | a
 
 
-def compress(data: Span[UInt8, _], kind: UInt8) raises -> List[UInt8]:
+def compress(
+    data: Span[mut=False, UInt8, _], kind: UInt8
+) raises -> List[UInt8]:
     """Compresses a block with the given block type.
 
     Args:
@@ -86,7 +88,9 @@ def compress(data: Span[UInt8, _], kind: UInt8) raises -> List[UInt8]:
     raise Error(t"leveldb: unknown compression type {kind}")
 
 
-def decompress(data: Span[UInt8, _], kind: UInt8) raises -> List[UInt8]:
+def decompress(
+    data: Span[mut=False, UInt8, _], kind: UInt8
+) raises -> List[UInt8]:
     """Decompresses a block of the given block type.
 
     Args:

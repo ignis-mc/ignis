@@ -4,6 +4,7 @@
 //	go run . ldb-expect <seed> <n> <outdir>
 //	go run . ldb-write <dir> <seed> <n> [unclean]
 //	go run . ldb-dump <dir> <out.txt>
+//	go run . ldb-fixtures <outdir>
 package main
 
 import (
@@ -36,6 +37,8 @@ func run(args []string) error {
 		return ldbExpect(uint64(atoi(args[1])), atoi(args[2]), args[3])
 	case "ldb-write":
 		return ldbWrite(args[1], uint64(atoi(args[2])), atoi(args[3]), len(args) > 4 && args[4] == "unclean")
+	case "ldb-fixtures":
+		return ldbFixtures(args[1])
 	case "ldb-dump":
 		return ldbDump(args[1], args[2])
 	}

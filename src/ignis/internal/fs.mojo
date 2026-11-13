@@ -137,7 +137,7 @@ struct File(Movable):
     def _err(self, op: StringSlice, rc: Int) -> Error:
         return Error(String(FsError(String(op, " ", self._path), -rc)))
 
-    def write_all(mut self, data: Span[UInt8, _]) raises:
+    def write_all(mut self, data: Span[mut=False, UInt8, _]) raises:
         """Writes every byte at the current offset.
 
         Args:
@@ -356,7 +356,9 @@ def read_file(path: StringSlice) raises -> List[UInt8]:
     return open_read(path).read_all()
 
 
-def write_file(path: StringSlice, data: Span[UInt8, _], sync: Bool) raises:
+def write_file(
+    path: StringSlice, data: Span[mut=False, UInt8, _], sync: Bool
+) raises:
     """Creates or replaces a file with the bytes given.
 
     Args:
