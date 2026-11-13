@@ -1,0 +1,125 @@
+"""`EnderChest`, ported from Dragonfly `server/block/ender_chest.go`.
+
+Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
+with liquids.
+
+TODO(world-runtime): the viewer count, NewEnderChest, SideClosed, Activate,
+UseOnBlock, AddViewer, RemoveViewer, open/close, EncodeNBT, DecodeNBT,
+EncodeItem and the drops.
+"""
+
+from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_state import BlockState, Properties
+from .break_info import (
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
+    BreakInfo,
+    Breakable,
+    new_break_info,
+)
+from .cube.direction import Direction, directions
+from .hash import HASH_ENDER_CHEST
+
+
+struct EnderChest(
+    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+):
+    """A type of chest whose contents are exclusive to each player, and can be accessed from
+    anywhere."""
+
+    comptime BASE_HASH: UInt64 = HASH_ENDER_CHEST
+    """Go `hashEnderChest`."""
+
+    var facing: Direction
+    """The direction the chest faces."""
+
+    def __init__(out self, *, facing: Direction = Direction.NORTH):
+        """Creates the block; omitted fields take Go zero values.
+
+        Args:
+            facing: The direction the chest faces.
+        """
+        self.facing = facing
+
+    def __eq__(self, other: Self) -> Bool:
+        """Compares two blocks.
+
+        Args:
+            other: The block to compare with.
+
+        Returns:
+            True if both are in the same state.
+        """
+        return self.hash() == other.hash()
+
+    def encode_block(self) -> BlockState:
+        """Encodes the block (Go `EncodeBlock`).
+
+        Returns:
+            The name and properties.
+        """
+        return BlockState(
+            "minecraft:ender_chest",
+            Properties().with_string(
+                "minecraft:cardinal_direction", String(self.facing)
+            ),
+        )
+
+    def hash(self) -> UInt64:
+        """Returns the state hash (Go `Hash`).
+
+        Returns:
+            The fields packed into bits.
+        """
+        return UInt64(Int(self.facing))
+
+    @staticmethod
+    def from_hash(hash: UInt64) -> Self:
+        """Rebuilds the block from its state hash.
+
+        Args:
+            hash: The state hash.
+
+        Returns:
+            The block.
+        """
+        return EnderChest(facing=Direction(Int(hash & 0x3)))
+
+    @staticmethod
+    def all_states() -> List[Self]:
+        """Returns the registered values (Go `register.go`).
+
+        Returns:
+            Every state of the block.
+        """
+        var out = List[Self]()
+        for facing in directions():
+            out.append(EnderChest(facing=facing))
+        return out^
+
+    def break_info(self) -> BreakInfo:
+        """Returns the break info (Go `BreakInfo`).
+
+        Returns:
+            The hardness, blast resistance and tools.
+        """
+        return new_break_info(
+            22.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
+        ).with_blast_resistance(600)
+
+    def light_emission_level(self) -> UInt8:
+        """Returns the light the block emits (Go `LightEmissionLevel`).
+
+        Returns:
+            The light level, 0 to 15.
+        """
+        return 7
+
+    def light_diffusion_level(self) -> UInt8:
+        """Returns the light the block takes away (Go
+        `LightDiffusionLevel`).
+
+        Returns:
+            The diffusion level, 0 to 15.
+        """
+        return 0
