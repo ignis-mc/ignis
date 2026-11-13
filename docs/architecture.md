@@ -48,3 +48,31 @@ settle one shape for each before the bulk of blocks and items are ported:
 
 The exact representation is decided in the `world` core port and recorded
 here when it lands.
+
+## Commands
+
+Implemented in `ignis.cmd` (Dragonfly `server/cmd`) and
+`ignis.session.command` (the `AvailableCommands` and `CommandOutput`
+packets); the package docstring of `ignis.cmd` has the full mapping.
+
+- **A command overload is still a struct whose fields are its
+  parameters**, conforming to `cmd.Runnable`. Go fills the fields by
+  runtime reflection; Ignis generates each overload's parser at compile
+  time from `std.reflection.reflect[R]` (`field_names`, `field_types`,
+  `field_ref`) and dispatches on field types with `T == Int8`-style checks
+  and `conforms_to(T, Enum)`. Unsupported field types and a required
+  parameter after an optional one are compile errors.
+- Go struct tags become `R.tag(field) -> StaticString`, a static method
+  evaluated at compile time (`"name,suffix"`, `"-"`); fields starting with
+  `_` are not parameters. Each execution starts from `R()`.
+- **No trait objects:** `Command[S]` stores each overload as function
+  pointers instantiated for its runnable type (execute, allow, describe
+  parameters). `S` is the server's single source type; `run[S: Source]`
+  stays generic. Concrete source features are reached with
+  `comptime if S == Player: rebind[Player](src)`.
+- Go's `*world.Tx` is the source's associated type `S.Tx: TargetProvider`,
+  which lists the entities and players target selectors choose from. A
+  `Target` is a value (UUID, name, position, player flag), not the entity.
+- The registry is a `Registry[S]` value owned by the server, not a global.
+- `AvailableCommands` visits commands sorted by name (Dragonfly's map order
+  is random) and is byte-exact against Dragonfly for that order.
