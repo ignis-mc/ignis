@@ -6,11 +6,12 @@ with `world.Tx`, the item package and the plant blocks they refer to.
 
 from ..world.block import Block
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .hash import HASH_GRASS
 
 
 @fieldwise_init
-struct Grass(Block, Equatable, ImplicitlyCopyable):
+struct Grass(Block, Equatable, ImplicitlyCopyable, Item):
     """Grass blocks generate abundantly across the surface of the world."""
 
     comptime BASE_HASH: UInt64 = HASH_GRASS
@@ -47,6 +48,24 @@ struct Grass(Block, Equatable, ImplicitlyCopyable):
     @staticmethod
     def all_states() -> List[Self]:
         """Returns the registered values (Go `RegisterBlock(Grass{})`).
+
+        Returns:
+            Grass.
+        """
+        return [Grass()]
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`).
+
+        Returns:
+            `minecraft:grass_block`, metadata 0.
+        """
+        return EncodedItem("minecraft:grass_block", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `RegisterItem` calls
+        in `register.go`).
 
         Returns:
             Grass.

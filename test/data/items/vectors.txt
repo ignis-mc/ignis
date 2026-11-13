@@ -28,7 +28,7 @@ item.stick.rid 323
 item.stone.meta 0
 item.stone.rid 1
 items.count 2080
-items.sha256 43de29350c2b931bce38bca384052c63a97ff81f83ff0b371c9596598298905c
+items.sha256 dd6c184491f2babe325ca35cf71f628a161502b1ef1383484dd186f2c4b21424
 stack.air.bytes 000000000000
 stack.air.nbt {}
 stack.bedrock.bytes 0e030000f4b4020a00000000000000000000

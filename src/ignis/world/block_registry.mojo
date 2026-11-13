@@ -640,6 +640,20 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
             return rid
         abort(t"cannot find block by hash: {b.encode_block()}")
 
+    def runtime_id_of(self, kind: UInt64, hash: UInt64) -> Optional[UInt32]:
+        """Returns the runtime ID of a block given its type's base hash and
+        its state hash, for blocks whose type is only known at run time
+        (for example a block held as an `AnyItem`).
+
+        Args:
+            kind: The type's `BASE_HASH`.
+            hash: The block's `hash()`.
+
+        Returns:
+            The runtime ID, or None if no such block is registered.
+        """
+        return self._hashes.get(kind | (hash << UInt64(self._bit_size)))
+
     def is_block[T: Block](self, rid: UInt32) -> Bool:
         """Reports whether a runtime ID holds a block of type `T` (Go
         `b.(T)`).

@@ -9,11 +9,12 @@ ported: `transparent` is `LightDiffuser` returning 0. The model and
 from ..world.block import Block, LightDiffuser
 from ..world.block_state import BlockState
 from ..world.dimension import Dimension, NETHER
+from ..world.item import EncodedItem, Item
 from .hash import HASH_AIR
 
 
 @fieldwise_init
-struct Air(Block, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Air(Block, Equatable, ImplicitlyCopyable, Item, LightDiffuser):
     """The block present in otherwise empty space."""
 
     comptime BASE_HASH: UInt64 = HASH_AIR
@@ -50,6 +51,24 @@ struct Air(Block, Equatable, ImplicitlyCopyable, LightDiffuser):
     @staticmethod
     def all_states() -> List[Self]:
         """Returns the registered values (Go `RegisterBlock(Air{})`).
+
+        Returns:
+            Air.
+        """
+        return [Air()]
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`).
+
+        Returns:
+            `minecraft:air`, metadata 0.
+        """
+        return EncodedItem("minecraft:air", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `RegisterItem` calls
+        in `register.go`).
 
         Returns:
             Air.

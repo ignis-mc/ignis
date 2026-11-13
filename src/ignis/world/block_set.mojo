@@ -23,8 +23,10 @@ where `_random_tick[T: RandomTicker]` is a plain generic function. Inside the
 a type to the set is all a new block needs.
 """
 
+from ..item.item import item_info
 from .block import Block
 from .block_registry import BasicBlockRegistry
+from .item import AnyItem, EncodedItem, Item, RegisteredItem
 
 
 struct BlockSet[*Ts: Block]:
@@ -63,3 +65,48 @@ struct BlockSet[*Ts: Block]:
             if kind == Self.Ts[i].BASE_HASH:
                 return True
         return False
+
+    @staticmethod
+    def block_item(kind: UInt64, hash: UInt64) -> Optional[RegisteredItem]:
+        """Returns a block as an item, if its type is an item (Go
+        `b.(world.Item)`), whether or not the value is registered as one.
+
+        Args:
+            kind: The block type's base hash.
+            hash: The block's state hash.
+
+        Returns:
+            The item and its stack info, or None.
+        """
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Item):
+                if kind == T.BASE_HASH:
+                    return _block_item(T.from_hash(hash))
+        return None
+
+    @staticmethod
+    def encode_block_item(kind: UInt64, hash: UInt64) -> Optional[EncodedItem]:
+        """Encodes a block as an item (Go `b.(world.Item).EncodeItem()`).
+
+        Args:
+            kind: The block type's base hash.
+            hash: The block's state hash.
+
+        Returns:
+            The item name and metadata, or None if the type is not an item.
+        """
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Item):
+                if kind == T.BASE_HASH:
+                    return _encode_item(T.from_hash(hash))
+        return None
+
+
+def _block_item[T: Item](b: T) -> RegisteredItem:
+    return RegisteredItem(AnyItem.of(b), item_info(b))
+
+
+def _encode_item[T: Item](b: T) -> EncodedItem:
+    return b.encode_item()

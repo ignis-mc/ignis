@@ -6,11 +6,12 @@ item package.
 
 from ..world.block import Block
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .hash import HASH_STONE
 
 
 @fieldwise_init
-struct Stone(Block, Equatable, ImplicitlyCopyable):
+struct Stone(Block, Equatable, ImplicitlyCopyable, Item):
     """A block found underground in the world or on mountains."""
 
     comptime BASE_HASH: UInt64 = HASH_STONE
@@ -56,6 +57,26 @@ struct Stone(Block, Equatable, ImplicitlyCopyable):
     @staticmethod
     def all_states() -> List[Self]:
         """Returns the registered values (Go `register.go`).
+
+        Returns:
+            Smooth stone and stone.
+        """
+        return [Stone(smooth=True), Stone()]
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`).
+
+        Returns:
+            `minecraft:smooth_stone` or `minecraft:stone`, metadata 0.
+        """
+        if self.smooth:
+            return EncodedItem("minecraft:smooth_stone", 0)
+        return EncodedItem("minecraft:stone", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `RegisterItem` calls
+        in `register.go`).
 
         Returns:
             Smooth stone and stone.
