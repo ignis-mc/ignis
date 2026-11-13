@@ -213,5 +213,59 @@ def test_output() raises:
     assert_equal(o.errors()[1].text, "§r§c> 'y' is not a valid number§r")
 
 
+struct Hidden(cmd.Runnable):
+    """Fields starting with `_` and fields tagged `-` are not parameters,
+    whatever their type."""
+
+    var count: UInt16
+    var _cache: Dict[String, Int]
+    var config: Dict[String, Int]
+
+    def __init__(out self):
+        self.count = 0
+        self._cache = Dict[String, Int]()
+        self.config = {"limit": 3}
+
+    def run[
+        S: cmd.Source
+    ](mut self, mut src: S, mut o: cmd.Output, mut tx: S.Tx):
+        o.print(t"hidden {self.count} {self.config.get('limit', 0)}")
+
+    @staticmethod
+    def tag(field: StaticString) -> StaticString:
+        return "-" if field == "config" else ""
+
+
+struct Described(cmd.ParamDescriber, cmd.Runnable):
+    var raw: cmd.Varargs
+
+    def __init__(out self):
+        self.raw = cmd.Varargs()
+
+    def run[
+        S: cmd.Source
+    ](mut self, mut src: S, mut o: cmd.Output, mut tx: S.Tx):
+        o.print(self.raw.value)
+
+    def describe_params[S: cmd.Source](self, src: S) -> List[cmd.ParamInfo]:
+        return [
+            cmd.ParamInfo("words", cmd.ParamKind.STRING, "string", [], True, "")
+        ]
+
+
+def test_ignored_fields_and_described_params() raises:
+    var tx = TestTx()
+    var c = cmd.new[TestSource, Hidden, Described]("h", "Hidden.", [])
+    assert_equal(c.usage(), "/h <count: uint>\n/h <raw: text>")
+    assert_equal(_run(c, "7", tx).messages()[0].text, "hidden 7 3")
+    assert_equal(_run(c, "a b", tx).messages()[0].text, "a b")
+    var params = c.params(TestSource("Op", True))
+    assert_equal(len(params), 2)
+    assert_equal(len(params[0]), 1)
+    assert_equal(params[0][0].name, "count")
+    assert_equal(params[1][0].name, "words")
+    assert_true(params[1][0].optional)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
