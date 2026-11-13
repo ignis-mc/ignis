@@ -5,6 +5,7 @@ NeighbourUpdateTick, CompostChance, EncodeItem and the drops (fortune).
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -14,15 +15,23 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_NETHER_WART
+from .model.empty import Empty as EmptyModel
 
 
 struct NetherWart(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A fungus found in the nether that is vital in the creation of potions."""
 
     comptime BASE_HASH: UInt64 = HASH_NETHER_WART
     """Go `hashNetherWart`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var age: Int
     """The age of the nether wart, 0 to 3; 3 is fully grown."""
@@ -105,3 +114,11 @@ struct NetherWart(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

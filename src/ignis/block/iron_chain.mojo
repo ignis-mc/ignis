@@ -8,6 +8,7 @@ drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -18,15 +19,23 @@ from .break_info import (
 )
 from .cube.axis import Axis, axes
 from .hash import HASH_IRON_CHAIN
+from .model.chain import Chain as ChainModel
 
 
 struct IronChain(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A metallic decoration block."""
 
     comptime BASE_HASH: UInt64 = HASH_IRON_CHAIN
     """Go `hashIronChain`."""
+    comptime ModelType = ChainModel
+    """The model type (Go `Model`)."""
 
     var axis: Axis
     """The axis the chain faces."""
@@ -111,3 +120,11 @@ struct IronChain(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> ChainModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return ChainModel(axis=self.axis)

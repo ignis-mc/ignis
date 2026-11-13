@@ -8,6 +8,7 @@ Model, Wax, Strip, RandomTick (attemptOxidation), EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     HARVEST_LEVEL_STONE,
@@ -19,17 +20,26 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_COPPER_DOOR
+from .model.door import Door as DoorModel
 from .oxidation_type import OxidationType, oxidation_types
 from .oxidizable import Oxidisable, copper_block_name
 
 
 struct CopperDoor(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, Oxidisable
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+    Oxidisable,
 ):
     """A copper door that blocks entities, opened and closed by players."""
 
     comptime BASE_HASH: UInt64 = HASH_COPPER_DOOR
     """Go `hashCopperDoor`."""
+    comptime ModelType = DoorModel
+    """The model type (Go `Model`)."""
 
     var oxidation: OxidationType
     """The level of oxidation of the block."""
@@ -208,3 +218,11 @@ struct CopperDoor(
         var b = self
         b.oxidation = o
         return b
+
+    def model(self) -> DoorModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return DoorModel(facing=self.facing, open=self.open, right=self.right)

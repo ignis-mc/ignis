@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the drops, PowersBeacon.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     HARVEST_LEVEL_DIAMOND,
@@ -14,13 +15,18 @@ from .break_info import (
     pickaxe_harvestable_from,
 )
 from .hash import HASH_NETHERITE
+from .model.solid import Solid as SolidModel
 
 
-struct Netherite(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Netherite(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A precious mineral block made from 9 netherite ingots."""
 
     comptime BASE_HASH: UInt64 = HASH_NETHERITE
     """Go `hashNetherite`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Netherite{}`)."""
@@ -85,3 +91,11 @@ struct Netherite(Block, Breakable, Equatable, ImplicitlyCopyable):
             pickaxe_harvestable_from(HARVEST_LEVEL_DIAMOND),
             PICKAXE_EFFECTIVE,
         ).with_blast_resistance(1200)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

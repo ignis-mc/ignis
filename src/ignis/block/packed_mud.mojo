@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -13,13 +14,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_PACKED_MUD
+from .model.solid import Solid as SolidModel
 
 
-struct PackedMud(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct PackedMud(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A block crafted from mud and wheat."""
 
     comptime BASE_HASH: UInt64 = HASH_PACKED_MUD
     """Go `hashPackedMud`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `PackedMud{}`)."""
@@ -82,3 +88,11 @@ struct PackedMud(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             1, ALWAYS_HARVESTABLE, NOTHING_EFFECTIVE
         ).with_blast_resistance(3)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

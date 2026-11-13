@@ -4,6 +4,7 @@ TODO(world-runtime): Instrument, UseOnBlock, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -14,13 +15,16 @@ from .break_info import (
 )
 from .cube.axis import Axis, axes
 from .hash import HASH_BONE
+from .model.solid import Solid as SolidModel
 
 
-struct Bone(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Bone(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A decorative block that can be crafted from bone meal."""
 
     comptime BASE_HASH: UInt64 = HASH_BONE
     """Go `hashBone`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var axis: Axis
     """The axis the block faces."""
@@ -96,3 +100,11 @@ struct Bone(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(2, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

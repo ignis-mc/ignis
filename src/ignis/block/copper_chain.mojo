@@ -8,6 +8,7 @@ TODO(world-runtime): SideClosed, UseOnBlock, Model, Wax, Strip, RandomTick
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -18,17 +19,26 @@ from .break_info import (
 )
 from .cube.axis import Axis, axes
 from .hash import HASH_COPPER_CHAIN
+from .model.chain import Chain as ChainModel
 from .oxidation_type import OxidationType, oxidation_types
 from .oxidizable import Oxidisable, copper_block_name
 
 
 struct CopperChain(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, Oxidisable
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+    Oxidisable,
 ):
     """A metallic decoration block made of copper."""
 
     comptime BASE_HASH: UInt64 = HASH_COPPER_CHAIN
     """Go `hashCopperChain`."""
+    comptime ModelType = ChainModel
+    """The model type (Go `Model`)."""
 
     var axis: Axis
     """The axis the chain faces."""
@@ -167,3 +177,11 @@ struct CopperChain(
         var b = self
         b.oxidation = o
         return b
+
+    def model(self) -> ChainModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return ChainModel(axis=self.axis)

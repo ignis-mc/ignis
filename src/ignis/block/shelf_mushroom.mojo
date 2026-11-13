@@ -5,6 +5,7 @@ CompostChance, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -15,15 +16,23 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_SHELF_MUSHROOM
+from .model.shelf_mushroom import ShelfMushroom as ShelfMushroomModel
 
 
 struct ShelfMushroom(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A mushroom that grows on the side of logs."""
 
     comptime BASE_HASH: UInt64 = HASH_SHELF_MUSHROOM
     """Go `hashShelfMushroom`."""
+    comptime ModelType = ShelfMushroomModel
+    """The model type (Go `Model`)."""
 
     var facing: Direction
     """The direction the mushroom faces, away from the block it is attached to."""
@@ -120,3 +129,11 @@ struct ShelfMushroom(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> ShelfMushroomModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return ShelfMushroomModel(facing=self.facing, large=self.large)

@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the `oneOf` drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -13,13 +14,16 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_CALCITE
+from .model.solid import Solid as SolidModel
 
 
-struct Calcite(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Calcite(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A white rock found in amethyst geodes and mountains."""
 
     comptime BASE_HASH: UInt64 = HASH_CALCITE
     """Go `hashCalcite`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Calcite{}`)."""
@@ -80,3 +84,11 @@ struct Calcite(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.75, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

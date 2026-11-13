@@ -9,6 +9,7 @@ drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -18,17 +19,27 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_WALL, AnyBlock, hash_block, unhash_block
+from .model.wall import Wall as WallModel
 from .register import break_info
 from .wall_connection_type import WallConnectionType, wall_connection_types
 from .wall_type import encode_wall_block, wall_blocks
 
 
-struct Wall(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Wall(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A block similar to fences that prevents players from jumping over it and connects to more
     blocks."""
 
     comptime BASE_HASH: UInt64 = HASH_WALL
     """Go `hashWall`."""
+    comptime ModelType = WallModel
+    """The model type (Go `Model`)."""
 
     var block: AnyBlock
     """The block the wall is made of."""
@@ -184,3 +195,17 @@ struct Wall(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> WallModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return WallModel(
+            north_connection=self.north_connection.height(),
+            east_connection=self.east_connection.height(),
+            south_connection=self.south_connection.height(),
+            west_connection=self.west_connection.height(),
+            post=self.post,
+        )

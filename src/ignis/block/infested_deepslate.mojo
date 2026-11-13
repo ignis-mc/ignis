@@ -6,6 +6,7 @@ silverfish spawn.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -16,13 +17,18 @@ from .break_info import (
 )
 from .cube.axis import Axis, axes
 from .hash import HASH_INFESTED_DEEPSLATE
+from .model.solid import Solid as SolidModel
 
 
-struct InfestedDeepslate(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct InfestedDeepslate(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A deepslate block that hides a silverfish."""
 
     comptime BASE_HASH: UInt64 = HASH_INFESTED_DEEPSLATE
     """Go `hashInfestedDeepslate`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var axis: Axis
     """The axis the block faces."""
@@ -98,3 +104,11 @@ struct InfestedDeepslate(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             1.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(0.75)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

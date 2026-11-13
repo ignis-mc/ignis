@@ -4,6 +4,7 @@ TODO(world-runtime): UseOnBlock, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -15,14 +16,19 @@ from .break_info import (
 from .cube.axis import Axis, axes
 from .froglight_type import FroglightType, froglight_types
 from .hash import HASH_FROGLIGHT
+from .model.solid import Solid as SolidModel
 
 
-struct Froglight(Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter):
+struct Froglight(
+    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+):
     """A luminous natural block that can be obtained if a frog eats a tiny magma cube.
     """
 
     comptime BASE_HASH: UInt64 = HASH_FROGLIGHT
     """Go `hashFroglight`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var type: FroglightType
     """The type of froglight."""
@@ -117,3 +123,11 @@ struct Froglight(Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter):
             The light level, 0 to 15.
         """
         return 15
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

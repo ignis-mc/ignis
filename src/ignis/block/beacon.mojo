@@ -10,6 +10,7 @@ drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -19,10 +20,17 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_BEACON
+from .model.solid import Solid as SolidModel
 
 
 struct Beacon(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A block that projects a light beam skyward, and can provide status effects such as Speed,
     Jump Boost, Haste, Regeneration, Resistance, or Strength to nearby players.
@@ -30,6 +38,8 @@ struct Beacon(
 
     comptime BASE_HASH: UInt64 = HASH_BEACON
     """Go `hashBeacon`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var level: Int
     """The amount of pyramid levels the beacon is on, 0 to 4."""
@@ -114,3 +124,11 @@ struct Beacon(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

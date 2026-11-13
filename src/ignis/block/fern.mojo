@@ -7,6 +7,7 @@ BoneMeal, CompostChance, FlammabilityInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -16,13 +17,23 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_FERN
+from .model.empty import Empty as EmptyModel
 
 
-struct Fern(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Fern(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A transparent plant block found in many biomes."""
 
     comptime BASE_HASH: UInt64 = HASH_FERN
     """Go `hashFern`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Fern{}`)."""
@@ -92,3 +103,11 @@ struct Fern(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

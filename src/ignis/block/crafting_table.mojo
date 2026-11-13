@@ -4,6 +4,7 @@ TODO(world-runtime): Activate, FuelInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -13,14 +14,19 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_CRAFTING_TABLE
+from .model.solid import Solid as SolidModel
 
 
-struct CraftingTable(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct CraftingTable(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A utility block that allows the player to craft a variety of blocks and items.
     """
 
     comptime BASE_HASH: UInt64 = HASH_CRAFTING_TABLE
     """Go `hashCraftingTable`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `CraftingTable{}`)."""
@@ -81,3 +87,11 @@ struct CraftingTable(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(2.5, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

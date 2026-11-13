@@ -10,6 +10,7 @@ break handler, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .block import horizontal_direction
 from .break_info import (
@@ -21,15 +22,23 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_DECORATED_POT
+from .model.decorated_pot import DecoratedPot as DecoratedPotModel
 
 
 struct DecoratedPot(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A decorative block that can be crafted from bricks and pottery sherds."""
 
     comptime BASE_HASH: UInt64 = HASH_DECORATED_POT
     """Go `hashDecoratedPot`."""
+    comptime ModelType = DecoratedPotModel
+    """The model type (Go `Model`)."""
 
     var facing: Direction
     """The direction the pot faces."""
@@ -114,3 +123,11 @@ struct DecoratedPot(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> DecoratedPotModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return DecoratedPotModel()

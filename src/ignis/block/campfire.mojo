@@ -10,6 +10,7 @@ break handler, FlammabilityInfo, EncodeItem.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -21,16 +22,25 @@ from .break_info import (
 from .cube.direction import Direction, directions
 from .fire_type import FireType, fire_types
 from .hash import HASH_CAMPFIRE
+from .model.campfire import Campfire as CampfireModel
 
 
 struct Campfire(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A block that can be used to cook food, pacify bees, act as a spread-proof light source,
     smoke signal or damaging trap block."""
 
     comptime BASE_HASH: UInt64 = HASH_CAMPFIRE
     """Go `hashCampfire`."""
+    comptime ModelType = CampfireModel
+    """The model type (Go `Model`)."""
 
     var facing: Direction
     """The direction the campfire faces."""
@@ -152,3 +162,11 @@ struct Campfire(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> CampfireModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return CampfireModel()

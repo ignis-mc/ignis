@@ -9,6 +9,7 @@ SideClosed, Model, HasLiquidDrops, EncodeItem and the drops.
 
 from ..item.optional_colour import OptionalColour, optional_colours
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -19,15 +20,24 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_CAKE
+from .model.cake import Cake as CakeModel
 
 
 struct Cake(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """An edible block."""
 
     comptime BASE_HASH: UInt64 = HASH_CAKE
     """Go `hashCake`."""
+    comptime ModelType = CakeModel
+    """The model type (Go `Model`)."""
 
     var bites: Int
     """The number of bites taken out of the cake, 0 to 6."""
@@ -157,3 +167,11 @@ struct Cake(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> CakeModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return CakeModel(bites=self.bites)

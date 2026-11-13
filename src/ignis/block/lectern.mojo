@@ -9,6 +9,7 @@ FlammabilityInfo, FuelInfo, EncodeItem and the drops (the book).
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -19,14 +20,17 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_LECTERN
+from .model.lectern import Lectern as LecternModel
 
 
-struct Lectern(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Lectern(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A librarian's job site block found in villages, used to hold books for multiple players to
     read in multiplayer."""
 
     comptime BASE_HASH: UInt64 = HASH_LECTERN
     """Go `hashLectern`."""
+    comptime ModelType = LecternModel
+    """The model type (Go `Model`)."""
 
     var facing: Direction
     """The direction the lectern faces."""
@@ -108,3 +112,11 @@ struct Lectern(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(2.5, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
+
+    def model(self) -> LecternModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return LecternModel()

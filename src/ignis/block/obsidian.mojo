@@ -5,6 +5,7 @@ the drops.
 """
 
 from ..world.block import Block, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     HARVEST_LEVEL_DIAMOND,
@@ -15,14 +16,19 @@ from .break_info import (
     pickaxe_harvestable_from,
 )
 from .hash import HASH_OBSIDIAN
+from .model.solid import Solid as SolidModel
 
 
-struct Obsidian(Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter):
+struct Obsidian(
+    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+):
     """A dark purple block known for its high blast resistance and strength, most commonly found when
     water flows over lava."""
 
     comptime BASE_HASH: UInt64 = HASH_OBSIDIAN
     """Go `hashObsidian`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var crying: Bool
     """Whether the obsidian is crying obsidian."""
@@ -104,3 +110,11 @@ struct Obsidian(Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter):
             The light level, 0 to 15.
         """
         return 10 if self.crying else 0
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

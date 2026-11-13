@@ -6,6 +6,7 @@ BoneMeal, UseOnBlock, CompostChance, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -16,15 +17,23 @@ from .break_info import (
 )
 from .cube.face import Face
 from .hash import HASH_PUMPKIN_SEEDS
+from .model.empty import Empty as EmptyModel
 
 
 struct PumpkinSeeds(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A crop that grows pumpkin blocks."""
 
     comptime BASE_HASH: UInt64 = HASH_PUMPKIN_SEEDS
     """Go `hashPumpkinSeeds`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var growth: Int
     """The growth stage of the crop, 0 to 7 (Go `crop.Growth`)."""
@@ -116,3 +125,11 @@ struct PumpkinSeeds(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

@@ -4,6 +4,7 @@ TODO(world-runtime): SoilFor, EncodeItem, SmeltInfo and the `oneOf` drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -13,13 +14,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_NETHERRACK
+from .model.solid import Solid as SolidModel
 
 
-struct Netherrack(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Netherrack(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A block found commonly in the nether."""
 
     comptime BASE_HASH: UInt64 = HASH_NETHERRACK
     """Go `hashNetherrack`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Netherrack{}`)."""
@@ -80,3 +86,11 @@ struct Netherrack(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(0.4, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

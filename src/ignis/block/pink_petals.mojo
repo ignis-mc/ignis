@@ -5,6 +5,7 @@ BoneMeal, CompostChance, FlammabilityInfo, EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -15,15 +16,23 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_PINK_PETALS
+from .model.empty import Empty as EmptyModel
 
 
 struct PinkPetals(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
 ):
     """A decorative block that generates in cherry grove biomes."""
 
     comptime BASE_HASH: UInt64 = HASH_PINK_PETALS
     """Go `hashPinkPetals`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var additional_count: Int
     """The number of additional petals, 0 to 7; only 0 to 3 occur in-game."""
@@ -123,3 +132,11 @@ struct PinkPetals(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

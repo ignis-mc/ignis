@@ -6,8 +6,10 @@ each type lists its values in `all_states`, and `VanillaBlocks` lists the
 types; `vanilla_block_registry` builds the registry a server uses.
 """
 
+from ..world.block_model import BlockModel, ModelledBlock, UnknownModel
 from ..world.block_registry import BasicBlockRegistry
 from ..world.block_set import BlockSet
+from ..world.block_source import BlockSource
 from .air import Air
 from .amethyst import Amethyst
 from .ancient_debris import AncientDebris
@@ -64,6 +66,9 @@ from .copper_trapdoor import CopperTrapdoor
 from .coral import Coral
 from .coral_block import CoralBlock
 from .crafting_table import CraftingTable
+from .cube.bbox import BBox
+from .cube.face import Face
+from .cube.pos import Pos
 from .deadbush import DeadBush
 from .decorated_pot import DecoratedPot
 from .deepslate import Deepslate
@@ -103,6 +108,7 @@ from .gold_ore import GoldOre
 from .grass import Grass
 from .gravel import Gravel
 from .grindstone import Grindstone
+from .hash import AnyBlock
 from .hay_bale import HayBale
 from .honeycomb import Honeycomb
 from .hopper import Hopper
@@ -504,3 +510,115 @@ def break_info(kind: UInt64, hash: UInt64) -> Optional[BreakInfo]:
 
 def _break_info[T: Breakable](b: T) -> BreakInfo:
     return b.break_info()
+
+
+def block_at[S: BlockSource](src: S, pos: Pos) -> AnyBlock:
+    """Returns the type and state of the block at a position (Go
+    `src.Block(pos)`).
+
+    Parameters:
+        S: The block source type.
+
+    Args:
+        src: The blocks.
+        pos: The position.
+
+    Returns:
+        The block; its kind is `UNKNOWN_KIND` for states without a type.
+    """
+    var rid = src.block(pos)
+    return AnyBlock(kind=src.kind(rid), state=src.state_hash(rid))
+
+
+def block_model_as[M: BlockModel](b: AnyBlock) -> Optional[M]:
+    """Returns the model of a block if it has type `M` (Go
+    `b.Model().(M)`).
+
+    Parameters:
+        M: The model type.
+
+    Args:
+        b: The block.
+
+    Returns:
+        The model, or None if the block's model has another type.
+    """
+    comptime for i in range(len(VanillaBlocks.Ts)):
+        comptime T = VanillaBlocks.Ts[i]
+        comptime if conforms_to(T, ModelledBlock):
+            comptime if _model_id[T]() == M.MODEL_ID:
+                if b.kind == T.BASE_HASH:
+                    return _model_as[M, T](T.from_hash(b.state))
+    return None
+
+
+def block_model_bbox[
+    S: BlockSource
+](b: AnyBlock, pos: Pos, src: S) -> List[BBox]:
+    """Returns the boxes of a block's model (Go `b.Model().BBox(pos, src)`).
+
+    Parameters:
+        S: The block source type.
+
+    Args:
+        b: The block.
+        pos: The position of the block.
+        src: The blocks around it.
+
+    Returns:
+        The boxes; a full cube for blocks without a type.
+    """
+    comptime for i in range(len(VanillaBlocks.Ts)):
+        comptime T = VanillaBlocks.Ts[i]
+        comptime if conforms_to(T, ModelledBlock):
+            if b.kind == T.BASE_HASH:
+                return _model_bbox[T](T.from_hash(b.state), pos, src)
+    return UnknownModel().bbox(pos, src)
+
+
+def block_model_face_solid[
+    S: BlockSource
+](b: AnyBlock, pos: Pos, face: Face, src: S) -> Bool:
+    """Reports whether a face of a block's model is solid (Go
+    `b.Model().FaceSolid(pos, face, src)`).
+
+    Parameters:
+        S: The block source type.
+
+    Args:
+        b: The block.
+        pos: The position of the block.
+        face: The face.
+        src: The blocks around it.
+
+    Returns:
+        True if the face is solid; always for blocks without a type.
+    """
+    comptime for i in range(len(VanillaBlocks.Ts)):
+        comptime T = VanillaBlocks.Ts[i]
+        comptime if conforms_to(T, ModelledBlock):
+            if b.kind == T.BASE_HASH:
+                return _model_face_solid[T](
+                    T.from_hash(b.state), pos, face, src
+                )
+    return UnknownModel().face_solid(pos, face, src)
+
+
+def _model_id[T: ModelledBlock]() -> Int:
+    return T.ModelType.MODEL_ID
+
+
+def _model_as[M: BlockModel, T: ModelledBlock](b: T) -> M:
+    return rebind[M](b.model()).copy()
+
+
+def _model_bbox[
+    T: ModelledBlock, S: BlockSource
+](b: T, pos: Pos, src: S) -> List[BBox]:
+    return b.model().bbox(pos, src)
+
+
+def _model_face_solid[
+    T: ModelledBlock, S: BlockSource
+](b: T, pos: Pos, face: Face, src: S) -> Bool:
+    return b.model().face_solid(pos, face, src)

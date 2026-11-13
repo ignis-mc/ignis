@@ -9,6 +9,7 @@ drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .attachment import (
     Attachment,
@@ -27,14 +28,24 @@ from .break_info import (
 from .cube.direction import directions
 from .cube.orientation import Orientation
 from .hash import HASH_SKULL
+from .model.skull import Skull as SkullModel
 from .skull_type import SkullType, skull_types
 
 
-struct Skull(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Skull(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A decorative block that can be worn as a helmet."""
 
     comptime BASE_HASH: UInt64 = HASH_SKULL
     """Go `hashSkull`."""
+    comptime ModelType = SkullModel
+    """The model type (Go `Model`)."""
 
     var type: SkullType
     """The type of the skull."""
@@ -139,3 +150,13 @@ struct Skull(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> SkullModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SkullModel(
+            direction=self.attach.facing().face(), hanging=self.attach.hanging()
+        )

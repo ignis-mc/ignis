@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     HARVEST_LEVEL_STONE,
@@ -14,14 +15,19 @@ from .break_info import (
     pickaxe_harvestable_from,
 )
 from .hash import HASH_COPPER_ORE
+from .model.solid import Solid as SolidModel
 from .ore_type import OreType, ore_types
 
 
-struct CopperOre(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct CopperOre(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A rare mineral block found underground."""
 
     comptime BASE_HASH: UInt64 = HASH_COPPER_ORE
     """Go `hashCopperOre`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var type: OreType
     """The rock the ore is embedded in."""
@@ -96,3 +102,11 @@ struct CopperOre(Block, Breakable, Equatable, ImplicitlyCopyable):
             pickaxe_harvestable_from(HARVEST_LEVEL_STONE),
             PICKAXE_EFFECTIVE,
         ).with_blast_resistance(3)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

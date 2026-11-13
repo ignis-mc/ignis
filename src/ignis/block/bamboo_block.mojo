@@ -5,6 +5,7 @@ FuelInfo and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -15,13 +16,18 @@ from .break_info import (
 )
 from .cube.axis import Axis, axes
 from .hash import HASH_BAMBOO_BLOCK
+from .model.solid import Solid as SolidModel
 
 
-struct BambooBlock(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct BambooBlock(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A block made from bamboo, which can be stripped."""
 
     comptime BASE_HASH: UInt64 = HASH_BAMBOO_BLOCK
     """Go `hashBambooBlock`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var axis: Axis
     """The axis the block faces."""
@@ -107,3 +113,11 @@ struct BambooBlock(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(2.0, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

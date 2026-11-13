@@ -5,6 +5,7 @@ and the drops.
 """
 
 from ..world.block import Block, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -14,14 +15,19 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_MAGMA
+from .model.solid import Solid as SolidModel
 
 
-struct Magma(Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter):
+struct Magma(
+    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+):
     """A light-emitting block found in the nether that damages entities standing on it.
     """
 
     comptime BASE_HASH: UInt64 = HASH_MAGMA
     """Go `hashMagma`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Magma{}`)."""
@@ -90,3 +96,11 @@ struct Magma(Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter):
             The light level, 0 to 15.
         """
         return 3
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

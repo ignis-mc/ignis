@@ -5,6 +5,7 @@ RedstoneNonConductive, EncodeItem, SmeltInfo and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -14,13 +15,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_REDSTONE_BLOCK
+from .model.solid import Solid as SolidModel
 
 
-struct RedstoneBlock(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct RedstoneBlock(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A mineral block that is a constant redstone power source."""
 
     comptime BASE_HASH: UInt64 = HASH_REDSTONE_BLOCK
     """Go `hashRedstoneBlock`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `RedstoneBlock{}`)."""
@@ -83,3 +89,11 @@ struct RedstoneBlock(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

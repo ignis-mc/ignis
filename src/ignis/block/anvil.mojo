@@ -6,6 +6,7 @@ EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .anvil_type import AnvilType, anvil_types
 from .break_info import (
@@ -17,14 +18,24 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_ANVIL
+from .model.anvil import Anvil as AnvilModel
 
 
-struct Anvil(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Anvil(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A block that allows players to repair items, rename items, and combine enchantments.
     """
 
     comptime BASE_HASH: UInt64 = HASH_ANVIL
     """Go `hashAnvil`."""
+    comptime ModelType = AnvilModel
+    """The model type (Go `Model`)."""
 
     var type: AnvilType
     """How damaged the anvil is."""
@@ -124,3 +135,11 @@ struct Anvil(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> AnvilModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return AnvilModel(facing=self.facing)

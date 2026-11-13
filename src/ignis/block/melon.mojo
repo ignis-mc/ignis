@@ -4,6 +4,7 @@ TODO(world-runtime): CompostChance, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -13,13 +14,16 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_MELON
+from .model.solid import Solid as SolidModel
 
 
-struct Melon(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Melon(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A fruit block that grows from melon stems."""
 
     comptime BASE_HASH: UInt64 = HASH_MELON
     """Go `hashMelon`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Melon{}`)."""
@@ -80,3 +84,11 @@ struct Melon(Block, Breakable, Equatable, ImplicitlyCopyable):
             The hardness, blast resistance and tools.
         """
         return new_break_info(1, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

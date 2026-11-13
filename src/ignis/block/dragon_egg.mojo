@@ -9,6 +9,7 @@ drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -18,16 +19,25 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_DRAGON_EGG
+from .model.solid import Solid as SolidModel
 
 
 struct DragonEgg(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A decorative block or a "trophy item", and the rarest item in the game.
     """
 
     comptime BASE_HASH: UInt64 = HASH_DRAGON_EGG
     """Go `hashDragonEgg`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `DragonEgg{}`)."""
@@ -107,3 +117,11 @@ struct DragonEgg(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

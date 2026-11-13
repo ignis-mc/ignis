@@ -17,9 +17,13 @@ points here.
   (`/home/xd/.local/share/mojo-env/bin/mojo` on the development host).
 - Every compile needs all three include roots, and tests also `-I test`
   for the shared helpers in `test/support/`:
-  `mojo run -I src -I test -I third_party/protocol/src -I third_party/nethernet/src -D ASSERT=all test/ignis/test_version.mojo`.
+  `mojo run --fp-mode contract=off -I src -I test -I third_party/protocol/src -I third_party/nethernet/src -D ASSERT=all test/ignis/test_version.mojo`.
   The test binary accepts `--only <names…>`, `--skip <names…>`. Tests run
   from the repository root (they read `resources/` and `test/data/`).
+- Build and run with `--fp-mode contract=off` (as `scripts/run_tests.sh`
+  does). Mojo fuses `a + b*c` into FMA instructions by default, which
+  rounds differently from Go on amd64; without the flag float results such
+  as ray-trace hit points drift from Dragonfly's by an ulp.
 - Tasks: `pixi run test`, `format`, `format-check`, `lint-docs`, `build`,
   `check`.
 - After every edit, compile and run the affected test file. Do not report a

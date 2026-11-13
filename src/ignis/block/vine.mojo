@@ -12,6 +12,7 @@ drops.
 
 from ..item.tool import TYPE_SHEARS
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     AXE_EFFECTIVE,
@@ -21,13 +22,23 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_VINES
+from .model.empty import Empty as EmptyModel
 
 
-struct Vines(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Vines(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A climbable block that grows on walls and in the shade."""
 
     comptime BASE_HASH: UInt64 = HASH_VINES
     """Go `hashVines`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     var north_direction: Bool
     """Whether the vines are attached towards north."""
@@ -154,3 +165,11 @@ struct Vines(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

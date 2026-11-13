@@ -5,6 +5,7 @@ and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     HARVEST_LEVEL_STONE,
@@ -16,15 +17,20 @@ from .break_info import (
 )
 from .copper_type import CopperType, copper_types
 from .hash import HASH_COPPER
+from .model.solid import Solid as SolidModel
 from .oxidation_type import OxidationType, oxidation_types
 from .oxidizable import Oxidisable
 
 
-struct Copper(Block, Breakable, Equatable, ImplicitlyCopyable, Oxidisable):
+struct Copper(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock, Oxidisable
+):
     """A solid block commonly found in deserts and beaches underneath sand."""
 
     comptime BASE_HASH: UInt64 = HASH_COPPER
     """Go `hashCopper`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var type: CopperType
     """The type of copper of the block."""
@@ -164,3 +170,11 @@ struct Copper(Block, Breakable, Equatable, ImplicitlyCopyable, Oxidisable):
         var b = self
         b.oxidation = o
         return b
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

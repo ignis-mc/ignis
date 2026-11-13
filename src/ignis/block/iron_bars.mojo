@@ -8,6 +8,7 @@ EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -18,13 +19,23 @@ from .break_info import (
 )
 from .connections import Connections, all_connections
 from .hash import HASH_IRON_BARS
+from .model.thin import Thin as ThinModel
 
 
-struct IronBars(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct IronBars(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A pane-like block made of iron."""
 
     comptime BASE_HASH: UInt64 = HASH_IRON_BARS
     """Go `hashIronBars`."""
+    comptime ModelType = ThinModel
+    """The model type (Go `Model`)."""
 
     var connections: Connections
     """The sides the bars connect on."""
@@ -108,3 +119,11 @@ struct IronBars(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> ThinModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return ThinModel()

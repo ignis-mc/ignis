@@ -11,6 +11,7 @@ EncodeNBT.
 
 from ..item.colour import Colour
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .block import horizontal_direction
 from .break_info import (
@@ -22,14 +23,24 @@ from .break_info import (
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_BED
+from .model.bed import Bed as BedModel
 
 
-struct Bed(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Bed(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A block that allows players to sleep to set their spawn point and skip the night.
     """
 
     comptime BASE_HASH: UInt64 = HASH_BED
     """Go `hashBed`."""
+    comptime ModelType = BedModel
+    """The model type (Go `Model`)."""
 
     var colour: Colour
     """The colour of the bed, kept in NBT."""
@@ -146,3 +157,11 @@ struct Bed(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> BedModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return BedModel()

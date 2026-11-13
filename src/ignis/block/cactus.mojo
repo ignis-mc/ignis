@@ -6,6 +6,7 @@ the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -15,13 +16,23 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_CACTUS
+from .model.cactus import Cactus as CactusModel
 
 
-struct Cactus(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Cactus(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
     """A plant block that generates naturally in dry areas and causes damage."""
 
     comptime BASE_HASH: UInt64 = HASH_CACTUS
     """Go `hashCactus`."""
+    comptime ModelType = CactusModel
+    """The model type (Go `Model`)."""
 
     var age: Int
     """The growth state, 0 to 15."""
@@ -104,3 +115,11 @@ struct Cactus(Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser):
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> CactusModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return CactusModel()

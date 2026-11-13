@@ -33,6 +33,7 @@ from minecraft.protocol.uuid import UUID
 from nethernet.os.random import fill_random
 
 from ..block.cube.bbox import BBox
+from ..block.cube.face import Face
 from ..block.cube.pos import Pos
 from ..block.cube.range import Range
 from ..block.cube.rotation import Rotation
@@ -41,6 +42,7 @@ from ..mgl64 import Vec3
 from .block import Block
 from .block_registry import BasicBlockRegistry
 from .block_set import BlockTypes
+from .block_source import BlockSource
 from .chunk.chunk import Chunk
 from .chunk.column import Column as ChunkColumn
 from .chunk.column import Entity as ChunkEntity
@@ -335,6 +337,22 @@ struct World[T: WorldTypes](Movable):
         """
         self._handler = h^
 
+    def source(mut self) -> WorldSource[origin_of(self), Self.T]:
+        """Returns the world as a `BlockSource` (Go: `*Tx` is a
+        `BlockSource`), for block models.
+
+        `World` cannot conform itself: `BlockSource.block` reads through an
+        immutable reference, while `World.block` loads or generates missing
+        chunks, as Go's `Tx.Block` does, and so needs a mutable one. The view
+        holds a pointer to the world and loads chunks the same way. Use it
+        for the duration of a call:
+        `model.face_solid(pos, Face.UP, tx.source())`.
+
+        Returns:
+            The view.
+        """
+        return WorldSource(Pointer(to=self))
+
     # ===------------------------------------------------------------------=== #
     # Blocks (Go Tx)
     # ===------------------------------------------------------------------=== #
@@ -509,6 +527,32 @@ struct World[T: WorldTypes](Movable):
         return Int(
             self._cols[ci].chunk.highest_block(UInt8(x & 0xF), UInt8(z & 0xF))
         )
+
+    def highest_obstructing_block(mut self, x: Int, z: Int) -> Int:
+        """Returns the Y of the highest block in a column with a solid top
+        or bottom face (Go `Tx.highestObstructingBlock`).
+
+        Args:
+            x: The X coordinate.
+            z: The Z coordinate.
+
+        Returns:
+            The Y coordinate, or the world's minimum.
+        """
+        var y = self.highest_block(x, z)
+        while y >= self._ra.min():
+            var pos = Pos(x, y, z)
+            var rid = self.block(pos)
+            var kind = self._br[].kind(rid)
+            var hash = self._br[].state_hash(rid)
+            if Self.T.Blocks.face_solid(
+                kind, hash, pos, Face.UP, self.source()
+            ) or Self.T.Blocks.face_solid(
+                kind, hash, pos, Face.DOWN, self.source()
+            ):
+                return y
+            y -= 1
+        return self._ra.min()
 
     def highest_light_blocker(mut self, x: Int, z: Int) -> Int:
         """Returns the Y of the highest fully light-blocking block in a
@@ -1557,12 +1601,11 @@ struct World[T: WorldTypes](Movable):
         weather, entities, scheduled updates, random ticks and neighbour
         updates. Worlds without viewers do not tick unless synchronous."""
         if self._set.spawn.y() > self._ra.max() and self._dim == OVERWORLD:
-            # Vanilla's "spawn at the top". Go uses the highest block with a
-            # solid face; block models are not ported, so this takes the
-            # highest non-air block.
+            # Vanilla sets the spawn's Y above the world to mean "on the
+            # highest block".
             var s = self._set.spawn
             self._set.spawn = Pos(
-                s.x(), self.highest_block(s.x(), s.z()) + 1, s.z()
+                s.x(), self.highest_obstructing_block(s.x(), s.z()) + 1, s.z()
             )
         if (
             self._viewer_count == 0
@@ -1769,6 +1812,62 @@ struct World[T: WorldTypes](Movable):
             _ = Self.T.Blocks.random_tick(
                 self._br[].kind(rid), self._br[].state_hash(rid), pos, self
             )
+
+
+struct WorldSource[o: MutOrigin, T: WorldTypes](
+    BlockSource, ImplicitlyCopyable
+):
+    """A world seen as a `BlockSource` (Go `*Tx` as a `BlockSource`); see
+    `World.source`.
+
+    Parameters:
+        o: The origin of the world.
+        T: The world's types.
+    """
+
+    var _w: Pointer[World[Self.T], Self.o]
+
+    def __init__(out self, w: Pointer[World[Self.T], Self.o]):
+        """Creates the view.
+
+        Args:
+            w: The world.
+        """
+        self._w = w
+
+    def block(self, pos: Pos) -> UInt32:
+        """Returns the block at a position, loading or generating its chunk
+        if needed (Go `Tx.Block`).
+
+        Args:
+            pos: The position.
+
+        Returns:
+            The runtime ID; air outside the world's range.
+        """
+        return self._w[].block(pos)
+
+    def kind(self, rid: UInt32) -> UInt64:
+        """Returns the base hash of a block's type (the registry's `kind`).
+
+        Args:
+            rid: The runtime ID.
+
+        Returns:
+            The base hash.
+        """
+        return self._w[]._br[].kind(rid)
+
+    def state_hash(self, rid: UInt32) -> UInt64:
+        """Returns a block's state hash (the registry's `state_hash`).
+
+        Args:
+            rid: The runtime ID.
+
+        Returns:
+            The state hash.
+        """
+        return self._w[]._br[].state_hash(rid)
 
 
 def _remove_key(mut l: List[UInt128], key: UInt128):

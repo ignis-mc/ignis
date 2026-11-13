@@ -8,6 +8,7 @@ EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -18,15 +19,24 @@ from .break_info import (
 )
 from .fire_type import FireType, fire_types
 from .hash import HASH_LANTERN
+from .model.lantern import Lantern as LanternModel
 
 
 struct Lantern(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, LightEmitter
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A light emitting block."""
 
     comptime BASE_HASH: UInt64 = HASH_LANTERN
     """Go `hashLantern`."""
+    comptime ModelType = LanternModel
+    """The model type (Go `Model`)."""
 
     var hanging: Bool
     """Whether the lantern hangs from a block."""
@@ -128,3 +138,11 @@ struct Lantern(
             The diffusion level, 0 to 15.
         """
         return 0
+
+    def model(self) -> LanternModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return LanternModel(hanging=self.hanging)

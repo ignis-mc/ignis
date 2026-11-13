@@ -8,6 +8,7 @@ Wax, Strip, RandomTick (attemptOxidation), EncodeItem and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -17,6 +18,7 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_COPPER_LANTERN
+from .model.lantern import Lantern as LanternModel
 from .oxidation_type import OxidationType, oxidation_types
 from .oxidizable import Oxidisable, copper_block_name
 
@@ -28,12 +30,15 @@ struct CopperLantern(
     ImplicitlyCopyable,
     LightDiffuser,
     LightEmitter,
+    ModelledBlock,
     Oxidisable,
 ):
     """A light emitting block made of copper."""
 
     comptime BASE_HASH: UInt64 = HASH_COPPER_LANTERN
     """Go `hashCopperLantern`."""
+    comptime ModelType = LanternModel
+    """The model type (Go `Model`)."""
 
     var hanging: Bool
     """Whether the lantern hangs from a block."""
@@ -182,3 +187,11 @@ struct CopperLantern(
         var b = self
         b.oxidation = o
         return b
+
+    def model(self) -> LanternModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return LanternModel(hanging=self.hanging)

@@ -1,9 +1,12 @@
 from ignis.block.air import Air
+from ignis.block.carpet import Carpet
 from ignis.block.cube.bbox import BBox
 from ignis.block.cube.pos import Pos
 from ignis.block.cube.rotation import Rotation
+from ignis.block.cube.face import Face
 from ignis.block.dirt import Dirt
 from ignis.block.grass import Grass
+from ignis.block.register import block_at, block_model_face_solid
 from ignis.block.stone import Stone
 from ignis.entity.text import Text, new_text
 from ignis.mgl64 import Vec3
@@ -53,7 +56,7 @@ def test_block_get_set_notifies_viewers() raises:
     assert_equal(w.block(Pos(3, 10, 3)), br.block_runtime_id(Stone()))
     var stone = br.block_runtime_id(Stone())
     assert_equal(len(w.viewer(id).events), 1)
-    assert_equal(w.viewer(id).events[0], String(t"block (3, 10, 3) {stone} 0"))
+    assert_equal(w.viewer(id).events[0], String(t"block (3,10,3) {stone} 0"))
     # A chunk the loader does not view: no update.
     w.set_block(Pos(200, 10, 200), Stone())
     assert_equal(len(w.viewer(id).events), 1)
@@ -66,6 +69,19 @@ def test_block_get_set_notifies_viewers() raises:
     assert_false(w.block_loaded(Pos(5000, 10, 5000)))
     assert_true(w.block_as[Stone](Pos(3, 10, 3)))
     assert_false(w.block_as[Dirt](Pos(3, 10, 3)))
+
+
+def test_world_as_block_source() raises:
+    var w = new_world()
+    assert_equal(len(w.loaded_chunks()), 0)
+    var src = w.source()
+    # Reading through the view loads (generates) chunks, as Go's Tx does.
+    var grass = block_at(src, Pos(0, -62, 0))
+    assert_equal(grass.kind, Grass.BASE_HASH)
+    assert_true(block_model_face_solid(grass, Pos(0, -62, 0), Face.UP, src))
+    var air = block_at(src, Pos(40, 0, 40))
+    assert_false(block_model_face_solid(air, Pos(40, 0, 40), Face.UP, src))
+    assert_equal(len(w.loaded_chunks()), 2)
 
 
 def test_removing_a_block_keeps_its_layer_one_block() raises:
@@ -81,8 +97,8 @@ def test_removing_a_block_keeps_its_layer_one_block() raises:
     w.set_block_runtime_id(Pos(1, 5, 1), air)
     assert_equal(w.block(Pos(1, 5, 1)), dirt)
     assert_equal(w.chunk(ChunkPos(0, 0)).block(1, 5, 1, 1), air)
-    assert_equal(w.viewer(id).events[0], String(t"block (1, 5, 1) {air} 1"))
-    assert_equal(w.viewer(id).events[1], String(t"block (1, 5, 1) {dirt} 0"))
+    assert_equal(w.viewer(id).events[0], String(t"block (1,5,1) {air} 1"))
+    assert_equal(w.viewer(id).events[1], String(t"block (1,5,1) {dirt} 0"))
     # Setting a block that does not displace liquids clears layer 1.
     w.chunk(ChunkPos(0, 0)).set_block(1, 6, 1, 1, dirt)
     w.set_block(Pos(1, 6, 1), Stone())
@@ -206,7 +222,7 @@ def test_neighbour_updates() raises:
     w.advance_tick()
     assert_true(w.block_as[Stone](probe))
     var stone = _rid(w, Stone())
-    assert_equal(w.viewer(id).count(String(t"block (6, 0, 6) {stone}")), 1)
+    assert_equal(w.viewer(id).count(String(t"block (6,0,6) {stone}")), 1)
     # Updates can be disabled.
     w.set_block(probe, NeighbourProbe())
     w.advance_tick()
@@ -414,17 +430,23 @@ def test_spawn_and_settings() raises:
     var id = _viewing(w, 0)
     w.set_spawn(Pos(5, 0, 5))
     assert_equal(w.spawn(), Pos(5, 0, 5))
-    assert_equal(w.viewer(id).count("spawn (5, 0, 5)"), 1)
+    assert_equal(w.viewer(id).count("spawn (5,0,5)"), 1)
     assert_equal(w.player_spawn(UUID()), Pos(5, 0, 5))
     w.set_player_spawn(UUID(), Pos(1, 2, 3))
     assert_equal(w.player_spawn(UUID()), Pos(1, 2, 3))
     assert_equal(w.name(), "World")
     assert_equal(String(w.default_game_mode()), "survival")
     assert_equal(String(w.difficulty()), "normal")
-    # Spawning above the world means "on the highest block".
+    # Spawning above the world means "on the highest block with a solid
+    # top or bottom face" (Go `highestObstructingBlock`).
     w.set_spawn(Pos(0, 1000, 0))
     w.advance_tick()
     assert_equal(w.spawn(), Pos(0, -61, 0))
+    assert_equal(w.highest_obstructing_block(0, 0), -62)
+    # A carpet is the highest block but has no solid face.
+    w.set_block(Pos(0, -61, 0), Carpet())
+    assert_equal(w.highest_block(0, 0), -61)
+    assert_equal(w.highest_obstructing_block(0, 0), -62)
 
 
 def test_tick_runs_due_ticks() raises:

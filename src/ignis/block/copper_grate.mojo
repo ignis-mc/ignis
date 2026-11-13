@@ -8,6 +8,7 @@ and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     HARVEST_LEVEL_STONE,
@@ -18,17 +19,26 @@ from .break_info import (
     pickaxe_harvestable_from,
 )
 from .hash import HASH_COPPER_GRATE
+from .model.solid import Solid as SolidModel
 from .oxidation_type import OxidationType, oxidation_types
 from .oxidizable import Oxidisable, copper_block_name
 
 
 struct CopperGrate(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightDiffuser, Oxidisable
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+    Oxidisable,
 ):
     """A transparent copper block."""
 
     comptime BASE_HASH: UInt64 = HASH_COPPER_GRATE
     """Go `hashCopperGrate`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var oxidation: OxidationType
     """The level of oxidation of the block."""
@@ -158,3 +168,11 @@ struct CopperGrate(
         var b = self
         b.oxidation = o
         return b
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

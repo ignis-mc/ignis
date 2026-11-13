@@ -4,6 +4,7 @@ TODO(world-runtime): PurpurPillar.UseOnBlock, EncodeItem and the drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -14,13 +15,16 @@ from .break_info import (
 )
 from .cube.axis import Axis, axes
 from .hash import HASH_PURPUR, HASH_PURPUR_PILLAR
+from .model.solid import Solid as SolidModel
 
 
-struct Purpur(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct Purpur(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     """A decorative block found in end cities."""
 
     comptime BASE_HASH: UInt64 = HASH_PURPUR
     """Go `hashPurpur`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `Purpur{}`)."""
@@ -87,12 +91,24 @@ struct Purpur(Block, Breakable, Equatable, ImplicitlyCopyable):
             1.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
 
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
 
-struct PurpurPillar(Block, Breakable, Equatable, ImplicitlyCopyable):
+        Returns:
+            The model.
+        """
+        return SolidModel()
+
+
+struct PurpurPillar(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A pillar variant of purpur."""
 
     comptime BASE_HASH: UInt64 = HASH_PURPUR_PILLAR
     """Go `hashPurpurPillar`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     var axis: Axis
     """The axis the pillar faces."""
@@ -168,3 +184,11 @@ struct PurpurPillar(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             1.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()

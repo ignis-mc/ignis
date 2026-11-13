@@ -4,6 +4,7 @@ TODO(world-runtime): EncodeItem, SmeltInfo and the `oneOf` drops.
 """
 
 from ..world.block import Block
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -13,13 +14,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_END_BRICKS
+from .model.solid import Solid as SolidModel
 
 
-struct EndBricks(Block, Breakable, Equatable, ImplicitlyCopyable):
+struct EndBricks(
+    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+):
     """A block made from combining four end stone blocks together."""
 
     comptime BASE_HASH: UInt64 = HASH_END_BRICKS
     """Go `hashEndBricks`."""
+    comptime ModelType = SolidModel
+    """The model type (Go `Model`)."""
 
     def __init__(out self):
         """Creates the block (Go `EndBricks{}`)."""
@@ -82,3 +88,11 @@ struct EndBricks(Block, Breakable, Equatable, ImplicitlyCopyable):
         return new_break_info(
             3, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(9)
+
+    def model(self) -> SolidModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return SolidModel()
