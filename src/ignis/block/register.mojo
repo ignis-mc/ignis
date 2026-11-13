@@ -9,24 +9,50 @@ types; `vanilla_block_registry` builds the registry a server uses.
 from ..world.block_registry import BasicBlockRegistry
 from ..world.block_set import BlockSet
 from .air import Air
+from .amethyst import Amethyst
+from .ancient_debris import AncientDebris
 from .basalt import Basalt
 from .bedrock import Bedrock
 from .blackstone import Blackstone
 from .break_info import BreakInfo, Breakable
 from .bricks import Bricks
 from .calcite import Calcite
+from .coal import Coal
+from .coal_ore import CoalOre
 from .cobblestone import Cobblestone
+from .copper_ore import CopperOre
 from .deepslate import Deepslate
 from .deepslate_bricks import DeepslateBricks
 from .deepslate_tiles import DeepslateTiles
+from .diamond import Diamond
+from .diamond_ore import DiamondOre
 from .dirt import Dirt
+from .emerald import Emerald
+from .emerald_ore import EmeraldOre
 from .end_bricks import EndBricks
 from .end_stone import EndStone
+from .gold import Gold
+from .gold_ore import GoldOre
 from .grass import Grass
+from .iron import Iron
+from .iron_ore import IronOre
+from .lapis import Lapis
+from .lapis_ore import LapisOre
 from .nether_bricks import NetherBricks
+from .nether_gold_ore import NetherGoldOre
+from .netherite import Netherite
 from .netherrack import Netherrack
+from .obsidian import Obsidian
 from .polished_blackstone_brick import PolishedBlackstoneBrick
 from .polished_tuff import PolishedTuff
+from .quartz import ChiseledQuartz, Quartz, QuartzPillar
+from .quartz_bricks import QuartzBricks
+from .quartz_ore import NetherQuartzOre
+from .raw_copper import RawCopper
+from .raw_gold import RawGold
+from .raw_iron import RawIron
+from .redstone_block import RedstoneBlock
+from .redstone_ore import RedstoneOre
 from .smooth_basalt import SmoothBasalt
 from .stone import Andesite, Diorite, Granite, Stone
 from .stone_bricks import StoneBricks
@@ -35,26 +61,54 @@ from .tuff_bricks import TuffBricks
 
 comptime VanillaBlocks = BlockSet[
     Air,
+    Amethyst,
+    AncientDebris,
     Andesite,
     Basalt,
     Bedrock,
     Blackstone,
     Bricks,
     Calcite,
+    ChiseledQuartz,
+    Coal,
+    CoalOre,
     Cobblestone,
+    CopperOre,
     Deepslate,
     DeepslateBricks,
     DeepslateTiles,
+    Diamond,
+    DiamondOre,
     Diorite,
     Dirt,
+    Emerald,
+    EmeraldOre,
     EndBricks,
     EndStone,
+    Gold,
+    GoldOre,
     Granite,
     Grass,
+    Iron,
+    IronOre,
+    Lapis,
+    LapisOre,
     NetherBricks,
+    NetherGoldOre,
+    NetherQuartzOre,
+    Netherite,
     Netherrack,
+    Obsidian,
     PolishedBlackstoneBrick,
     PolishedTuff,
+    Quartz,
+    QuartzBricks,
+    QuartzPillar,
+    RawCopper,
+    RawGold,
+    RawIron,
+    RedstoneBlock,
+    RedstoneOre,
     SmoothBasalt,
     Stone,
     StoneBricks,
