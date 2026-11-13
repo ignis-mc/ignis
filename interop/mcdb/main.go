@@ -5,6 +5,7 @@
 //	go run . ldb-write <dir> <seed> <n> [unclean]
 //	go run . ldb-dump <dir> <out.txt>
 //	go run . ldb-fixtures <outdir>
+//	go run . upgrade-vectors <legacy_states.nbt> <out.txt>
 package main
 
 import (
@@ -39,6 +40,8 @@ func run(args []string) error {
 		return ldbWrite(args[1], uint64(atoi(args[2])), atoi(args[3]), len(args) > 4 && args[4] == "unclean")
 	case "ldb-fixtures":
 		return ldbFixtures(args[1])
+	case "upgrade-vectors":
+		return upgradeVectors(args[1], args[2])
 	case "ldb-dump":
 		return ldbDump(args[1], args[2])
 	}
