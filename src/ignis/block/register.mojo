@@ -15,12 +15,14 @@ from .bamboo import Bamboo
 from .bamboo_block import BambooBlock
 from .bamboo_mosaic import BambooMosaic
 from .bamboo_sapling import BambooSapling
+from .barrel import Barrel
 from .barrier import Barrier
 from .basalt import Basalt
 from .beacon import Beacon
 from .bedrock import Bedrock
 from .beetroot_seeds import BeetrootSeeds
 from .blackstone import Blackstone
+from .blast_furnace import BlastFurnace
 from .blue_ice import BlueIce
 from .bone import Bone
 from .bookshelf import Bookshelf
@@ -30,6 +32,7 @@ from .cactus import Cactus
 from .calcite import Calcite
 from .carpet import Carpet
 from .carrot import Carrot
+from .chest import Chest
 from .cinnabar import Cinnabar
 from .cinnabar_bricks import CinnabarBricks
 from .clay import Clay
@@ -74,11 +77,13 @@ from .end_portal import EndPortal
 from .end_portal_frame import EndPortalFrame
 from .end_rod import EndRod
 from .end_stone import EndStone
+from .ender_chest import EnderChest
 from .farmland import Farmland
 from .fern import Fern
 from .fletching_table import FletchingTable
 from .flower import Flower
 from .froglight import Froglight
+from .furnace import Furnace
 from .glass import Glass
 from .glass_pane import GlassPane
 from .glazed_terracotta import GlazedTerracotta
@@ -89,6 +94,7 @@ from .grass import Grass
 from .gravel import Gravel
 from .hay_bale import HayBale
 from .honeycomb import Honeycomb
+from .hopper import Hopper
 from .ice import Ice
 from .infested_cobblestone import InfestedCobblestone
 from .infested_deepslate import InfestedDeepslate
@@ -104,10 +110,12 @@ from .kelp import Kelp
 from .lapis import Lapis
 from .lapis_ore import LapisOre
 from .leaves import Leaves
+from .lectern import Lectern
 from .light import Light
 from .lily_pad import LilyPad
 from .lit_pumpkin import LitPumpkin
 from .log import Log
+from .loom import Loom
 from .magma import Magma
 from .melon import Melon
 from .melon_seeds import MelonSeeds
@@ -164,6 +172,7 @@ from .shroomlight import Shroomlight
 from .slab import Slab
 from .slime import Slime
 from .smithing_table import SmithingTable
+from .smoker import Smoker
 from .smooth_basalt import SmoothBasalt
 from .snow import Snow
 from .soul_sand import SoulSand
@@ -176,6 +185,7 @@ from .stained_terracotta import StainedTerracotta
 from .stairs import Stairs
 from .stone import Andesite, Diorite, Granite, Stone
 from .stone_bricks import StoneBricks
+from .stonecutter import Stonecutter
 from .sugar_cane import SugarCane
 from .sulfur import Sulfur
 from .sulfur_bricks import SulfurBricks
@@ -203,12 +213,14 @@ comptime VanillaBlocks = BlockSet[
     BambooBlock,
     BambooMosaic,
     BambooSapling,
+    Barrel,
     Barrier,
     Basalt,
     Beacon,
     Bedrock,
     BeetrootSeeds,
     Blackstone,
+    BlastFurnace,
     BlueIce,
     Bone,
     Bookshelf,
@@ -217,6 +229,7 @@ comptime VanillaBlocks = BlockSet[
     Calcite,
     Carpet,
     Carrot,
+    Chest,
     ChiseledQuartz,
     Cinnabar,
     CinnabarBricks,
@@ -263,11 +276,13 @@ comptime VanillaBlocks = BlockSet[
     EndPortalFrame,
     EndRod,
     EndStone,
+    EnderChest,
     Farmland,
     Fern,
     FletchingTable,
     Flower,
     Froglight,
+    Furnace,
     Glass,
     GlassPane,
     GlazedTerracotta,
@@ -279,6 +294,7 @@ comptime VanillaBlocks = BlockSet[
     Gravel,
     HayBale,
     Honeycomb,
+    Hopper,
     Ice,
     InfestedCobblestone,
     InfestedDeepslate,
@@ -294,10 +310,12 @@ comptime VanillaBlocks = BlockSet[
     Lapis,
     LapisOre,
     Leaves,
+    Lectern,
     Light,
     LilyPad,
     LitPumpkin,
     Log,
+    Loom,
     Magma,
     Melon,
     MelonSeeds,
@@ -356,6 +374,7 @@ comptime VanillaBlocks = BlockSet[
     Slab,
     Slime,
     SmithingTable,
+    Smoker,
     SmoothBasalt,
     Snow,
     SoulSand,
@@ -368,6 +387,7 @@ comptime VanillaBlocks = BlockSet[
     Stairs,
     Stone,
     StoneBricks,
+    Stonecutter,
     SugarCane,
     Sulfur,
     SulfurBricks,
