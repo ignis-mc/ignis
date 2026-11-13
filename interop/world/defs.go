@@ -14,7 +14,7 @@ import (
 
 	"github.com/df-mc/dragonfly/server/entity/effect"
 	"github.com/df-mc/dragonfly/server/item"
-	_ "github.com/df-mc/dragonfly/server/item/enchantment"
+	"github.com/df-mc/dragonfly/server/item/enchantment"
 	"github.com/df-mc/dragonfly/server/world"
 	_ "github.com/df-mc/dragonfly/server/world/biome"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
@@ -100,6 +100,39 @@ func defsVectors(out string) {
 			e = e.TickDuration()
 		}
 		fmt.Fprintf(&b, "effect_tick\t%s\t%d\t%d\t%d\t%s\n", name, e.Duration(), e.Tick(), e.Level(), boolS(e.Infinite()))
+	}
+
+	// Multipliers of the effects that have one, for levels 0 to 6:
+	// "effect_mult id values"; resistance with a source that is reduced
+	// by resistance and one that is not.
+	for id := 0; id < 64; id++ {
+		t, ok := effect.ByID(id)
+		if !ok {
+			continue
+		}
+		var vs []string
+		if m, ok := t.(interface{ Multiplier(int) float64 }); ok {
+			for lvl := range 7 {
+				vs = append(vs, f64(m.Multiplier(lvl)))
+			}
+		}
+		if m, ok := t.(interface {
+			Multiplier(world.DamageSource, int) float64
+		}); ok {
+			for lvl := range 7 {
+				vs = append(vs, f64(m.Multiplier(effect.PoisonDamageSource{}, lvl)), f64(m.Multiplier(notResisted{}, lvl)))
+			}
+		}
+		if len(vs) > 0 {
+			fmt.Fprintf(&b, "effect_mult\t%d\t%s\n", id, strings.Join(vs, ","))
+		}
+	}
+	// Damage sources: "damage_source name resistance armour fire totem".
+	for name, src := range map[string]world.DamageSource{
+		"PoisonDamageSource": effect.PoisonDamageSource{}, "InstantDamageSource": effect.InstantDamageSource{},
+		"WitherDamageSource": effect.WitherDamageSource{}, "ThornsDamageSource": enchantment.ThornsDamageSource{},
+	} {
+		fmt.Fprintf(&b, "damage_source\t%s\t%s,%s,%s,%s\n", name, boolS(src.ReducedByResistance()), boolS(src.ReducedByArmour()), boolS(src.Fire()), boolS(src.IgnoreTotem()))
 	}
 
 	// Items to test CompatibleWithItem with, and their properties:
@@ -233,3 +266,11 @@ func defsVectors(out string) {
 	_ = math.MaxInt
 	must(os.WriteFile(filepath.Join(out, "defs.txt"), []byte(b.String()), 0o644))
 }
+
+// notResisted is a damage source not reduced by resistance.
+type notResisted struct{}
+
+func (notResisted) ReducedByResistance() bool { return false }
+func (notResisted) ReducedByArmour() bool     { return false }
+func (notResisted) Fire() bool                { return false }
+func (notResisted) IgnoreTotem() bool         { return false }
