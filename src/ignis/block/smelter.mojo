@@ -16,6 +16,7 @@ from ..item.register import VanillaBlockItems, VanillaItems
 from ..item.smelting_info import FuelInfo, SmeltInfo
 from ..item.stack import Stack
 from ..world.world import World, WorldTypes
+from .cube.face import Face
 from .cube.pos import Pos
 
 comptime SMELT_ANY = 0
@@ -194,3 +195,77 @@ def tick_smelting[
             s.max_ms,
         )
     return now_lit
+
+
+def smelter_insert[
+    T: WorldTypes
+](mut hopper: Inventory, facing: Face, pos: Pos, mut tx: World[T]) -> Bool:
+    """Takes one item from a hopper: fuel from the side, the input from
+    above (Go `smelter.InsertItem`)."""
+    var found = tx.inventory(pos)
+    if not found:
+        return False
+    var inv = found.value().copy()
+    for source_slot in range(hopper.size()):
+        var source: Stack
+        var it: Stack
+        var slot = 1 if facing != Face.DOWN else 0
+        try:
+            source = hopper.item(source_slot)
+            if source.empty():
+                continue
+            it = inv.item(slot)
+        except:
+            return False
+        var stack = source.grow(-source.count() + 1)
+        if slot == 1:
+            var f = fuel_info_of(source)
+            if not f or f.value().duration == 0:
+                continue
+        if not source.comparable(it):
+            continue
+        if it.count() == it.max_count():
+            continue
+        if not it.empty():
+            stack = it.grow(1)
+        try:
+            inv.set_item(slot, stack)
+            hopper.set_item(source_slot, source.grow(-1))
+        except:
+            return False
+        tx.set_inventory(pos, inv^)
+        return True
+    return False
+
+
+def smelter_extract[
+    T: WorldTypes
+](mut hopper: Inventory, pos: Pos, mut tx: World[T]) -> Bool:
+    """Gives a hopper below one product, or fuel that no longer burns (Go
+    `smelter.ExtractItem`)."""
+    var found = tx.inventory(pos)
+    if not found:
+        return False
+    var inv = found.value().copy()
+    for source_slot in range(inv.size()):
+        var source: Stack
+        try:
+            source = inv.item(source_slot)
+        except:
+            return False
+        if source.empty() or source_slot == 0:
+            continue
+        if source_slot == 1:
+            var f = fuel_info_of(source)
+            if f and f.value().duration != 0:
+                continue
+        var one = source.grow(-source.count() + 1)
+        if hopper.add_item(one.copy()) < one.count():
+            continue
+        try:
+            inv.set_item(source_slot, source.grow(-1))
+        except:
+            return False
+        tx.set_inventory(pos, inv^)
+        return True
+    return False

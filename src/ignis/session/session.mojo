@@ -269,7 +269,11 @@ from ..world.block_registry import BasicBlockRegistry
 from ..world.item import ItemRegistry
 from nethernet.os.time import monotonic_ms
 from .conn import Conn
-from ..block.chest import chest_halves
+from ..block.container import (
+    container_positions,
+    read_container,
+    write_container,
+)
 from ..block.hash import HASH_CHEST
 from .viewer import OpenedWindow, PacketQueue
 from .window import (
@@ -1074,18 +1078,7 @@ struct Session[C: Conn](Movable):
         if case .Some(ref o) = self._queue[].opened:
             if o.stored:
                 var at = _window_positions(o.pos, self.invs.window.block, w)
-                if len(at) == 2:
-                    # Go `pair`: the left half's 27 slots, then the right's.
-                    var both = Inventory(54, self.invs.ids)
-                    for h in range(2):
-                        if case .Some(half) = w.inventory(at[h]):
-                            for i in range(half.size()):
-                                try:
-                                    both.set_item(h * 27 + i, half.item(i))
-                                except:
-                                    pass
-                    return both^
-                if case .Some(inv) = w.inventory(o.pos):
+                if case .Some(inv) = read_container(at, w):
                     return inv.copy()
         return Inventory(1, self.invs.ids)
 
@@ -1107,25 +1100,7 @@ struct Session[C: Conn](Movable):
         if case .Some(ref o) = self._queue[].opened:
             if o.stored and self.invs.opened.changed():
                 var at = _window_positions(o.pos, self.invs.window.block, w)
-                if len(at) == 2:
-                    var slots = self.invs.opened.take_changes()
-                    for h in range(2):
-                        var half = w.inventory(at[h])
-                        if not half:
-                            continue
-                        var inv = half.value().copy()
-                        for slot in slots:
-                            if slot // 27 != h:
-                                continue
-                            try:
-                                inv.set_item(
-                                    slot - h * 27, self.invs.opened.item(slot)
-                                )
-                            except:
-                                pass
-                        w.set_inventory(at[h], inv^)
-                else:
-                    w.set_inventory(o.pos, self.invs.opened.copy())
+                write_container(at, self.invs.opened, w)
                 w.flush_container_changes(exclude=self._loader)
         _ = self.invs.opened.take_changes()
 
@@ -1847,8 +1822,7 @@ def _window_positions[
     """Returns the blocks a window shows: both halves of a double chest,
     else just `pos`."""
     if block == HASH_CHEST:
-        if case .Some(h) = chest_halves(pos, w):
-            return [h[0], h[1]]
+        return container_positions(pos, w)
     return [pos]
 
 

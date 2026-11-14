@@ -26,6 +26,8 @@ a type to the set is all a new block needs.
 from ..block.block import (
     Activatable,
     BreakHandler,
+    HopperExtractable,
+    HopperInsertable,
     Openable,
     Placement,
     Replaceable,
@@ -52,6 +54,7 @@ from ..block.oxidation_type import OxidationType
 from ..block.oxidizable import Oxidisable
 from minecraft.nbt.tree import Tree
 
+from ..item.inventory.inventory import Inventory
 from .block import (
     Block,
     Container,
@@ -311,6 +314,28 @@ trait BlockTypes:
         T: WorldTypes
     ](kind: UInt64, pos: Pos, mut tx: World[T], harvest: Bool):
         """Calls `BreakHandler.on_break` of the block at `pos`."""
+        ...
+
+    @staticmethod
+    def hopper_insert[
+        T: WorldTypes
+    ](
+        kind: UInt64,
+        mut hopper: Inventory,
+        facing: Face,
+        pos: Pos,
+        mut tx: World[T],
+    ) -> Optional[Bool]:
+        """Calls `HopperInsertable.insert_item`; None for other blocks."""
+        ...
+
+    @staticmethod
+    def hopper_extract[
+        T: WorldTypes
+    ](
+        kind: UInt64, mut hopper: Inventory, pos: Pos, mut tx: World[T]
+    ) -> Optional[Bool]:
+        """Calls `HopperExtractable.extract_item`; None for other blocks."""
         ...
 
     @staticmethod
@@ -635,6 +660,42 @@ struct BlockSet[*Ts: Block](BlockTypes):
         return AnyBlock(kind=kind, state=hash)
 
     @staticmethod
+    def hopper_insert[
+        W: WorldTypes
+    ](
+        kind: UInt64,
+        mut hopper: Inventory,
+        facing: Face,
+        pos: Pos,
+        mut tx: World[W],
+    ) -> Optional[Bool]:
+        """Calls `HopperInsertable.insert_item`; None for other blocks."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, HopperInsertable):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        return _insert(b, hopper, facing, pos, tx)
+                    return False
+        return None
+
+    @staticmethod
+    def hopper_extract[
+        W: WorldTypes
+    ](
+        kind: UInt64, mut hopper: Inventory, pos: Pos, mut tx: World[W]
+    ) -> Optional[Bool]:
+        """Calls `HopperExtractable.extract_item`; None for other blocks."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, HopperExtractable):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        return _extract(b, hopper, pos, tx)
+                    return False
+        return None
+
+    @staticmethod
     def handle_break[
         W: WorldTypes
     ](kind: UInt64, pos: Pos, mut tx: World[W], harvest: Bool):
@@ -832,6 +893,20 @@ def _activate[
     B: Activatable, W: WorldTypes
 ](b: B, pos: Pos, face: Face, mut tx: World[W], mut ctx: UseContext) -> Bool:
     return b.activate(pos, face, tx, ctx)
+
+
+def _insert[
+    B: HopperInsertable, W: WorldTypes
+](
+    b: B, mut hopper: Inventory, facing: Face, pos: Pos, mut tx: World[W]
+) -> Bool:
+    return b.insert_item(hopper, facing, pos, tx)
+
+
+def _extract[
+    B: HopperExtractable, W: WorldTypes
+](b: B, mut hopper: Inventory, pos: Pos, mut tx: World[W]) -> Bool:
+    return b.extract_item(hopper, pos, tx)
 
 
 def _on_break[

@@ -1973,6 +1973,8 @@ struct World[T: WorldTypes](Movable):
         self._tick_entities(tick)
         self._tick_scheduled(tick)
         self._tick_blocks_randomly(tick)
+        # Containers changed by this tick show their slots to viewers.
+        self.flush_container_changes()
         self._perform_neighbour_updates()
 
     def _tick_entities(mut self, tick: Int64):
@@ -2162,7 +2164,6 @@ struct World[T: WorldTypes](Movable):
         for pos in block_entities:
             var rid = self.block(pos)
             Self.T.Blocks.tick_block(self._br[].kind(rid), tick, pos, self)
-        self.flush_container_changes()
 
 
 struct WorldSource[o: MutOrigin, T: WorldTypes](

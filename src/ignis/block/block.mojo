@@ -9,6 +9,7 @@ The embedded helper structs of that file (`solid`, `transparent`,
 from minecraft.nbt.tree import Tree
 from minecraft.protocol.uuid import UUID
 
+from ..item.inventory.inventory import Inventory
 from ..item.stack import Stack
 from ..mgl64 import Vec3
 from ..world.block import Block
@@ -256,6 +257,32 @@ trait BreakHandler(Block):
     ](self, pos: Pos, mut tx: World[T], harvest: Bool):
         """Runs before the block is removed; `harvest` is False when the
         breaker gets no drops (creative). `self` carries its NBT."""
+        ...
+
+
+trait HopperInsertable(Block):
+    """A block a hopper feeds in its own way (Go `HopperInsertable`), such
+    as a furnace taking fuel from the side."""
+
+    def insert_item[
+        T: WorldTypes
+    ](
+        self, mut hopper: Inventory, facing: Face, pos: Pos, mut tx: World[T]
+    ) -> Bool:
+        """Moves one item from a hopper facing `facing` into the block at
+        `pos`; True if one moved (Go `InsertItem`)."""
+        ...
+
+
+trait HopperExtractable(Block):
+    """A block a hopper below takes from in its own way (Go
+    `HopperExtractable`)."""
+
+    def extract_item[
+        T: WorldTypes
+    ](self, mut hopper: Inventory, pos: Pos, mut tx: World[T]) -> Bool:
+        """Moves one item from the block at `pos` into a hopper; True if one
+        moved (Go `ExtractItem`)."""
         ...
 
 

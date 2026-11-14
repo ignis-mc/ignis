@@ -8,6 +8,7 @@ is kept but not dropped: experience orbs are not ported.
 
 from minecraft.nbt.tree import Tag, Tree
 
+from ..item.inventory.inventory import Inventory
 from ..mgl64 import Vec3
 from ..world.block import Block, Container, LightEmitter, NBTer, TickerBlock
 from ..world.block_set import encode_block_nbt
@@ -16,6 +17,8 @@ from ..world.world import World, WorldTypes
 from .block import (
     Activatable,
     BreakHandler,
+    HopperExtractable,
+    HopperInsertable,
     Placement,
     UsableOnBlock,
     UseContext,
@@ -25,7 +28,13 @@ from .block import (
 from .container import drop_contents
 from .cube.face import Face
 from .cube.pos import Pos
-from .smelter import SMELT_FOOD, Smelter, tick_smelting
+from .smelter import (
+    smelter_extract,
+    smelter_insert,
+    SMELT_FOOD,
+    Smelter,
+    tick_smelting,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -48,6 +57,8 @@ struct Smoker(
     Breakable,
     Container,
     Equatable,
+    HopperExtractable,
+    HopperInsertable,
     ImplicitlyCopyable,
     Item,
     LightEmitter,
@@ -144,6 +155,20 @@ struct Smoker(
         var f = Self(facing=self.facing, lit=self.lit)
         f.smelter = Smelter.decode(tag, root)
         return f^
+
+    def insert_item[
+        T: WorldTypes
+    ](
+        self, mut hopper: Inventory, facing: Face, pos: Pos, mut tx: World[T]
+    ) -> Bool:
+        """Takes an item from a hopper (Go `smelter.InsertItem`)."""
+        return smelter_insert(hopper, facing, pos, tx)
+
+    def extract_item[
+        T: WorldTypes
+    ](self, mut hopper: Inventory, pos: Pos, mut tx: World[T]) -> Bool:
+        """Gives a hopper an item (Go `smelter.ExtractItem`)."""
+        return smelter_extract(hopper, pos, tx)
 
     def inventory_size(self) -> Int:
         """Returns the input, fuel and product slots (Go `ContainerSize`)."""
