@@ -3,8 +3,8 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-Ignis players have no hunger yet: eating sets the use context's food and
-saturation, which the server does not apply.
+Eating sets the use context's food and saturation; the server saturates
+the player with them (Go `Saturate(2, 0.4)`).
 
 TODO(world-runtime): UseOnBlock, Model, HasLiquidDrops and the drops.
 """

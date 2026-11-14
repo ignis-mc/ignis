@@ -27,6 +27,9 @@
 #   8. interop/bots/health_bot.mojo: fall damage, death and respawn; an
 #      arrow and TNT hurting a player; eating a golden apple; two players
 #      fighting with fists, a bow and a sword.
+#   9. interop/bots/xp_bot.mojo: a saved player with 30 levels gets Speed
+#      from a beacon, eats cake, enchants a book, renames shears on an
+#      anvil and brews an awkward potion.
 #
 # Usage: scripts/e2e.sh [port]
 set -euo pipefail
@@ -44,6 +47,7 @@ mojo build --fp-mode contract=off "${inc[@]}" interop/bots/container_bot.mojo -o
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/behaviour_bot.mojo -o build/behaviour_bot
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/entity_bot.mojo -o build/entity_bot
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/health_bot.mojo -o build/health_bot
+mojo build --fp-mode contract=off "${inc[@]}" interop/bots/xp_bot.mojo -o build/xp_bot
 
 dir="$(mktemp -d)"
 pid=""
@@ -177,6 +181,13 @@ if [[ $status -eq 0 ]]; then
     ./build/health_bot eat "$addr" 2>&1 | grep -v '^dial'
     ./build/health_bot fight "$addr" 2>&1 | grep -v '^dial'
     stop TERM server7.log
+
+    ./build/xp_bot prepare "$dir/xp" "$dir/xpplayers" 2>&1 | grep -v '^dial'
+    printf '[World]\nFolder = "%s/xp"\n[Players]\nFolder = "%s/xpplayers"\n' \
+        "$dir" "$dir" >"$dir/config.toml"
+    start server8.log
+    ./build/xp_bot run "$addr" 2>&1 | grep -v '^dial'
+    stop TERM server8.log
 fi
 echo "--- server log"
 cat "$dir/server1.log"
