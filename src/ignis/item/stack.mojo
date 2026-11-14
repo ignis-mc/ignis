@@ -164,6 +164,9 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
         """
         var s = self.copy()
         s._count = max(s._count + n, 0)
+        # Go gives the result a new network ID; 0 lets the inventory assign
+        # the next one.
+        s._id = 0
         return s^
 
     def durability(self) -> Int:
@@ -451,6 +454,9 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
         var b = s2.copy()
         a._count += diff
         b._count -= diff
+        # Go gives both new network IDs.
+        a._id = 0
+        b._id = 0
         return (a^, b^)
 
     def comparable(self, s2: Self) -> Bool:
