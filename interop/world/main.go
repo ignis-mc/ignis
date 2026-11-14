@@ -400,6 +400,7 @@ func main() {
 	blockDefinitions(*out)
 	cubeVectors(*out)
 	modelVectors(*out)
+	defsVectors(*out)
 	chunkVectors(v, "empty", newChunk())
 	chunkVectors(v, "simple", simpleChunk())
 	chunkVectors(v, "flat", flatChunk(false))
