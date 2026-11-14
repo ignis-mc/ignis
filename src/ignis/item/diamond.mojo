@@ -1,18 +1,22 @@
 """Diamond, ported from Dragonfly `server/item/diamond.go`.
 
-`TrimMaterial`, `MaterialColour` and `PayableForBeacon` follow with the
-smithing and beacon code.
+`TrimMaterial` and `MaterialColour` come with `ArmourTrimMaterial`.
 """
 
 from ..world.item import EncodedItem, Item, item_hash
+from .item import BeaconPayment
 
 
 @fieldwise_init
-struct Diamond(Equatable, ImplicitlyCopyable, Item):
+struct Diamond(BeaconPayment, Equatable, ImplicitlyCopyable, Item):
     """A rare mineral obtained from diamond ore or loot chests."""
 
     comptime BASE_HASH: UInt64 = item_hash("Diamond")
     """`item_hash("Diamond")`."""
+
+    def payable_for_beacon(self) -> Bool:
+        """Reports that diamonds pay for beacons (Go `PayableForBeacon`)."""
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`).

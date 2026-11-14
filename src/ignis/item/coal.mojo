@@ -1,17 +1,19 @@
-"""Coal, ported from Dragonfly `server/item/coal.go`.
-
-`FuelInfo` follows with the furnace.
-"""
+"""Coal, ported from Dragonfly `server/item/coal.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
+from .smelting_info import Fuel, FuelInfo
 
 
 @fieldwise_init
-struct Coal(Equatable, ImplicitlyCopyable, Item):
+struct Coal(Equatable, Fuel, ImplicitlyCopyable, Item):
     """An item used as fuel and for crafting torches."""
 
     comptime BASE_HASH: UInt64 = item_hash("Coal")
     """`item_hash("Coal")`."""
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 80 s."""
+        return FuelInfo(80000)
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`).

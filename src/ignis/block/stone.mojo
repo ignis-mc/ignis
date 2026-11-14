@@ -1,7 +1,7 @@
 """`Stone`, `Granite`, `Diorite`, `Andesite`, ported from Dragonfly
 `server/block/stone.go`.
 
-TODO(world-runtime): SmeltInfo and the `oneOf` drops.
+TODO(world-runtime): the `oneOf` drops.
 """
 
 from ..world.block import Block
@@ -17,10 +17,18 @@ from .break_info import (
 )
 from .hash import HASH_ANDESITE, HASH_DIORITE, HASH_GRANITE, HASH_STONE
 from .model.solid import Solid as SolidModel
+from ..item.smelting_info import Smeltable, SmeltInfo
+from ..item.stack import Stack
 
 
 struct Stone(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
 ):
     """A block found underground in the world or on mountains."""
 
@@ -89,6 +97,13 @@ struct Stone(
             Every state of the block.
         """
         return [Stone(smooth=True), Stone()]
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`): stone smelts into smooth
+        stone."""
+        if self.smooth:
+            return SmeltInfo()
+        return SmeltInfo(Stack(Stone(smooth=True), 1), 0.1)
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`).
