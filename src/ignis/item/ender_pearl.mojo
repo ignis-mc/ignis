@@ -1,14 +1,14 @@
 """EnderPearl, ported from Dragonfly `server/item/ender_pearl.go`.
 
-TODO(port): `Use`, `Cooldown`.
+TODO(player): `Use`.
 """
 
 from ..world.item import EncodedItem, Item, item_hash
-from .item import MaxCounter
+from .item import Cooldown, MaxCounter
 
 
 @fieldwise_init
-struct EnderPearl(Equatable, ImplicitlyCopyable, Item, MaxCounter):
+struct EnderPearl(Cooldown, Equatable, ImplicitlyCopyable, Item, MaxCounter):
     """A smooth, greenish-blue item used to teleport and to make an eye of
     ender."""
 
@@ -18,6 +18,10 @@ struct EnderPearl(Equatable, ImplicitlyCopyable, Item, MaxCounter):
     def max_count(self) -> Int:
         """Returns the maximum count (Go `MaxCount`)."""
         return 16
+
+    def cooldown(self) -> Int:
+        """Returns the cooldown (Go `Cooldown`): 1 s."""
+        return 1000
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`)."""

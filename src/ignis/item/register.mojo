@@ -15,6 +15,8 @@ from ..block.stone import Stone
 from ..world.item import ItemRegistry
 from .amethyst_shard import AmethystShard
 from .apple import Apple
+from .arrow import Arrow
+from .axe import Axe
 from .baked_potato import BakedPotato
 from .beef import Beef
 from .beetroot import Beetroot
@@ -69,12 +71,14 @@ from .golden_apple import GoldenApple
 from .golden_carrot import GoldenCarrot
 from .gunpowder import Gunpowder
 from .heart_of_the_sea import HeartOfTheSea
+from .hoe import Hoe
 from .honey_bottle import HoneyBottle
 from .honeycomb import Honeycomb
 from .iron_ingot import IronIngot
 from .iron_nugget import IronNugget
 from .lapis_lazuli import LapisLazuli
 from .leather import Leather
+from .lingering_potion import LingeringPotion
 from .magma_cream import MagmaCream
 from .melon_slice import MelonSlice
 from .mushroom_stew import MushroomStew
@@ -86,8 +90,10 @@ from .netherite_ingot import NetheriteIngot
 from .netherite_scrap import NetheriteScrap
 from .paper import Paper
 from .phantom_membrane import PhantomMembrane
+from .pickaxe import Pickaxe
 from .poisonous_potato import PoisonousPotato
 from .popped_chorus_fruit import PoppedChorusFruit
+from .potion import Potion
 from .prismarine_crystal import PrismarineCrystals
 from .prismarine_shard import PrismarineShard
 from .pufferfish import Pufferfish
@@ -103,13 +109,16 @@ from .resin_brick import ResinBrick
 from .rotten_flesh import RottenFlesh
 from .scute import Scute
 from .shears import Shears
+from .shovel import Shovel
 from .shulker_shell import ShulkerShell
 from .slimeball import Slimeball
 from .snowball import Snowball
 from .spider_eye import SpiderEye
+from .splash_potion import SplashPotion
 from .spyglass import Spyglass
 from .stick import Stick
 from .sugar import Sugar
+from .sword import Sword
 from .totem import Totem
 from .tropical_fish import TropicalFish
 from .turtle_shell import TurtleShell
@@ -121,6 +130,8 @@ from .item_set import ItemSet
 comptime VanillaItems = ItemSet[
     AmethystShard,
     Apple,
+    Arrow,
+    Axe,
     BakedPotato,
     Beef,
     Beetroot,
@@ -175,12 +186,14 @@ comptime VanillaItems = ItemSet[
     GoldenCarrot,
     Gunpowder,
     HeartOfTheSea,
+    Hoe,
     HoneyBottle,
     Honeycomb,
     IronIngot,
     IronNugget,
     LapisLazuli,
     Leather,
+    LingeringPotion,
     MagmaCream,
     MelonSlice,
     MushroomStew,
@@ -192,8 +205,10 @@ comptime VanillaItems = ItemSet[
     NetheriteScrap,
     Paper,
     PhantomMembrane,
+    Pickaxe,
     PoisonousPotato,
     PoppedChorusFruit,
+    Potion,
     PrismarineCrystals,
     PrismarineShard,
     Pufferfish,
@@ -209,13 +224,16 @@ comptime VanillaItems = ItemSet[
     RottenFlesh,
     Scute,
     Shears,
+    Shovel,
     ShulkerShell,
     Slimeball,
     Snowball,
     SpiderEye,
+    SplashPotion,
     Spyglass,
     Stick,
     Sugar,
+    Sword,
     Totem,
     TropicalFish,
     TurtleShell,

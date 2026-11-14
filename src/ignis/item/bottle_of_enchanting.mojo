@@ -1,7 +1,7 @@
 """BottleOfEnchanting, ported from Dragonfly
 `server/item/bottle_of_enchanting.go`.
 
-TODO(port): `Use`.
+TODO(player): `Use`.
 """
 
 from ..world.item import EncodedItem, Item, item_hash

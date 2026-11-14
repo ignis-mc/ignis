@@ -1,6 +1,6 @@
 """GlassBottle, ported from Dragonfly `server/item/glass_bottle.go`.
 
-TODO(port): `UseOnBlock`.
+TODO(player): `UseOnBlock`.
 """
 
 from ..world.item import EncodedItem, Item, item_hash

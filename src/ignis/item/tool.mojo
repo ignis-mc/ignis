@@ -2,9 +2,16 @@
 
 Go's `Tool.BaseMiningEfficiency(b world.Block)` receives the block mined;
 here it receives the block's type (`BASE_HASH`), which is all swords and
-shears look at. The tool items (pickaxes, axes, ...) follow with the bulk
-item port.
+shears look at. Go's `toolTierRepairable` asks the item for
+`RepairsWoodTools`/`RepairsStoneTools`; here those are planks, bamboo
+mosaic and non-mossy cobblestone, the blocks that implement them.
 """
+
+from ..block.cobblestone import Cobblestone
+from ..block.hash import HASH_BAMBOO_MOSAIC, HASH_COBBLESTONE, HASH_PLANKS
+from ..world.item import item_hash
+from .smelting_info import SmeltInfo
+from .stack import Stack
 
 
 @fieldwise_init
@@ -85,6 +92,71 @@ comptime TOOL_TIER_DIAMOND = ToolTier(4, 8, 4, 10, 1561, "diamond")
 """Go `ToolTierDiamond`."""
 comptime TOOL_TIER_NETHERITE = ToolTier(4, 9, 5, 15, 2031, "netherite")
 """The highest tier (Go `ToolTierNetherite`)."""
+
+
+def tool_tiers() -> List[ToolTier]:
+    """Returns every tool tier (Go `ToolTiers`)."""
+    return [
+        TOOL_TIER_WOOD,
+        TOOL_TIER_GOLD,
+        TOOL_TIER_STONE,
+        TOOL_TIER_COPPER,
+        TOOL_TIER_IRON,
+        TOOL_TIER_DIAMOND,
+        TOOL_TIER_NETHERITE,
+    ]
+
+
+def tool_tier_index(tier: ToolTier) -> Int:
+    """Returns the index of a tier in `tool_tiers()`, or -1 for a custom tier.
+    """
+    var tiers = tool_tiers()
+    for i in range(len(tiers)):
+        if tiers[i] == tier:
+            return i
+    return -1
+
+
+def tool_tier_repairable(tier: ToolTier, stack: Stack) -> Bool:
+    """Reports whether a stack repairs tools of a tier (Go
+    `toolTierRepairable`)."""
+    var it = stack.item()
+    if not it:
+        return False
+    var kind = it.value().kind
+    if tier == TOOL_TIER_WOOD:
+        return kind == HASH_PLANKS or kind == HASH_BAMBOO_MOSAIC
+    if tier == TOOL_TIER_STONE:
+        if kind != HASH_COBBLESTONE:
+            return False
+        return not Cobblestone.from_hash(it.value().hash).mossy
+    if tier == TOOL_TIER_GOLD:
+        return kind == item_hash("GoldIngot")
+    if tier == TOOL_TIER_COPPER:
+        return kind == item_hash("CopperIngot")
+    if tier == TOOL_TIER_IRON:
+        return kind == item_hash("IronIngot")
+    if tier == TOOL_TIER_DIAMOND:
+        return kind == item_hash("Diamond")
+    if tier == TOOL_TIER_NETHERITE:
+        return kind == item_hash("NetheriteIngot")
+    return False
+
+
+def tool_tier_smelt_info(tier: ToolTier) -> SmeltInfo:
+    """Returns what smelting a tool of a tier gives (the `SmeltInfo` switch
+    every Go tool repeats): a nugget for iron, gold and copper."""
+    from .copper_nugget import CopperNugget
+    from .gold_nugget import GoldNugget
+    from .iron_nugget import IronNugget
+
+    if tier == TOOL_TIER_IRON:
+        return SmeltInfo(Stack(IronNugget(), 1), 0.1, ores=True)
+    if tier == TOOL_TIER_GOLD:
+        return SmeltInfo(Stack(GoldNugget(), 1), 0.1, ores=True)
+    if tier == TOOL_TIER_COPPER:
+        return SmeltInfo(Stack(CopperNugget(), 1), 0.1, ores=True)
+    return SmeltInfo()
 
 
 trait Tool:
