@@ -7,17 +7,35 @@ runs the world ticks that are due and flushes every session. Where Go's
 player shows itself to the world's viewers, the server, which owns every
 session, calls their `view_*` methods.
 
-Simplifications for the first playable milestone, to be replaced as the
-world runtime is ported:
+The world is kept on disk in the vanilla format (`[World] SaveData`,
+`Folder`) and player data in playerdb (`[Players] SaveData`, `Folder`), as
+`UserConfig.Config` sets up Dragonfly's providers. Chunks that are not on
+disk come from the flat generator. The world, the settings and the online
+players are saved every `save_interval_ms`, when a player leaves (their
+data) and on `close`, which SIGINT and SIGTERM trigger once
+`close_on_program_end` was called.
 
-- One overworld with a flat generator in memory (`MemoryProvider`); no
-  player provider.
+Differences from Dragonfly:
+
+- Only the overworld exists, and a player saved in another dimension
+  joins it.
+- A spawn at Y 32767 (vanilla's "find the surface" value, which new worlds
+  get from `level.dat` defaults) is moved onto the highest block at its
+  X and Z; Go would spawn the player at Y 32767.
+- The periodic save also writes `level.dat` and the player data, so that a
+  crash loses at most one interval; Go writes them only on close.
+- The world's name and default game mode come from `config.toml` for a new
+  world; an existing world keeps those in its `level.dat`.
+
+Simplifications, to be replaced as the runtime is ported:
+
 - Players are not world entities yet (they join the entity set with the
   player package), so the server shows them to each other directly, and
   every player sees every other player regardless of distance (Go shows
   the entities of the chunks a viewer has loaded).
 """
 
+from std.collections import Dict
 from std.memory import ArcPointer
 
 from minecraft.conn import Conn as MinecraftConn
@@ -57,6 +75,24 @@ from nethernet.os.poll import PollSet
 from nethernet.os.random import random_bytes
 from nethernet.os.time import monotonic_ms
 
+from ..internal.fs import exists, join
+from ..internal.signal import (
+    SIGINT,
+    SIGTERM,
+    SignalFD,
+    block_in_every_thread,
+)
+from ..internal.stdin import STDIN, LineReader
+from ..block.cube.pos import Pos
+from ..block.cube.rotation import Rotation
+from ..player.playerdb.json import Data as PlayerData
+from ..player.playerdb.leveldb import Provider as PlayerProvider
+from ..world.provider import uuid_key
+from ..cmd.register import Registry
+from .builtin import register_builtin_commands
+from .command import CommandSource, execute_command
+from .provider import WorldProvider
+
 from ..block.bedrock import Bedrock
 from ..block.dirt import Dirt
 from ..block.grass import Grass
@@ -76,17 +112,19 @@ from ..session.session import Config as SessionConfig
 from ..session.session import (
     HandleResult,
     Session,
-    load_biome_definitions,
+    biome_definition_packet,
+    game_type_from_mode,
     vec64_to32,
 )
 from ..session.viewer import SessionViewer
 from ..world.biome.plains import Plains
+from ..world.biome.register import vanilla_biome_registry
 from ..world.block_registry import BasicBlockRegistry
 from ..world.conf import Config as WorldConfig
-from ..world.game_mode import GAME_MODE_SPECTATOR
+from ..world.dimension import OVERWORLD
+from ..world.game_mode import GAME_MODE_SPECTATOR, GameMode
 from ..world.generator.flat import Flat
 from ..world.handler import NopHandler
-from ..world.provider import MemoryProvider
 from ..world.world import TICK_MS, World, WorldTypes
 from .conf import Config
 
@@ -95,6 +133,11 @@ comptime _JOIN_KEY = "§e%multiplayer.player.joined§r"
 """Go's `chat.MessageJoin` as `SendTranslation` resolves it."""
 comptime _QUIT_KEY = "§e%multiplayer.player.left§r"
 """Go's `chat.MessageQuit` as `SendTranslation` resolves it."""
+comptime _SHUTDOWN_KEY = "%disconnect.disconnected"
+"""Go's `chat.MessageServerDisconnect`, resolved."""
+comptime _SPAWN_SEARCH_Y = 32767
+"""The spawn Y of a new `level.dat`: find the surface (Go `math.MaxInt16`).
+"""
 comptime _MAX_CATCH_UP_TICKS = 5
 """The most ticks run in one `step` when the loop falls behind."""
 
@@ -261,8 +304,8 @@ struct ServerWorld(WorldTypes):
 
     comptime Generator = Flat
     """Dragonfly's default flat generator."""
-    comptime Provider = MemoryProvider
-    """Worlds are kept in memory until the disk provider is ported."""
+    comptime Provider = WorldProvider
+    """The vanilla format on disk, or nothing (`[World] SaveData`)."""
     comptime Viewer = SessionViewer
     """Loaders show the world to sessions."""
     comptime Handler = NopHandler
@@ -273,33 +316,66 @@ struct ServerWorld(WorldTypes):
     """Every ported entity type."""
 
 
-def flat_world(conf: Config, now_ms: Int) raises -> World[ServerWorld]:
-    """Creates Dragonfly's default world: a flat plains world of grass, two
-    dirt layers and bedrock (Go `Config.Generator`'s default), in memory.
+def strip_formatting(s: String) -> String:
+    """Removes `§x` colour and format codes, for the console."""
+    var b = s.as_bytes()
+    var out = List[UInt8](capacity=len(b))
+    var i = 0
+    while i < len(b):
+        # `§` is C2 A7 in UTF-8; the code character follows.
+        if i + 2 < len(b) and b[i] == 0xC2 and b[i + 1] == 0xA7:
+            i += 3
+            continue
+        out.append(b[i])
+        i += 1
+    return String(from_utf8_lossy=Span(out))
 
-    Args:
-        conf: The server settings, for the world name and game mode.
-        now_ms: The current monotonic time.
 
-    Returns:
-        The world.
+def termination_signals() raises -> SignalFD:
+    """Blocks SIGINT and SIGTERM in every thread, re-executing the program
+    once to do so (`signal.block_in_every_thread`), and returns the
+    descriptor that receives them, for `Server.close_on_program_end`."""
+    try:
+        block_in_every_thread([SIGINT, SIGTERM])
+    except e:
+        print("signals: cannot block in every thread:", e)
+    return SignalFD([SIGINT, SIGTERM])
 
-    Raises:
-        If `block_states.nbt` cannot be loaded.
-    """
-    var br = vanilla_block_registry(conf.block_states_path)
+
+def open_world(conf: Config, now_ms: Int) raises -> World[ServerWorld]:
+    """Opens the world in `conf.world_folder` (or one in memory) with
+    Dragonfly's default flat generator of grass, two dirt layers and
+    bedrock for chunks that are not stored (Go `createWorld`)."""
+    var br = ArcPointer(vanilla_block_registry(conf.block_states_path))
     var layers: List[UInt32] = [
-        br.block_runtime_id(Grass()),
-        br.block_runtime_id(Dirt()),
-        br.block_runtime_id(Dirt()),
-        br.block_runtime_id(Bedrock()),
+        br[].block_runtime_id(Grass()),
+        br[].block_runtime_id(Dirt()),
+        br[].block_runtime_id(Dirt()),
+        br[].block_runtime_id(Bedrock()),
     ]
-    var wc = WorldConfig[ServerWorld](
-        Flat(Plains(), layers^), MemoryProvider(), ArcPointer(br^)
-    )
+    var provider = WorldProvider()
+    var new_world = True
+    if case .Some(folder) = conf.world_folder:
+        new_world = not exists(join(folder, "level.dat"))
+        provider = WorldProvider.open(folder, br)
+    var gen = Flat(Plains(), layers^)
+    var fallback = gen.default_spawn(OVERWORLD)
+    var wc = WorldConfig[ServerWorld](gen^, provider^, br)
+    # The server saves on its own schedule (`Server._save`).
+    wc.save_interval_ms = -1
     var w = wc^.new(now_ms)
-    w.settings().name = conf.world_name.copy()
-    w.set_default_game_mode(conf.default_game_mode)
+    if new_world:
+        # Go's world without a provider: the generator's spawn.
+        w.settings().name = conf.world_name.copy()
+        w.set_default_game_mode(conf.default_game_mode)
+        w.set_spawn(fallback)
+    var spawn = w.spawn()
+    if spawn.y() >= _SPAWN_SEARCH_Y:
+        var y = w.highest_block(spawn.x(), spawn.z()) + 1
+        if y <= w.range().min() + 1:
+            # No terrain stored there: the generator's spawn.
+            y = fallback.y()
+        w.set_spawn(Pos(spawn.x(), y, spawn.z()))
     return w^
 
 
@@ -315,6 +391,9 @@ struct Server(Movable):
     """The world every player joins."""
     var sessions: List[Session[NetConn]]
     """The sessions of spawned players."""
+    var commands: Registry[CommandSource]
+    """The commands players and the console run (Go's global `cmd`
+    registry); the built-in ones are registered at start."""
     var _items: List[ItemEntry]
     var _biomes: List[UInt8]
     var _creative: List[UInt8]
@@ -324,6 +403,14 @@ struct Server(Movable):
     var _pending: List[MinecraftConn]
     var _closing: List[MinecraftConn]
     var _next_tick: Int
+    var _players: Optional[PlayerProvider]
+    var _player_data: Dict[UInt128, PlayerData]
+    var _next_save: Int
+    var _signals: Optional[SignalFD]
+    var _console: Optional[LineReader]
+    var _close_requested: Bool
+    var _closed: Bool
+    var _ticks: Int
 
     def __init__(out self, var conf: Config) raises:
         """Loads the world data and starts listening (Go `Config.New` and
@@ -335,9 +422,12 @@ struct Server(Movable):
         Raises:
             If a resource cannot be loaded or the address cannot be bound.
         """
-        var world = flat_world(conf, monotonic_ms())
+        var world = open_world(conf, monotonic_ms())
+        var players = Optional[PlayerProvider](None)
+        if case .Some(folder) = conf.players_folder:
+            players = PlayerProvider(folder)
         var items = item_entries(conf.vanilla_items_path)
-        var biomes = load_biome_definitions(conf.biome_definitions_path)
+        var biomes = biome_definition_packet(vanilla_biome_registry())
         var item_pks = item_packets(
             world.block_registry()[], conf.vanilla_items_path
         )
@@ -352,6 +442,8 @@ struct Server(Movable):
         self.listener = listener^
         self.world = world^
         self.sessions = List[Session[NetConn]]()
+        self.commands = Registry[CommandSource]()
+        register_builtin_commands(self.commands)
         self._items = items^
         self._biomes = biomes^
         self._creative = item_pks[0].copy()
@@ -361,6 +453,14 @@ struct Server(Movable):
         self._pending = List[MinecraftConn]()
         self._closing = List[MinecraftConn]()
         self._next_tick = monotonic_ms() + TICK_MS
+        self._players = players^
+        self._player_data = Dict[UInt128, PlayerData]()
+        self._next_save = monotonic_ms() + self.conf.save_interval_ms
+        self._signals = None
+        self._console = None
+        self._close_requested = False
+        self._closed = False
+        self._ticks = 0
 
     def addr(mut self) raises -> SocketAddr:
         """Returns the address the listener is bound to.
@@ -382,13 +482,29 @@ struct Server(Movable):
         return len(self.sessions)
 
     def run(mut self) raises:
-        """Runs the loop forever (Go `Listen` and `Accept` combined).
-
-        Raises:
-            If the listener fails.
-        """
-        while True:
+        """Runs the loop until `close` is requested, then closes the server
+        (Go `Listen` and `Accept`, then `Close`)."""
+        while not self._close_requested:
             self.step(50)
+        self.close()
+
+    def close_on_program_end(mut self, var signals: SignalFD):
+        """Makes SIGINT and SIGTERM close the server, saving everything (Go
+        `CloseOnProgramEnd`). Create `signals` with `termination_signals()`
+        first thing in `main`, which may re-execute the program."""
+        self._signals = signals^
+
+    def read_console(mut self):
+        """Runs commands typed on standard input as the console."""
+        self._console = LineReader(STDIN)
+
+    def request_close(mut self):
+        """Makes `run` return after closing the server."""
+        self._close_requested = True
+
+    def close_requested(self) -> Bool:
+        """Reports whether the server is shutting down."""
+        return self._close_requested
 
     def step(mut self, max_wait_ms: Int) raises:
         """Runs one iteration of the event loop.
@@ -414,7 +530,24 @@ struct Server(Movable):
             ref s = self.sessions[_i]
             s.conn.conn.add_poll_fds(set)
             due = min(due, s.conn.conn.next_timeout())
+        if self.conf.save_interval_ms > 0:
+            due = min(due, self._next_save)
+        var signal_index = -1
+        if self._signals:
+            signal_index = set.add(self._signals.value().fd())
+        var console_index = -1
+        if self._console and not self._console.value().eof():
+            console_index = set.add(self._console.value().fd())
         _ = set.wait(max(0, min(due - monotonic_ms(), max_wait_ms)))
+        if signal_index >= 0 and set.readable(signal_index):
+            if self._signals.value().read():
+                print("signal received, closing")
+                self._close_requested = True
+        if console_index >= 0 and (
+            set.readable(console_index) or set.failed(console_index)
+        ):
+            for line in self._console.value().read_lines():
+                self.execute_console_command(line)
 
         var now = monotonic_ms()
         self.listener.poll(now)
@@ -440,10 +573,177 @@ struct Server(Movable):
             # Too far behind: skip ticks rather than spiral.
             self._next_tick = now + TICK_MS
 
+        if self.conf.save_interval_ms > 0 and now >= self._next_save:
+            self.save()
+            self._next_save = now + self.conf.save_interval_ms
+
         for _i in range(len(self.sessions)):
             ref s = self.sessions[_i]
             s.flush()
         self._remove_closed_sessions()
+
+    # ===------------------------------------------------------------------=== #
+    # Commands
+    # ===------------------------------------------------------------------=== #
+
+    def execute_console_command(mut self, line: String):
+        """Runs a line typed on the console and prints its output."""
+        if line.strip().byte_length() == 0:
+            return
+        var src = CommandSource(console_at=self._spawn_position())
+        execute_command(self, src, line)
+        if case .Some(ref o) = src.output:
+            for m in o.messages():
+                print(strip_formatting(String(m)))
+            for e in o.errors():
+                print(strip_formatting(String(e)))
+
+    def execute_player_command(mut self, i: Int, line: String):
+        """Runs a command line as a player and shows them the output (Go
+        `Player.ExecuteCommand`)."""
+        var src = CommandSource(self.sessions[i].player)
+        var id = self.sessions[i].player.uuid()
+        print(t"{src.name} issued command: {line}")
+        execute_command(self, src, line)
+        if case .Some(ref o) = src.output:
+            if case .Some(j) = self.session_index(id):
+                self.sessions[j].send_command_output(o)
+
+    def session_index(self, id: UUID) -> Optional[Int]:
+        """Returns the index in `sessions` of the player with a UUID."""
+        for i in range(len(self.sessions)):
+            if self.sessions[i].player.uuid() == id:
+                return i
+        return None
+
+    def set_player_game_mode(mut self, i: Int, mode: GameMode):
+        """Changes a player's game mode and shows it (Go `SetGameMode`)."""
+        self.sessions[i].player.set_game_mode(mode)
+        self.sessions[i].send_game_mode()
+        var p = self.sessions[i].player.copy()
+        for j in range(len(self.sessions)):
+            if j != i:
+                self.sessions[j].view_entity_game_mode(p)
+
+    def teleport_player(mut self, i: Int, pos: Vec3):
+        """Teleports a player and shows it to everyone, the player included
+        (Go `Player.Teleport`)."""
+        self.sessions[i].player.teleport(pos)
+        var p = self.sessions[i].player.copy()
+        for j in range(len(self.sessions)):
+            self.sessions[j].view_entity_teleport(p, pos)
+
+    def broadcast(mut self, message: String):
+        """Sends a message to every player and the log (Go `chat.Global`)."""
+        print(message)
+        for i in range(len(self.sessions)):
+            self.sessions[i].send_message(message)
+
+    def max_player_count(self) -> Int:
+        """Returns the player limit; without one, one more than are online,
+        as Dragonfly's status provider shows."""
+        if self.conf.max_players > 0:
+            return self.conf.max_players
+        return len(self.sessions) + 1
+
+    # ===------------------------------------------------------------------=== #
+    # Saving and closing
+    # ===------------------------------------------------------------------=== #
+
+    def save(mut self):
+        """Saves the world, its settings and `level.dat`, and the data of
+        every online player (Go's `World` auto save, plus the rest)."""
+        for i in range(len(self.sessions)):
+            self._save_player(i)
+        self.world.save()
+        try:
+            self.world.provider().flush_level_dat()
+        except e:
+            print("save world:", e)
+        if self.world.last_error:
+            print("world:", self.world.last_error.value())
+            self.world.last_error = None
+
+    def _save_player(mut self, i: Int):
+        """Go `PlayerProvider.Save` with `Player.Data`."""
+        if not self._players:
+            return
+        ref p = self.sessions[i].player
+        var key = uuid_key(p.uuid())
+        var data = self._player_data.get(key).or_else(PlayerData())
+        data.put_player(p, self.world.dimension().id)
+        try:
+            self._players.value().save(p.uuid(), data)
+        except e:
+            print(t"save player data of {p.name()}: {e}")
+        self._player_data[key] = data^
+
+    def _load_player(mut self, id: UUID) -> Optional[PlayerData]:
+        """Go `PlayerProvider.Load`; None makes the player use defaults."""
+        if not self._players:
+            return None
+        try:
+            return self._players.value().load(id)
+        except e:
+            print(t"load player data of {id}: {e}")
+            return None
+
+    def close(mut self):
+        """Disconnects every player, saves their data and the world, and
+        closes the providers (Go `Server.close`). Calling it again does
+        nothing."""
+        if self._closed:
+            return
+        self._closed = True
+        self._close_requested = True
+        print("server closing")
+        while len(self.sessions) > 0:
+            self._save_player(0)
+            var gone = self.sessions.pop(0)
+            gone.close(self.world)
+            var c = gone^.into_conn()
+            var inner = c^.into_inner()
+            inner.disconnect(String(_SHUTDOWN_KEY))
+            self._closing.append(inner^)
+            self.listener.connection_closed()
+        for _i in range(len(self._pending)):
+            self._pending[_i].disconnect(String(_SHUTDOWN_KEY))
+        if self._players:
+            try:
+                self._players.value().close()
+            except e:
+                print("close player provider:", e)
+        self.world.close()
+        if self.world.last_error:
+            print("world:", self.world.last_error.value())
+        # Let the disconnects reach the clients.
+        var deadline = monotonic_ms() + 2000
+        while (
+            len(self._closing) + len(self._pending) > 0
+            and monotonic_ms() < deadline
+        ):
+            var set = PollSet()
+            for _i in range(len(self._closing)):
+                self._closing[_i].add_poll_fds(set)
+            for _i in range(len(self._pending)):
+                self._pending[_i].add_poll_fds(set)
+            try:
+                _ = set.wait(10)
+            except:
+                pass
+            var now = monotonic_ms()
+            self._poll_closing(now)
+            var i = 0
+            while i < len(self._pending):
+                try:
+                    self._pending[i].poll(now)
+                except:
+                    pass
+                if self._pending[i].is_closed():
+                    _ = self._pending.pop(i)
+                    continue
+                i += 1
+        print("server closed")
 
     # ===------------------------------------------------------------------=== #
     # Joining
@@ -500,8 +800,24 @@ struct Server(Movable):
             t" xuid={conn.identity_data.xuid}"
             t" authenticated={conn.authenticated()}"
         )
+        var data = self.default_game_data()
         try:
-            conn.start_game(self.default_game_data())
+            var id = UUID.parse(conn.identity_data.identity)
+            if case .Some(d) = self._load_player(id):
+                # Go `finaliseConn` with the data the player provider loaded.
+                data.player_position = vec64_to32(
+                    d.position.add(Vec3(0, EYE_HEIGHT, 0))
+                )
+                data.yaw = Float32(d.yaw)
+                data.pitch = Float32(d.pitch)
+                if case .Some(mode) = d.mode():
+                    data.player_game_mode = game_type_from_mode(mode)
+                    if mode == GAME_MODE_SPECTATOR:
+                        data.player_game_mode = GAME_TYPE_SPECTATOR
+        except:
+            pass  # An invalid identity is refused in `_create_player`.
+        try:
+            conn.start_game(data^)
         except e:
             print("start game:", e)
             conn.start_close()
@@ -575,13 +891,17 @@ struct Server(Movable):
             self._closing.append(conn^)
             self.listener.connection_closed()
             return
-        var player = Player(
-            name,
-            conn.identity_data.xuid,
-            uuid,
-            self._spawn_position(),
-            self.world.default_game_mode(),
-        )
+        var pos = self._spawn_position()
+        var rot = Rotation()
+        var mode = self.world.default_game_mode()
+        var stored = self._load_player(uuid)
+        if case .Some(ref d) = stored:
+            pos = d.position
+            rot = d.rotation()
+            if case .Some(m) = d.mode():
+                mode = m
+        self._player_data[uuid_key(uuid)] = stored^.or_else(PlayerData())
+        var player = Player(name, conn.identity_data.xuid, uuid, pos, mode, rot)
         player.set_locale(conn.client_data.language_code)
         var sc = SessionConfig()
         sc.max_chunk_radius = self.conf.max_chunk_radius
@@ -608,6 +928,9 @@ struct Server(Movable):
             SessionViewer(self.sessions[n].queue()),
         )
         self.sessions[n].spawn(self.world, loader)
+        self.sessions[n].send_available_commands(
+            self.commands.commands(), CommandSource(self.sessions[n].player)
+        )
         # World.AddEntity: viewers see the new player and it sees them.
         for j in range(n):
             self.sessions[j].view_entity(me)
@@ -667,13 +990,24 @@ struct Server(Movable):
             for _i in range(len(self.sessions)):
                 ref s = self.sessions[_i]
                 s.send_message(line)
+        if case .Some(line) = res.command:
+            self.execute_player_command(i, line)
 
     def _tick(mut self):
         """Runs the per-tick session work (each session's `background`
         loop in Go); the world ticks on its own deadline."""
-        for _i in range(len(self.sessions)):
-            ref s = self.sessions[_i]
-            s.send_chunks(self.world)
+        self._ticks += 1
+        for i in range(len(self.sessions)):
+            self.sessions[i].send_chunks(self.world)
+            # Go `background`: enums every second, commands every 5 seconds.
+            if self._ticks % 20 == 0 or self._ticks % 100 == 0:
+                var src = CommandSource(self.sessions[i].player)
+                if self._ticks % 20 == 0:
+                    self.sessions[i].resend_enums(self.commands.commands(), src)
+                if self._ticks % 100 == 0:
+                    _ = self.sessions[i].resend_commands(
+                        self.commands.commands(), src
+                    )
 
     def _remove_closed_sessions(mut self):
         """Removes sessions whose connection closed (Go `Session.close`
@@ -688,9 +1022,11 @@ struct Server(Movable):
             var reason = s.conn.conn.close_reason()
             if s.write_error():
                 reason = s.write_error().value()
+            self._save_player(i)
             var gone = self.sessions.pop(i)
             gone.close(self.world)
             var p = gone.player.copy()
+            _ = self._player_data.pop(uuid_key(p.uuid()), PlayerData())
             for _i in range(len(self.sessions)):
                 ref other = self.sessions[_i]
                 other.hide_entity(p)

@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-# Fails if `mojo doc` reports an error or warning in any package.
-#
-# Docstrings are one short line without `Args:`/`Returns:`/`Raises:`/
-# `Parameters:` sections, so `--diagnose-missing-doc-strings`, which demands
-# those sections, is not used.
+# Fails on malformed docstrings in every package. Docstrings are short (one
+# line, more only when non-obvious) with no Args/Returns/Raises/Parameters
+# sections, so --diagnose-missing-doc-strings, which demands them, is off.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 for p in ignis; do
