@@ -347,9 +347,16 @@ def open_world(conf: Config, now_ms: Int) raises -> World[ServerWorld]:
         provider = WorldProvider.open(folder, br)
     var gen = Flat(Plains(), layers^)
     var fallback = gen.default_spawn(OVERWORLD)
+    var tick_speed: Optional[Int] = None
+    if not new_world:
+        tick_speed = provider.random_tick_speed()
     var wc = WorldConfig[ServerWorld](gen^, provider^, br)
     # The server saves on its own schedule (`Server._save`).
     wc.save_interval_ms = -1
+    if case .Some(speed) = tick_speed:
+        # The world's `randomtickspeed` game rule; 0 turns random ticks off
+        # (the world config reads 0 as the default of 3).
+        wc.random_tick_speed = speed if speed > 0 else -1
     var w = wc^.new(now_ms)
     if new_world:
         # Go's world without a provider: the generator's spawn.
@@ -534,6 +541,7 @@ struct Server(Movable):
 
         if now >= self.world.next_deadline_ms():
             _ = self.world.tick(now)
+            self._spawn_block_drops()
         var ticks = 0
         while now >= self._next_tick and ticks < _MAX_CATCH_UP_TICKS:
             self._tick()
@@ -1148,6 +1156,15 @@ struct Server(Movable):
         if not r[1].empty():
             self.spawn_item(pos, vel, r[1])
         return True
+
+    def _spawn_block_drops(mut self):
+        """Spawns the items blocks dropped during world ticks, thrown as Go's
+        `dropItem` throws them."""
+        for d in self.world.take_item_drops():
+            ref r = self.world.global_rand()
+            var x = r.float64() * 0.2 - 0.1
+            var z = r.float64() * 0.2 - 0.1
+            self.spawn_item(d.pos, Vec3(x, 0.2, z), d.stack)
 
     def _tick(mut self):
         """Runs the per-tick session work (each session's `background`

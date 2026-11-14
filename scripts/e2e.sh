@@ -16,6 +16,9 @@
 #   5. A copy of the world.mcdb fixture (test/data/mcdb/dragonfly-world)
 #      loads: spawn, game mode and time come from its level.dat and the
 #      spawn column's sub-chunks come from its database.
+#   6. interop/bots/behaviour_bot.mojo: in a world with a water source and
+#      floating sand, the water flows, the sand falls as a falling block
+#      entity and lands in the water.
 #
 # Usage: scripts/e2e.sh [port]
 set -euo pipefail
@@ -29,6 +32,7 @@ mojo build --fp-mode contract=off "${inc[@]}" cmd/ignis/main.mojo -o build/ignis
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/two_bots.mojo -o build/two_bots
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/persist_bot.mojo -o build/persist_bot
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/interact_bot.mojo -o build/interact_bot
+mojo build --fp-mode contract=off "${inc[@]}" interop/bots/behaviour_bot.mojo -o build/behaviour_bot
 
 dir="$(mktemp -d)"
 pid=""
@@ -129,6 +133,13 @@ if [[ $status -eq 0 ]]; then
     # level.dat: spawn (1, 70, 2), creative, time 6000 with the cycle off.
     bot expect-start "$addr" 1.5 70.5 2.5 1 6000
     stop TERM server3.log
+
+    ./build/behaviour_bot prepare "$dir/behaviour" 2>&1 | grep -v '^dial'
+    printf '[World]\nFolder = "%s/behaviour"\n[Players]\nSaveData = false\n' \
+        "$dir" >"$dir/config.toml"
+    start server4.log
+    ./build/behaviour_bot watch "$addr" 2>&1 | grep -v '^dial'
+    stop TERM server4.log
 fi
 echo "--- server log"
 cat "$dir/server1.log"
