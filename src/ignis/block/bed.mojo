@@ -16,7 +16,7 @@ from ..item.item import MaxCounter
 from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
-from ..world.item import EncodedItem, Item
+from ..world.item import EncodedItem, Item, ItemHasher
 from .block import horizontal_direction
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -36,6 +36,7 @@ struct Bed(
     Equatable,
     ImplicitlyCopyable,
     Item,
+    ItemHasher,
     LightDiffuser,
     MaxCounter,
     ModelledBlock,
@@ -176,6 +177,18 @@ struct Bed(
     def max_count(self) -> Int:
         """Returns the maximum stack count (Go `MaxCount`)."""
         return 1
+
+    def item_hash(self) -> UInt64:
+        """Returns the item hash: the state hash with the colour, which Go
+        keeps in the block entity, in bits 8 to 11."""
+        return self.hash() | UInt64(self.colour.uint8()) << 8
+
+    @staticmethod
+    def from_item_hash(hash: UInt64) -> Self:
+        """Rebuilds the item from its `item_hash`."""
+        var b = Self.from_hash(hash & 0xFF)
+        b.colour = Colour(Int((hash >> 8) & 0xF))
+        return b^
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

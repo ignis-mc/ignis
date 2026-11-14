@@ -83,7 +83,8 @@ def _line(
     # The type: Go's name if the kind is the one Ignis derives from it.
     if it.block:
         f.append(go_type)
-        f.append(String(t"{k}:{_fixed_go_hash(k, h)}"))
+        var state = VanillaBlockItems.state_hash(k, h).value()
+        f.append(String(t"{k}:{_fixed_go_hash(k, state)}"))
     else:
         f.append(go_type if k == fnv1a_64(go_type.as_bytes()) else "?")
         f.append("-")

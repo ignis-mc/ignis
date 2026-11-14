@@ -5,6 +5,7 @@ RedstoneSource, RedstonePower, RedstoneStrongPower, the connection calculation,
 diagonal wire updates, Model, HasLiquidDrops, the break handler and the drops.
 """
 
+from ..item.armour_trim import ArmourTrimMaterial
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
@@ -22,6 +23,7 @@ from .wire_connection import WireConnections, all_wire_connections
 
 
 struct RedstoneWire(
+    ArmourTrimMaterial,
     Block,
     Breakable,
     Equatable,
@@ -141,6 +143,15 @@ struct RedstoneWire(
             The model.
         """
         return EmptyModel()
+
+    def trim_material(self) -> StaticString:
+        """Returns the trim material identifier (Go `TrimMaterial`)."""
+        return "redstone"
+
+    def material_colour(self) -> StaticString:
+        """Returns the trim text colour (Go `MaterialColour`, `text.Redstone`).
+        """
+        return "§m"
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

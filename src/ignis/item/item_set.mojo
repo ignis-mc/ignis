@@ -10,8 +10,14 @@ become traits, and their dispatchers loop over `Ts` with
 
 from minecraft.nbt.tree import Tree
 
-from ..world.block import NBTer
-from ..world.item import AnyItem, EncodedItem, Item, ItemRegistry
+from ..world.block import Block, NBTer
+from ..world.item import (
+    AnyItem,
+    EncodedItem,
+    Item,
+    ItemRegistry,
+    from_any_hash,
+)
 from .armour import (
     Armour,
     BootsType,
@@ -65,7 +71,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, MaxCounter):
                 if kind == T.BASE_HASH:
-                    return _max_count(T.from_hash(hash))
+                    return _max_count(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -75,7 +81,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Durable):
                 if kind == T.BASE_HASH:
-                    return _durability_info(T.from_hash(hash))
+                    return _durability_info(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -85,7 +91,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Tool):
                 if kind == T.BASE_HASH:
-                    return _tool_type(T.from_hash(hash))
+                    return _tool_type(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -95,7 +101,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Tool):
                 if kind == T.BASE_HASH:
-                    return _harvest_level(T.from_hash(hash))
+                    return _harvest_level(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -105,7 +111,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Armour):
                 if kind == T.BASE_HASH:
-                    return _defence_points(T.from_hash(hash))
+                    return _defence_points(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -115,7 +121,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Armour):
                 if kind == T.BASE_HASH:
-                    return _toughness(T.from_hash(hash))
+                    return _toughness(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -125,7 +131,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Armour):
                 if kind == T.BASE_HASH:
-                    return _knock_back_resistance(T.from_hash(hash))
+                    return _knock_back_resistance(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -135,7 +141,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Consumable):
                 if kind == T.BASE_HASH:
-                    return _always_consumable(T.from_hash(hash))
+                    return _always_consumable(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -145,7 +151,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Consumable):
                 if kind == T.BASE_HASH:
-                    return _consume_duration(T.from_hash(hash))
+                    return _consume_duration(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -155,7 +161,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Consumable):
                 if kind == T.BASE_HASH:
-                    return _consume_info(T.from_hash(hash))
+                    return _consume_info(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -165,7 +171,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Fuel):
                 if kind == T.BASE_HASH:
-                    return _fuel_info(T.from_hash(hash))
+                    return _fuel_info(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -175,7 +181,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Smeltable):
                 if kind == T.BASE_HASH:
-                    return _smelt_info(T.from_hash(hash))
+                    return _smelt_info(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -185,7 +191,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Enchantable):
                 if kind == T.BASE_HASH:
-                    return _enchantment_value(T.from_hash(hash))
+                    return _enchantment_value(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -195,7 +201,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Compostable):
                 if kind == T.BASE_HASH:
-                    return _compost_chance(T.from_hash(hash))
+                    return _compost_chance(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -205,7 +211,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, OffHand):
                 if kind == T.BASE_HASH:
-                    return _off_hand(T.from_hash(hash))
+                    return _off_hand(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -216,7 +222,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, BeaconPayment):
                 if kind == T.BASE_HASH:
-                    return _payable_for_beacon(T.from_hash(hash))
+                    return _payable_for_beacon(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -226,7 +232,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Weapon):
                 if kind == T.BASE_HASH:
-                    return _attack_damage(T.from_hash(hash))
+                    return _attack_damage(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -236,7 +242,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Cooldown):
                 if kind == T.BASE_HASH:
-                    return _cooldown(T.from_hash(hash))
+                    return _cooldown(from_any_hash[T](hash))
         return None
 
     @staticmethod
@@ -251,7 +257,7 @@ struct ItemSet[*Ts: Item]:
             comptime if conforms_to(T, Tool):
                 if kind == T.BASE_HASH:
                     return _base_mining_efficiency(
-                        T.from_hash(hash), block_kind
+                        from_any_hash[T](hash), block_kind
                     )
         return None
 
@@ -285,7 +291,7 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[j]
             comptime if conforms_to(T, Repairable):
                 if kind == T.BASE_HASH:
-                    return _repairable_by(T.from_hash(hash), i)
+                    return _repairable_by(from_any_hash[T](hash), i)
         return None
 
     @staticmethod
@@ -299,7 +305,18 @@ struct ItemSet[*Ts: Item]:
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, NBTer):
                 if kind == T.BASE_HASH:
-                    return _item_nbt(T.from_hash(hash), data)
+                    return _item_nbt(from_any_hash[T](hash), data)
+        return None
+
+    @staticmethod
+    def state_hash(kind: UInt64, hash: UInt64) -> Optional[UInt64]:
+        """Returns the block state hash of a block item from its
+        `AnyItem.hash`; None if no block type in the set has that kind."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Block):
+                if kind == T.BASE_HASH:
+                    return from_any_hash[T](hash).hash()
         return None
 
     @staticmethod
@@ -308,7 +325,7 @@ struct ItemSet[*Ts: Item]:
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             if kind == T.BASE_HASH:
-                return T.from_hash(hash).encode_item()
+                return from_any_hash[T](hash).encode_item()
         return None
 
 
