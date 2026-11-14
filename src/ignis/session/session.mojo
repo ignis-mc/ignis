@@ -188,6 +188,43 @@ from .command import build_available_commands, command_output
 from .conn import Conn
 from .viewer import PacketQueue
 
+# The player UI (forms, scoreboards, boss bars, titles, dialogues, skins).
+from minecraft.protocol.entity_metadata import EntityMetadata
+from minecraft.protocol.packet.id import (
+    ID_MODAL_FORM_RESPONSE,
+    ID_NPC_REQUEST,
+    ID_PLAYER_SKIN,
+)
+from minecraft.protocol.packet.modal_form_response import ModalFormResponse
+from minecraft.protocol.packet.npc_request import NPCRequest
+from minecraft.protocol.packet.player_skin import PlayerSkin
+from ..player.chat import Translation
+from ..player.scoreboard import Scoreboard
+from ..player.title import Title
+from .skin import protocol_to_skin, skin_to_protocol
+from .ui import (
+    FormResponse,
+    NPCAction,
+    SessionUI,
+    announcement_packet,
+    boss_bar_packets,
+    close_dialogue_packets,
+    close_form_packet,
+    dialogue_packets,
+    form_packet,
+    form_response,
+    jukebox_popup_packet,
+    npc_action,
+    popup_packet,
+    remove_boss_bar_packet,
+    remove_scoreboard_packets,
+    scoreboard_packets,
+    tip_packet,
+    title_packets,
+    toast_packet,
+    translation_packet,
+)
+
 
 comptime SELF_ENTITY_RUNTIME_ID: UInt64 = 1
 """The entity runtime and unique ID of the session's own player (Go
@@ -256,6 +293,15 @@ struct HandleResult(Copyable, Defaultable):
     """A chat line to send to every player (Go `chat.Global`)."""
     var command: Optional[String]
     """A command line to run as the player (Go `ExecuteCommand`)."""
+    var form_response: Optional[FormResponse]
+    """A response to a form, for the server, which keeps the forms (Go
+    `ModalFormResponseHandler`)."""
+    var npc_action: Optional[NPCAction]
+    """A button pressed in, or the closing of, the open dialogue (Go
+    `NPCRequestHandler`)."""
+    var skin_changed: Bool
+    """The player changed skin; `join_skin` holds the new one (Go
+    `SetSkin`, shown with `ViewSkin`)."""
 
     def __init__(out self):
         """Creates a result in which nothing changed."""
@@ -263,6 +309,9 @@ struct HandleResult(Copyable, Defaultable):
         self.state_changed = False
         self.chat = None
         self.command = None
+        self.form_response = None
+        self.npc_action = None
+        self.skin_changed = False
 
 
 def uuid_key(id: UUID) -> String:
@@ -365,6 +414,8 @@ struct Session[C: Conn](Movable):
     var _runnables: Dict[String, List[Int]]
     var _enum_values: Dict[String, List[String]]
     var _soft_enums: Set[String]
+    var ui: SessionUI
+    """The UI state Go keeps on the session (`session.ui`)."""
 
     def __init__(
         out self,
@@ -398,6 +449,7 @@ struct Session[C: Conn](Movable):
         self._runnables = Dict[String, List[Int]]()
         self._enum_values = Dict[String, List[String]]()
         self._soft_enums = Set[String]()
+        self.ui = SessionUI()
         self._entity_runtime_ids[
             uuid_key(self.player.uuid())
         ] = SELF_ENTITY_RUNTIME_ID
@@ -609,6 +661,26 @@ struct Session[C: Conn](Movable):
                     w,
                 )
             return HandleResult()
+        if id == ID_MODAL_FORM_RESPONSE:
+            var res = HandleResult()
+            res.form_response = form_response(pk.decode[ModalFormResponse]())
+            return res^
+        if id == ID_NPC_REQUEST:
+            var res = HandleResult()
+            if self.ui.dialogue_entity != 0:
+                res.npc_action = npc_action(pk.decode[NPCRequest]())
+            return res^
+        if id == ID_PLAYER_SKIN:
+            # Go `PlayerSkinHandler`: validate, then the player's skin.
+            var req = pk.decode[PlayerSkin]()
+            try:
+                var s = protocol_to_skin(req.skin)
+                self.join_skin = skin_to_protocol(s)
+            except e:
+                raise Error(t"error decoding skin: {e}")
+            var res = HandleResult()
+            res.skin_changed = True
+            return res^
         if id == ID_REQUEST_CHUNK_RADIUS:
             var req = pk.decode[RequestChunkRadius]()
             var radius = req.chunk_radius
@@ -817,6 +889,153 @@ struct Session[C: Conn](Movable):
         pk.needs_translation = True
         pk.message = key.copy()
         pk.parameters = parameters^
+        self.write_packet(pk)
+
+    # ===------------------------------------------------------------------=== #
+    # Player UI (Go text.go and the form and dialogue parts of player.go)
+    # ===------------------------------------------------------------------=== #
+
+    def _write_all(mut self, pks: List[List[UInt8]]):
+        for p in pks:
+            self._write_encoded(p)
+
+    def messaget(mut self, t: Translation, args: List[String]):
+        """Sends a translation the client translates (Go `Messaget` and
+        `SendTranslation`)."""
+        try:
+            self._write_encoded(
+                translation_packet(t, self.player.locale(), args)
+            )
+        except e:
+            self._write_error = String(e)
+
+    def send_tip(mut self, message: String):
+        """Shows a tip above the hotbar (Go `SendTip`)."""
+        try:
+            self._write_encoded(tip_packet(message))
+        except e:
+            self._write_error = String(e)
+
+    def send_popup(mut self, message: String):
+        """Shows a popup above the hotbar (Go `SendPopup`)."""
+        try:
+            self._write_encoded(popup_packet(message))
+        except e:
+            self._write_error = String(e)
+
+    def send_jukebox_popup(mut self, message: String):
+        """Shows a jukebox popup (Go `SendJukeboxPopup`)."""
+        try:
+            self._write_encoded(jukebox_popup_packet(message))
+        except e:
+            self._write_error = String(e)
+
+    def send_announcement(mut self, message: String):
+        """Sends an announcement (Go `SendAnnouncement`)."""
+        try:
+            self._write_encoded(announcement_packet(message))
+        except e:
+            self._write_error = String(e)
+
+    def send_toast(mut self, title: String, message: String):
+        """Shows a toast at the top of the screen (Go `SendToast`)."""
+        try:
+            self._write_encoded(toast_packet(title, message))
+        except e:
+            self._write_error = String(e)
+
+    def send_scoreboard(mut self, sb: Scoreboard):
+        """Shows a scoreboard on the sidebar (Go `SendScoreboard`)."""
+        try:
+            self._write_all(scoreboard_packets(self.ui, sb))
+        except e:
+            self._write_error = String(e)
+
+    def remove_scoreboard(mut self):
+        """Removes the scoreboard shown (Go `RemoveScoreboard`)."""
+        try:
+            self._write_all(remove_scoreboard_packets(self.ui))
+        except e:
+            self._write_error = String(e)
+
+    def send_boss_bar(
+        mut self, text: String, colour: UInt8, health_percentage: Float64
+    ):
+        """Shows a boss bar, replacing any shown (Go `SendBossBar`)."""
+        try:
+            self._write_all(boss_bar_packets(text, colour, health_percentage))
+        except e:
+            self._write_error = String(e)
+
+    def remove_boss_bar(mut self):
+        """Removes the boss bar shown (Go `RemoveBossBar`)."""
+        try:
+            self._write_encoded(remove_boss_bar_packet())
+        except e:
+            self._write_error = String(e)
+
+    def send_title(mut self, t: Title):
+        """Shows a title, subtitle and action bar text (Go
+        `Player.SendTitle`)."""
+        try:
+            self._write_all(title_packets(t))
+        except e:
+            self._write_error = String(e)
+
+    def send_form_json(mut self, json: String) -> UInt32:
+        """Sends a form's JSON with the next form ID and returns the ID (Go
+        `SendForm`; the server keeps the form, see `server.ui`)."""
+        try:
+            self._write_encoded(form_packet(self.ui, json))
+        except e:
+            self._write_error = String(e)
+        return self.ui.current_form_id
+
+    def close_form(mut self):
+        """Closes any open form (Go `CloseForm`)."""
+        try:
+            self._write_encoded(close_form_packet())
+        except e:
+            self._write_error = String(e)
+
+    def send_dialogue(
+        mut self,
+        entity_runtime_id: UInt64,
+        var metadata: EntityMetadata,
+        npc_data_json: String,
+        title: String,
+        body: String,
+        actions_json: String,
+    ):
+        """Opens an NPC dialogue on an entity (Go `SendDialogue`; the server
+        keeps the dialogue)."""
+        try:
+            self._write_all(
+                dialogue_packets(
+                    self.ui,
+                    entity_runtime_id,
+                    metadata^,
+                    npc_data_json,
+                    title,
+                    body,
+                    actions_json,
+                )
+            )
+        except e:
+            self._write_error = String(e)
+
+    def close_dialogue(mut self):
+        """Closes the open dialogue, if any (Go `CloseDialogue`)."""
+        try:
+            self._write_all(close_dialogue_packets(self.ui))
+        except e:
+            self._write_error = String(e)
+
+    def view_skin(mut self, p: Player, skin: Skin):
+        """Shows another player's new skin (Go `ViewSkin`)."""
+        var pk = PlayerSkin()
+        pk.uuid = p.uuid()
+        pk.skin = skin.copy()
         self.write_packet(pk)
 
     # ===------------------------------------------------------------------=== #

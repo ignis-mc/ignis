@@ -59,20 +59,12 @@ from minecraft.protocol.packet.adventure_settings import (
     PERMISSION_LEVEL_MEMBER,
 )
 from minecraft.protocol.packet.set_player_game_type import GAME_TYPE_SPECTATOR
-from minecraft.protocol.skin import (
-    SKIN_ANIMATION_BODY_128X128,
-    SKIN_ANIMATION_BODY_32X32,
-    SKIN_ANIMATION_HEAD,
-    Skin,
-    SkinAnimation,
-)
+from minecraft.protocol.skin import Skin
 from minecraft.protocol.packet.packet import encode_packet
 from minecraft.protocol.uuid import UUID
 from minecraft.server_status_provider import ListenerStatusProvider
-from nethernet.crypto.base64 import base64_decode
 from nethernet.os.addr import SocketAddr
 from nethernet.os.poll import PollSet
-from nethernet.os.random import random_bytes
 from nethernet.os.time import monotonic_ms
 
 from ..internal.fs import exists, join
@@ -127,6 +119,10 @@ from ..world.generator.flat import Flat
 from ..world.handler import NopHandler
 from ..world.world import TICK_MS, World, WorldTypes
 from .conf import Config
+from .ui import ServerUI, handle_form_response, handle_npc_action
+from ..session.skin import parse_skin as skin_from_client_data
+from ..session.skin import skin_to_protocol
+from .ui_demo import register_ui_commands
 
 
 comptime _JOIN_KEY = "§e%multiplayer.player.joined§r"
@@ -211,59 +207,11 @@ def item_packets(
     )
 
 
-def _random_uuid_string() raises -> String:
-    return String(UUID.from_random(Span(random_bytes(16))))
-
-
-def _b64(s: String) -> List[UInt8]:
-    """Decodes base64 like Go's `base64.StdEncoding.DecodeString` whose
-    error Dragonfly ignores: bad input gives no bytes."""
-    try:
-        return base64_decode(s)
-    except:
-        return List[UInt8]()
-
-
 def parse_skin(data: ClientData) raises -> Skin:
     """Builds the network skin of a player from its client data (Go
-    `Server.parseSkin` followed by `skinToProtocol`)."""
-    var s = Skin()
-    s.skin_id = _random_uuid_string()
-    # Go decodes the resource patch into a ModelConfig and encodes it
-    # again; the JSON is passed through unchanged here.
-    s.skin_resource_patch = _b64(data.skin_resource_patch)
-    s.skin_image_width = UInt32(data.skin_image_width)
-    s.skin_image_height = UInt32(data.skin_image_height)
-    s.skin_data = _b64(data.skin_data)
-    s.cape_image_width = UInt32(data.cape_image_width)
-    s.cape_image_height = UInt32(data.cape_image_height)
-    s.cape_data = _b64(data.cape_data)
-    s.skin_geometry = _b64(data.skin_geometry)
-    if len(s.skin_geometry) == 0:
-        s.skin_geometry = List[UInt8]("{}".as_bytes())
-    s.persona_skin = data.persona_skin
-    s.cape_id = _random_uuid_string()
-    s.full_id = data.skin_id.copy()
-    if s.full_id.byte_length() == 0:
-        s.full_id = _random_uuid_string()
-    for a in data.animated_image_data:
-        var anim = SkinAnimation()
-        anim.image_width = UInt32(a.image_width)
-        anim.image_height = UInt32(a.image_height)
-        anim.image_data = _b64(a.image)
-        anim.frame_count = Float32(Int(a.frames))
-        if a.type == 1:
-            anim.animation_type = SKIN_ANIMATION_HEAD
-        elif a.type == 2:
-            anim.animation_type = SKIN_ANIMATION_BODY_32X32
-        elif a.type == 3:
-            anim.animation_type = SKIN_ANIMATION_BODY_128X128
-        anim.expression_type = UInt32(a.animation_expression)
-        s.animations.append(anim^)
-    s.trusted = True
-    s.override_appearance = True
-    s.geometry_data_engine_version = List[UInt8](CURRENT_VERSION.as_bytes())
-    return s^
+    `Server.parseSkin` followed by `skinToProtocol`): the resource patch is
+    decoded into a `ModelConfig` and encoded again, as Go does."""
+    return skin_to_protocol(skin_from_client_data(data))
 
 
 struct ServerWorld(WorldTypes):
@@ -362,6 +310,8 @@ struct Server(Movable):
     var commands: Registry[CommandSource]
     """The commands players and the console run (Go's global `cmd`
     registry); the built-in ones are registered at start."""
+    var ui: ServerUI
+    """The forms and dialogues players have open (`server.ui`)."""
     var _items: List[ItemEntry]
     var _biomes: List[UInt8]
     var _creative: List[UInt8]
@@ -405,6 +355,8 @@ struct Server(Movable):
         self.sessions = List[Session[NetConn]]()
         self.commands = Registry[CommandSource]()
         register_builtin_commands(self.commands)
+        register_ui_commands(self.commands)
+        self.ui = ServerUI()
         self._items = items^
         self._biomes = biomes^
         self._creative = item_pks[0].copy()
@@ -909,7 +861,7 @@ struct Server(Movable):
                     self.sessions[i].conn.conn.start_close()
                     break
 
-    def _apply(mut self, i: Int, res: HandleResult):
+    def _apply(mut self, i: Int, res: HandleResult) raises:
         """Shows what a handled packet changed to the other sessions."""
         if res.moved or res.state_changed:
             var p = self.sessions[i].player.copy()
@@ -931,6 +883,21 @@ struct Server(Movable):
                 s.send_message(line)
         if case .Some(line) = res.command:
             self.execute_player_command(i, line)
+        self._apply_ui(i, res)
+
+    def _apply_ui(mut self, i: Int, res: HandleResult) raises:
+        """Submits form and dialogue responses and shows skin changes."""
+        var id = self.sessions[i].player.uuid()
+        if case .Some(ref r) = res.form_response:
+            handle_form_response(self, id, r)
+        if case .Some(ref a) = res.npc_action:
+            handle_npc_action(self, id, a)
+        if res.skin_changed:
+            var p = self.sessions[i].player.copy()
+            var skin = self.sessions[i].join_skin.copy()
+            for j in range(len(self.sessions)):
+                if j != i:
+                    self.sessions[j].view_skin(p, skin)
 
     def _tick(mut self):
         """Runs the per-tick session work (each session's `background`
@@ -965,6 +932,7 @@ struct Server(Movable):
             var gone = self.sessions.pop(i)
             gone.close(self.world)
             var p = gone.player.copy()
+            self.ui.forget(p.uuid())
             _ = self._player_data.pop(uuid_key(p.uuid()), PlayerData())
             for _i in range(len(self.sessions)):
                 ref other = self.sessions[_i]

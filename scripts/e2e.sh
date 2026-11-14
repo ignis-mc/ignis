@@ -3,6 +3,8 @@
 # with its world and players in a temporary directory, and checks it end to
 # end:
 #   1. interop/bots/two_bots.mojo: joining, chunks, movement, chat, leaving.
+#   1b. interop/bots/ui_bot.mojo: /ui forms (custom, closed, menu, modal)
+#      answered, scoreboard, boss bar, title, toast and an NPC dialogue.
 #   2. interop/bots/persist_bot.mojo: AvailableCommands and /time, /gamemode,
 #      /list, /tp from a player; /say from the console (stdin).
 #   3. SIGINT disconnects the online player, saves and stops the server;
@@ -24,6 +26,7 @@ mkdir -p build
 mojo build --fp-mode contract=off "${inc[@]}" cmd/ignis/main.mojo -o build/ignis
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/two_bots.mojo -o build/two_bots
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/persist_bot.mojo -o build/persist_bot
+mojo build --fp-mode contract=off "${inc[@]}" interop/bots/ui_bot.mojo -o build/ui_bot
 
 dir="$(mktemp -d)"
 pid=""
@@ -80,6 +83,9 @@ bot() { ./build/persist_bot "$@" 2>&1 | grep -v '^dial'; }
 status=0
 start server1.log
 ./build/two_bots "$addr" 2>&1 | grep -v '^dial' || status=$?
+if [[ $status -eq 0 ]]; then
+    ./build/ui_bot "$addr" 2>&1 | grep -v '^dial' || status=$?
+fi
 if [[ $status -eq 0 ]]; then
     bot walk "$addr" 7.5 -3.5
     bot command "$addr" "Set the time to 5000" /time set 5000
