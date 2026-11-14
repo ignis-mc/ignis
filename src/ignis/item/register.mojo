@@ -32,9 +32,11 @@ from .bread import Bread
 from .brick import Brick
 from .carrot_on_a_stick import CarrotOnAStick
 from .charcoal import Charcoal
+from .chicken import Chicken
 from .clay_ball import ClayBall
 from .clock import Clock
 from .coal import Coal
+from .cod import Cod
 from .compass import Compass
 from .cookie import Cookie
 from .copper_ingot import CopperIngot
@@ -78,6 +80,7 @@ from .leather import Leather
 from .magma_cream import MagmaCream
 from .melon_slice import MelonSlice
 from .mushroom_stew import MushroomStew
+from .mutton import Mutton
 from .nautilus_shell import NautilusShell
 from .nether_brick import NetherBrick
 from .nether_quartz import NetherQuartz
@@ -88,10 +91,12 @@ from .paper import Paper
 from .phantom_membrane import PhantomMembrane
 from .poisonous_potato import PoisonousPotato
 from .popped_chorus_fruit import PoppedChorusFruit
+from .porkchop import Porkchop
 from .prismarine_crystal import PrismarineCrystals
 from .prismarine_shard import PrismarineShard
 from .pufferfish import Pufferfish
 from .pumpkin_pie import PumpkinPie
+from .rabbit import Rabbit
 from .rabbit_foot import RabbitFoot
 from .rabbit_hide import RabbitHide
 from .rabbit_stew import RabbitStew
@@ -101,6 +106,7 @@ from .raw_iron import RawIron
 from .recovery_compass import RecoveryCompass
 from .resin_brick import ResinBrick
 from .rotten_flesh import RottenFlesh
+from .salmon import Salmon
 from .scute import Scute
 from .shears import Shears
 from .shulker_shell import ShulkerShell
@@ -110,6 +116,7 @@ from .spider_eye import SpiderEye
 from .spyglass import Spyglass
 from .stick import Stick
 from .sugar import Sugar
+from .suspicious_stew import SuspiciousStew
 from .totem import Totem
 from .tropical_fish import TropicalFish
 from .turtle_shell import TurtleShell
@@ -138,9 +145,11 @@ comptime VanillaItems = ItemSet[
     Brick,
     CarrotOnAStick,
     Charcoal,
+    Chicken,
     ClayBall,
     Clock,
     Coal,
+    Cod,
     Compass,
     Cookie,
     CopperIngot,
@@ -184,6 +193,7 @@ comptime VanillaItems = ItemSet[
     MagmaCream,
     MelonSlice,
     MushroomStew,
+    Mutton,
     NautilusShell,
     NetherBrick,
     NetherQuartz,
@@ -194,10 +204,12 @@ comptime VanillaItems = ItemSet[
     PhantomMembrane,
     PoisonousPotato,
     PoppedChorusFruit,
+    Porkchop,
     PrismarineCrystals,
     PrismarineShard,
     Pufferfish,
     PumpkinPie,
+    Rabbit,
     RabbitFoot,
     RabbitHide,
     RabbitStew,
@@ -207,6 +219,7 @@ comptime VanillaItems = ItemSet[
     RecoveryCompass,
     ResinBrick,
     RottenFlesh,
+    Salmon,
     Scute,
     Shears,
     ShulkerShell,
@@ -216,6 +229,7 @@ comptime VanillaItems = ItemSet[
     Spyglass,
     Stick,
     Sugar,
+    SuspiciousStew,
     Totem,
     TropicalFish,
     TurtleShell,

@@ -1,18 +1,30 @@
 """Beetroot, ported from Dragonfly `server/item/beetroot.go`.
 
-TODO(port): `Consume`.
+TODO(player): `Consume` applies `consume_info` to the consumer.
 """
 
 from ..world.item import EncodedItem, Item, item_hash
-from .item import Compostable
+from .item import Compostable, Consumable, ConsumeInfo, DEFAULT_CONSUME_DURATION
 
 
 @fieldwise_init
-struct Beetroot(Compostable, Equatable, ImplicitlyCopyable, Item):
+struct Beetroot(Compostable, Consumable, Equatable, ImplicitlyCopyable, Item):
     """A food and dye ingredient."""
 
     comptime BASE_HASH: UInt64 = item_hash("Beetroot")
     """`item_hash("Beetroot")`."""
+
+    def always_consumable(self) -> Bool:
+        """Reports whether the item may be eaten when full."""
+        return False
+
+    def consume_duration(self) -> Int:
+        """Returns how long eating takes, in milliseconds."""
+        return DEFAULT_CONSUME_DURATION
+
+    def consume_info(self) -> ConsumeInfo:
+        """Returns what eating does (Go `Consume`)."""
+        return ConsumeInfo(1, 1.2)
 
     def compost_chance(self) -> Float64:
         """Returns the compost chance (Go `CompostChance`)."""

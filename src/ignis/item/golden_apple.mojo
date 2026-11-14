@@ -1,17 +1,46 @@
 """GoldenApple, ported from Dragonfly `server/item/golden_apple.go`.
 
-TODO(port): `AlwaysConsumable`, `ConsumeDuration`, `Consume`.
+TODO(player): `Consume` applies `consume_info` to the consumer and raises
+its absorption to `max(prev, min(prev+4, 16))`.
 """
 
+from ..entity.effect import new, SECOND
+from ..entity.effect.absorption import Absorption
+from ..entity.effect.regeneration import Regeneration
 from ..world.item import EncodedItem, Item, item_hash
+from .item import (
+    Consumable,
+    ConsumeEffect,
+    ConsumeInfo,
+    DEFAULT_CONSUME_DURATION,
+)
 
 
 @fieldwise_init
-struct GoldenApple(Equatable, ImplicitlyCopyable, Item):
+struct GoldenApple(Consumable, Equatable, ImplicitlyCopyable, Item):
     """A special food item that bestows beneficial effects."""
 
     comptime BASE_HASH: UInt64 = item_hash("GoldenApple")
     """`item_hash("GoldenApple")`."""
+
+    def always_consumable(self) -> Bool:
+        """Reports whether the item may be eaten when full."""
+        return True
+
+    def consume_duration(self) -> Int:
+        """Returns how long eating takes, in milliseconds."""
+        return DEFAULT_CONSUME_DURATION
+
+    def consume_info(self) -> ConsumeInfo:
+        """Returns what eating does (Go `Consume`)."""
+        return ConsumeInfo(
+            4,
+            9.6,
+            [
+                ConsumeEffect(new(Absorption(), 1, 120 * SECOND), 1),
+                ConsumeEffect(new(Regeneration(), 2, 5 * SECOND), 1),
+            ],
+        )
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`)."""

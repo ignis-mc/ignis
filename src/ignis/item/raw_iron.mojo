@@ -1,17 +1,21 @@
-"""RawIron, ported from Dragonfly `server/item/raw_iron.go`.
-
-TODO(port): `SmeltInfo`.
-"""
+"""RawIron, ported from Dragonfly `server/item/raw_iron.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
+from .iron_ingot import IronIngot
+from .smelting_info import Smeltable, SmeltInfo
+from .stack import Stack
 
 
 @fieldwise_init
-struct RawIron(Equatable, ImplicitlyCopyable, Item):
+struct RawIron(Equatable, ImplicitlyCopyable, Item, Smeltable):
     """A raw metal resource obtained from mining iron ore."""
 
     comptime BASE_HASH: UInt64 = item_hash("RawIron")
     """`item_hash("RawIron")`."""
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(IronIngot(), 1), 0.7, ores=True)
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`)."""

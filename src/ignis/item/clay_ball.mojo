@@ -1,17 +1,21 @@
-"""ClayBall, ported from Dragonfly `server/item/clay_ball.go`.
-
-TODO(port): `SmeltInfo`.
-"""
+"""ClayBall, ported from Dragonfly `server/item/clay_ball.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
+from .brick import Brick
+from .smelting_info import Smeltable, SmeltInfo
+from .stack import Stack
 
 
 @fieldwise_init
-struct ClayBall(Equatable, ImplicitlyCopyable, Item):
-    """Obtained from mining clay blocks"""
+struct ClayBall(Equatable, ImplicitlyCopyable, Item, Smeltable):
+    """Obtained from mining clay blocks."""
 
     comptime BASE_HASH: UInt64 = item_hash("ClayBall")
     """`item_hash("ClayBall")`."""
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(Brick(), 1), 0.3)
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`)."""

@@ -1,18 +1,34 @@
 """BeetrootSoup, ported from Dragonfly `server/item/beetroot_soup.go`.
 
-TODO(port): `Consume`.
+TODO(player): `Consume` applies `consume_info` to the consumer.
 """
 
 from ..world.item import EncodedItem, Item, item_hash
-from .item import MaxCounter
+from .bowl import Bowl
+from .item import Consumable, ConsumeInfo, DEFAULT_CONSUME_DURATION, MaxCounter
+from .stack import Stack
 
 
 @fieldwise_init
-struct BeetrootSoup(Equatable, ImplicitlyCopyable, Item, MaxCounter):
+struct BeetrootSoup(
+    Consumable, Equatable, ImplicitlyCopyable, Item, MaxCounter
+):
     """An unstackable food item."""
 
     comptime BASE_HASH: UInt64 = item_hash("BeetrootSoup")
     """`item_hash("BeetrootSoup")`."""
+
+    def always_consumable(self) -> Bool:
+        """Reports whether the item may be eaten when full."""
+        return False
+
+    def consume_duration(self) -> Int:
+        """Returns how long eating takes, in milliseconds."""
+        return DEFAULT_CONSUME_DURATION
+
+    def consume_info(self) -> ConsumeInfo:
+        """Returns what eating does (Go `Consume`)."""
+        return ConsumeInfo(6, 7.2, [], Stack(Bowl(), 1))
 
     def max_count(self) -> Int:
         """Returns the maximum count (Go `MaxCount`)."""

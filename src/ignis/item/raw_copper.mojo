@@ -1,17 +1,21 @@
-"""RawCopper, ported from Dragonfly `server/item/raw_copper.go`.
-
-TODO(port): `SmeltInfo`.
-"""
+"""RawCopper, ported from Dragonfly `server/item/raw_copper.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
+from .copper_ingot import CopperIngot
+from .smelting_info import Smeltable, SmeltInfo
+from .stack import Stack
 
 
 @fieldwise_init
-struct RawCopper(Equatable, ImplicitlyCopyable, Item):
+struct RawCopper(Equatable, ImplicitlyCopyable, Item, Smeltable):
     """A raw metal resource obtained from mining copper ore."""
 
     comptime BASE_HASH: UInt64 = item_hash("RawCopper")
     """`item_hash("RawCopper")`."""
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(CopperIngot(), 1), 0.7, ores=True)
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`)."""
