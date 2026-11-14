@@ -52,6 +52,7 @@ from ..entity.ender_pearl import EnderPearl
 from ..entity.falling_block import FallingBlock
 from ..entity.firework import Firework
 from ..entity.lingering_potion import LingeringPotion
+from ..entity.player_proxy import PlayerProxy
 from ..entity.snowball import Snowball
 from ..entity.splash_potion import SplashPotion
 from ..entity.text import Text
@@ -171,6 +172,8 @@ struct SessionViewer(Viewer):
     def view_entity[E: EntityTypes](mut self, e: EntityHandle[E]):
         """Shows a world entity (Go `ViewEntity`): items with AddItemActor,
         everything else with AddActor."""
+        if _is_player(e):
+            return
         comptime if E == VanillaEntities:
             ref h = rebind[EntityHandle[VanillaEntities]](e)
             var key = String(h.id)
@@ -247,6 +250,8 @@ struct SessionViewer(Viewer):
 
     def hide_entity[E: EntityTypes](mut self, e: EntityHandle[E]):
         """Removes a world entity from view (Go `HideEntity`)."""
+        if _is_player(e):
+            return
         var key = String(e.id)
         var found = self.queue[].entity_ids.get(key)
         if not found:
@@ -264,6 +269,8 @@ struct SessionViewer(Viewer):
     ](mut self, e: EntityHandle[E], pos: Vec3, rot: Rotation, on_ground: Bool):
         """Shows a world entity moving (Go `ViewEntityMovement`), with its
         type's network offset."""
+        if _is_player(e):
+            return
         var found = self.queue[].entity_ids.get(String(e.id))
         if not found:
             return
@@ -282,6 +289,8 @@ struct SessionViewer(Viewer):
         E: EntityTypes
     ](mut self, e: EntityHandle[E], vel: Vec3):
         """Shows a world entity's velocity (Go `ViewEntityVelocity`)."""
+        if _is_player(e):
+            return
         var found = self.queue[].entity_ids.get(String(e.id))
         if not found:
             return
@@ -301,6 +310,13 @@ def _block_pos(pos: Pos) -> BlockPos:
 
 def _vec32(v: Vec3) -> ProtocolVec3:
     return ProtocolVec3(Float32(v.x()), Float32(v.y()), Float32(v.z()))
+
+
+def _is_player[E: EntityTypes](e: EntityHandle[E]) -> Bool:
+    # Player proxies: the session shows the players itself.
+    comptime if E != VanillaEntities:
+        return False
+    return rebind[EntityHandle[VanillaEntities]](e).state.isa[PlayerProxy]()
 
 
 def _network_offset[E: EntityTypes](e: EntityHandle[E]) -> Float64:

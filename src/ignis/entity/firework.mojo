@@ -1,16 +1,19 @@
 """Firework rockets, ported from Dragonfly `server/entity/firework.go` and
 `firework_behaviour.go`.
 
-TODO(player): an attached firework follows its owner (a player) and the
-explosion hurts living entities nearby; neither is in the world yet. Viewers
-are not sent the explosion action yet (Go `FireworkExplosionAction`).
+An attached firework follows its owner and the explosion hurts living
+entities nearby (players, through their `PlayerProxy`). Viewers are not
+sent the explosion action yet (Go `FireworkExplosionAction`).
 """
 
 from minecraft.nbt.nbt import TAG_COMPOUND
 from minecraft.nbt.tree import Tag, Tree
 from minecraft.protocol.uuid import UUID
 
+from std.math import sqrt
+
 from ..block.cube.bbox import BBox
+from ..block.cube.trace.perform import AllEntities, perform
 from ..item.firework import Firework as FireworkItem
 from ..item.firework_shape import FireworkShape
 from ..item.nbt import write_nbt
@@ -30,6 +33,8 @@ from ..world.sound.entity import (
     FireworkTwinkle,
 )
 from ..world.world import World, WorldTypes
+from .damage import AnyDamageSource
+from .living_request import LivingRequest
 from .passive import PassiveBehaviour
 
 
@@ -145,9 +150,38 @@ struct Firework(Copyable, Defaultable, ExplodableEntity, TickerEntity):
                     tx.play_sound(data.pos, FireworkBlast())
                 if e.twinkle:
                     tx.play_sound(data.pos, FireworkTwinkle())
-            # TODO(player): hurt living entities within 5 blocks.
+            if len(self.firework.explosions) > 0:
+                self._hurt_nearby(id, data, tx)
         data.age_ms += 50
         return m
+
+    def _hurt_nearby[
+        T: WorldTypes
+    ](self, id: UUID, data: EntityData, mut tx: World[T]):
+        # The end of Go `explode`.
+        var pos = data.pos
+        var force = Float64(len(self.firework.explosions) * 2) + 5.0
+        var box = self.bbox(data).translate(pos).grow(5.25)
+        for other in tx.entities_within(box):
+            var e = tx.entity(other)
+            if not e or not T.Entities.living(e.value().state):
+                continue
+            var tpos = e.value().data.pos
+            var dist = pos.sub(tpos).len()
+            if dist > 5.0:
+                continue
+            var dmg = force * sqrt((5.0 - dist) / 5.0)
+            var src = AnyDamageSource.projectile_source(id, self.owner)
+            var hit = (
+                pos.x() == tpos.x()
+                and pos.y() == tpos.y()
+                and pos.z() == tpos.z()
+            )
+            if not hit:
+                var vbox = e.value().bbox().grow(0.3)
+                hit = Bool(perform(pos, tpos, tx, vbox, AllEntities()))
+            if hit:
+                _ = tx.living_request(other, LivingRequest.hurt(dmg, src))
 
 
 def spawn_firework[

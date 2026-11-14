@@ -31,6 +31,7 @@ from minecraft.protocol.uuid import UUID
 
 from ..block.cube.bbox import BBox
 from ..block.cube.rotation import Rotation
+from ..entity.living_request import LivingRequest
 from ..mgl64 import Vec3
 from .world import World, WorldTypes
 
@@ -144,6 +145,39 @@ trait DamageableEntity(EntityType):
     pass
 
 
+trait LivingEntity(DamageableEntity):
+    """An entity with health that can be hurt, knocked back and given
+    effects (Go `entity.Living`). Calls are recorded as `LivingRequest`s
+    for the owner of the entity to apply."""
+
+    def living_health(self) -> Float64:
+        """Returns the health (Go `Health`)."""
+        ...
+
+    def request(mut self, var r: LivingRequest):
+        """Records a call on the entity."""
+        ...
+
+
+trait ExperienceCollector(LivingEntity):
+    """A living entity that collects experience orbs (Go's
+    `experienceCollector`)."""
+
+    def can_collect_experience(self, current: Int64) -> Bool:
+        """Go `CanCollectExperience`; `current` is the world tick."""
+        ...
+
+    def collect_experience(mut self, value: Int, current: Int64):
+        """Go `CollectExperience`, recorded as a request."""
+        ...
+
+
+trait TransientEntity(EntityType):
+    """An entity that is never saved with its chunk."""
+
+    pass
+
+
 trait ExplodableEntity(EntityType):
     """An entity an explosion affects (Go `block.ExplodableEntity` through
     the entity's behaviour)."""
@@ -187,6 +221,36 @@ trait EntityTypes:
     @staticmethod
     def damageable(s: Self.State) -> Bool:
         """Reports whether an entity is a `DamageableEntity`."""
+        ...
+
+    @staticmethod
+    def living(s: Self.State) -> Bool:
+        """Reports whether an entity is a `LivingEntity`."""
+        ...
+
+    @staticmethod
+    def living_health(s: Self.State) -> Float64:
+        """Returns the health of a `LivingEntity`, 0 for others."""
+        ...
+
+    @staticmethod
+    def living_request(mut s: Self.State, var r: LivingRequest) -> Bool:
+        """Records a call on a `LivingEntity`; False for others."""
+        ...
+
+    @staticmethod
+    def can_collect_experience(s: Self.State, current: Int64) -> Bool:
+        """Reports whether an `ExperienceCollector` can collect an orb."""
+        ...
+
+    @staticmethod
+    def collect_experience(mut s: Self.State, value: Int, current: Int64):
+        """Gives experience to an `ExperienceCollector`."""
+        ...
+
+    @staticmethod
+    def saved(s: Self.State) -> Bool:
+        """Reports whether an entity is saved (not a `TransientEntity`)."""
         ...
 
     @staticmethod
@@ -294,6 +358,67 @@ struct EntitySet[*Ts: EntityType](EntityTypes):
         return False
 
     @staticmethod
+    def living(s: Self.State) -> Bool:
+        """Reports whether an entity is a `LivingEntity`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime E = Self.Ts[i]
+            comptime if conforms_to(E, LivingEntity):
+                if s.isa[E]():
+                    return True
+        return False
+
+    @staticmethod
+    def living_health(s: Self.State) -> Float64:
+        """Returns the health of a `LivingEntity`, 0 for others."""
+        comptime for i in range(len(Self.Ts)):
+            comptime E = Self.Ts[i]
+            comptime if conforms_to(E, LivingEntity):
+                if s.isa[E]():
+                    return _living_health[E](s[E])
+        return 0
+
+    @staticmethod
+    def living_request(mut s: Self.State, var r: LivingRequest) -> Bool:
+        """Records a call on a `LivingEntity`; False for others."""
+        comptime for i in range(len(Self.Ts)):
+            comptime E = Self.Ts[i]
+            comptime if conforms_to(E, LivingEntity):
+                if s.isa[E]():
+                    _living_request[E](s[E], r^)
+                    return True
+        return False
+
+    @staticmethod
+    def can_collect_experience(s: Self.State, current: Int64) -> Bool:
+        """Reports whether an `ExperienceCollector` can collect an orb."""
+        comptime for i in range(len(Self.Ts)):
+            comptime E = Self.Ts[i]
+            comptime if conforms_to(E, ExperienceCollector):
+                if s.isa[E]():
+                    return _can_collect[E](s[E], current)
+        return False
+
+    @staticmethod
+    def collect_experience(mut s: Self.State, value: Int, current: Int64):
+        """Gives experience to an `ExperienceCollector`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime E = Self.Ts[i]
+            comptime if conforms_to(E, ExperienceCollector):
+                if s.isa[E]():
+                    _collect[E](s[E], value, current)
+                    return
+
+    @staticmethod
+    def saved(s: Self.State) -> Bool:
+        """Reports whether an entity is saved (not a `TransientEntity`)."""
+        comptime for i in range(len(Self.Ts)):
+            comptime E = Self.Ts[i]
+            comptime if conforms_to(E, TransientEntity):
+                if s.isa[E]():
+                    return False
+        return True
+
+    @staticmethod
     def ticks(s: Self.State) -> Bool:
         """Reports whether an entity is a `TickerEntity`."""
         comptime for i in range(len(Self.Ts)):
@@ -354,6 +479,22 @@ struct EntitySet[*Ts: EntityType](EntityTypes):
             if identifier == E.IDENTIFIER:
                 return Self.State(E.decode_nbt(tree, tag, data))
         return None
+
+
+def _living_health[E: LivingEntity](s: E) -> Float64:
+    return s.living_health()
+
+
+def _living_request[E: LivingEntity](mut s: E, var r: LivingRequest):
+    s.request(r^)
+
+
+def _can_collect[E: ExperienceCollector](s: E, current: Int64) -> Bool:
+    return s.can_collect_experience(current)
+
+
+def _collect[E: ExperienceCollector](mut s: E, value: Int, current: Int64):
+    s.collect_experience(value, current)
 
 
 def _network_identifier[E: NetworkEncodedEntity]() -> StaticString:

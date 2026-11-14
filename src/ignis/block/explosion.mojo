@@ -12,6 +12,7 @@ from std.math import ceil, floor
 
 from minecraft.protocol.uuid import UUID
 
+from ..entity.living_request import REQUEST_EXPLODE, LivingRequest
 from ..entity.tnt import spawn_tnt
 from ..internal.rand import Rand
 from ..mgl64 import Vec3
@@ -197,6 +198,14 @@ def explode[
             tx, explosion_pos, h.bbox().translate(h.data.pos), c
         )
         if c.suppress_underwater_impact and impact <= 0:
+            continue
+        if T.Entities.living(h.state):
+            # Go `Player.Explode`, which needs the size: see `LivingRequest`.
+            var r = LivingRequest(REQUEST_EXPLODE)
+            r.pos = explosion_pos
+            r.size = size
+            r.impact = impact
+            _ = tx.living_request(id, r^)
             continue
         tx.explode_entity(id, explosion_pos, impact)
 

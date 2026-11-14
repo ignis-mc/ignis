@@ -15,7 +15,7 @@ Dragonfly has no death messages (servers add them in a handler); Ignis
 broadcasts the vanilla `death.attack.*` translations.
 """
 
-from std.math import floor
+from std.math import ceil, floor
 
 from minecraft.protocol.packet.actor_event import (
     ACTOR_EVENT_DEATH,
@@ -24,6 +24,7 @@ from minecraft.protocol.packet.actor_event import (
 )
 from minecraft.protocol.uuid import UUID
 from nethernet.os.time import monotonic_ms
+
 
 from ..block.cactus import Cactus
 from ..block.campfire import Campfire
@@ -63,10 +64,26 @@ from ..entity.damage import (
     AnyDamageSource,
 )
 from ..entity.effect import SECOND, Effect, new
+from ..entity.arrow import Arrow
 from ..entity.effect.wither import Wither
 from ..entity.experience_orb import spawn_experience_orbs
+from ..entity.living_request import (
+    REQUEST_COLLECT_EXPERIENCE,
+    REQUEST_EFFECT,
+    REQUEST_EXPLODE,
+    REQUEST_FIRE,
+    REQUEST_HURT,
+    REQUEST_KNOCK_BACK,
+    REQUEST_LIGHTNING,
+    REQUEST_PROJECTILE_HIT,
+    REQUEST_TELEPORT,
+    LivingRequest,
+)
+from ..entity.player_proxy import PlayerProxy
+from ..entity.register import VanillaEntities
 from ..item.enchantment import (
     CURSE_OF_VANISHING_ID,
+    MENDING_ID,
     RESPIRATION_ID,
     UNBREAKING_ID,
 )
@@ -92,8 +109,12 @@ from ..player.living import (
 )
 from ..player.player import BBOX_HEIGHT, BBOX_WIDTH, EYE_HEIGHT
 from ..world.game_mode import GAME_MODE_SPECTATOR
-from ..world.sound.entity import Burning, Drowning
+from ..session.viewer import SessionViewer
+from ..world.entity import EntityHandle, EntitySpawnOpts
+from ..world.sound import Sound
+from ..world.sound.entity import Burning, Drowning, Experience, LevelUp
 from ..world.sound.item import ItemBreak
+from ..world.sound.item import Teleport as TeleportSound
 from ..world.sound.item import Totem as TotemSound
 from .server import DyingPlayer, Server
 
@@ -104,15 +125,12 @@ comptime _BREATHING_DISTANCE_BELOW_EYES = 0.11111111
 """Go `breathingDistanceBelowEyes`."""
 
 
-def player_bbox(pos: Vec3) -> BBox:
-    """Returns a player's box at a position (Go `Type.BBox` translated)."""
+def player_bbox(pos: Vec3, sneaking: Bool = False) -> BBox:
+    """Returns a player's box at a position (Go `Type.BBox` translated):
+    1.49 high when sneaking."""
+    var h = 1.49 if sneaking else BBOX_HEIGHT
     return BBox.box(
-        -BBOX_WIDTH / 2,
-        0,
-        -BBOX_WIDTH / 2,
-        BBOX_WIDTH / 2,
-        BBOX_HEIGHT,
-        BBOX_WIDTH / 2,
+        -BBOX_WIDTH / 2, 0, -BBOX_WIDTH / 2, BBOX_WIDTH / 2, h, BBOX_WIDTH / 2
     ).translate(pos)
 
 
@@ -185,7 +203,7 @@ def inside_of_solid(mut srv: Server, i: Int) -> Bool:
         return False
     if br[].is_block[TintedGlass](rid):
         return False  # Go `NonSuffocating`.
-    var box = player_bbox(feet)
+    var box = player_bbox(feet, srv.sessions[i].player.sneaking())
     for bb in _block_boxes(srv, pos):
         if bb.translate(pos.vec3()).intersects_with(box):
             return True
@@ -195,7 +213,10 @@ def inside_of_solid(mut srv: Server, i: Int) -> Bool:
 def check_on_ground(mut srv: Server, i: Int, delta: Vec3) -> Bool:
     """Go `checkOnGround`."""
     var box = (
-        player_bbox(srv.sessions[i].player.position())
+        player_bbox(
+            srv.sessions[i].player.position(),
+            srv.sessions[i].player.sneaking(),
+        )
         .extend(Vec3(0, -0.05, 0))
         .extend(delta.mul(-1.0))
     )
@@ -303,7 +324,7 @@ def check_entity_insiders(mut srv: Server, i: Int):
     ref p = srv.sessions[i].player
     if p.game_mode() == GAME_MODE_SPECTATOR:
         return
-    var box = player_bbox(p.position()).grow(-0.0001)
+    var box = player_bbox(p.position(), p.sneaking()).grow(-0.0001)
     var low = pos_from_vec3(box.min())
     var high = pos_from_vec3(box.max())
     for y in range(low.y(), high.y() + 1):
@@ -370,7 +391,7 @@ def check_entity_steppers(mut srv: Server, i: Int):
     if not p.on_ground() or p.game_mode() == GAME_MODE_SPECTATOR:
         return
     # Go `blocksUnder`.
-    var box = player_bbox(p.position())
+    var box = player_bbox(p.position(), p.sneaking())
     var y = Int(floor(box.min().y() - 0.0001))
     var horizontal = box.grow(-0.0001)
     var low = pos_from_vec3(horizontal.min())
@@ -737,3 +758,237 @@ def respawn_player(mut srv: Server, i: Int):
             srv.sessions[j].view_entity(shown, held)
             srv.sessions[j].view_entity_items(shown, held, off)
     flush_living(srv, i)
+
+
+# ===----------------------------------------------------------------------=== #
+# The player's proxy in the world
+# ===----------------------------------------------------------------------=== #
+
+
+def sync_proxy(mut srv: Server, i: Int):
+    """Puts a player's `PlayerProxy` at its position with its current
+    state, adding it if the world lost it (an unloaded chunk) or never had
+    it."""
+    ref p = srv.sessions[i].player
+    var id = p.uuid()
+    var pos = p.position()
+    var rot = p.rotation()
+    var mode = p.game_mode()
+    var alive = not p.living.dead()
+    var health = p.living.health.health
+    var sneaking = p.sneaking()
+    if not srv.world.has_entity(id):
+        var opts = EntitySpawnOpts()
+        opts.position = pos
+        opts.rotation = rot
+        opts.id = id
+        var h = EntityHandle[VanillaEntities](
+            opts, VanillaEntities.wrap(PlayerProxy())
+        )
+        _ = srv.world.add_entity(h^)
+    var found = srv.world.entity_state(id)
+    if not found:
+        return
+    var s = found.take()
+    if not s.isa[PlayerProxy]():
+        return
+    ref px = s[PlayerProxy]
+    px.health = health
+    px.has_collision = mode.has_collision()
+    px.collects = alive and mode.allows_interaction()
+    px.sneaking = sneaking
+    srv.world.set_entity_state(id, s^)
+    var e = srv.world.entity(id)
+    if case .Some(ref h) = e:
+        var d = h.data.copy()
+        d.pos = pos
+        d.rot = rot
+        d.fire_duration_ms = p.living.fire_ticks * 50
+        srv.world.set_entity_data(id, d)
+
+
+def remove_proxy(mut srv: Server, id: UUID):
+    """Removes a player's proxy from the world."""
+    _ = srv.world.remove_entity(id)
+
+
+def apply_living_requests(mut srv: Server):
+    """Applies what the world's entities did to the players since the last
+    call (see `LivingRequest`), in order."""
+    for i in range(len(srv.sessions)):
+        var id = srv.sessions[i].player.uuid()
+        var found = srv.world.entity_state(id)
+        if not found:
+            continue
+        var s = found.take()
+        if not s.isa[PlayerProxy]():
+            continue
+        if len(s[PlayerProxy].requests) == 0:
+            continue
+        var requests = List[LivingRequest]()
+        swap(requests, s[PlayerProxy].requests)
+        srv.world.set_entity_state(id, s^)
+        for r in requests:
+            apply_living_request(srv, i, r)
+        sync_proxy(srv, i)
+
+
+def apply_living_request(mut srv: Server, i: Int, r: LivingRequest):
+    """Applies one call of a world entity to a player."""
+    if r.kind == REQUEST_HURT:
+        _ = hurt_player(srv, i, r.dmg, r.src)
+    elif r.kind == REQUEST_KNOCK_BACK:
+        knock_back_player(srv, i, r.pos, r.force, r.height)
+    elif r.kind == REQUEST_EFFECT:
+        for e in r.effects:
+            add_player_effect(srv, i, e)
+    elif r.kind == REQUEST_FIRE:
+        _set_fire(srv, i, r.fire_ms, r.at_least)
+    elif r.kind == REQUEST_LIGHTNING:
+        if r.dmg > 0:
+            _ = hurt_player(srv, i, r.dmg, r.src)
+        _set_fire(srv, i, r.fire_ms, True)
+    elif r.kind == REQUEST_TELEPORT:
+        # Go's ender pearl `teleport` for a player.
+        var at = srv.sessions[i].player.position()
+        srv.world.play_sound(at, TeleportSound())
+        srv.teleport_player(i, r.pos)
+        _ = hurt_player(srv, i, 5, AnyDamageSource(DAMAGE_FALL))
+    elif r.kind == REQUEST_EXPLODE:
+        explode_player(srv, i, r.pos, r.size, r.impact)
+    elif r.kind == REQUEST_PROJECTILE_HIT:
+        # Go `hitEntity` after `HurtEntity`.
+        var res = hurt_player(srv, i, r.dmg, r.src)
+        if not res[1]:
+            return
+        knock_back_player(srv, i, r.pos, r.force, r.height)
+        for e in r.effects:
+            add_player_effect(srv, i, e)
+        if r.fire_ms > 0:
+            set_player_on_fire(srv, i, r.fire_ms)
+    elif r.kind == REQUEST_COLLECT_EXPERIENCE:
+        collect_experience(srv, i, r.value)
+
+
+def _set_fire(mut srv: Server, i: Int, ms: Int, at_least: Bool):
+    if at_least and srv.sessions[i].player.living.fire_ticks * 50 >= ms:
+        return
+    set_player_on_fire(srv, i, ms)
+
+
+def play_sound_to[S: Sound](mut srv: Server, i: Int, s: S):
+    """Plays a sound only the player hears (Go `Player.PlaySound`)."""
+    var pos = srv.sessions[i].player.eye_position()
+    var v = SessionViewer(srv.sessions[i].queue())
+    v.view_sound(pos, s)
+
+
+def add_experience(mut srv: Server, i: Int, amount: Int) -> Int:
+    """Go `AddExperience`: the level-up sound every 5 levels, otherwise
+    the experience sound."""
+    var before = srv.sessions[i].player.living.experience.level()
+    _ = srv.sessions[i].player.living.add_experience(amount)
+    var level = srv.sessions[i].player.living.experience.level()
+    if level // 5 > before // 5:
+        play_sound_to(srv, i, LevelUp())
+    elif amount > 0:
+        play_sound_to(srv, i, Experience())
+    flush_living(srv, i)
+    return amount
+
+
+def collect_experience(mut srv: Server, i: Int, value_in: Int):
+    """Go `CollectExperience` after the orb was removed: Mending repairs
+    first, the rest is experience."""
+    var value = mend_items(srv, i, value_in)
+    if value > 0:
+        _ = add_experience(srv, i, value)
+        return
+    play_sound_to(srv, i, Experience())
+
+
+def _mendable(s: Stack) -> Bool:
+    return (
+        Bool(s.enchantment(Int16(MENDING_ID)))
+        and s.durability() < s.max_durability()
+    )
+
+
+def mend_items(mut srv: Server, i: Int, xp_in: Int) -> Int:
+    """Go `mendItems`: a random damaged item with Mending (off hand, held,
+    armour) is repaired by 2 per experience point."""
+    var xp = xp_in
+    var held = srv.sessions[i].invs.held_item()
+    var off = srv.sessions[i].invs.off_hand_item()
+    var items = List[Stack]()
+    if _mendable(off):
+        items.append(off.copy())
+    if _mendable(held):
+        items.append(held.copy())
+    for slot in range(4):
+        var it = srv.sessions[i].invs.armour._get(slot)
+        if it.durability() == it.max_durability():
+            continue
+        if it.enchantment(Int16(MENDING_ID)):
+            items.append(it^)
+    if len(items) == 0:
+        return xp
+    var found = items[srv.world.global_rand().int_n(len(items))].copy()
+    var repair = min(
+        Float64(found.max_durability() - found.durability()), Float64(xp * 2)
+    )
+    var repaired = found.with_durability(found.durability() + Int(repair))
+    if repair >= 2:
+        xp -= Int(ceil(repair / 2))
+    if off == found:
+        try:
+            srv.sessions[i].invs.off_hand.set_item(0, repaired)
+        except:
+            pass
+    elif held == found:
+        srv.sessions[i].invs.set_held_item(repaired)
+    elif case .Some(slot) = srv.sessions[i].invs.armour.inv.first(found):
+        try:
+            srv.sessions[i].invs.armour.inv.set_item(slot, repaired)
+        except:
+            pass
+    return xp
+
+
+def pickup_arrows(mut srv: Server):
+    """Go `tryPickup` of arrows stuck for more than 5 ticks: the first
+    player touching one that has room takes it."""
+    for id in srv.world.entities():
+        var found = srv.world.entity(id)
+        if not found:
+            continue
+        ref h = found.value()
+        if not h.state.isa[Arrow]():
+            continue
+        ref proj = h.state[Arrow].proj
+        if not proj.collided or proj.age_collided <= 5 or proj.disable_pickup:
+            continue
+        var stack = proj.pickup_item.copy()
+        var translated = h.bbox().translate(h.data.pos)
+        var grown = translated.grow_vec3(Vec3(1, 0.5, 1))
+        for j in range(len(srv.sessions)):
+            ref p = srv.sessions[j].player
+            if p.living.dead() or not p.game_mode().allows_interaction():
+                continue
+            var pbox = player_bbox(p.position(), p.sneaking())
+            if not pbox.intersects_with(grown):
+                continue
+            # Go `Player.Collect`.
+            var added = 0
+            var off = srv.sessions[j].invs.off_hand_item()
+            if not off.empty() and off.comparable(stack):
+                added = srv.sessions[j].invs.off_hand.add_item(stack.copy())
+            if added != stack.count():
+                added += srv.sessions[j].invs.inv.add_item(stack.grow(-added))
+            if added == 0:
+                continue
+            var collector = srv.sessions[j].player.copy()
+            for k in range(len(srv.sessions)):
+                srv.sessions[k].view_take_item(id, collector)
+            _ = srv.world.remove_entity(id)
+            break

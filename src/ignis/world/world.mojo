@@ -64,7 +64,8 @@ from .chunk.light import relight
 from .chunk.light_area import ChunkPointer, LightArea, chunk_pointer
 from .difficulty import Difficulty
 from .dimension import Dimension, END, NETHER, OVERWORLD
-from .entity import EntityHandle, EntityTypes
+from ..entity.living_request import LivingRequest
+from .entity import EntityData, EntityHandle, EntityTypes
 from .game_mode import GameMode
 from .generator import Generator
 from .handler import Handler
@@ -1075,6 +1076,38 @@ struct World[T: WorldTypes](Movable):
             if Self.T.Entities.explode(h.state, h.data, src, impact):
                 _ = self.remove_entity(id)
 
+    def living_request(mut self, id: UUID, var r: LivingRequest) -> Bool:
+        """Records a call on a living entity (see `LivingRequest`); False
+        if the entity is not living."""
+        if case .Some(i) = self._ent_index.get(uuid_key(id)):
+            ref h = self._ents[i].handle
+            return Self.T.Entities.living_request(h.state, r^)
+        return False
+
+    def collect_experience(mut self, id: UUID, value: Int, current: Int64):
+        """Gives experience to an experience collector."""
+        if case .Some(i) = self._ent_index.get(uuid_key(id)):
+            ref h = self._ents[i].handle
+            Self.T.Entities.collect_experience(h.state, value, current)
+
+    def set_entity_data(mut self, id: UUID, data: EntityData):
+        """Replaces an entity's data, for entities the world does not move
+        itself, such as player proxies; it changes chunk at the next
+        tick."""
+        if case .Some(i) = self._ent_index.get(uuid_key(id)):
+            self._ents[i].handle.data = data.copy()
+
+    def entity_state(mut self, id: UUID) -> Optional[Self.T.Entities.State]:
+        """Returns a copy of an entity's state."""
+        if case .Some(i) = self._ent_index.get(uuid_key(id)):
+            return self._ents[i].handle.state.copy()
+        return None
+
+    def set_entity_state(mut self, id: UUID, var s: Self.T.Entities.State):
+        """Replaces an entity's state."""
+        if case .Some(i) = self._ent_index.get(uuid_key(id)):
+            self._ents[i].handle.state = s^
+
     def has_entity(self, id: UUID) -> Bool:
         """Reports whether an entity is in the world."""
         return uuid_key(id) in self._ent_index
@@ -1451,6 +1484,8 @@ struct World[T: WorldTypes](Movable):
         for key in self._cols[ci].entities:
             if case .Some(i) = self._ent_index.get(key):
                 ref h = self._ents[i].handle
+                if not Self.T.Entities.saved(h.state):
+                    continue
                 c.entities.append(ChunkEntity(h.saved_id(), h.encode_nbt()))
         for t in self._scheduled.from_chunk(pos):
             c.scheduled_blocks.append(ScheduledBlockUpdate(t.pos, t.rid, t.t))

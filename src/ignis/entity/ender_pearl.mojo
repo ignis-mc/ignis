@@ -1,8 +1,7 @@
 """Ender pearls, ported from Dragonfly `server/entity/ender_pearl.go`.
 
-TODO(player): Go's `teleport` moves the owner (a player) to where the pearl
-lands and hurts it by 5; players are not world entities yet. An owner that
-is a world entity is teleported."""
+Go's `teleport` moves a living owner (a player, through its `PlayerProxy`)
+to where the pearl lands and hurts it by 5; other owners stay."""
 
 from minecraft.nbt.tree import Tag, Tree
 from minecraft.protocol.uuid import UUID
@@ -15,6 +14,7 @@ from ..world.entity import (
     TickerEntity,
 )
 from ..world.world import World, WorldTypes
+from .living_request import REQUEST_TELEPORT, LivingRequest
 from .projectile import ProjectileBehaviour
 from ..world.particle.entity import EndermanTeleport
 from ..world.sound.item import Teleport
@@ -76,11 +76,10 @@ struct EnderPearl(
             tx.add_particle(at, EndermanTeleport())
             tx.play_sound(at, Teleport())
             if self.proj.hit_target(data, tx, s):
-                # Go `teleport`.
-                if tx.has_entity(self.proj.owner):
-                    var owner = tx.entity(self.proj.owner).value().copy()
-                    tx.play_sound(owner.data.pos, Teleport())
-                    tx.teleport_entity(self.proj.owner, at)
+                # Go `teleport`, for a `teleporter` owner.
+                var r = LivingRequest(REQUEST_TELEPORT)
+                r.pos = at
+                _ = tx.living_request(self.proj.owner, r^)
                 self.proj.finish()
         data.age_ms += 50
         return s.movement

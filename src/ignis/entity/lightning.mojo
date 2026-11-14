@@ -1,8 +1,8 @@
 """Lightning, ported from Dragonfly `server/entity/lightning.go`.
 
 Go draws the lifetime and flicker from its global source; so does Ignis
-(the world's stand-in). TODO(player): the strike hurts living entities and
-sets them on fire; there are none in the world yet.
+(the world's stand-in). The strike hurts living entities around it and
+sets them on fire (players, through their `PlayerProxy`).
 
 Fixed from Dragonfly: Go's `spreadFire` adds a random offset to the
 position and throws the result away, so its four extra fires all start at
@@ -15,9 +15,12 @@ from minecraft.protocol.uuid import UUID
 from ..block.cube.bbox import BBox
 from ..block.cube.pos import Pos, pos_from_vec3
 from ..block.fire import start_fire
+from ..mgl64 import Vec3
 from ..world.entity import EntityData, EntityMovement, TickerEntity
 from ..world.sound.entity import Explosion, Thunder
 from ..world.world import World, WorldTypes
+from .damage import DAMAGE_LIGHTNING, AnyDamageSource
+from .living_request import REQUEST_LIGHTNING, LivingRequest
 from .passive import StationaryBehaviour
 
 
@@ -107,10 +110,32 @@ struct Lightning(Copyable, Defaultable, TickerEntity):
                     and tx.difficulty().fire_spread_increase() >= 10
                 ):
                     self._spread_fire(tx, pos_from_vec3(data.pos))
-        # TODO(player): while state > 0, Go `dealDamage` to living entities.
+        if self.state > 0:
+            self._deal_damage(data, tx)
         self.stationary.expire(data)
         data.age_ms += 50
         return None
+
+    def _deal_damage[T: WorldTypes](self, data: EntityData, mut tx: World[T]):
+        # Go `dealDamage`: living entities that are not dead yet.
+        var box = (
+            self.bbox(data)
+            .grow_vec3(Vec3(3, 6, 3))
+            .translate(data.pos.add(Vec3(0, 3, 0)))
+        )
+        for other in tx.entities_within(box):
+            var e = tx.entity(other)
+            if not e:
+                continue
+            ref st = e.value().state
+            if not T.Entities.living(st) or T.Entities.living_health(st) <= 0:
+                continue
+            var r = LivingRequest(REQUEST_LIGHTNING)
+            r.dmg = self.damage
+            r.src = AnyDamageSource(DAMAGE_LIGHTNING)
+            r.fire_ms = self.entity_fire_ms
+            r.at_least = True
+            _ = tx.living_request(other, r^)
 
     def _spread_fire[T: WorldTypes](self, mut tx: World[T], pos: Pos):
         # Go `spreadFire`.

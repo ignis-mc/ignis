@@ -8,6 +8,13 @@
         blocks: health 0, the death animation, the death message
         `death.attack.fall`, and after asking to respawn, a Respawn packet
         and full health again.
+    health_bot.mojo prepare WORLD_DIR
+        writes a world with an arrow flying at the spawn and lit TNT two
+        blocks from it.
+    health_bot.mojo hazards ADDRESS
+        joins that world and stands at the spawn: the arrow hurts and
+        knocks it back (SetActorMotion), then the explosion kills it with
+        `death.attack.explosion`.
 """
 
 from std.sys import argv
@@ -23,9 +30,11 @@ from minecraft.protocol.packet.actor_event import (
 from minecraft.protocol.packet.id import (
     ID_ACTOR_EVENT,
     ID_RESPAWN,
+    ID_SET_ACTOR_MOTION,
     ID_TEXT,
     ID_UPDATE_ATTRIBUTES,
 )
+from minecraft.protocol.packet.set_actor_motion import SetActorMotion
 from minecraft.protocol.packet.packet import PacketData
 from minecraft.protocol.packet.player_auth_input import PlayerAuthInput
 from minecraft.protocol.packet.respawn import (
@@ -36,6 +45,14 @@ from minecraft.protocol.packet.respawn import (
 from minecraft.protocol.packet.text import Text
 from minecraft.protocol.packet.update_attributes import UpdateAttributes
 from nethernet.os.time import monotonic_ms
+
+from ignis.entity.arrow import Arrow
+from ignis.entity.register import VanillaEntities
+from ignis.entity.tnt import TNT
+from ignis.mgl64 import Vec3 as Vec3d
+from ignis.server.conf import Config
+from ignis.server.server import open_world
+from ignis.world.entity import EntityHandle, EntitySpawnOpts
 
 comptime EYE = Float32(1.62)
 comptime GROUND = Float32(-60)
@@ -58,6 +75,7 @@ struct Bot(Movable):
     var deaths: Int
     var messages: List[String]
     var respawned: Optional[Respawn]
+    var knocked: Int
 
     def __init__(out self, address: String, name: String) raises:
         var d = Dialer()
@@ -70,6 +88,7 @@ struct Bot(Movable):
         self.deaths = 0
         self.messages = List[String]()
         self.respawned = None
+        self.knocked = 0
         print("JOINED", name, self.eye)
 
     def handle(mut self, pk: PacketData) raises:
@@ -96,6 +115,10 @@ struct Bot(Movable):
             self.messages.append(pk.decode[Text](sid, False).message)
         elif id == ID_RESPAWN:
             self.respawned = pk.decode[Respawn](sid, False)
+        elif id == ID_SET_ACTOR_MOTION:
+            var m = pk.decode[SetActorMotion](sid, False)
+            if m.entity_runtime_id == 1 and m.velocity.x > 0:
+                self.knocked += 1
 
     def pump(mut self, ms: Int) raises:
         var deadline = monotonic_ms() + ms
@@ -164,6 +187,50 @@ def fall(address: String) raises:
     print("DONE")
 
 
+def prepare(folder: String) raises:
+    var conf = Config()
+    conf.world_folder = folder
+    var w = open_world(conf, 0)
+    var a = EntitySpawnOpts()
+    a.position = Vec3d(-20, -59.5, 0.5)
+    a.velocity = Vec3d(2.5, 0.35, 0)
+    _ = w.add_entity(
+        EntityHandle[VanillaEntities](a, VanillaEntities.wrap(Arrow()))
+    )
+    var t = EntitySpawnOpts()
+    t.position = Vec3d(2.5, -60, 0.5)
+    _ = w.add_entity(
+        EntityHandle[VanillaEntities](t, VanillaEntities.wrap(TNT(4000)))
+    )
+    w.close()
+    print("PREPARED", folder)
+
+
+def hazards(address: String) raises:
+    var bot = Bot(address, "Target")
+    var deadline = monotonic_ms() + 3000
+    while monotonic_ms() < deadline and bot.hurts == 0:
+        bot.input(Vec3(0.5, GROUND + EYE, 0.5))
+        bot.pump(50)
+    print("HEALTH", bot.health, "HURTS", bot.hurts, "KNOCKED", bot.knocked)
+    check(bot.hurts >= 1, "the arrow hurts the player (ActorEvent hurt)")
+    check(bot.health < 20, "the arrow takes health")
+    check(bot.knocked >= 1, "the arrow knocks the player back (SetActorMotion)")
+    deadline = monotonic_ms() + 6000
+    while monotonic_ms() < deadline and bot.deaths == 0:
+        bot.input(Vec3(0.5, GROUND + EYE, 0.5))
+        bot.pump(50)
+    print("HEALTH", bot.health, "DEATHS", bot.deaths)
+    check(bot.deaths == 1, "the TNT explosion kills the player")
+    var message = False
+    for m in bot.messages:
+        if m == "death.attack.explosion":
+            message = True
+    check(message, "the death message death.attack.explosion")
+    bot.conn.close()
+    print("DONE")
+
+
 def main() raises:
     var args = argv()
     if len(args) < 3:
@@ -171,5 +238,9 @@ def main() raises:
     var mode = String(args[1])
     if mode == "fall":
         fall(String(args[2]))
+    elif mode == "prepare":
+        prepare(String(args[2]))
+    elif mode == "hazards":
+        hazards(String(args[2]))
     else:
         raise Error(t"unknown mode {mode}")

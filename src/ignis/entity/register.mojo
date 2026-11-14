@@ -13,6 +13,7 @@ from .firework import Firework
 from .item import ItemBehaviour
 from .lightning import Lightning
 from .lingering_potion import LingeringPotion
+from .player_proxy import PlayerProxy
 from .snowball import Snowball
 from .splash_potion import SplashPotion
 from .text import Text
@@ -34,6 +35,7 @@ comptime VanillaEntities = EntitySet[
     SplashPotion,
     TNT,
     Text,
+    PlayerProxy,
 ]
 """Every entity type Ignis implements, in Go's order (the end crystal is
-not ported). Player types join it when players are ported."""
+not ported), then the stand-in of players (`PlayerProxy`)."""

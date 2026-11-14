@@ -7,13 +7,12 @@ type plays its own particle and sound and runs its own hit code:
 Go's entity and block handling, and `finish` closes a projectile that hit
 more entities than it may pierce.
 
-Not ported yet: hurting, knocking back and applying potion effects to living
-entities (no living entities are in the world yet; the filter only lets
-`DamageableEntity`s be hit), picking up stuck arrows (collectors are
-players), and portal travel.
+Living entities hit (players, through their `PlayerProxy`) get a
+`REQUEST_PROJECTILE_HIT`. The server picks up stuck arrows (Go `tryPickup`,
+see `server.Server`). Not ported yet: portal travel.
 """
 
-from std.math import atan2, hypot, pi, sqrt
+from std.math import atan2, ceil, hypot, pi, sqrt
 
 from minecraft.protocol.uuid import UUID
 
@@ -26,6 +25,8 @@ from ..item.stack import Stack
 from ..mgl64 import Vec3, float_equal, float_equal_threshold
 from ..world.entity import EntityData, EntityMovement
 from ..world.world import World, WorldTypes
+from .damage import AnyDamageSource
+from .living_request import REQUEST_PROJECTILE_HIT, LivingRequest
 from .movement import MovementComputer
 
 comptime _EPSILON = 0.001
@@ -41,6 +42,8 @@ struct ProjectileStep(Copyable):
     """What it hit, if anything."""
     var vel_before: Vec3
     """Its velocity before the tick (Go `vel` in `Tick`)."""
+    var id: UUID
+    """The projectile."""
 
 
 struct ProjectileBehaviour(Copyable, Defaultable):
@@ -140,7 +143,7 @@ struct ProjectileBehaviour(Copyable, Defaultable):
         if self.collided and self._tick_attached(data, tx, bbox):
             if self.age_collided > 1200:
                 self.close = True
-            return ProjectileStep(None, None, data.vel)
+            return ProjectileStep(None, None, data.vel, id)
         var vel = data.vel
         var r = self._tick_movement(id, data, tx, bbox)
         var m = r[0]
@@ -150,7 +153,7 @@ struct ProjectileBehaviour(Copyable, Defaultable):
         self.collision_pos = Pos(0, 0, 0)
         self.collided = False
         self.age_collided = 0
-        return ProjectileStep(m, r[1], vel)
+        return ProjectileStep(m, r[1], vel, id)
 
     def hit_target[
         T: WorldTypes
@@ -164,8 +167,9 @@ struct ProjectileBehaviour(Copyable, Defaultable):
         the type's `Hit` code runs (not for a block it stays stuck in)."""
         ref hit = step.hit.value()
         if case .Some(e) = hit.entity:
-            # TODO(player): hurt, knock back and apply effects (Go
-            # `hitEntity`); every entity it can hit is damageable.
+            if self.damage >= 0:
+                self._hit_entity(e.entity(), data, tx, step)
+            # Every entity the filter lets through is damageable.
             self.collided_entities.append(e.entity())
             return True
         ref b = hit.block.value()
@@ -176,6 +180,38 @@ struct ProjectileBehaviour(Copyable, Defaultable):
             return False
         self.close = True
         return True
+
+    def _hit_entity[
+        T: WorldTypes
+    ](
+        self,
+        victim: UUID,
+        data: EntityData,
+        mut tx: World[T],
+        step: ProjectileStep,
+    ):
+        # Go `hitEntity`; the living entity applies the request.
+        var vel = step.vel_before
+        var dmg = ceil(self.damage * vel.len())
+        if self.critical:
+            dmg += tx.global_rand().float64() * dmg / 2
+        var target = tx.entity(victim)
+        if not target:
+            return
+        var r = LivingRequest(REQUEST_PROJECTILE_HIT)
+        r.dmg = dmg
+        r.src = AnyDamageSource.projectile_source(step.id, self.owner)
+        r.pos = target.value().data.pos.sub(vel)
+        r.force = 0.45 + self.knock_back_force_addend
+        r.height = 0.3608 + self.knock_back_height_addend
+        for eff in self.potion.effects():
+            if eff.lasting():
+                r.effects.append(eff.renewed(Int(Float64(eff.duration()) / 8)))
+            else:
+                r.effects.append(eff)
+        if data.fire_duration_ms > 0:
+            r.fire_ms = 5000
+        _ = tx.living_request(victim, r^)
 
     def finish(mut self):
         """Closes a projectile that hit more entities than it pierces (the
@@ -200,8 +236,7 @@ struct ProjectileBehaviour(Copyable, Defaultable):
             if box.intersects_with(
                 bb.translate(self.collision_pos.vec3()).grow(0.05)
             ):
-                # TODO(player): Go `tryPickup` once ageCollided > 5; the
-                # collectors are players.
+                # Go `tryPickup` once ageCollided > 5 is the server's.
                 self.age_collided += 1
                 return True
         return False

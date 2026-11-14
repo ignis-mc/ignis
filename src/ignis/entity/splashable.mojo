@@ -1,8 +1,9 @@
 """Splashing potions, ported from Dragonfly `server/entity/splashable.go`.
 
-TODO(player): Go applies the potion's effects to living entities within 4
-blocks; there are none in the world yet. Splashing water puts out fire and
-campfires, and lingering potions leave an area effect cloud, as in Go.
+The potion's effects reach the living entities within 4 blocks (players,
+through their `PlayerProxy`), weaker further away. Splashing water puts out
+fire and campfires, and lingering potions leave an area effect cloud, as in
+Go.
 """
 
 from ..block.campfire import Campfire
@@ -12,10 +13,13 @@ from ..block.cube.pos import Pos
 from ..block.cube.trace.perform import TraceResult
 from ..block.fire import Fire
 from ..item.potion.potion import Potion
+from ..mgl64 import Vec3
 from ..world.entity import EntityData, EntityHandle, EntitySpawnOpts
 from ..world.sound.block import FireExtinguish
 from ..world.world import World, WorldTypes
 from .area_effect_cloud import AreaEffectCloud
+from .effect import SECOND
+from .living_request import REQUEST_EFFECT, LivingRequest
 
 
 def potion_splash[
@@ -31,9 +35,34 @@ def potion_splash[
 ):
     """Splashes a potion where it landed (Go `potionSplash`)."""
     var pos = data.pos
-    if len(pot.effects()) > 0:
-        # TODO(player): effects on living entities in range.
-        pass
+    var effects = pot.effects()
+    if len(effects) > 0:
+        var at = box.translate(pos)
+        var near = at.grow_vec3(Vec3(4.125, 2.125, 4.125))
+        for other in tx.entities_within(at.grow_vec3(Vec3(8.25, 4.25, 8.25))):
+            var e = tx.entity(other)
+            if not e or not T.Entities.living(e.value().state):
+                continue
+            var opos = e.value().data.pos
+            if not e.value().bbox().translate(opos).intersects_with(near):
+                continue
+            var dist = opos.sub(pos).len()
+            if dist > 4:
+                continue
+            var f = 1 - dist / 4
+            if case .Some(er) = res.entity:
+                if er.entity() == other:
+                    f = 1
+            var r = LivingRequest(REQUEST_EFFECT)
+            for eff in effects:
+                if not eff.lasting():
+                    r.effects.append(eff.with_potency(f))
+                    continue
+                var dur = Int(Float64(eff.duration()) * dur_mul * f)
+                if dur < SECOND:
+                    continue
+                r.effects.append(eff.renewed(dur))
+            _ = tx.living_request(other, r^)
     elif pot == Potion.WATER:
         if case .Some(result) = res.block:
             var block_pos = result.block_position().side(result.face())

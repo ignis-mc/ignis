@@ -98,9 +98,13 @@ from .interact import (
 )
 from .provider import WorldProvider
 from .survival import (
+    apply_living_requests,
     finish_dying,
     handle_movement,
+    pickup_arrows,
+    remove_proxy,
     respawn_player,
+    sync_proxy,
     tick_survival,
 )
 from ..item.register import vanilla_item_registry
@@ -564,8 +568,11 @@ struct Server(Movable):
         self._handle_sessions(now)
 
         if now >= self.world.next_deadline_ms():
+            for _i in range(len(self.sessions)):
+                sync_proxy(self, _i)
             _ = self.world.tick(now)
             self._spawn_block_drops()
+            apply_living_requests(self)
         var ticks = 0
         while now >= self._next_tick and ticks < _MAX_CATCH_UP_TICKS:
             self._tick()
@@ -709,6 +716,7 @@ struct Server(Movable):
             self._save_player(0)
             var gone = self.sessions.pop(0)
             gone.close(self.world)
+            remove_proxy(self, gone.player.uuid())
             var c = gone^.into_conn()
             var inner = c^.into_inner()
             inner.disconnect(String(_SHUTDOWN_KEY))
@@ -937,6 +945,7 @@ struct Server(Movable):
             SessionViewer(self.sessions[n].queue()),
         )
         self.sessions[n].spawn(self.world, loader)
+        sync_proxy(self, n)
         self.sessions[n].send_available_commands(
             self.commands.commands(), CommandSource(self.sessions[n].player)
         )
@@ -993,6 +1002,7 @@ struct Server(Movable):
         """Shows what a handled packet changed to the other sessions."""
         if case .Some(delta) = res.movement:
             handle_movement(self, i, delta, res.moved)
+            sync_proxy(self, i)
         if res.respawn:
             respawn_player(self, i)
         if res.moved or res.state_changed:
@@ -1118,7 +1128,7 @@ struct Server(Movable):
         room (Go `Player.Collect`)."""
         for j in range(len(self.sessions)):
             ref p = self.sessions[j].player
-            if not p.game_mode().allows_interaction():
+            if p.living.dead() or not p.game_mode().allows_interaction():
                 continue
             var pbox = BBox.box(
                 -BBOX_WIDTH / 2,
@@ -1199,6 +1209,7 @@ struct Server(Movable):
         loop in Go); the world ticks on its own deadline."""
         self._ticks += 1
         self._tick_items()
+        pickup_arrows(self)
         finish_dying(self, monotonic_ms())
         for i in range(len(self.sessions)):
             tick_survival(self, i)
@@ -1233,6 +1244,7 @@ struct Server(Movable):
             var gone = self.sessions.pop(i)
             gone.close(self.world)
             var p = gone.player.copy()
+            remove_proxy(self, p.uuid())
             _ = self._player_data.pop(uuid_key(p.uuid()), PlayerData())
             for _i in range(len(self.sessions)):
                 ref other = self.sessions[_i]

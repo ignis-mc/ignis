@@ -88,6 +88,32 @@ struct Effect(Equatable, ImplicitlyCopyable):
             and self._tick == other._tick
         )
 
+    def renewed(self, d: Int) -> Self:
+        """Returns a fresh lasting effect of the same type and level with
+        duration `d` (Go `New(e.Type(), e.Level(), d)`)."""
+        var e = self
+        e._lasting = True
+        e._d = d
+        e._potency = 0
+        e._ambient = False
+        e._particles_hidden = False
+        e._infinite = False
+        e._tick = 0
+        return e
+
+    def with_potency(self, potency: Float64) -> Self:
+        """Returns a fresh instant effect of the same type and level (Go
+        `NewInstantWithPotency(e.Type(), e.Level(), potency)`)."""
+        var e = self
+        e._lasting = False
+        e._d = 0
+        e._potency = potency
+        e._ambient = False
+        e._particles_hidden = False
+        e._infinite = False
+        e._tick = 0
+        return e
+
     def without_particles(self) -> Self:
         """Returns the effect with its particles hidden (Go
         `WithoutParticles`)."""
