@@ -303,7 +303,12 @@ from ..block.container import (
     write_container,
 )
 from ..block.hash import HASH_CHEST
+from ..block.air import Air
+from ..block.anvil import Anvil
+from ..block.anvil_type import AnvilType
 from ..entity.experience_orb import spawn_experience_orbs
+from ..player.living import EVENT_EXPERIENCE
+from ..world.sound.block import AnvilBreak, AnvilUse
 from .handler_item_stack_request import grindstone_experience
 from .viewer import OpenedWindow, PacketQueue
 from .window import (
@@ -858,6 +863,11 @@ struct Session[C: Conn](Movable):
             var held = self.invs.held_item()
             var off = self.invs.off_hand_item()
             self._load_window(w)
+            self._stack_requests.experience_level = (
+                self.player.living.experience.level()
+            )
+            self._stack_requests.spent_levels = 0
+            self._stack_requests.anvil_used = False
             var resp = self._stack_requests.handle(
                 pk.decode[ItemStackRequest](),
                 self.invs,
@@ -869,6 +879,7 @@ struct Session[C: Conn](Movable):
             self.write_packet(resp)
             self._store_window(w)
             self._spawn_grindstone_experience(w)
+            self._apply_window_costs(w)
             # Go's inTransaction: the response already told the client.
             self._discard_inventory_changes()
             res.held_changed = (
@@ -1228,6 +1239,35 @@ struct Session[C: Conn](Movable):
                 if case .Some(inv) = read_container(at, w):
                     return inv.copy()
         return Inventory(1, self.invs.ids)
+
+    def _apply_window_costs[T: WorldTypes](mut self, mut w: World[T]):
+        # Go's anvil: `SetExperienceLevel`, the sound, and a 12% chance
+        # outside creative that the anvil gets damaged (gone after "very
+        # damaged").
+        var spent = self._stack_requests.spent_levels
+        if spent > 0:
+            ref xp = self.player.living.experience
+            xp.set_level(max(xp.level() - spent, 0))
+            self.player.living.push_event(EVENT_EXPERIENCE)
+        if not self._stack_requests.anvil_used:
+            return
+        if not self._queue[].opened:
+            return
+        var pos = self._queue[].opened.value().pos
+        var centre = pos.vec3_centre()
+        var creative = self.player.game_mode().creative_inventory()
+        if not creative and w.global_rand().float64() < 0.12:
+            if case .Some(a) = w.block_as[Anvil](pos):
+                if a.type == AnvilType.VERY_DAMAGED:
+                    w.play_sound(centre, AnvilBreak())
+                    w.set_block(pos, Air())
+                    return
+                var d = a.copy()
+                d.type = AnvilType(Int(a.type.uint8()) + 1)
+                w.play_sound(centre, AnvilUse())
+                w.set_block(pos, d)
+                return
+        w.play_sound(centre, AnvilUse())
 
     def _spawn_grindstone_experience[T: WorldTypes](mut self, mut w: World[T]):
         # Go's grindstone craft adds the orbs at the player's eyes.

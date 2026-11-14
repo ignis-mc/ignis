@@ -1,6 +1,7 @@
 from ignis.block.crafting_table import CraftingTable
 from ignis.block.banner import Banner
 from ignis.block.hash import (
+    HASH_ANVIL,
     HASH_CRAFTING_TABLE,
     HASH_GRINDSTONE,
     HASH_LOOM,
@@ -16,7 +17,12 @@ from ignis.item.banner_pattern_type import BannerPatternType
 from ignis.item.colour import Colour
 from ignis.item.diamond import Diamond
 from ignis.item.dye import Dye
-from ignis.item.enchantment import CURSE_OF_VANISHING_ID, EFFICIENCY_ID
+from ignis.item.enchanted_book import EnchantedBook
+from ignis.item.enchantment import (
+    CURSE_OF_VANISHING_ID,
+    EFFICIENCY_ID,
+    UNBREAKING_ID,
+)
 from ignis.item.shears import Shears
 from ignis.item.stack import Enchantment
 from ignis.session.handler_item_stack_request import grindstone_experience
@@ -55,6 +61,7 @@ from minecraft.protocol.item_stack import (
     CraftCreativeStackRequestAction,
     CraftGrindstoneRecipeStackRequestAction,
     CraftLoomRecipeStackRequestAction,
+    CraftRecipeOptionalStackRequestAction,
     CraftRecipeStackRequestAction,
     DestroyStackRequestAction,
     DropStackRequestAction,
@@ -551,6 +558,90 @@ def test_loom_needs_the_pattern_item() raises:
     )
     # The pattern item is not used up (Go keeps it).
     assert_equal(invs.ui.item(0x0B).count(), 1)
+
+
+def anvil_packet(id: Int32, var name: List[String]) -> ItemStackRequestPacket:
+    var req = ItemStackRequest()
+    req.request_id = id
+    var a = CraftRecipeOptionalStackRequestAction()
+    a.filter_string_index = 0
+    req.actions.append(StackRequestAction(a^))
+    req.filter_strings = name^
+    var pk = ItemStackRequestPacket()
+    pk.requests.append(req^)
+    return pk^
+
+
+def _anvil(level: Int) -> ItemStackRequestHandler:
+    var h = ItemStackRequestHandler()
+    h.experience_level = level
+    return h^
+
+
+def test_anvil_rename_costs_a_level() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_ANVIL)
+    invs.ui.set_item(0x1, Stack(Shears(), 1))
+    var h = _anvil(5)
+    var st = run(h, anvil_packet(1, ["Snips"]), invs)[0]
+    assert_equal(st, ITEM_STACK_RESPONSE_STATUS_OK)
+    var out = invs.ui.item(CRAFTING_RESULT)
+    assert_equal(out.custom_name(), "Snips")
+    assert_equal(h.spent_levels, 1)
+    assert_true(h.anvil_used)
+    # A rename alone does not double the repair cost (Go).
+    assert_equal(out.anvil_cost(), 0)
+
+
+def test_anvil_needs_experience_outside_creative() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_ANVIL)
+    invs.ui.set_item(0x1, Stack(Shears(), 1))
+    var h = _anvil(0)
+    assert_equal(
+        run(h, anvil_packet(1, ["Snips"]), invs)[0],
+        ITEM_STACK_RESPONSE_STATUS_ERROR,
+    )
+    assert_equal(
+        run(h, anvil_packet(2, ["Snips"]), invs, True)[0],
+        ITEM_STACK_RESPONSE_STATUS_OK,
+    )
+    assert_equal(h.spent_levels, 0)
+
+
+def test_anvil_enchants_with_a_book() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_ANVIL)
+    invs.ui.set_item(0x1, Stack(Shears(), 1))
+    var book = Stack(EnchantedBook(), 1).with_forced_enchantments(
+        [Enchantment(UNBREAKING_ID, 2)]
+    )
+    invs.ui.set_item(0x2, book)
+    var h = _anvil(10)
+    var st = run(h, anvil_packet(1, List[String]()), invs)[0]
+    assert_equal(st, ITEM_STACK_RESPONSE_STATUS_OK)
+    var out = invs.ui.item(CRAFTING_RESULT)
+    assert_equal(out.enchantment(Int16(UNBREAKING_ID)).value().level, 2)
+    # Uncommon (2), halved for a book (1), times level 2.
+    assert_equal(h.spent_levels, 2)
+    # Shears are not repairable, so Go's WithAnvilCost leaves the cost.
+    assert_equal(out.anvil_cost(), 0)
+    assert_true(invs.ui.item(0x2).empty())
+
+
+def test_anvil_joins_two_damaged_items() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_ANVIL)
+    var a = Stack(Shears(), 1)
+    var max = a.max_durability()
+    invs.ui.set_item(0x1, a.with_durability(100))
+    invs.ui.set_item(0x2, a.with_durability(50))
+    var h = _anvil(10)
+    var st = run(h, anvil_packet(1, List[String]()), invs)[0]
+    assert_equal(st, ITEM_STACK_RESPONSE_STATUS_OK)
+    var out = invs.ui.item(CRAFTING_RESULT)
+    assert_equal(out.durability(), min(150 + max * 12 // 100, max))
+    assert_equal(h.spent_levels, 2)
 
 
 def main() raises:

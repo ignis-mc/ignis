@@ -26,6 +26,8 @@ come in the order they were first changed.
 from std.collections import Dict
 
 from minecraft.protocol.container import (
+    CONTAINER_ANVIL_INPUT,
+    CONTAINER_ANVIL_MATERIAL,
     CONTAINER_COMBINED_HOT_BAR_AND_INVENTORY,
     CONTAINER_CRAFTING_INPUT,
     CONTAINER_CREATED_OUTPUT,
@@ -49,6 +51,7 @@ from minecraft.protocol.item_stack import (
     CraftCreativeStackRequestAction,
     CraftGrindstoneRecipeStackRequestAction,
     CraftLoomRecipeStackRequestAction,
+    CraftRecipeOptionalStackRequestAction,
     CraftRecipeStackRequestAction,
     CraftResultsDeprecatedStackRequestAction,
     CreateStackRequestAction,
@@ -78,6 +81,7 @@ from minecraft.nbt.tree import Tree
 
 from ..block.decorated_pot import DecoratedPot
 from ..block.hash import (
+    HASH_ANVIL,
     HASH_CRAFTING_TABLE,
     HASH_GRINDSTONE,
     HASH_LOOM,
@@ -93,6 +97,8 @@ from ..block.banner_pattern_type import (
 from ..item.banner_pattern import BannerPattern
 from ..item.banner_pattern_type import BannerPatternType
 from ..item.boots import Boots
+from ..item.enchanted_book import EnchantedBook
+from ..item.enchanting import compatible_with_item
 from ..item.dye import Dye
 from ..world.block_set import encode_block_nbt
 from ..item.enchantment.register import VanillaEnchantments
@@ -138,6 +144,10 @@ comptime SMITHING_MATERIAL_SLOT = 0x34
 """Go `smithingMaterialSlot`."""
 comptime SMITHING_TEMPLATE_SLOT = 0x35
 """Go `smithingTemplateSlot`."""
+comptime ANVIL_INPUT_SLOT = 0x1
+"""Go `anvilInputSlot`."""
+comptime ANVIL_MATERIAL_SLOT = 0x2
+"""Go `anvilMaterialSlot`."""
 comptime LOOM_INPUT_SLOT = 0x09
 """Go `loomInputSlot`."""
 comptime LOOM_DYE_SLOT = 0x0A
@@ -194,6 +204,14 @@ struct ItemStackRequestHandler(Defaultable, Movable):
     var _window: Window
     var _recipes: ArcPointer[Recipes]
     var _items: ArcPointer[ItemRegistry]
+    var experience_level: Int
+    """The player's experience level, set before `handle` (Go
+    `ExperienceLevel`)."""
+    var spent_levels: Int
+    """Levels the requests used up; the caller takes them from the player
+    (Go `SetExperienceLevel`)."""
+    var anvil_used: Bool
+    """An anvil was used; the caller plays its sound and may damage it."""
     var experience_costs: List[Int]
     """The enchantment costs of grindstone crafts (Go
     `experienceFromEnchantments` before its random part), for the caller to
@@ -213,6 +231,9 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         self._recipes = ArcPointer(Recipes())
         self._items = ArcPointer(ItemRegistry())
         self.experience_costs = List[Int]()
+        self.experience_level = 0
+        self.spent_levels = 0
+        self.anvil_used = False
 
     def use_recipes(
         mut self, recipes: ArcPointer[Recipes], items: ArcPointer[ItemRegistry]
@@ -294,6 +315,11 @@ struct ItemStackRequestHandler(Defaultable, Movable):
                     self._craft(
                         a.recipe_network_id, Int(a.number_of_crafts), invs
                     )
+            elif v.isa[CraftRecipeOptionalStackRequestAction]():
+                ref a = v[CraftRecipeOptionalStackRequestAction]
+                self._anvil(
+                    Int(a.filter_string_index), req.filter_strings, invs
+                )
             elif v.isa[CraftLoomRecipeStackRequestAction]():
                 ref a = v[CraftLoomRecipeStackRequestAction]
                 self._loom(a.pattern, Int(a.times_crafted), invs)
@@ -618,6 +644,96 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         _ = nbt.put_string(c, "Material", String(mname.value()))
         _ = nbt.put_string(c, "Pattern", t.value().template.name())
         self._create_results([result.with_item_nbt(nbt^)], invs)
+
+    def _anvil(
+        mut self, index: Int, filters: List[String], mut invs: Inventories
+    ) raises:
+        """Go `handleCraftRecipeOptional`: repairs, combines, enchants with
+        books and renames on an anvil for experience levels."""
+        if self._window.block != HASH_ANVIL:
+            raise Error("no anvil container opened")
+        if len(filters) > 0 and (index < 0 or index >= len(filters)):
+            raise Error(t"filter string index {index} is out of bounds")
+        var at_input = _slot(CONTAINER_ANVIL_INPUT, ANVIL_INPUT_SLOT)
+        var at_material = _slot(CONTAINER_ANVIL_MATERIAL, ANVIL_MATERIAL_SLOT)
+        var input = self._item(at_input, invs)
+        if input.empty():
+            raise Error("no item in input input slot")
+        var material = self._item(at_material, invs)
+        var result = input.copy()
+        var anvil_cost = input.anvil_cost()
+        if not material.empty():
+            anvil_cost += material.anvil_cost()
+        var action_cost = 0
+        var rename_cost = 0
+        var repair_count = 0
+        if not material.empty():
+            var it = input.item().value()
+            var repairable = False
+            if not it.block:
+                repairable = VanillaItems.repairable_by(
+                    it.kind, it.hash, material
+                ).or_else(False)
+            if repairable:
+                var r = _repair_with_material(input, material)
+                result = r[0].copy()
+                action_cost = r[1]
+                repair_count = r[2]
+            else:
+                var book = Bool(material.item_as[EnchantedBook]())
+                var durable = input.info().durable()
+                var enchanted_book = book and len(material.enchantments()) > 0
+                if not enchanted_book and (
+                    input.item().value() != material.item().value()
+                    or not durable
+                ):
+                    raise Error(
+                        "input item is not repairable/same type or material"
+                        " item is not an enchanted book"
+                    )
+                if durable and not enchanted_book:
+                    var r = _repair_with_durable(input, material, result)
+                    result = r[0].copy()
+                    action_cost = r[1]
+                var m = _merge_enchantments(
+                    input, material, result, action_cost, enchanted_book
+                )
+                result = m.result.copy()
+                action_cost = m.cost
+                if not durable and m.incompatible and not m.compatible:
+                    raise Error(
+                        "no compatible enchantments but have incompatible ones"
+                    )
+        if len(filters) > 0:
+            rename_cost = 1
+            action_cost += rename_cost
+            result = result.with_custom_name(filters[index])
+        var cost = action_cost + anvil_cost
+        if cost <= 0:
+            raise Error("no action was taken")
+        if rename_cost == action_cost and rename_cost > 0 and cost >= 40:
+            cost = 39
+        if cost >= 40 and not self._creative:
+            raise Error("impossible cost")
+        var level = self.experience_level - self.spent_levels
+        if level < cost and not self._creative:
+            raise Error("not enough experience")
+        elif not self._creative:
+            self.spent_levels += cost
+        if not result.empty():
+            var updated = result.anvil_cost()
+            if not material.empty() and updated < material.anvil_cost():
+                updated = material.anvil_cost()
+            if rename_cost != action_cost or rename_cost == 0:
+                updated = updated * 2 + 1
+            result = result.with_anvil_cost(updated)
+        self.anvil_used = True
+        self._set(at_input, Stack(), invs)
+        if repair_count > 0:
+            self._set(at_material, material.grow(-repair_count), invs)
+        else:
+            self._set(at_material, Stack(), invs)
+        self._create_results([result^], invs)
 
     def _loom(
         mut self, pattern_id: String, times: Int, mut invs: Inventories
@@ -1091,3 +1207,103 @@ def _pattern_item(p: BlockPatternType) -> Optional[BannerPatternType]:
     if v == 41:
         return BannerPatternType.GUSTER
     return None
+
+
+def _repair_with_material(
+    input: Stack, material: Stack
+) raises -> Tuple[Stack, Int, Int]:
+    """Go `repairItemWithMaterial`: each material item restores a quarter
+    of the durability."""
+    var delta = min(
+        input.max_durability() - input.durability(), input.max_durability() // 4
+    )
+    if delta <= 0:
+        raise Error("input item is already fully repaired")
+    var result = input.copy()
+    var cost = 0
+    var count = 0
+    while delta > 0 and count < material.count():
+        result = result.with_durability(result.durability() + delta)
+        cost += 1
+        count += 1
+        delta = min(
+            result.max_durability() - result.durability(),
+            result.max_durability() // 4,
+        )
+    return (result^, cost, count)
+
+
+def _repair_with_durable(
+    input: Stack, other: Stack, result: Stack
+) -> Tuple[Stack, Int]:
+    """Go `repairItemWithDurable`: both durabilities plus 12%."""
+    var durability = (
+        input.durability()
+        + other.durability()
+        + input.max_durability() * 12 // 100
+    )
+    if durability > input.max_durability():
+        durability = input.max_durability()
+    if durability > input.durability():
+        return (result.with_durability(durability), 2)
+    return (result.copy(), 0)
+
+
+@fieldwise_init
+struct _Merged(Movable):
+    var result: Stack
+    var compatible: Bool
+    var incompatible: Bool
+    var cost: Int
+
+
+def _merge_enchantments(
+    input: Stack,
+    material: Stack,
+    result_in: Stack,
+    cost_in: Int,
+    enchanted_book: Bool,
+) -> _Merged:
+    """Go `mergeEnchantments`: adds the material's enchantments that fit,
+    raising a level by one when both have it, and prices them by rarity."""
+    var result = result_in.copy()
+    var cost = cost_in
+    var has_compatible = False
+    var has_incompatible = False
+    for e in material.enchantments():
+        var id = Int(e.id)
+        var compatible = compatible_with_item(id, input)
+        if input.item_as[EnchantedBook]():
+            compatible = True
+        for o in input.enchantments():
+            if o.id != e.id and not VanillaEnchantments.compatible(
+                id, Int(o.id)
+            ):
+                compatible = False
+                cost += 1
+        if not compatible:
+            has_incompatible = True
+            continue
+        has_compatible = True
+        var level = e.level
+        var level_cost = level
+        if case .Some(existing) = input.enchantment(e.id):
+            var max_level = VanillaEnchantments.max_level(id).or_else(1)
+            if existing.level > level or (
+                existing.level == level and level == max_level
+            ):
+                has_incompatible = True
+                continue
+            elif existing.level == level:
+                level += 1
+            level_cost = level - existing.level
+        var rarity_cost = 1
+        if case .Some(r) = VanillaEnchantments.rarity(id):
+            rarity_cost = r.cost()
+        if enchanted_book:
+            rarity_cost = max(1, rarity_cost // 2)
+        result = _with_enchantments(result, [Enchantment(e.id, level)])
+        cost += rarity_cost * level_cost
+        if input.count() > 1:
+            cost = 40
+    return _Merged(result^, has_compatible, has_incompatible, cost)

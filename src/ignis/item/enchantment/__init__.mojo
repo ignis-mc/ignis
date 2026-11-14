@@ -227,6 +227,25 @@ struct EnchantmentSet[*Ts: EnchantmentType]:
         return None
 
     @staticmethod
+    def rarity(id: Int) -> Optional[EnchantmentRarity]:
+        """Returns the rarity of the enchantment with an ID (Go `Rarity`)."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            if id == T.ID:
+                return T().rarity()
+        return None
+
+    @staticmethod
+    def compatible_items(id: Int) -> Optional[ItemFilter]:
+        """Returns the items the enchantment with an ID applies to (Go
+        `CompatibleWithItem`)."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            if id == T.ID:
+                return T().compatible_items()
+        return None
+
+    @staticmethod
     def curse(id: Int) -> Bool:
         """Reports whether the enchantment is a curse (Go's
         `curseEnchantment`, which only Curse of Vanishing implements)."""
