@@ -1,14 +1,14 @@
-"""NetheriteIngot, ported from Dragonfly `server/item/netherite_ingot.go`.
-
-TODO(port): `TrimMaterial`, `MaterialColour`.
-"""
+"""NetheriteIngot, ported from Dragonfly `server/item/netherite_ingot.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
+from .armour_trim import ArmourTrimMaterial
 from .item import BeaconPayment
 
 
 @fieldwise_init
-struct NetheriteIngot(BeaconPayment, Equatable, ImplicitlyCopyable, Item):
+struct NetheriteIngot(
+    ArmourTrimMaterial, BeaconPayment, Equatable, ImplicitlyCopyable, Item
+):
     """A rare mineral crafted with 4 pieces of netherite scrap and 4 gold
     ingots."""
 
@@ -18,6 +18,15 @@ struct NetheriteIngot(BeaconPayment, Equatable, ImplicitlyCopyable, Item):
     def payable_for_beacon(self) -> Bool:
         """Reports that the item pays for beacons (Go `PayableForBeacon`)."""
         return True
+
+    def trim_material(self) -> StaticString:
+        """Returns the trim material identifier (Go `TrimMaterial`)."""
+        return "netherite"
+
+    def material_colour(self) -> StaticString:
+        """Returns the trim text colour (Go `MaterialColour`, `text.Netherite`).
+        """
+        return "§j"
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`)."""

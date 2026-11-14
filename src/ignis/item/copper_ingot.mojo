@@ -1,17 +1,23 @@
-"""CopperIngot, ported from Dragonfly `server/item/copper_ingot.go`.
-
-TODO(port): `TrimMaterial`, `MaterialColour`.
-"""
+"""CopperIngot, ported from Dragonfly `server/item/copper_ingot.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
+from .armour_trim import ArmourTrimMaterial
 
 
 @fieldwise_init
-struct CopperIngot(Equatable, ImplicitlyCopyable, Item):
+struct CopperIngot(ArmourTrimMaterial, Equatable, ImplicitlyCopyable, Item):
     """A metal ingot melted from copper ore."""
 
     comptime BASE_HASH: UInt64 = item_hash("CopperIngot")
     """`item_hash("CopperIngot")`."""
+
+    def trim_material(self) -> StaticString:
+        """Returns the trim material identifier (Go `TrimMaterial`)."""
+        return "copper"
+
+    def material_colour(self) -> StaticString:
+        """Returns the trim text colour (Go `MaterialColour`, `text.Copper`)."""
+        return "§n"
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`)."""

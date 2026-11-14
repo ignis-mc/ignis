@@ -1,18 +1,25 @@
-"""AmethystShard, ported from Dragonfly `server/item/amethyst_shard.go`.
-
-TODO(port): `TrimMaterial`, `MaterialColour`.
-"""
+"""AmethystShard, ported from Dragonfly `server/item/amethyst_shard.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
+from .armour_trim import ArmourTrimMaterial
 
 
 @fieldwise_init
-struct AmethystShard(Equatable, ImplicitlyCopyable, Item):
+struct AmethystShard(ArmourTrimMaterial, Equatable, ImplicitlyCopyable, Item):
     """A crystalline mineral obtained from mining a fully grown amethyst
     cluster."""
 
     comptime BASE_HASH: UInt64 = item_hash("AmethystShard")
     """`item_hash("AmethystShard")`."""
+
+    def trim_material(self) -> StaticString:
+        """Returns the trim material identifier (Go `TrimMaterial`)."""
+        return "amethyst"
+
+    def material_colour(self) -> StaticString:
+        """Returns the trim text colour (Go `MaterialColour`, `text.Amethyst`).
+        """
+        return "§u"
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`)."""

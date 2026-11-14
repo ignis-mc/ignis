@@ -7,6 +7,8 @@ equal by material only, and `ArmourTier(i)` gives an undyed tier.
 `armourTierRepairable` is `ArmourTier.repairable_by`.
 """
 
+from std.memory import bitcast
+
 from ..internal.color import RGBA
 from ..internal.enum import enum_name
 from ..world.item import item_hash
@@ -181,3 +183,29 @@ trait BootsType(Armour):
     def boots(self) -> Bool:
         """Marks the type as boots (Go `Boots`)."""
         ...
+
+
+def int32_from_rgba(x: RGBA) -> Int32:
+    """Packs a colour as ARGB, black for any colour with no RGB (Go
+    `int32FromRGBA`, used by dyed leather)."""
+    if x.r == 0 and x.g == 0 and x.b == 0:
+        return Int32(-0x1000000)
+    return Int32(
+        bitcast[DType.int32](
+            UInt32(x.a) << 24
+            | UInt32(x.r) << 16
+            | UInt32(x.g) << 8
+            | UInt32(x.b)
+        )
+    )
+
+
+def rgba_from_int32(x: Int32) -> RGBA:
+    """Unpacks an ARGB colour (Go `rgbaFromInt32`)."""
+    var u = bitcast[DType.uint32](x)
+    return RGBA(
+        UInt8((u >> 16) & 0xFF),
+        UInt8((u >> 8) & 0xFF),
+        UInt8(u & 0xFF),
+        UInt8(u >> 24),
+    )

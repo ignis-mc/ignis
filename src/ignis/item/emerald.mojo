@@ -1,14 +1,14 @@
-"""Emerald, ported from Dragonfly `server/item/emerald.go`.
-
-TODO(port): `TrimMaterial`, `MaterialColour`.
-"""
+"""Emerald, ported from Dragonfly `server/item/emerald.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
+from .armour_trim import ArmourTrimMaterial
 from .item import BeaconPayment
 
 
 @fieldwise_init
-struct Emerald(BeaconPayment, Equatable, ImplicitlyCopyable, Item):
+struct Emerald(
+    ArmourTrimMaterial, BeaconPayment, Equatable, ImplicitlyCopyable, Item
+):
     """A rare mineral obtained from emerald ore or from villagers."""
 
     comptime BASE_HASH: UInt64 = item_hash("Emerald")
@@ -17,6 +17,15 @@ struct Emerald(BeaconPayment, Equatable, ImplicitlyCopyable, Item):
     def payable_for_beacon(self) -> Bool:
         """Reports that the item pays for beacons (Go `PayableForBeacon`)."""
         return True
+
+    def trim_material(self) -> StaticString:
+        """Returns the trim material identifier (Go `TrimMaterial`)."""
+        return "emerald"
+
+    def material_colour(self) -> StaticString:
+        """Returns the trim text colour (Go `MaterialColour`, `text.Emerald`).
+        """
+        return "§q"
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`)."""
