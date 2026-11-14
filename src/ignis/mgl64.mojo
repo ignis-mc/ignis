@@ -205,3 +205,21 @@ def deg_to_rad(angle: Float64) -> Float64:
         The angle in radians.
     """
     return angle * pi / 180
+
+
+def approx_equal(a: Vec3, b: Vec3) -> Bool:
+    """Compares vectors element-wise with `float_equal` (Go
+    `Vec3.ApproxEqual`).
+
+    Args:
+        a: The first vector.
+        b: The second vector.
+
+    Returns:
+        True if every element is approximately equal.
+    """
+    return (
+        float_equal(a.x(), b.x())
+        and float_equal(a.y(), b.y())
+        and float_equal(a.z(), b.z())
+    )
