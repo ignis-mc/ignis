@@ -19,6 +19,8 @@
 #   6. interop/bots/behaviour_bot.mojo: in a world with a water source and
 #      floating sand, the water flows, the sand falls as a falling block
 #      entity and lands in the water.
+#   7. interop/bots/entity_bot.mojo: in a world with saved lit TNT and a
+#      flying arrow, the arrow flies and the TNT explodes, breaking blocks.
 #
 # Usage: scripts/e2e.sh [port]
 set -euo pipefail
@@ -33,6 +35,7 @@ mojo build --fp-mode contract=off "${inc[@]}" interop/bots/two_bots.mojo -o buil
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/persist_bot.mojo -o build/persist_bot
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/interact_bot.mojo -o build/interact_bot
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/behaviour_bot.mojo -o build/behaviour_bot
+mojo build --fp-mode contract=off "${inc[@]}" interop/bots/entity_bot.mojo -o build/entity_bot
 
 dir="$(mktemp -d)"
 pid=""
@@ -140,6 +143,13 @@ if [[ $status -eq 0 ]]; then
     start server4.log
     ./build/behaviour_bot watch "$addr" 2>&1 | grep -v '^dial'
     stop TERM server4.log
+
+    ./build/entity_bot prepare "$dir/entities" 2>&1 | grep -v '^dial'
+    printf '[World]\nFolder = "%s/entities"\n[Players]\nSaveData = false\n' \
+        "$dir" >"$dir/config.toml"
+    start server5.log
+    ./build/entity_bot watch "$addr" 2>&1 | grep -v '^dial'
+    stop TERM server5.log
 fi
 echo "--- server log"
 cat "$dir/server1.log"
