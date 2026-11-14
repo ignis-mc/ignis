@@ -1,7 +1,7 @@
 """`CocoaBean`, ported from Dragonfly `server/block/cocoa_bean.go`.
 
-TODO(world-runtime): BoneMeal, HasLiquidDrops, NeighbourUpdateTick, UseOnBlock,
-RandomTick, Model and the drops.
+TODO(world-runtime): BoneMeal, NeighbourUpdateTick, UseOnBlock, Model and the
+drops.
 """
 
 from ..item.item import Compostable

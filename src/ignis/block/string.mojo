@@ -4,7 +4,7 @@ Go names the type `String`; here it is `StringBlock` so that it does not
 shadow the built-in `String` wherever it is imported.
 
 TODO(world-runtime): UseOnBlock, EntityInside, NeighbourUpdateTick, tripwire
-hook logic, HasLiquidDrops, Model and the drops.
+hook logic, Model and the drops.
 """
 
 from ..world.block import Block, LightDiffuser

@@ -3,9 +3,8 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the `Book item.Stack` field, Model, SideClosed,
-UseOnBlock, Activate, Punch, TurnPage, FlammabilityInfo and the drops (the
-book).
+TODO(world-runtime): the `Book item.Stack` field, Model, UseOnBlock, Activate,
+Punch, TurnPage, FlammabilityInfo and the drops (the book).
 """
 
 from minecraft.nbt.tree import Tag, Tree

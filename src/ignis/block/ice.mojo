@@ -1,7 +1,7 @@
 """`Ice`, ported from Dragonfly `server/block/ice.go`.
 
-TODO(world-runtime): Friction, RandomTick (melting), the break handler turning
-it into water and the drops.
+TODO(world-runtime): Friction, the break handler turning it into water and the
+drops.
 """
 
 from ..world.block import Block, LightDiffuser, RandomTicker

@@ -1,7 +1,6 @@
 """`CopperTorch`, ported from Dragonfly `server/block/copper_torch.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, HasLiquidDrops and the
-drops.
+TODO(world-runtime): UseOnBlock and the drops.
 """
 
 from ..world.block import (

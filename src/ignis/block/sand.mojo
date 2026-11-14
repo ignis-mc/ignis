@@ -1,7 +1,6 @@
 """`Sand`, ported from Dragonfly `server/block/sand.go`.
 
-TODO(world-runtime): SoilFor, NeighbourUpdateTick, the falling behaviour of
-`gravityAffected` and the drops.
+TODO(world-runtime): the falling behaviour of `gravityAffected` and the drops.
 """
 
 from ..item.smelting_info import SmeltInfo, Smeltable

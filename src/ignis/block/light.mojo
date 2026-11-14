@@ -1,9 +1,4 @@
 """`Light`, ported from Dragonfly `server/block/light.go`.
-
-Go's `replaceable` and `flowingWaterDisplacer` helpers come with `world.Tx`
-and liquids.
-
-TODO(world-runtime): SideClosed.
 """
 
 from .block import Replaceable

@@ -1,7 +1,7 @@
 """`Bamboo`, ported from Dragonfly `server/block/bamboo.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RandomTick, BoneMeal,
-grow, Model, FlammabilityInfo and the drops.
+TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, BoneMeal, grow, Model,
+FlammabilityInfo and the drops.
 """
 
 from ..item.smelting_info import Fuel, FuelInfo

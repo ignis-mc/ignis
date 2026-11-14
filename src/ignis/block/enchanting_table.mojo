@@ -1,10 +1,8 @@
 """`EnchantingTable`, ported from Dragonfly
 `server/block/enchanting_table.go`.
 
-Go's `sourceWaterDisplacer` makes the table a `LiquidDisplacer`; that trait
-comes with liquids.
 
-TODO(world-runtime): Model, SideClosed, Activate and the drops.
+TODO(world-runtime): Model, Activate and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree

@@ -2,7 +2,7 @@
 
 TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RedstoneUpdate,
 RedstoneSource, RedstonePower, RedstoneStrongPower, the connection calculation,
-diagonal wire updates, Model, HasLiquidDrops, the break handler and the drops.
+diagonal wire updates, Model, the break handler and the drops.
 """
 
 from ..item.armour_trim import ArmourTrimMaterial

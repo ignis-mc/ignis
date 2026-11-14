@@ -1,7 +1,6 @@
 """`Farmland`, ported from Dragonfly `server/block/farmland.go`.
 
-TODO(world-runtime): SoilFor, NeighbourUpdateTick, RandomTick (with hydrated),
-EntityLand and the drops.
+TODO(world-runtime): EntityLand and the drops.
 """
 
 from ..world.block import Block, NeighbourUpdateTicker, RandomTicker

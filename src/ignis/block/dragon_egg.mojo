@@ -1,10 +1,7 @@
 """`DragonEgg`, ported from Dragonfly `server/block/dragon_egg.go`.
 
-Go's `sourceWaterDisplacer` makes the egg a `LiquidDisplacer`; that trait
-comes with liquids.
-
-TODO(world-runtime): NeighbourUpdateTick, teleport, Punch, Activate, the
-falling behaviour of `gravityAffected`, SideClosed and the drops.
+TODO(world-runtime): teleport, Punch, Activate, the falling behaviour of
+`gravityAffected` and the drops.
 """
 
 from ..world.block import (

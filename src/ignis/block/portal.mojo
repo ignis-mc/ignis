@@ -1,7 +1,6 @@
 """`Portal`, ported from Dragonfly `server/block/portal.go`.
 
-TODO(world-runtime): Model, Portal, HasLiquidDrops, NeighbourUpdateTick,
-EntityInside.
+TODO(world-runtime): Model, Portal, NeighbourUpdateTick and EntityInside.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter

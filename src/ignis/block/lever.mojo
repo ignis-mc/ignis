@@ -1,9 +1,7 @@
 """`Lever`, ported from Dragonfly `server/block/lever.go`.
 
-Go's `flowingWaterDisplacer` comes with liquids.
-
 TODO(world-runtime): Activate, UseOnBlock, NeighbourUpdateTick, HasLiquidDrops,
-SideClosed, RedstoneSource, RedstonePower, RedstoneStrongPower and the drops.
+RedstoneSource, RedstonePower, RedstoneStrongPower and the drops.
 """
 
 from ..world.block import Block, LightDiffuser

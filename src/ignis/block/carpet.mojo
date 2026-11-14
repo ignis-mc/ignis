@@ -1,10 +1,6 @@
 """`Carpet`, ported from Dragonfly `server/block/carpet.go`.
 
-Go's `sourceWaterDisplacer` makes carpets a `LiquidDisplacer`; that trait
-comes with liquids.
-
-TODO(world-runtime): SideClosed, HasLiquidDrops, NeighbourUpdateTick,
-UseOnBlock, FlammabilityInfo and the drops.
+TODO(world-runtime): UseOnBlock, FlammabilityInfo and the drops.
 """
 
 from ..item.colour import Colour, colours

@@ -1,7 +1,7 @@
 """`StainedTerracotta`, ported from Dragonfly
 `server/block/stained_terracotta.go`.
 
-TODO(world-runtime): SoilFor and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..item.colour import Colour, colours

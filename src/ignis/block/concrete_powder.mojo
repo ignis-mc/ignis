@@ -1,8 +1,7 @@
 """`ConcretePowder`, ported from Dragonfly
 `server/block/concrete_powder.go`.
 
-TODO(world-runtime): Solidifies, NeighbourUpdateTick, the falling behaviour of
-`gravityAffected` and the drops.
+TODO(world-runtime): the falling behaviour of `gravityAffected` and the drops.
 """
 
 from ..item.colour import Colour, colours

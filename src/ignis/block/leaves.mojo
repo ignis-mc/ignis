@@ -1,11 +1,7 @@
 """`Leaves`, ported from Dragonfly `server/block/leaves.go`.
 
-Go's `sourceWaterDisplacer` makes leaves a `LiquidDisplacer`; that trait
-comes with liquids.
-
-TODO(world-runtime): UseOnBlock, RandomTick (with findLog),
-NeighbourUpdateTick, FlammabilityInfo, SideClosed, the drops (saplings, sticks,
-apples).
+TODO(world-runtime): UseOnBlock, FlammabilityInfo, the drops (saplings, sticks
+and apples).
 """
 
 from ..item.item import Compostable

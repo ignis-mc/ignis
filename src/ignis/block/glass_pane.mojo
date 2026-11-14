@@ -1,9 +1,6 @@
 """`GlassPane`, ported from Dragonfly `server/block/glass_pane.go`.
 
-Go's `sourceWaterDisplacer` makes panes a `LiquidDisplacer`; that trait
-comes with liquids.
-
-TODO(world-runtime): NeighbourUpdateTick, DeriveState, SideClosed, the
+TODO(world-runtime): NeighbourUpdateTick, DeriveState and the
 `silkTouchOnlyDrop` drops.
 """
 

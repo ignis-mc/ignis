@@ -1,8 +1,8 @@
 """`RedstoneTorch`, ported from Dragonfly `server/block/redstone_torch.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, HasLiquidDrops,
-RedstoneSource, RedstonePower, RedstoneStrongPower, RedstoneUpdate,
-ScheduledTick, the break handler clearing burnout and the drops.
+TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RedstoneSource,
+RedstonePower, RedstoneStrongPower, RedstoneUpdate, ScheduledTick, the break
+handler clearing burnout and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter

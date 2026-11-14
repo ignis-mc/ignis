@@ -3,8 +3,7 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, UseOnBlock, EntityInside, SideClosed,
-Model and the drops.
+TODO(world-runtime): UseOnBlock, EntityInside, Model and the drops.
 """
 
 from ..item.smelting_info import Fuel, FuelInfo

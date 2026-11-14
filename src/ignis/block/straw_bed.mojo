@@ -3,9 +3,9 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the `Sleeper` entity handle, Model, SideClosed,
-UseOnBlock, Activate, EntityLand, bounce, NeighbourUpdateTick, head, the break
-handler waking the sleeper and the drops.
+TODO(world-runtime): the `Sleeper` entity handle, Model, UseOnBlock, Activate,
+EntityLand, bounce, NeighbourUpdateTick, head, the break handler waking the
+sleeper and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree

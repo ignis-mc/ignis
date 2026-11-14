@@ -1,7 +1,7 @@
 """`Slab`, ported from Dragonfly `server/block/slab.go`.
 
-TODO(world-runtime): Instrument, FlammabilityInfo, CanDisplace,
-SideClosed, CanRedstoneWireStepDown, Model and the drops.
+TODO(world-runtime): Instrument, FlammabilityInfo, CanRedstoneWireStepDown,
+Model and the drops.
 """
 
 from .cube.face import Face

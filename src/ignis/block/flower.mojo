@@ -1,7 +1,7 @@
 """`Flower`, ported from Dragonfly `server/block/flower.go`.
 
-TODO(world-runtime): EntityInside (wither rose), NeighbourUpdateTick,
-HasLiquidDrops, UseOnBlock, BoneMeal, FlammabilityInfo and the drops.
+TODO(world-runtime): EntityInside (wither rose), UseOnBlock, BoneMeal,
+FlammabilityInfo and the drops.
 """
 
 from ..item.item import Compostable

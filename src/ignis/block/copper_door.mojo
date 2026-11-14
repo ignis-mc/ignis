@@ -3,8 +3,7 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, Activate, SideClosed,
-Model, Wax, Strip, RandomTick (attemptOxidation), EncodeItem and the drops.
+TODO(world-runtime): Activate, Model, Wax, Strip, EncodeItem and the drops.
 
 TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, Activate, SideClosed,
 Model, Wax, Strip, RandomTick (attemptOxidation) and the drops.

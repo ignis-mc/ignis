@@ -1,6 +1,6 @@
 """`Terracotta`, ported from Dragonfly `server/block/terracotta.go`.
 
-TODO(world-runtime): SoilFor and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.block import Block

@@ -1,6 +1,6 @@
 """`Copper`, ported from Dragonfly `server/block/copper.go`.
 
-TODO(world-runtime): Wax, Strip, RandomTick (attemptOxidation) and the drops.
+TODO(world-runtime): Wax, Strip and the drops.
 """
 
 from ..world.block import Block, RandomTicker

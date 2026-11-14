@@ -3,9 +3,8 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, DeriveState,
-calculateCorner, continued, Model, Instrument, FlammabilityInfo, SideClosed and
-the drops.
+TODO(world-runtime): NeighbourUpdateTick, DeriveState, calculateCorner,
+continued, Model, Instrument, FlammabilityInfo and the drops.
 """
 
 from .cube.face import Face

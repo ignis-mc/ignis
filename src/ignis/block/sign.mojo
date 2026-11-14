@@ -4,8 +4,8 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the `Front`, `Back` `SignText` fields (text, base colour,
-glow, owner), SideClosed, Ink, Wax, Activate, EditingFace, UseOnBlock,
-NeighbourUpdateTick, FlammabilityInfo and the drops.
+glow, owner), Ink, Wax, Activate, EditingFace, UseOnBlock, NeighbourUpdateTick,
+FlammabilityInfo and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree

@@ -4,8 +4,7 @@ Go's `replaceable` helper is `Replaceable`. Go's
 `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes with
 liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
-FlammabilityInfo and the drops.
+TODO(world-runtime): UseOnBlock, BoneMeal, FlammabilityInfo and the drops.
 """
 
 from .block import Replaceable, face_solid_at, is_air

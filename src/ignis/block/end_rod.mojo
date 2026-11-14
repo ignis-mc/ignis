@@ -1,8 +1,6 @@
 """`EndRod`, ported from Dragonfly `server/block/end_rod.go`.
 
-Go's `flowingWaterDisplacer` comes with liquids.
-
-TODO(world-runtime): UseOnBlock, Model, SideClosed and the drops.
+TODO(world-runtime): UseOnBlock, Model and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter

@@ -1,6 +1,6 @@
 """`Mud`, ported from Dragonfly `server/block/mud.go`.
 
-TODO(world-runtime): SoilFor and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.block import Block

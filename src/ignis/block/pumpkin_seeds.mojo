@@ -1,8 +1,7 @@
 """`PumpkinSeeds`, ported from Dragonfly `server/block/pumpkin_seeds.go`.
 
-TODO(world-runtime): the `crop` helpers (NeighbourUpdateTick, HasLiquidDrops,
-CalculateGrowthChance), GrowthStage, SameCrop, RandomTick, BoneMeal, UseOnBlock
-and the drops.
+TODO(world-runtime): the `crop` helpers (NeighbourUpdateTick,
+CalculateGrowthChance), BoneMeal, UseOnBlock and the drops.
 """
 
 from ..item.item import Compostable

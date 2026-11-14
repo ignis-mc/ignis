@@ -3,9 +3,9 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the `Items [4]CampfireItem` field, Model, SideClosed,
-Activate, UseOnBlock, Splash, Ignite, Extinguish, Tick, NeighbourUpdateTick,
-EntityInside, the drops (charcoal or soul soil) and break handler,
+TODO(world-runtime): the `Items [4]CampfireItem` field, Model, Activate,
+UseOnBlock, Splash, Ignite, Extinguish, Tick, NeighbourUpdateTick,
+EntityInside, the drops (charcoal or soul soil), break handler and
 FlammabilityInfo.
 """
 

@@ -2,8 +2,7 @@
 
 Go's `replaceable` helper is `Replaceable`.
 
-TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
-FlammabilityInfo and the drops.
+TODO(world-runtime): UseOnBlock, BoneMeal, FlammabilityInfo and the drops.
 """
 
 from ..item.item import Compostable

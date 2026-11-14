@@ -3,9 +3,9 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the `Item item.Stack` and `Decorations [4]PotDecoration`
+TODO(world-runtime): the `Item item.Stack`, `Decorations [4]PotDecoration`
 fields, PotDecoration, InsertItem, ExtractItem, wobble, ProjectileHit, Model,
-UseOnBlock, SideClosed, the break handler and the drops.
+UseOnBlock, the break handler and the drops.
 """
 
 from minecraft.nbt.nbt import TAG_STRING

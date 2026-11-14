@@ -1,7 +1,7 @@
 """`Gravel`, ported from Dragonfly `server/block/gravel.go`.
 
-TODO(world-runtime): SoilFor, NeighbourUpdateTick and the falling behaviour of
-`gravityAffected` and the drops (flint).
+TODO(world-runtime): the falling behaviour of `gravityAffected` and the drops
+(flint).
 """
 
 from ..world.block import Block, NeighbourUpdateTicker

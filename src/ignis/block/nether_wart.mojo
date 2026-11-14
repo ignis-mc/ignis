@@ -1,7 +1,6 @@
 """`NetherWart`, ported from Dragonfly `server/block/nether_wart.go`.
 
-TODO(world-runtime): HasLiquidDrops, RandomTick, UseOnBlock,
-NeighbourUpdateTick and the drops (fortune).
+TODO(world-runtime): UseOnBlock and the drops (fortune).
 """
 
 from ..item.item import Compostable

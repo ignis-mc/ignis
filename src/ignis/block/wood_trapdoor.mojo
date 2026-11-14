@@ -3,8 +3,7 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): Activate, SideClosed, Model, FlammabilityInfo
-and the drops.
+TODO(world-runtime): Activate, Model, FlammabilityInfo and the drops.
 """
 
 from .cube.face import Face

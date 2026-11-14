@@ -1,9 +1,4 @@
 """`Barrier`, ported from Dragonfly `server/block/barrier.go`.
-
-Go's `sourceWaterDisplacer` makes barriers a `LiquidDisplacer`; that trait
-comes with liquids.
-
-TODO(world-runtime): SideClosed.
 """
 
 from ..world.block import Block, LightDiffuser

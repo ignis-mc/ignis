@@ -1,7 +1,6 @@
 """`SugarCane`, ported from Dragonfly `server/block/sugar_cane.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RandomTick, BoneMeal,
-canGrowHere and the drops.
+TODO(world-runtime): UseOnBlock, BoneMeal and the drops.
 """
 
 from ..world.block import (

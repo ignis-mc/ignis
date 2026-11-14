@@ -1,11 +1,8 @@
 """`Beacon`, ported from Dragonfly `server/block/beacon.go`.
 
-Go's `sourceWaterDisplacer` makes beacons a `LiquidDisplacer`; that trait
-comes with liquids.
-
-TODO(world-runtime): the `Primary` and `Secondary` `effect.LastingType` fields,
-SideClosed, Activate, Level, Tick, recalculateLevel, obstructed,
-broadcastBeaconEffects and the drops.
+TODO(world-runtime): the `Primary`, `Secondary` `effect.LastingType` fields,
+Activate, Level, Tick, recalculateLevel, obstructed, broadcastBeaconEffects and
+the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree

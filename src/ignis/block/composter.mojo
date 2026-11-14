@@ -3,8 +3,8 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): InsertItem, ExtractItem, Model, SideClosed, Activate,
-fill, ScheduledTick, FlammabilityInfo, the break handler and the drops.
+TODO(world-runtime): InsertItem, ExtractItem, Model, Activate, fill,
+ScheduledTick, FlammabilityInfo, the break handler and the drops.
 """
 
 from ..item.smelting_info import Fuel, FuelInfo

@@ -1,7 +1,6 @@
 """`DoubleFlower`, ported from Dragonfly `server/block/double_flower.go`.
 
-TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
-FlammabilityInfo and the drops.
+TODO(world-runtime): UseOnBlock, BoneMeal, FlammabilityInfo and the drops.
 """
 
 from ..item.item import Compostable

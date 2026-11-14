@@ -1,30 +1,35 @@
 """`Coral`, ported from Dragonfly `server/block/coral.go`.
 
-Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
-with liquids.
-
-TODO(world-runtime): UseOnBlock, HasLiquidDrops, NeighbourUpdateTick,
-ScheduledTick, SideClosed and the drops.
+TODO(world-runtime): UseOnBlock and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    LiquidDisplacer,
+    NeighbourUpdateTicker,
+    ScheduledTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
+    break_block,
     new_break_info,
 )
 from .coral_type import CoralType, coral_types
-from .hash import HASH_CORAL
+from .hash import AnyBlock, HASH_CORAL
 from .model.empty import Empty as EmptyModel
-from .liquid import LiquidRemovable
-from ..world.block import LiquidDisplacer
-from .hash import AnyBlock
-from .liquid import source_water_can_displace
+from .liquid import LiquidRemovable, source_water_can_displace
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .water import Water
+from .block import face_solid_at
 
 
 struct Coral(
@@ -37,6 +42,8 @@ struct Coral(
     LiquidDisplacer,
     LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
+    ScheduledTicker,
 ):
     """A non-solid block that comes in 5 variants."""
 
@@ -124,3 +131,28 @@ struct Coral(
     def can_displace(self, b: AnyBlock) -> Bool:
         """Holds water sources (Go `sourceWaterDisplacer`)."""
         return source_water_can_displace(b)
+
+    def scheduled_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Dies without water next to it (Go `ScheduledTick`)."""
+        var adjacent_water = False
+        var br = tx.block_registry()
+        for neighbour in pos.neighbours(tx.range()):
+            if case .Some(l) = tx.liquid(neighbour):
+                if br[].is_block[Water](l):
+                    adjacent_water = True
+        if not adjacent_water:
+            var c = self.copy()
+            c.dead = True
+            tx.set_block(pos, c)
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks without a solid block below, else checks for water soon
+        (Go `NeighbourUpdateTick`)."""
+        if not face_solid_at(tx, pos.side(Face.DOWN), Face.UP):
+            break_block(self, pos, tx)
+            return
+        elif self.dead:
+            return
+        tx.schedule_block_update(pos, self, 2500)

@@ -1,7 +1,6 @@
 """`Sponge`, ported from Dragonfly `server/block/sponge.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, absorbWater and the
-drops.
+TODO(world-runtime): UseOnBlock and the drops.
 """
 
 from ..item.smelting_info import SmeltInfo, Smeltable

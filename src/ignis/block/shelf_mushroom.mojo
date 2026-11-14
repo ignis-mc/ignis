@@ -1,7 +1,6 @@
 """`ShelfMushroom`, ported from Dragonfly `server/block/shelf_mushroom.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, BoneMeal, Model and the
-drops.
+TODO(world-runtime): UseOnBlock, BoneMeal, Model and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker

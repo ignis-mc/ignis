@@ -1,6 +1,6 @@
 """`RedstoneOre`, ported from Dragonfly `server/block/redstone_ore.go`.
 
-TODO(world-runtime): Activate, Punch, EntityStepOn, RandomTick and the drops.
+TODO(world-runtime): Activate, Punch, EntityStepOn and the drops.
 """
 
 from ..item.smelting_info import SmeltInfo, Smeltable

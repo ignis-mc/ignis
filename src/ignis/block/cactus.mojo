@@ -1,7 +1,7 @@
 """`Cactus`, ported from Dragonfly `server/block/cactus.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RandomTick, EntityInside,
-DamageSource, CanDisplace, SideClosed, Model and the drops.
+TODO(world-runtime): UseOnBlock, EntityInside, DamageSource, CanDisplace,
+SideClosed, Model and the drops.
 """
 
 from ..item.item import Compostable

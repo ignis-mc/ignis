@@ -3,8 +3,8 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, Activate, Ignite,
-SideClosed, Model, HasLiquidDrops and the drops.
+TODO(world-runtime): UseOnBlock, Activate, Ignite, Model, HasLiquidDrops and
+the drops.
 """
 
 from ..item.optional_colour import OptionalColour, optional_colours

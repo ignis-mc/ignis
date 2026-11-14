@@ -1,6 +1,6 @@
 """`Netherrack`, ported from Dragonfly `server/block/netherrack.go`.
 
-TODO(world-runtime): SoilFor and the `oneOf` drops.
+TODO(world-runtime): the `oneOf` drops.
 """
 
 from ..item.nether_brick import NetherBrick

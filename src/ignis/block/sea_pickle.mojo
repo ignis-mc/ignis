@@ -3,8 +3,7 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): canSurvive, BoneMeal, UseOnBlock, HasLiquidDrops,
-NeighbourUpdateTick, SideClosed and the drops.
+TODO(world-runtime): BoneMeal, UseOnBlock and the drops.
 """
 
 from ..item.colour import Colour

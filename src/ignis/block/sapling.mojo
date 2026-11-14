@@ -1,8 +1,7 @@
 """`Sapling`, ported from Dragonfly `server/block/sapling.go`.
 
-TODO(world-runtime): RandomTick, BoneMeal, grow (sapling_tree.go),
-NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal, FlammabilityInfo and
-the drops.
+TODO(world-runtime): BoneMeal, grow (sapling_tree.go), UseOnBlock, BoneMeal,
+FlammabilityInfo and the drops.
 """
 
 from ..item.item import Compostable

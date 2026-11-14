@@ -1,7 +1,7 @@
 """`MuddyMangroveRoots`, ported from Dragonfly
 `server/block/muddy_mangrove_roots.go`.
 
-TODO(world-runtime): SoilFor, UseOnBlock and the drops.
+TODO(world-runtime): UseOnBlock and the drops.
 """
 
 from ..world.block import Block

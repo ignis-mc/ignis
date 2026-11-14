@@ -4,9 +4,9 @@ Go's `replaceable` helper is `Replaceable`. Go's
 `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes with
 liquids.
 
-TODO(world-runtime): EntityInside, SideClosed, UseOnBlock, NeighbourUpdateTick,
-RandomTick, FlammabilityInfo, WithAttachment, SetAttachment, Attachment,
-Attachments and the drops.
+TODO(world-runtime): EntityInside, UseOnBlock, NeighbourUpdateTick, RandomTick,
+FlammabilityInfo, WithAttachment, SetAttachment, Attachment, Attachments and
+the drops.
 """
 
 from ..item.item import Compostable

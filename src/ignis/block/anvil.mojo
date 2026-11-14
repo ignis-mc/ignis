@@ -1,8 +1,7 @@
 """`Anvil`, ported from Dragonfly `server/block/anvil.go`.
 
-TODO(world-runtime): Model, SideClosed, Activate, UseOnBlock,
-NeighbourUpdateTick and the falling behaviour of `gravityAffected`, Damage and
-the drops.
+TODO(world-runtime): Model, SideClosed, Activate, UseOnBlock, the falling
+behaviour of `gravityAffected`, Damage and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker

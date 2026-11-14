@@ -1,7 +1,6 @@
 """`PinkPetals`, ported from Dragonfly `server/block/pink_petals.go`.
 
-TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
-FlammabilityInfo and the drops.
+TODO(world-runtime): UseOnBlock, BoneMeal, FlammabilityInfo and the drops.
 """
 
 from ..item.item import Compostable

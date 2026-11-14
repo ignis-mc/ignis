@@ -1,6 +1,6 @@
 """`Podzol`, ported from Dragonfly `server/block/podzol.go`.
 
-TODO(world-runtime): SoilFor, Shovel and the drops.
+TODO(world-runtime): Shovel and the drops.
 """
 
 from ..world.block import Block

@@ -3,10 +3,10 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the inventory, pairing (paired, pairX, pairZ, pairInv) and
-viewer fields, NewChest, Inventory, WithName, SideClosed, AddViewer,
-RemoveViewer, Activate, UseOnBlock, open/close, Paired, pair, unpair, the break
-handler, FlammabilityInfo and the drops.
+TODO(world-runtime): the inventory, pairing (paired, pairX, pairZ, pairInv),
+viewer fields, NewChest, Inventory, WithName, AddViewer, RemoveViewer,
+Activate, UseOnBlock, open/close, Paired, pair, unpair, the break handler,
+FlammabilityInfo and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree

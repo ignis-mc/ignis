@@ -1,6 +1,6 @@
 """Grass blocks, ported from Dragonfly `server/block/grass.go`.
 
-TODO(world-runtime): RandomTick, BoneMeal, SoilFor, Till and Shovel.
+TODO(world-runtime): BoneMeal, Till and Shovel.
 """
 
 from ..item.item import Compostable

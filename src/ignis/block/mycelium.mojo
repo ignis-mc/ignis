@@ -1,6 +1,6 @@
 """`Mycelium`, ported from Dragonfly `server/block/mycelium.go`.
 
-TODO(world-runtime): SoilFor, RandomTick, Shovel and the drops.
+TODO(world-runtime): Shovel and the drops.
 """
 
 from ..world.block import Block, RandomTicker

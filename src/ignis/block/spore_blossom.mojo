@@ -1,7 +1,6 @@
 """`SporeBlossom`, ported from Dragonfly `server/block/spore_blossom.go`.
 
-TODO(world-runtime): HasLiquidDrops, NeighbourUpdateTick, UseOnBlock and the
-drops.
+TODO(world-runtime): UseOnBlock and the drops.
 """
 
 from ..item.item import Compostable

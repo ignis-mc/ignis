@@ -1,7 +1,6 @@
 """`MossCarpet`, ported from Dragonfly `server/block/moss_carpet.go`.
 
-TODO(world-runtime): SideClosed, HasLiquidDrops, NeighbourUpdateTick,
-UseOnBlock and the drops.
+TODO(world-runtime): UseOnBlock and the drops.
 """
 
 from ..item.item import Compostable

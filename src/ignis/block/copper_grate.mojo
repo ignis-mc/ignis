@@ -3,7 +3,7 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): Wax, Strip, RandomTick (attemptOxidation) and the drops.
+TODO(world-runtime): Wax, Strip and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, RandomTicker

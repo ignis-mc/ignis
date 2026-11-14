@@ -4,8 +4,8 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): UseOnBlock, Activate (pose changes), Model, Wax, Strip,
-RandomTick (attemptOxidation) and the drops.
+TODO(world-runtime): UseOnBlock, Activate (pose changes), Model, Wax, Strip and
+the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree

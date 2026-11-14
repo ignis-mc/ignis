@@ -1,6 +1,6 @@
 """`SoulSoil`, ported from Dragonfly `server/block/soul_soil.go`.
 
-TODO(world-runtime): SoilFor and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.block import Block

@@ -1,7 +1,7 @@
 """`LilyPad`, ported from Dragonfly `server/block/lily_pad.go`.
 
-TODO(world-runtime): CanDisplace, SideClosed, UseOnBlock, NeighbourUpdateTick,
-HasLiquidDrops, EntityInside, Model and the drops.
+TODO(world-runtime): CanDisplace, SideClosed, UseOnBlock, EntityInside, Model
+and the drops.
 """
 
 from ..item.item import Compostable
