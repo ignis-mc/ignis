@@ -148,6 +148,15 @@ trait BlockTypes:
         ...
 
     @staticmethod
+    def break_info_at[
+        T: WorldTypes
+    ](kind: UInt64, pos: Pos, mut tx: World[T]) -> Optional[BreakInfo]:
+        """Returns the break info of the block at `pos` read with its block
+        entity NBT (a furnace's stored experience); None if it is not
+        `Breakable`."""
+        ...
+
+    @staticmethod
     def replaceable_by(kind: UInt64, hash: UInt64, by: AnyBlock) -> Bool:
         """Reports whether `by` may replace a block (Go
         `b.(Replaceable).ReplaceableBy(by)`); False if it is not
@@ -409,6 +418,20 @@ struct BlockSet[*Ts: Block](BlockTypes):
             comptime if conforms_to(B, Breakable):
                 if kind == B.BASE_HASH:
                     return _break_info(B.from_hash(hash))
+        return None
+
+    @staticmethod
+    def break_info_at[
+        W: WorldTypes
+    ](kind: UInt64, pos: Pos, mut tx: World[W]) -> Optional[BreakInfo]:
+        """Returns the break info of the block at `pos` with its NBT."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, Breakable):
+                if kind == B.BASE_HASH:
+                    if case .Some(b) = tx.block_as[B](pos):
+                        return _break_info(b)
+                    return None
         return None
 
     @staticmethod

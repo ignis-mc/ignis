@@ -2,8 +2,8 @@
 
 The smelting (Go's embedded `*smelter`) is `block/smelter.mojo`: the
 inventory lives with the world's block entity, the durations are NBT fields
-of the value. The experience the break info drops (Go `withXPDropRange`)
-is kept but not dropped: experience orbs are not ported.
+of the value. The stored experience drops as orbs when the block is broken (Go
+`withXPDropRange`).
 """
 
 from ..world.sound.instrument import Instrument
@@ -136,8 +136,12 @@ struct Smoker(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`)."""
-        return new_break_info(3.5, ALWAYS_HARVESTABLE, PICKAXE_EFFECTIVE)
+        """Returns the break info (Go `BreakInfo`): the stored experience
+        drops as orbs (Go `withXPDropRange(xp, xp)`)."""
+        var xp = self.smelter.experience
+        return (
+            new_break_info(3.5, ALWAYS_HARVESTABLE, PICKAXE_EFFECTIVE)
+        ).with_xp_drop_range(xp, xp)
 
     def light_emission_level(self) -> UInt8:
         """Returns the light the block emits (Go `LightEmissionLevel`)."""

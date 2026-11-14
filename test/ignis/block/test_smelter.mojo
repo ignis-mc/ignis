@@ -1,6 +1,7 @@
 from ignis.block.blast_furnace import BlastFurnace
 from ignis.block.cube.pos import Pos
 from ignis.block.furnace import Furnace
+from ignis.block.register import VanillaBlocks
 from ignis.block.smelter import Smelter
 from ignis.block.smoker import Smoker
 from ignis.item.coal import Coal
@@ -86,6 +87,17 @@ def test_smoker_ignores_ores() raises:
     # Raw iron is not food: nothing burns.
     assert_false(w.block_as[Smoker](pos).value().lit)
     assert_equal(w.inventory(pos).value().item(1).count(), 1)
+
+
+def test_stored_experience_drops_when_broken() raises:
+    var w = new_vanilla_world(items=True)
+    var pos = Pos(1, -60, 1)
+    var f = Furnace()
+    f.smelter.experience = 5
+    w.set_block(pos, f)
+    var info = VanillaBlocks.break_info_at(Furnace.BASE_HASH, pos, w).value()
+    assert_equal(info.xp_drops.min, 5)
+    assert_equal(info.xp_drops.max, 5)
 
 
 def main() raises:

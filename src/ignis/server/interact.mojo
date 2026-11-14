@@ -258,7 +258,7 @@ def break_block(mut srv: Server, i: Int, pos: Pos):
         return
     var kind = br[].kind(rid)
     var hash = br[].state_hash(rid)
-    var info = VanillaBlocks.break_info(kind, hash)
+    var info = VanillaBlocks.break_info_at(kind, pos, srv.world)
     var creative = p.game_mode().creative_inventory()
     if not info and not creative:
         resend_block(srv, i, pos)
@@ -468,7 +468,9 @@ def apply_use_context(mut srv: Server, i: Int, ctx: UseContext, pos: Pos):
         srv.sessions[i].send_translation(m, List[String]())
     if ctx.popup.byte_length() != 0:
         srv.sessions[i].send_jukebox_popup(ctx.popup)
-    # Go `Saturate`: hunger is not ported, so food is not restored.
+    if ctx.food != 0 or ctx.saturation != 0:
+        # Go `Saturate` of the user, such as eating a cake slice.
+        srv.sessions[i].player.living.saturate(ctx.food, ctx.saturation)
     if ctx.open_container:
         srv.sessions[i].open_block_container(pos, srv.world)
 
