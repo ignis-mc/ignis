@@ -23,7 +23,10 @@ that moved into an unmodified chunk and saved stale positions).
 Blocks drop items through `drop_item`, which queues them for the world's
 owner (`take_item_drops`): item entities need the item registry.
 
-Not ported yet: block entities, the light engine, redstone, structures,
+Light is calculated when chunks load, as Dragonfly does (and, as there,
+not updated when blocks change).
+
+Not ported yet: block entities, redstone, structures,
 lightning, sleeping, view layers and portals. Errors Go logs (provider
 failures) are kept in `last_error` instead.
 """
@@ -48,6 +51,7 @@ from .block_registry import BasicBlockRegistry
 from .block_set import BlockTypes
 from .block_source import BlockSource
 from .chunk.chunk import Chunk
+from .chunk.light import fill_light, spread_light
 from .chunk.column import Column as ChunkColumn
 from .chunk.column import Entity as ChunkEntity
 from .chunk.column import ScheduledBlockUpdate
@@ -1224,9 +1228,86 @@ struct World[T: WorldTypes](Movable):
             if not broken:
                 self._generator.generate_chunk(pos, ch)
             col = ChunkColumn(ch^)
+        if not broken:
+            # Go `loadChunk`: light the chunk on its own first.
+            var one = List[Chunk]()
+            var c = Chunk(self._br[].air_runtime_id(), Range(0, 15))
+            swap(c, col.chunk)
+            one.append(c^)
+            fill_light(self._br[], one, Int(pos.x()), Int(pos.z()))
+            var lit = one.pop()
+            swap(lit, col.chunk)
         var ci = self._add_chunk(pos, col^)
         self._cols[ci].broken = broken
+        self._calculate_light(pos)
         return ci
+
+    def _calculate_light(mut self, centre: ChunkPos):
+        # Go `calculateLight`: spread light around every loaded chunk that
+        # now has all eight neighbours loaded.
+        for x in range(-1, 2):
+            for z in range(-1, 2):
+                var pos = ChunkPos(centre.x() + Int32(x), centre.z() + Int32(z))
+                if pos in self._col_index:
+                    self._spread_light(pos)
+
+    def _spread_light(mut self, pos: ChunkPos):
+        # Go `spreadLight`. The chunks move into a list for the light engine
+        # and back.
+        var idx = List[Int](capacity=9)
+        for z in range(-1, 2):
+            for x in range(-1, 2):
+                var found = self._col_index.get(
+                    ChunkPos(pos.x() + Int32(x), pos.z() + Int32(z))
+                )
+                if not found:
+                    return
+                idx.append(found.value())
+        var air = self._br[].air_runtime_id()
+        var chunks = List[Chunk](capacity=9)
+        for ci in idx:
+            var c = Chunk(air, Range(0, 15))
+            swap(c, self._cols[ci].chunk)
+            chunks.append(c^)
+        spread_light(self._br[], chunks, Int(pos.x()) - 1, Int(pos.z()) - 1)
+        for i in range(8, -1, -1):
+            var c = chunks.pop()
+            swap(c, self._cols[idx[i]].chunk)
+
+    def light(mut self, pos: Pos) -> UInt8:
+        """Returns the light at a position, the higher of sky and block light
+        (Go `Tx.Light`). Light is calculated when chunks load and, as in
+        Dragonfly, not updated when blocks change."""
+        if pos.y() < self._ra.min():
+            return 0
+        if pos.y() > self._ra.max():
+            # Above the world: full sky light.
+            return 15
+        if case .Some(ci) = self._col_index.get(chunk_pos_from_block_pos(pos)):
+            return self._cols[ci].chunk.light(
+                UInt8(pos.x() & 0xF), Int16(pos.y()), UInt8(pos.z() & 0xF)
+            )
+        return 0
+
+    def sky_light(mut self, pos: Pos) -> UInt8:
+        """Returns the sky light at a position (Go `Tx.SkyLight`)."""
+        if pos.y() < self._ra.min():
+            return 0
+        if pos.y() > self._ra.max():
+            return 15
+        var ci = self._chunk(chunk_pos_from_block_pos(pos))
+        return self._cols[ci].chunk.sky_light(
+            UInt8(pos.x() & 0xF), Int16(pos.y()), UInt8(pos.z() & 0xF)
+        )
+
+    def block_light(mut self, pos: Pos) -> UInt8:
+        """Returns the block light at a position (Go `Tx.BlockLight`)."""
+        if pos.y() < self._ra.min() or pos.y() > self._ra.max():
+            return 0
+        var ci = self._chunk(chunk_pos_from_block_pos(pos))
+        return self._cols[ci].chunk.block_light(
+            UInt8(pos.x() & 0xF), Int16(pos.y()), UInt8(pos.z() & 0xF)
+        )
 
     def _add_chunk(mut self, pos: ChunkPos, var c: ChunkColumn) -> Int:
         # Go `addChunk` and `columnFrom`. Light and derived block states are

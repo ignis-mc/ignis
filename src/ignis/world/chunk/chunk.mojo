@@ -202,6 +202,30 @@ struct Chunk(Copyable, Movable):
             self._recalculate_height_map = False
         return self._height_map.copy()
 
+    def light(self, x: UInt8, y: Int16, z: UInt8) -> UInt8:
+        """Returns the higher of the sky and block light at a position (Go
+        `Light`)."""
+        ref sub = self._sub[Int(self.sub_index(y))]
+        var ux = x & 0xF
+        var uy = UInt8(y & 0xF)
+        var uz = z & 0xF
+        var sky = sub.sky_light(ux, uy, uz)
+        if sky == 15:
+            return sky
+        return max(sky, sub.block_light(ux, uy, uz))
+
+    def sky_light(self, x: UInt8, y: Int16, z: UInt8) -> UInt8:
+        """Returns the sky light at a position (Go `SkyLight`)."""
+        return self._sub[Int(self.sub_index(y))].sky_light(
+            x & 15, UInt8(y & 15), z & 15
+        )
+
+    def block_light(self, x: UInt8, y: Int16, z: UInt8) -> UInt8:
+        """Returns the block light at a position (Go `BlockLight`)."""
+        return self._sub[Int(self.sub_index(y))].block_light(
+            x & 15, UInt8(y & 15), z & 15
+        )
+
     def compact(mut self):
         """Compacts every sub-chunk (Go `Compact`). Meant to run before the
         chunk is saved."""

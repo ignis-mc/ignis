@@ -45,6 +45,7 @@ func main() {
 		panic(err)
 	}
 	write(filepath.Join(*out, "liquids.txt"), liquidScenarios())
+	writeLight(filepath.Join(*out, "light.txt"))
 }
 
 func write(path string, scenarios []scenario) {
