@@ -37,7 +37,7 @@ def decode_item(reg: ItemRegistry, data: List[UInt8]) -> Stack:
         return Stack()
     try:
         var t = decode(Span(data), LITTLE_ENDIAN)
-        return read_disk_nbt(reg, t, t.root())
+        return read_disk_nbt[VanillaBlocks](reg, t, t.root())
     except:
         return Stack()
 

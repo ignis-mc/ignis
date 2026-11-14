@@ -6,8 +6,10 @@ The embedded helper structs of that file (`solid`, `transparent`,
 `docs/architecture.md`.
 """
 
+from minecraft.nbt.tree import Tree
 from minecraft.protocol.uuid import UUID
 
+from ..item.inventory.inventory import Inventory
 from ..item.stack import Stack
 from ..mgl64 import Vec3
 from ..world.block import Block
@@ -15,7 +17,7 @@ from ..world.block_source import BlockSource
 from ..world.world import World, WorldTypes
 from .cube.direction import Direction
 from .cube.face import Face
-from .cube.pos import Pos
+from .cube.pos import Pos, pos_from_vec3
 from .cube.rotation import Rotation
 from ..entity.falling_block import FallingBlock
 from ..world.entity import EntityHandle, EntitySpawnOpts
@@ -38,7 +40,60 @@ trait Replaceable:
         ...
 
 
-@fieldwise_init
+struct User(Copyable):
+    """Who uses an item on a block: the parts of Go's `item.User` that
+    placement reads. A bare `Rotation` converts to a user at the origin."""
+
+    var rot: Rotation
+    """Go `Rotation()`."""
+    var pos: Vec3
+    """Go `Position()`, the feet."""
+    var eye_height: Float64
+    """Go `EyeHeight()`."""
+    var held: Stack
+    """The item being used (Go `HeldItems()`), which carries the NBT of a
+    block item such as a shulker box's contents."""
+
+    @implicit
+    def __init__(out self, rot: Rotation):
+        """Creates a user at the origin with no eye height."""
+        self.rot = rot
+        self.pos = Vec3()
+        self.eye_height = 0
+        self.held = Stack()
+
+    def __init__(
+        out self,
+        rot: Rotation,
+        pos: Vec3,
+        eye_height: Float64,
+        held: Stack = Stack(),
+    ):
+        """Creates a user."""
+        self.rot = rot
+        self.pos = pos
+        self.eye_height = eye_height
+        self.held = held.copy()
+
+    def direction(self) -> Direction:
+        """Returns the horizontal direction the user looks in."""
+        return self.rot.direction()
+
+
+def calculate_face(user: User, place_pos: Pos) -> Face:
+    """Returns the face a block placed at `place_pos` turns to: up or down
+    when the user stands close above or below, else towards the user (Go
+    `calculateFace`)."""
+    var pos = pos_from_vec3(user.pos)
+    if abs(pos.x() - place_pos.x()) < 2 and abs(pos.z() - place_pos.z()) < 2:
+        var y = user.pos.y() + user.eye_height
+        if y - Float64(place_pos.y()) > 2.0:
+            return Face.UP
+        elif Float64(place_pos.y()) - y > 0.0:
+            return Face.DOWN
+    return user.direction().opposite().face()
+
+
 struct Placement(Copyable):
     """A block a `UsableOnBlock` block places (one call of Go's `place`)."""
 
@@ -49,6 +104,33 @@ struct Placement(Copyable):
     var ignore_bbox: Bool
     """Place even if an entity is in the way (Go `UseContext.IgnoreBBox`,
     set by doors)."""
+    var nbt: Optional[Tree]
+    """The block entity NBT the block is placed with, if any."""
+    var update: Bool
+    """Set the block without the placement checks once the other blocks
+    were placed (Go's `tx.SetBlock` after `place`, as chests update the
+    chest they pair with)."""
+    var contents: Bool
+    """The `Items` of `nbt` fill the new block's inventory (a shulker box
+    placed from an item that holds items)."""
+
+    def __init__(
+        out self,
+        pos: Pos,
+        block: AnyBlock,
+        ignore_bbox: Bool = False,
+        *,
+        var nbt: Optional[Tree] = None,
+        update: Bool = False,
+        contents: Bool = False,
+    ):
+        """Creates a placement."""
+        self.pos = pos
+        self.block = block
+        self.ignore_bbox = ignore_bbox
+        self.nbt = nbt^
+        self.update = update
+        self.contents = contents
 
 
 trait UsableOnBlock(Block):
@@ -62,7 +144,7 @@ trait UsableOnBlock(Block):
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> List[Placement]:
         """Returns the blocks to place when the item is used on the face of
@@ -164,6 +246,44 @@ trait Openable(Block):
 
     def closed[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
         """The last viewer closed the block (Go `close`)."""
+        ...
+
+
+trait BreakHandler(Block):
+    """A block that does something as it is broken (Go
+    `BreakInfo.withBreakHandler`), such as spilling its contents."""
+
+    def on_break[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T], harvest: Bool):
+        """Runs before the block is removed; `harvest` is False when the
+        breaker gets no drops (creative). `self` carries its NBT."""
+        ...
+
+
+trait HopperInsertable(Block):
+    """A block a hopper feeds in its own way (Go `HopperInsertable`), such
+    as a furnace taking fuel from the side."""
+
+    def insert_item[
+        T: WorldTypes
+    ](
+        self, mut hopper: Inventory, facing: Face, pos: Pos, mut tx: World[T]
+    ) -> Bool:
+        """Moves one item from a hopper facing `facing` into the block at
+        `pos`; True if one moved (Go `InsertItem`)."""
+        ...
+
+
+trait HopperExtractable(Block):
+    """A block a hopper below takes from in its own way (Go
+    `HopperExtractable`)."""
+
+    def extract_item[
+        T: WorldTypes
+    ](self, mut hopper: Inventory, pos: Pos, mut tx: World[T]) -> Bool:
+        """Moves one item from the block at `pos` into a hopper; True if one
+        moved (Go `ExtractItem`)."""
         ...
 
 

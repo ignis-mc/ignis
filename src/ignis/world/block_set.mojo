@@ -26,12 +26,16 @@ a type to the set is all a new block needs.
 from ..block.block import (
     Activatable,
     Instrumented,
+    BreakHandler,
+    HopperExtractable,
+    HopperInsertable,
     Openable,
     Placement,
     Replaceable,
     StateDeriver,
     UsableOnBlock,
     UseContext,
+    User,
 )
 from ..block.cube.rotation import Rotation
 from ..mgl64 import Vec3
@@ -53,6 +57,7 @@ from minecraft.nbt.tree import Tree
 
 from .sound.instrument import Instrument
 
+from ..item.inventory.inventory import Inventory
 from .block import (
     Block,
     Container,
@@ -64,6 +69,7 @@ from .block import (
     NeighbourUpdateTicker,
     RandomTicker,
     ScheduledTicker,
+    TickerBlock,
     liquid_info,
 )
 from .block_model import ModelledBlock, UnknownModel
@@ -165,7 +171,7 @@ trait BlockTypes:
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> Optional[List[Placement]]:
         """Returns what a `UsableOnBlock` block item places (possibly
@@ -305,6 +311,42 @@ trait BlockTypes:
         ...
 
     @staticmethod
+    def tick_block[
+        T: WorldTypes
+    ](kind: UInt64, current_tick: Int64, pos: Pos, mut tx: World[T]):
+        """Calls `TickerBlock.tick` of the block at `pos`."""
+        ...
+
+    @staticmethod
+    def handle_break[
+        T: WorldTypes
+    ](kind: UInt64, pos: Pos, mut tx: World[T], harvest: Bool):
+        """Calls `BreakHandler.on_break` of the block at `pos`."""
+        ...
+
+    @staticmethod
+    def hopper_insert[
+        T: WorldTypes
+    ](
+        kind: UInt64,
+        mut hopper: Inventory,
+        facing: Face,
+        pos: Pos,
+        mut tx: World[T],
+    ) -> Optional[Bool]:
+        """Calls `HopperInsertable.insert_item`; None for other blocks."""
+        ...
+
+    @staticmethod
+    def hopper_extract[
+        T: WorldTypes
+    ](
+        kind: UInt64, mut hopper: Inventory, pos: Pos, mut tx: World[T]
+    ) -> Optional[Bool]:
+        """Calls `HopperExtractable.extract_item`; None for other blocks."""
+        ...
+
+    @staticmethod
     def closed[T: WorldTypes](kind: UInt64, pos: Pos, mut tx: World[T]):
         """Calls `Openable.closed` of the block at `pos`."""
         ...
@@ -400,7 +442,7 @@ struct BlockSet[*Ts: Block](BlockTypes):
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> Optional[List[Placement]]:
         """Returns what a `UsableOnBlock` block item places, or None."""
@@ -636,6 +678,68 @@ struct BlockSet[*Ts: Block](BlockTypes):
         return AnyBlock(kind=kind, state=hash)
 
     @staticmethod
+    def hopper_insert[
+        W: WorldTypes
+    ](
+        kind: UInt64,
+        mut hopper: Inventory,
+        facing: Face,
+        pos: Pos,
+        mut tx: World[W],
+    ) -> Optional[Bool]:
+        """Calls `HopperInsertable.insert_item`; None for other blocks."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, HopperInsertable):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        return _insert(b, hopper, facing, pos, tx)
+                    return False
+        return None
+
+    @staticmethod
+    def hopper_extract[
+        W: WorldTypes
+    ](
+        kind: UInt64, mut hopper: Inventory, pos: Pos, mut tx: World[W]
+    ) -> Optional[Bool]:
+        """Calls `HopperExtractable.extract_item`; None for other blocks."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, HopperExtractable):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        return _extract(b, hopper, pos, tx)
+                    return False
+        return None
+
+    @staticmethod
+    def handle_break[
+        W: WorldTypes
+    ](kind: UInt64, pos: Pos, mut tx: World[W], harvest: Bool):
+        """Calls `BreakHandler.on_break` of the block at `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, BreakHandler):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        _on_break(b, pos, tx, harvest)
+                    return
+
+    @staticmethod
+    def tick_block[
+        W: WorldTypes
+    ](kind: UInt64, current_tick: Int64, pos: Pos, mut tx: World[W]):
+        """Calls `TickerBlock.tick` of the block at `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, TickerBlock):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        _tick_block(b, current_tick, pos, tx)
+                    return
+
+    @staticmethod
     def opened[W: WorldTypes](kind: UInt64, pos: Pos, mut tx: World[W]):
         """Calls `Openable.opened` of the block at `pos`."""
         comptime for i in range(len(Self.Ts)):
@@ -773,7 +877,7 @@ def _drops[B: Dropper](b: B, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
 def _use_on_block[
     B: UsableOnBlock, T: WorldTypes
 ](
-    b: B, pos: Pos, face: Face, click: Vec3, user: Rotation, mut tx: World[T]
+    b: B, pos: Pos, face: Face, click: Vec3, user: User, mut tx: World[T]
 ) -> List[Placement]:
     return b.use_on_block(pos, face, click, user, tx)
 
@@ -811,6 +915,32 @@ def _activate[
     B: Activatable, W: WorldTypes
 ](b: B, pos: Pos, face: Face, mut tx: World[W], mut ctx: UseContext) -> Bool:
     return b.activate(pos, face, tx, ctx)
+
+
+def _insert[
+    B: HopperInsertable, W: WorldTypes
+](
+    b: B, mut hopper: Inventory, facing: Face, pos: Pos, mut tx: World[W]
+) -> Bool:
+    return b.insert_item(hopper, facing, pos, tx)
+
+
+def _extract[
+    B: HopperExtractable, W: WorldTypes
+](b: B, mut hopper: Inventory, pos: Pos, mut tx: World[W]) -> Bool:
+    return b.extract_item(hopper, pos, tx)
+
+
+def _on_break[
+    B: BreakHandler, W: WorldTypes
+](b: B, pos: Pos, mut tx: World[W], harvest: Bool):
+    b.on_break(pos, tx, harvest)
+
+
+def _tick_block[
+    B: TickerBlock, W: WorldTypes
+](b: B, current_tick: Int64, pos: Pos, mut tx: World[W]):
+    b.tick(current_tick, pos, tx)
 
 
 def _opened[B: Openable, W: WorldTypes](b: B, pos: Pos, mut tx: World[W]):

@@ -64,6 +64,7 @@ from ..entity.falling_block import FallingBlock
 from ..world.block_state import BlockState
 from ..entity.item import ItemBehaviour
 from ..item.nbt import read_disk_nbt
+from ..block.register import VanillaBlocks
 from ..entity.register import VanillaEntities
 from ..mgl64 import Vec3
 from ..world.block_registry import BasicBlockRegistry
@@ -311,7 +312,7 @@ struct SessionViewer(Viewer):
             var stack = item.item.copy()
             if not item.resolved():
                 # Loaded from disk: only the NBT is known.
-                stack = read_disk_nbt(
+                stack = read_disk_nbt[VanillaBlocks](
                     self.queue[].items[], item.item_nbt, item.item_nbt.root()
                 )
             pk.item = instance_from_item(

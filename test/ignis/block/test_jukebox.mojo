@@ -7,6 +7,7 @@ from ignis.block.cube.face import Face
 from ignis.block.cube.pos import Pos
 from ignis.block.jukebox import Jukebox
 from ignis.block.register import VanillaBlocks
+from ignis.item.inventory.inventory import Inventory
 from ignis.item.music_disc import MusicDisc
 from ignis.item.stack import Stack
 from ignis.item.stick import Stick
@@ -78,6 +79,31 @@ def test_nbt_round_trip() raises:
     var none = Tree()
     Jukebox().encode_nbt(none, none.root())
     assert_false(none.get(none.root(), "RecordItem"))
+
+
+def test_hopper_inserts_a_disc() raises:
+    var w = new_vanilla_world()
+    var id = viewing(w)
+    var pos = Pos(2, -61, 2)
+    w.set_block(pos, Jukebox())
+    var hopper = Inventory(5)
+    hopper.set_item(1, Stack(Stick(), 3))
+    hopper.set_item(2, Stack(MusicDisc(disc_type=DiscType.WARD), 1))
+    var j = w.block_as[Jukebox](pos).value().copy()
+    assert_true(j.insert_item(hopper, Face.DOWN, pos, w))
+    assert_true(hopper.item(2).empty())
+    assert_equal(hopper.item(1).count(), 3)
+    j = w.block_as[Jukebox](pos).value().copy()
+    assert_true(j.disc().value() == DiscType.WARD)
+    assert_equal(sounds(w, id, MusicDiscPlay.SOUND_ID), 1)
+    # Full: nothing more goes in, and hoppers never take the disc out.
+    hopper.set_item(0, Stack(MusicDisc(disc_type=DiscType.CAT), 1))
+    assert_false(j.insert_item(hopper, Face.DOWN, pos, w))
+    assert_false(j.extract_item(hopper, pos, w))
+    # Breaking drops it.
+    j.on_break(pos, w, True)
+    assert_equal(len(w.take_item_drops()), 1)
+    assert_equal(sounds(w, id, MusicDiscEnd.SOUND_ID), 1)
 
 
 def main() raises:

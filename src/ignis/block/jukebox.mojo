@@ -3,8 +3,7 @@
 `RecordItem` is written and read without the item registry (block NBT
 callbacks get none): a disc's name follows from its `DiscType`.
 
-TODO(world-runtime): InsertItem and ExtractItem (hoppers), the break handler
-dropping the disc (break handlers are not ported) and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.sound.instrument import Instrument
@@ -19,7 +18,14 @@ from ..item.stack import Stack
 from ..world.sound.block import MusicDiscEnd, MusicDiscPlay
 from ..world.sound.disc_type import DiscType, music_discs
 from ..world.world import World, WorldTypes
-from .block import Activatable, UseContext
+from ..item.inventory.inventory import Inventory
+from .block import (
+    Activatable,
+    BreakHandler,
+    HopperExtractable,
+    HopperInsertable,
+    UseContext,
+)
 from .cube.face import Face
 from .cube.pos import Pos
 
@@ -42,9 +48,12 @@ from .model.solid import Solid as SolidModel
 struct Jukebox(
     Activatable,
     Block,
+    BreakHandler,
     Breakable,
     Equatable,
     Fuel,
+    HopperExtractable,
+    HopperInsertable,
     Instrumented,
     Item,
     ModelledBlock,
@@ -67,6 +76,53 @@ struct Jukebox(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks, disc included."""
         return self.item == other.item
+
+    def insert_item[
+        T: WorldTypes
+    ](
+        self, mut hopper: Inventory, facing: Face, pos: Pos, mut tx: World[T]
+    ) -> Bool:
+        """Takes a music disc from a hopper into an empty jukebox (Go
+        `InsertItem`)."""
+        if not self.item.empty():
+            return False
+        for slot in range(hopper.size()):
+            var source: Stack
+            try:
+                source = hopper.item(slot)
+            except:
+                return False
+            if source.empty():
+                continue
+            if case .Some(m) = source.item_as[MusicDisc]():
+                var j = self.copy()
+                # Go stores the whole source stack (discs stack to one).
+                j.item = source.copy()
+                tx.set_block(pos, j)
+                try:
+                    hopper.set_item(slot, source.grow(-1))
+                except:
+                    pass
+                tx.play_sound(
+                    pos.vec3_centre(), MusicDiscPlay(disc_type=m.disc_type)
+                )
+                return True
+        return False
+
+    def extract_item[
+        T: WorldTypes
+    ](self, mut hopper: Inventory, pos: Pos, mut tx: World[T]) -> Bool:
+        """Never gives its disc to a hopper (Go `ExtractItem`, which waits for
+        redstone)."""
+        return False
+
+    def on_break[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T], harvest: Bool):
+        """Drops the disc and stops the music (Go's break handler)."""
+        if self.disc():
+            tx.drop_item(pos.vec3(), self.item)
+            tx.play_sound(pos.vec3_centre(), MusicDiscEnd())
 
     def disc(self) -> Optional[DiscType]:
         """Returns the disc being played (Go `Disc`)."""

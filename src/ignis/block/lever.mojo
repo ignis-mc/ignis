@@ -16,6 +16,7 @@ from .block import (
     Placement,
     UsableOnBlock,
     UseContext,
+    User,
     face_solid_at,
     first_replaceable,
 )
@@ -176,7 +177,7 @@ struct Lever(
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> List[Placement]:
         """Attaches the lever to the clicked solid face (Go `UseOnBlock`)."""

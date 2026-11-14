@@ -13,6 +13,7 @@ from .block import (
     Placement,
     UsableOnBlock,
     UseContext,
+    User,
     first_replaceable,
 )
 from .cube.face import Face
@@ -171,7 +172,7 @@ struct WoodFenceGate(
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> List[Placement]:
         """Places the gate facing away from the user, lowered between walls

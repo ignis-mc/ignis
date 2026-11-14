@@ -269,6 +269,12 @@ from ..world.block_registry import BasicBlockRegistry
 from ..world.item import ItemRegistry
 from nethernet.os.time import monotonic_ms
 from .conn import Conn
+from ..block.container import (
+    container_positions,
+    read_container,
+    write_container,
+)
+from ..block.hash import HASH_CHEST
 from .viewer import OpenedWindow, PacketQueue
 from .window import (
     WINDOW_ENDER_CHEST,
@@ -1004,8 +1010,13 @@ struct Session[C: Conn](Movable):
         var wk = window_kind(kind, stored)
         if wk != WINDOW_UI:
             if case .Some(l) = self._loader:
-                # Go `AddViewer`; the first viewer opens the lid.
-                if w.add_container_viewer(pos, l) == 0:
+                # Go `AddViewer`; the first viewer opens the lid. Both
+                # halves of a double chest share their viewers.
+                var first = w.add_container_viewer(pos, l) == 0
+                for other in _window_positions(pos, kind, w):
+                    if other != pos:
+                        _ = w.add_container_viewer(other, l)
+                if first:
                     T.Blocks.opened(kind, pos, w)
         var id = self._queue[].next_window_id()
         var ctype = window_container_type(kind)
@@ -1051,6 +1062,9 @@ struct Session[C: Conn](Movable):
             self.write_packet(pk)
         if case .Some(l) = self._loader:
             # Go `RemoveViewer`; the last viewer closes the lid.
+            for other in _window_positions(o.pos, block, w):
+                if other != o.pos:
+                    _ = w.remove_container_viewer(other, l)
             if w.remove_container_viewer(o.pos, l) == 0:
                 T.Blocks.closed(block, o.pos, w)
 
@@ -1063,7 +1077,8 @@ struct Session[C: Conn](Movable):
         the block's, both halves of a paired chest, or an empty one."""
         if case .Some(ref o) = self._queue[].opened:
             if o.stored:
-                if case .Some(inv) = w.inventory(o.pos):
+                var at = _window_positions(o.pos, self.invs.window.block, w)
+                if case .Some(inv) = read_container(at, w):
                     return inv.copy()
         return Inventory(1, self.invs.ids)
 
@@ -1084,7 +1099,8 @@ struct Session[C: Conn](Movable):
         # viewers (Go's slot funcs, skipping the requester: inTransaction).
         if case .Some(ref o) = self._queue[].opened:
             if o.stored and self.invs.opened.changed():
-                w.set_inventory(o.pos, self.invs.opened.copy())
+                var at = _window_positions(o.pos, self.invs.window.block, w)
+                write_container(at, self.invs.opened, w)
                 w.flush_container_changes(exclude=self._loader)
         _ = self.invs.opened.take_changes()
 
@@ -1798,6 +1814,16 @@ def _enum_values[
 
 def _pos(b: BlockPos) -> Pos:
     return Pos(Int(b.x), Int(b.y), Int(b.z))
+
+
+def _window_positions[
+    T: WorldTypes
+](pos: Pos, block: UInt64, mut w: World[T]) -> List[Pos]:
+    """Returns the blocks a window shows: both halves of a double chest,
+    else just `pos`."""
+    if block == HASH_CHEST:
+        return container_positions(pos, w)
+    return [pos]
 
 
 def _block_pos_of(p: Pos) -> BlockPos:

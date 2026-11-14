@@ -13,6 +13,7 @@ from support.world_runtime import new_vanilla_world
 
 from ignis.block.composter import Composter
 from ignis.item.bone_meal import BoneMeal
+from ignis.item.inventory.inventory import Inventory
 from ignis.item.pumpkin_pie import PumpkinPie
 from ignis.item.stick import Stick
 from ignis.world.particle.block import BoneMeal as BoneMealParticle
@@ -71,6 +72,33 @@ def test_not_compostable() raises:
         VanillaBlocks.activate(Composter.BASE_HASH, pos, Face.UP, w, ctx)
     )
     assert_equal(w.block_as[Composter](pos).value().level, 0)
+
+
+def test_hoppers() raises:
+    var w = new_vanilla_world()
+    var pos = Pos(2, -61, 2)
+    w.set_block(pos, Composter(level=6))
+    var hopper = Inventory(5)
+    hopper.set_item(0, Stack(Stick(), 2))
+    hopper.set_item(3, Stack(PumpkinPie(), 2))
+    var c = w.block_as[Composter](pos).value()
+    # Only a hopper facing down feeds it.
+    assert_false(c.insert_item(hopper, Face.EAST, pos, w))
+    assert_true(c.insert_item(hopper, Face.DOWN, pos, w))
+    assert_equal(hopper.item(3).count(), 1)
+    assert_equal(hopper.item(0).count(), 2)
+    c = w.block_as[Composter](pos).value()
+    assert_equal(c.level, 7)
+    assert_false(c.extract_item(hopper, pos, w))
+    w.set_block(pos, Composter(level=8))
+    c = w.block_as[Composter](pos).value()
+    var below = Inventory(5)
+    assert_true(c.extract_item(below, pos, w))
+    assert_true(below.item(0).item_as[BoneMeal]())
+    assert_equal(w.block_as[Composter](pos).value().level, 0)
+    # Breaking a full composter drops bone meal.
+    Composter(level=8).on_break(pos, w, True)
+    assert_equal(len(w.take_item_drops()), 1)
 
 
 def main() raises:

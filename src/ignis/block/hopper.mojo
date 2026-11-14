@@ -3,15 +3,38 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the inventory, viewer fields, NewHopper, Model, Inventory,
-WithName, AddViewer, RemoveViewer, Activate, UseOnBlock, Tick, insertItem,
-extractItem, RedstoneUpdate, the break handler and the drops.
+The inventory and viewers live with the world's block entity. Go keeps
+`CollectCooldown` only in the value; Ignis rebuilds the value from its NBT,
+so a running collect cooldown is written as `CollectCooldown`.
+`RedstoneUpdate` is not ported (Dragonfly v0.11.6 has no redstone for it
+either: `Powered` only changes through the block state).
 """
 
 from minecraft.nbt.tree import Tag, Tree
 
 from ..internal.nbtconv.read import get_int32, get_string
-from ..world.block import Block, LightDiffuser, NBTer
+from ..item.stack import Stack
+from ..item.inventory.inventory import Inventory
+from ..mgl64 import Vec3
+from ..world.block import Block, Container, LightDiffuser, NBTer, TickerBlock
+from ..world.block_set import encode_block_nbt
+from ..world.world import World, WorldTypes
+from .block import (
+    Activatable,
+    BreakHandler,
+    Placement,
+    UsableOnBlock,
+    UseContext,
+    User,
+    first_replaceable,
+)
+from .container import (
+    container_positions,
+    drop_contents,
+    read_container,
+    write_container,
+)
+from .cube.pos import Pos
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -31,8 +54,11 @@ from .liquid import source_water_can_displace
 
 
 struct Hopper(
+    Activatable,
     Block,
+    BreakHandler,
     Breakable,
+    Container,
     Equatable,
     ImplicitlyCopyable,
     Item,
@@ -40,6 +66,8 @@ struct Hopper(
     LiquidDisplacer,
     ModelledBlock,
     NBTer,
+    TickerBlock,
+    UsableOnBlock,
 ):
     """A block used to collect item entities directly above it, as well as to transfer items into
     and out of other containers."""
@@ -142,24 +170,177 @@ struct Hopper(
         return [Self()]
 
     def encode_nbt(self, mut tag: Tree, root: Tag) raises:
-        """Writes the block entity NBT (Go `EncodeNBT`)."""
-        # TODO(world-runtime): the inventory; Go writes an empty one as an
-        # empty list.
+        """Writes the block entity NBT (Go `EncodeNBT`); the world adds the
+        `Items`."""
         _ = tag.put_list(root, "Items")
         _ = tag.put_int(root, "TransferCooldown", Int32(self.transfer_cooldown))
         _ = tag.put_string(root, "id", "Hopper")
         if self.custom_name.byte_length() != 0:
             _ = tag.put_string(root, "CustomName", self.custom_name)
+        if self.collect_cooldown > 0:
+            _ = tag.put_int(
+                root, "CollectCooldown", Int32(self.collect_cooldown)
+            )
 
     def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
         """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
-        # TODO(world-runtime): the inventory.
         return Self(
             facing=self.facing,
             powered=self.powered,
             custom_name=get_string(tag, root, "CustomName"),
             transfer_cooldown=Int(get_int32(tag, root, "TransferCooldown")),
+            collect_cooldown=Int(get_int32(tag, root, "CollectCooldown")),
         )
+
+    def inventory_size(self) -> Int:
+        """Returns the hopper's 5 slots (Go `ContainerSize`)."""
+        return 5
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens the hopper's window (Go `Activate`)."""
+        ctx.open_container = True
+        return True
+
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: User,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places the hopper pointing away from the clicked face, down when
+        placed on top (Go `UseOnBlock`)."""
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var h = Hopper()
+        if face != Face.DOWN:
+            h.facing = face.opposite()
+        return [Placement(at.value()[0], AnyBlock(Self.BASE_HASH, h.hash()))]
+
+    def on_break[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T], harvest: Bool):
+        """Drops the contents (Go's break handler)."""
+        tx.close_container_viewers(pos)
+        drop_contents(pos, tx, pos.vec3())
+
+    def tick[
+        T: WorldTypes
+    ](self, current_tick: Int64, pos: Pos, mut tx: World[T]):
+        """Counts down the cooldowns and moves one item out and one in every
+        8 ticks (Go `Tick`)."""
+        var h = self.copy()
+        var cooldown_changed = h.transfer_cooldown > 0 or h.collect_cooldown > 0
+        if h.transfer_cooldown > 0:
+            h.transfer_cooldown -= 1
+        if h.collect_cooldown > 0:
+            h.collect_cooldown -= 1
+        if not h.powered and h.transfer_cooldown <= 0:
+            var found = tx.inventory(pos)
+            if found:
+                var inv = found.value().copy()
+                var inserted = h._insert_item(inv, pos, tx)
+                var extracted = h._extract_item(inv, pos, tx)
+                if inserted or extracted:
+                    tx.set_inventory(pos, inv^)
+                    h.transfer_cooldown = 8
+                    tx.set_block(pos, h)
+                    return
+        if cooldown_changed:
+            # Go `SetBlockEntity`: no block update.
+            tx.set_block_entity_nbt(pos, encode_block_nbt(h), notify=False)
+
+    def _insert_item[
+        T: WorldTypes
+    ](self, mut inv: Inventory, pos: Pos, mut tx: World[T]) -> Bool:
+        # Go `insertItem`.
+        var dest_pos = pos.side(self.facing)
+        var rid = tx.block(dest_pos)
+        var br = tx.block_registry()
+        var kind = br[].kind(rid)
+        if case .Some(done) = T.Blocks.hopper_insert(
+            kind, inv, self.facing, dest_pos, tx
+        ):
+            return done
+        if T.Blocks.inventory_size(kind, br[].state_hash(rid)) == 0:
+            return False
+        var at = container_positions(dest_pos, tx)
+        var found = read_container(at, tx)
+        if not found:
+            return False
+        var dest = found.value().copy()
+        for slot in range(inv.size()):
+            var source: Stack
+            try:
+                source = inv.item(slot)
+            except:
+                return False
+            if source.empty():
+                continue
+            if dest.add_item(source.grow(-source.count() + 1)) < 1:
+                return False
+            try:
+                inv.set_item(slot, source.grow(-1))
+            except:
+                return False
+            write_container(at, dest, tx)
+            if case .Some(other) = tx.block_as[Hopper](dest_pos):
+                var o = other.copy()
+                o.transfer_cooldown = 8
+                tx.set_block(dest_pos, o)
+            return True
+        return False
+
+    def _extract_item[
+        T: WorldTypes
+    ](self, mut inv: Inventory, pos: Pos, mut tx: World[T]) -> Bool:
+        # Go `extractItem`.
+        var origin_pos = pos.side(Face.UP)
+        var rid = tx.block(origin_pos)
+        var br = tx.block_registry()
+        var kind = br[].kind(rid)
+        if case .Some(done) = T.Blocks.hopper_extract(
+            kind, inv, origin_pos, tx
+        ):
+            return done
+        if T.Blocks.inventory_size(kind, br[].state_hash(rid)) == 0:
+            return False
+        var at = container_positions(origin_pos, tx)
+        var found = read_container(at, tx)
+        if not found:
+            return False
+        var origin = found.value().copy()
+        for slot in range(origin.size()):
+            var stack: Stack
+            try:
+                stack = origin.item(slot)
+            except:
+                return False
+            if stack.empty():
+                continue
+            if inv.add_item(stack.grow(-stack.count() + 1)) < 1:
+                continue
+            try:
+                origin.set_item(slot, stack.grow(-1))
+            except:
+                return False
+            write_container(at, origin, tx)
+            if case .Some(other) = tx.block_as[Hopper](origin_pos):
+                var o = other.copy()
+                o.transfer_cooldown = 8
+                tx.set_block(origin_pos, o)
+            return True
+        return False
 
     def can_displace(self, b: AnyBlock) -> Bool:
         """Holds water sources (Go `sourceWaterDisplacer`)."""

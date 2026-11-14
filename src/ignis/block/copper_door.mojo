@@ -22,6 +22,7 @@ from ..world.world import World, WorldTypes
 from .block import (
     Placement,
     UsableOnBlock,
+    User,
     face_solid_at,
     first_replaceable,
     is_air,
@@ -215,7 +216,7 @@ struct CopperDoor(
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> List[Placement]:
         """Places both halves of the door on a solid block, facing away

@@ -3,8 +3,7 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): InsertItem, ExtractItem (hoppers), FlammabilityInfo, the
-break handler dropping bone meal and the drops.
+TODO(world-runtime): FlammabilityInfo and the drops.
 """
 
 from ..item.bone_meal import BoneMeal
@@ -19,7 +18,14 @@ from ..world.sound.block import (
     ComposterReady,
 )
 from ..world.world import World, WorldTypes
-from .block import Activatable, UseContext
+from ..item.inventory.inventory import Inventory
+from .block import (
+    Activatable,
+    BreakHandler,
+    HopperExtractable,
+    HopperInsertable,
+    UseContext,
+)
 from .cube.face import Face
 from .cube.pos import Pos
 
@@ -49,9 +55,12 @@ from .liquid import source_water_can_displace
 struct Composter(
     Activatable,
     Block,
+    BreakHandler,
     Breakable,
     Equatable,
     Fuel,
+    HopperExtractable,
+    HopperInsertable,
     ImplicitlyCopyable,
     Instrumented,
     Item,
@@ -132,6 +141,53 @@ struct Composter(
         if c.level == 7:
             tx.schedule_block_update(pos, c, 1000)
         return True
+
+    def insert_item[
+        T: WorldTypes
+    ](
+        self, mut hopper: Inventory, facing: Face, pos: Pos, mut tx: World[T]
+    ) -> Bool:
+        """Composts one item from a hopper above (Go `InsertItem`)."""
+        if self.level >= 7 or facing != Face.DOWN:
+            return False
+        for slot in range(hopper.size()):
+            var source: Stack
+            try:
+                source = hopper.item(slot)
+            except:
+                return False
+            if source.empty():
+                continue
+            if self.fill(source, pos, tx):
+                try:
+                    hopper.set_item(slot, source.grow(-1))
+                except:
+                    pass
+                return True
+        return False
+
+    def extract_item[
+        T: WorldTypes
+    ](self, mut hopper: Inventory, pos: Pos, mut tx: World[T]) -> Bool:
+        """Gives the bone meal of a full composter to a hopper below (Go
+        `ExtractItem`)."""
+        if self.level != 8:
+            return False
+        if hopper.add_item(Stack(BoneMeal(), 1)) < 1:
+            # The hopper is full.
+            return False
+        var c = self
+        c.level = 0
+        tx.set_block(pos, c)
+        tx.play_sound(pos.vec3(), ComposterEmpty())
+        return True
+
+    def on_break[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T], harvest: Bool):
+        """Drops the bone meal of a full composter (Go's break handler)."""
+        if self.level == 8:
+            tx.drop_item(pos.side(Face.UP).vec3_middle(), Stack(BoneMeal(), 1))
 
     def scheduled_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
         """Turns a level 7 composter into a full one (Go `ScheduledTick`)."""

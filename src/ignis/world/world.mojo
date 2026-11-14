@@ -611,7 +611,9 @@ struct World[T: WorldTypes](Movable):
         if size > 0:
             var inv = Inventory(size, self._stack_ids)
             try:
-                inv_from_nbt(self._items[], e.nbt, e.nbt.root(), inv)
+                inv_from_nbt[Self.T.Blocks](
+                    self._items[], e.nbt, e.nbt.root(), inv
+                )
                 _ = e.nbt.remove(e.nbt.root(), "Items")
             except err:
                 self.last_error = String(t"block entity at {pos}: {err}")
@@ -667,16 +669,53 @@ struct World[T: WorldTypes](Movable):
                 pass
         return None
 
-    def set_block_entity_nbt(mut self, pos: Pos, var nbt: Tree):
-        """Replaces the NBT of the block entity at a position, keeping the
-        inventory; viewers of the chunk see it. Prefer `set_block`."""
+    def set_block_entity_nbt(
+        mut self,
+        pos: Pos,
+        var nbt: Tree,
+        contents: Bool = False,
+        notify: Bool = True,
+    ):
+        """Replaces the NBT of the block entity at a position; viewers of the
+        chunk see it unless `notify` is False (state clients do not draw,
+        such as smelting progress). The inventory is kept, unless
+        `contents` makes the NBT's `Items` replace it (a shulker box placed
+        from its item)."""
         if case .Some(ci) = self._entity_index(pos):
             try:
-                self._cols[ci].block_entities[pos].nbt = nbt^
+                self._replace_nbt(ci, pos, nbt^, contents)
                 self._cols[ci].modified = True
-                self._notify_block_entity(ci, pos)
+                if notify:
+                    self._notify_block_entity(ci, pos)
+            except err:
+                self.last_error = String(t"block entity at {pos}: {err}")
+
+    def _replace_nbt(
+        mut self, ci: Int, pos: Pos, var nbt: Tree, contents: Bool
+    ) raises:
+        ref e = self._cols[ci].block_entities[pos]
+        if contents and e.inv:
+            var inv = Inventory(e.inv.value().size(), self._stack_ids)
+            inv_from_nbt[Self.T.Blocks](self._items[], nbt, nbt.root(), inv)
+            _ = inv.take_changes()
+            e.inv = inv^
+        if not nbt.is_empty():
+            _ = nbt.remove(nbt.root(), "Items")
+        e.nbt = nbt^
+
+    def item_nbt(mut self, pos: Pos) -> Optional[Tree]:
+        """Returns the NBT of the block entity at a position with its
+        `Items`, without the position: what an item of the block carries
+        (Go's `EncodeNBT` of a shulker box as an item)."""
+        if case .Some(ci) = self._entity_index(pos):
+            try:
+                var t = self._saved_block_entity_at(ci, pos)
+                for k in ["x", "y", "z"]:
+                    _ = t.remove(t.root(), k)
+                return t^
             except:
                 pass
+        return None
 
     def inventory(mut self, pos: Pos) -> Optional[Inventory]:
         """Returns a copy of the inventory of the container at a position
@@ -705,13 +744,17 @@ struct World[T: WorldTypes](Movable):
                 pass
 
     def container_viewers(mut self, pos: Pos) -> List[LoaderID]:
-        """Returns the loaders that opened the container at a position."""
+        """Returns the open loaders that opened the container at a
+        position."""
+        var out = List[LoaderID]()
         if case .Some(ci) = self._entity_index(pos):
             try:
-                return self._cols[ci].block_entities[pos].viewers.copy()
+                for id in self._cols[ci].block_entities[pos].viewers:
+                    if self._valid_loader(id):
+                        out.append(id)
             except:
                 pass
-        return List[LoaderID]()
+        return out^
 
     def add_container_viewer(mut self, pos: Pos, id: LoaderID) -> Int:
         """Adds a viewer to the block entity at a position (Go
@@ -744,6 +787,21 @@ struct World[T: WorldTypes](Movable):
             except:
                 pass
         return -1
+
+    def close_container_viewers(mut self, pos: Pos):
+        """Closes the window of every viewer of the container at `pos`, as
+        when a paired chest loses its other half."""
+        if case .Some(ci) = self._entity_index(pos):
+            var ids: List[LoaderID]
+            try:
+                ref e = self._cols[ci].block_entities[pos]
+                ids = e.viewers.copy()
+                e.viewers.clear()
+            except:
+                return
+            for id in ids:
+                if self._valid_loader(id):
+                    self._loader(id).viewer.view_container_removed()
 
     def flush_container_changes(mut self, exclude: Optional[LoaderID] = None):
         """Shows the slots changed through `set_inventory` to the viewers of
@@ -1915,6 +1973,8 @@ struct World[T: WorldTypes](Movable):
         self._tick_entities(tick)
         self._tick_scheduled(tick)
         self._tick_blocks_randomly(tick)
+        # Containers changed by this tick show their slots to viewers.
+        self.flush_container_changes()
         self._perform_neighbour_updates()
 
     def _tick_entities(mut self, tick: Int64):
@@ -2054,10 +2114,10 @@ struct World[T: WorldTypes](Movable):
                 )
 
     def _tick_blocks_randomly(mut self, tick: Int64):
-        # Go `ticker.tickBlocksRandomly`. Block entity ticks (`TickerBlock`)
-        # come with block entities.
+        # Go `ticker.tickBlocksRandomly`, which also ticks the block
+        # entities (`TickerBlock`) of chunks in range after the random ticks.
         var r = self._set.tick_range
-        if r == 0 or self._random_tick_speed <= 0:
+        if r == 0:
             return
         var loaded = List[ChunkPos]()
         if self._synchronous:
@@ -2067,10 +2127,15 @@ struct World[T: WorldTypes](Movable):
                 loaded.append(self._loader(id).pos)
         var g = RandUint4()
         var random_blocks = List[Pos]()
+        var block_entities = List[Pos]()
         var min_sub = self._ra.min() >> 4
         for ci in range(len(self._cols)):
             var pos = self._cols[ci].pos
             if not any_within_distance(pos, loaded, r):
+                continue
+            for k in self._cols[ci].block_entities.keys():
+                block_entities.append(k)
+            if self._random_tick_speed <= 0:
                 continue
             var cx = Int(pos.x()) << 4
             var cz = Int(pos.z()) << 4
@@ -2096,6 +2161,9 @@ struct World[T: WorldTypes](Movable):
             _ = Self.T.Blocks.random_tick(
                 self._br[].kind(rid), self._br[].state_hash(rid), pos, self
             )
+        for pos in block_entities:
+            var rid = self.block(pos)
+            Self.T.Blocks.tick_block(self._br[].kind(rid), tick, pos, self)
 
 
 struct WorldSource[o: MutOrigin, T: WorldTypes](

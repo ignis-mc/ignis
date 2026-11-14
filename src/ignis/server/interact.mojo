@@ -47,7 +47,7 @@ from ..block.break_info import (
     break_duration_ms,
     breaks_instantly,
 )
-from ..block.block import UseContext
+from ..block.block import UseContext, User
 from ..block.cube.face import Face
 from ..block.cube.pos import Pos
 from ..block.register import VanillaBlocks
@@ -59,7 +59,7 @@ from ..mgl64 import Vec3
 from ..world.game_mode import GAME_MODE_SPECTATOR
 from ..block.cube.bbox import BBox
 from ..block.hash import AnyBlock
-from ..player.player import BBOX_HEIGHT, BBOX_WIDTH
+from ..player.player import BBOX_HEIGHT, BBOX_WIDTH, EYE_HEIGHT
 from ..session.session import BREAK_NOW, BlockAction, UseOnBlock
 from minecraft.protocol.packet.level_sound_event import SOUND_EVENT_PLACE
 from ..world.position import chunk_pos_from_block_pos
@@ -243,6 +243,8 @@ def break_block(mut srv: Server, i: Int, pos: Pos):
         return
     var drops = block_drops(srv, i, rid, info)
     swing_arm(srv, i)
+    # Go's break handler runs before the block is removed.
+    VanillaBlocks.handle_break(kind, pos, srv.world, not creative)
     srv.world.set_block_runtime_id(pos, br[].air_runtime_id())
     _level_event(srv, pos, LEVEL_EVENT_PARTICLES_DESTROY_BLOCK, Int32(rid))
     for ref d in drops:
@@ -331,19 +333,33 @@ def use_item_on_block(mut srv: Server, i: Int, u: UseOnBlock):
     var it = held.item().value()
     if not it.block:
         return
-    var rot = srv.sessions[i].player.rotation()
+    ref pl = srv.sessions[i].player
+    var user = User(pl.rotation(), pl.position(), EYE_HEIGHT, held)
     var placements = VanillaBlocks.use_on_block(
-        it.kind, it.hash, pos, face, u.click, rot, srv.world
+        it.kind, it.hash, pos, face, u.click, user, srv.world
     )
     if case .Some(list) = placements:
         # The block places itself (Go `item.UsableOnBlock`).
         var placed = False
         for ref pl in list:
             var prid = br[].runtime_id_of(pl.block.kind, pl.block.state)
-            if prid and place_block(
-                srv, i, pl.pos, prid.value(), pl.ignore_bbox
-            ):
+            if not prid:
+                continue
+            if pl.update:
+                # Go's plain `tx.SetBlock` after `place`.
+                if placed:
+                    srv.world.set_block_runtime_id(pl.pos, prid.value())
+                    if case .Some(ref t) = pl.nbt:
+                        srv.world.set_block_entity_nbt(
+                            pl.pos, t.copy(), pl.contents
+                        )
+                continue
+            if place_block(srv, i, pl.pos, prid.value(), pl.ignore_bbox):
                 placed = True
+                if case .Some(ref t) = pl.nbt:
+                    srv.world.set_block_entity_nbt(
+                        pl.pos, t.copy(), pl.contents
+                    )
         if (
             placed
             and not srv.sessions[i].player.game_mode().creative_inventory()
