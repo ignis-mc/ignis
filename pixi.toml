@@ -19,7 +19,7 @@ format = { cmd = "mojo format src test", description = "Format all Mojo sources"
 format-check = { cmd = "bash scripts/check_format.sh", description = "Fail if formatting would change anything" }
 lint-docs = { cmd = "bash scripts/lint_docs.sh", description = "Fail on missing or malformed docstrings" }
 build = { cmd = "bash scripts/build_packages.sh", description = "Precompile the packages" }
-serve = { cmd = "mojo run --fp-mode contract=off -I src -I third_party/protocol/src -I third_party/nethernet/src cmd/ignis/main.mojo", description = "Run the server (reads or writes config.toml; extra flags: -config PATH -addr HOST:PORT -offline)" }
+serve = { cmd = "./build/ignis", depends-on = ["server-build"], description = "Build and run the server (reads or writes config.toml; extra flags: -config PATH -addr HOST:PORT -offline). A binary, not mojo run: the server re-executes itself once to block SIGINT/SIGTERM in every thread" }
 server-build = { cmd = "mkdir -p build && mojo build --fp-mode contract=off -I src -I third_party/protocol/src -I third_party/nethernet/src cmd/ignis/main.mojo -o build/ignis", description = "Build the server binary into build/ignis" }
 e2e = { cmd = "bash scripts/e2e.sh", description = "Run the server and check it end to end with two Mojo bots" }
 check = { depends-on = ["format-check", "lint-docs", "test"], description = "Everything CI runs except interop" }

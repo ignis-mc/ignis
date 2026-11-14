@@ -4,17 +4,21 @@
         cmd/ignis/main.mojo [-config PATH] [-addr HOST:PORT] [-offline]
 
 Reads `config.toml` (written with the defaults if missing), then serves
-until killed. `-addr` and `-offline` override `[Network] Address` and
+until SIGINT or SIGTERM, which saves the world and the players and exits.
+Lines typed on standard input run as console commands. `-addr` and `-offline` override `[Network] Address` and
 `[Server] AuthEnabled`. Run it from the repository root: the block and item
 tables are read from `resources/`.
 """
 
 from ignis.server.conf import load_user_config
-from ignis.server.server import Server
+from ignis.server.server import Server, termination_signals
 from std.sys import argv
 
 
 def main() raises:
+    # First: this re-executes the program once with SIGINT and SIGTERM
+    # blocked, so that every thread of the Mojo runtime blocks them.
+    var signals = termination_signals()
     var args = argv()
     var path = String("config.toml")
     var addr = Optional[String](None)
@@ -44,5 +48,7 @@ def main() raises:
         t" auth={not conf.auth_disabled} gamemode={conf.default_game_mode}"
     )
     var srv = Server(conf^)
+    srv.close_on_program_end(signals^)
+    srv.read_console()
     print("READY", srv.addr())
     srv.run()

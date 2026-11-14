@@ -54,6 +54,28 @@ Folder = "resources"
     assert_equal(conf.max_chunk_radius, 8)
 
 
+def test_save_data() raises:
+    # Dragonfly's defaults keep both the world and the players on disk.
+    var conf = UserConfig.from_toml(UserConfig().to_toml()).config()
+    assert_equal(conf.world_folder.value(), "world")
+    assert_equal(conf.players_folder.value(), "players")
+    var c = UserConfig.from_toml(
+        """[World]
+SaveData = false
+Folder = "w2"
+[Players]
+SaveData = true
+Folder = "p2"
+"""
+    )
+    conf = c.config()
+    assert_false(Bool(conf.world_folder))
+    assert_equal(conf.players_folder.value(), "p2")
+    var back = UserConfig.from_toml(c.to_toml())
+    assert_false(back.world_save_data)
+    assert_equal(back.world_folder, "w2")
+
+
 def test_raknet_only_rejected() raises:
     with assert_raises(contains="nethernet"):
         _ = UserConfig.from_toml('[Network]\nTransport = ["raknet"]\n')
