@@ -5,7 +5,8 @@
 #   1. interop/bots/two_bots.mojo: joining, chunks, movement, chat, leaving.
 #   2. interop/bots/persist_bot.mojo: AvailableCommands and /time, /gamemode,
 #      /list, /tp from a player; /say from the console (stdin).
-#   3. SIGINT saves and stops the server; after a restart the world time,
+#   3. SIGINT disconnects the online player, saves and stops the server;
+#      after a restart the world time,
 #      the player's position, rotation and game mode are back; SIGTERM
 #      stops it again.
 #   4. A copy of the world.mcdb fixture (test/data/mcdb/dragonfly-world)
@@ -90,7 +91,15 @@ if [[ $status -eq 0 ]]; then
     grep -q '^\[Server\] hello from the console' "$dir/server1.log" ||
         { echo "FAIL console /say"; exit 1; }
     echo "PASS console /say"
+    bot expect-disconnect "$addr" 30 >"$dir/disconnect.log" &
+    waiter=$!
+    for _ in $(seq 1 100); do
+        grep -q '^WAITING' "$dir/disconnect.log" && break
+        sleep 0.2
+    done
     stop INT server1.log
+    wait "$waiter" || { cat "$dir/disconnect.log"; exit 1; }
+    grep -E '^(PASS|DISCONNECT)' "$dir/disconnect.log"
     [[ -f "$dir/world/level.dat" ]] || { echo "FAIL no level.dat"; exit 1; }
     echo "PASS level.dat written"
 

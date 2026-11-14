@@ -12,6 +12,9 @@ that does not hold.
     persist_bot.mojo expect-start ADDRESS X Y Z MODE TIME
         checks the StartGame position (feet), game type and time, and that
         the sub-chunks of the spawn column hold blocks.
+    persist_bot.mojo expect-disconnect ADDRESS SECONDS
+        stays online and checks that the server sends Disconnect (such as
+        when it shuts down) within SECONDS.
     persist_bot.mojo command ADDRESS EXPECT LINE...
         checks that AvailableCommands lists /gamemode, /tp, /time, /list and
         /say, sends LINE as a CommandRequest and checks that a
@@ -30,7 +33,8 @@ from minecraft.protocol.packet.id import (
     ID_TEXT,
 )
 from minecraft.protocol.block_pos import SubChunkPos
-from minecraft.protocol.packet.id import ID_SUB_CHUNK
+from minecraft.protocol.packet.disconnect import Disconnect
+from minecraft.protocol.packet.id import ID_DISCONNECT, ID_SUB_CHUNK
 from minecraft.protocol.packet.player_auth_input import PlayerAuthInput
 from minecraft.protocol.packet.sub_chunk import SubChunk
 from minecraft.protocol.packet.sub_chunk_request import SubChunkRequest
@@ -160,6 +164,32 @@ def expect_start(
     conn.close()
 
 
+def expect_disconnect(address: String, seconds: Int) raises:
+    var conn = join(address)
+    print("WAITING")
+    var deadline = monotonic_ms() + seconds * 1000
+    var message = Optional[String](None)
+    while monotonic_ms() < deadline and not message:
+        try:
+            var next = conn.read_packet(10)
+            if next and next.value().id() == ID_DISCONNECT:
+                message = (
+                    next.value()
+                    .decode[Disconnect](conn.shield_id, False)
+                    .message
+                )
+        except e:
+            # The protocol Conn handles Disconnect itself and reports it as
+            # `connection closed: disconnected: <message>`.
+            var text = String(e)
+            var i = text.find("disconnected: ")
+            if i < 0:
+                raise e^
+            message = String(text[byte = i + 14 :])
+    check(Bool(message), "the server sends Disconnect")
+    print("DISCONNECT", message.value())
+
+
 def command(address: String, expect: String, line: String) raises:
     var conn = join(address)
     var deadline = monotonic_ms() + 10000
@@ -224,6 +254,8 @@ def main() raises:
             Int(args[6]),
             Int(args[7]),
         )
+    elif mode == "expect-disconnect":
+        expect_disconnect(address, Int(args[3]))
     elif mode == "command":
         var line = String(args[4])
         for i in range(5, len(args)):
