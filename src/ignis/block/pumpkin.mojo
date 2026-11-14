@@ -151,8 +151,7 @@ struct Pumpkin(
         return [Pumpkin(carved=True), Pumpkin()]
 
     def helmet(self) -> Bool:
-        """Reports whether the block is worn as a helmet (Go `Helmet`): if carved.
-        """
+        """Reports whether the pumpkin is worn as a helmet (Go `Helmet`)."""
         return self.carved
 
     def defence_points(self) -> Float64:
