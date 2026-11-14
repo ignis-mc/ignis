@@ -916,6 +916,8 @@ struct Server(Movable):
         self._player_data[uuid_key(uuid)] = stored^.or_else(PlayerData())
         var player = Player(name, conn.identity_data.xuid, uuid, pos, mode, rot)
         player.set_locale(conn.client_data.language_code)
+        if case .Some(ref d) = self._player_data.get(uuid_key(uuid)):
+            d.apply_living(player.living)
         var sc = SessionConfig()
         sc.max_chunk_radius = self.conf.max_chunk_radius
         sc.emote_chat_muted = self.conf.mute_emote_chat

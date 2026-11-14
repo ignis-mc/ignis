@@ -265,6 +265,34 @@ struct EffectSet[*Ts: EffectType]:
         return None
 
     @staticmethod
+    def from_data(
+        id: Int,
+        lvl: Int,
+        d: Int,
+        ambient: Bool,
+        particles_hidden: Bool,
+        infinite: Bool,
+    ) -> Optional[Effect]:
+        """Rebuilds a saved effect (Go playerdb `dataToEffects`): ambient,
+        infinite or plain for lasting types, potency 1 for instant ones;
+        None for an unknown ID."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            if id == T.ID:
+                comptime if conforms_to(T, LastingType):
+                    var e = Effect(T(), True, lvl, d, 0, False, False)
+                    if ambient:
+                        e = Effect(T(), True, lvl, d, 0, True, False)
+                    elif infinite:
+                        e = Effect(T(), True, lvl, 0, 0, False, True)
+                    if particles_hidden:
+                        e = e.without_particles()
+                    return e
+                else:
+                    return Effect(T(), False, lvl, 0, 1, False, False)
+        return None
+
+    @staticmethod
     def lasting(id: Int) -> Optional[Bool]:
         """Reports whether the effect with an ID is lasting."""
         comptime for i in range(len(Self.Ts)):

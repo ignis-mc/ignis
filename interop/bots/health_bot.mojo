@@ -15,6 +15,9 @@
         joins that world and stands at the spawn: the arrow hurts and
         knocks it back (SetActorMotion), then the explosion kills it with
         `death.attack.explosion`.
+    health_bot.mojo prepare-apple WORLD_DIR
+        writes a world with three golden apples lying at the spawn, for the
+        vanilla client check.
     health_bot.mojo eat ADDRESS
         takes a golden apple from the creative inventory, goes back to
         survival and eats it: eating particles (ActorEvent feed), then
@@ -98,6 +101,11 @@ from minecraft.protocol.packet.update_attributes import UpdateAttributes
 from nethernet.os.time import monotonic_ms
 
 from ignis.entity.arrow import Arrow
+from ignis.entity.item import ItemBehaviour
+from ignis.item.golden_apple import GoldenApple
+from ignis.item.nbt import write_disk_nbt
+from ignis.item.register import vanilla_item_registry
+from ignis.item.stack import Stack
 from ignis.entity.register import VanillaEntities
 from ignis.entity.tnt import TNT
 from ignis.mgl64 import Vec3 as Vec3d
@@ -382,6 +390,24 @@ def prepare(folder: String) raises:
     print("PREPARED", folder)
 
 
+def prepare_apple(folder: String) raises:
+    var conf = Config()
+    conf.world_folder = folder
+    var w = open_world(conf, 0)
+    var items = vanilla_item_registry(conf.vanilla_items_path)
+    var s = Stack(GoldenApple(), 3)
+    var nbt = write_disk_nbt(w.block_registry()[], items, s)
+    var o = EntitySpawnOpts()
+    o.position = Vec3d(0.5, -60, 0.5)
+    _ = w.add_entity(
+        EntityHandle[VanillaEntities](
+            o, VanillaEntities.wrap(ItemBehaviour(s, nbt^, 0))
+        )
+    )
+    w.close()
+    print("PREPARED", folder)
+
+
 def hazards(address: String) raises:
     var bot = Bot(address, "Target")
     var deadline = monotonic_ms() + 3000
@@ -526,6 +552,8 @@ def main() raises:
         fall(String(args[2]))
     elif mode == "prepare":
         prepare(String(args[2]))
+    elif mode == "prepare-apple":
+        prepare_apple(String(args[2]))
     elif mode == "hazards":
         hazards(String(args[2]))
     elif mode == "eat":

@@ -15,9 +15,12 @@ from nethernet.crypto.base64 import base64_decode, base64_encode
 from nethernet.json import json_quote
 
 from ...block.cube.rotation import Rotation
+from ...entity.effect import Effect
+from ...entity.effect.register import VanillaEffects
 from ...internal.json import JSON_ARRAY, JSON_NUMBER, JSON_STRING, JsonDoc
 from ...mgl64 import Vec3
 from ...world.game_mode import GameMode, game_mode_by_id
+from ..living import Living
 from ..player import Player
 
 
@@ -92,6 +95,8 @@ struct Data(Copyable, Defaultable):
     """Go `Inventory.MainHandSlot`."""
     var ender_chest: List[Slot]
     """Go `EnderChestInventory`."""
+    var effects: List[Effect]
+    """Go `Effects`."""
 
     def __init__(out self):
         """Creates the data of a new player with Dragonfly's defaults."""
@@ -124,6 +129,7 @@ struct Data(Copyable, Defaultable):
         self.off_hand = List[UInt8]()
         self.main_hand_slot = 0
         self.ender_chest = List[Slot]()
+        self.effects = List[Effect]()
 
     def put_player(mut self, p: Player, dimension: Int):
         """Updates the fields Ignis tracks from a player (Go `toJson` over
@@ -136,6 +142,36 @@ struct Data(Copyable, Defaultable):
         self.pitch = p.rotation().pitch()
         self.game_mode = UInt8(p.game_mode().id)
         self.dimension = Int32(dimension)
+        ref l = p.living
+        self.health = l.health.health
+        self.max_health = l.health.max
+        self.hunger = l.hunger.food_level
+        self.food_tick = l.hunger.food_tick
+        self.exhaustion_level = l.hunger.exhaustion_level
+        self.saturation_level = l.hunger.saturation_level
+        self.experience = l.experience.experience
+        self.air_supply = l.air_supply_ticks
+        self.max_air_supply = l.max_air_supply_ticks
+        self.fire_ticks = Int64(l.fire_ticks)
+        self.fall_distance = l.fall_distance
+        self.effects = l.effects.copy()
+
+    def apply_living(self, mut l: Living):
+        """Restores the survival state (Go `Config.Apply`): the values as
+        saved, effects without their `Start`."""
+        l.health.health = self.health
+        l.health.max = self.max_health
+        l.hunger.food_level = self.hunger
+        l.hunger.food_tick = self.food_tick
+        l.hunger.exhaustion_level = self.exhaustion_level
+        l.hunger.saturation_level = self.saturation_level
+        l.experience.reset()
+        _ = l.experience.add(self.experience)
+        l.air_supply_ticks = self.air_supply
+        l.max_air_supply_ticks = self.max_air_supply
+        l.fire_ticks = Int(self.fire_ticks)
+        l.fall_distance = self.fall_distance
+        l.effects = self.effects.copy()
 
     def rotation(self) -> Rotation:
         """Returns the yaw and pitch as a rotation."""
@@ -174,7 +210,7 @@ struct Data(Copyable, Defaultable):
         s += ',"OffHand":' + _bytes(self.off_hand)
         s += String(t',"MainHandSlot":{self.main_hand_slot}}}')
         s += ',"EnderChestInventory":' + _slots(self.ender_chest)
-        s += ',"Effects":null'
+        s += ',"Effects":' + _effects(self.effects)
         s += String(t',"FireTicks":{self.fire_ticks}')
         s += String(t',"FallDistance":{_f(self.fall_distance)}')
         s += String(t',"Dimension":{self.dimension}')
@@ -229,7 +265,47 @@ struct Data(Copyable, Defaultable):
             d.off_hand = _get_bytes(doc, inv, "OffHand")
             d.main_hand_slot = UInt32(_get_i(doc, inv, "MainHandSlot"))
         d.ender_chest = _get_slots(doc, r, "EnderChestInventory")
+        if case .Some(arr) = doc.get(r, "Effects"):
+            if doc.kind(arr) == JSON_ARRAY:
+                for e in doc.children(arr):
+                    var eff = VanillaEffects.from_data(
+                        _get_i(doc, e, "ID"),
+                        _get_i(doc, e, "Level"),
+                        _get_i(doc, e, "Duration"),
+                        _get_b(doc, e, "Ambient"),
+                        _get_b(doc, e, "ParticlesHidden"),
+                        _get_b(doc, e, "Infinite"),
+                    )
+                    if case .Some(x) = eff:
+                        d.effects.append(x)
         return d^
+
+
+def _effects(effects: List[Effect]) -> String:
+    # Go `effectsToData`; an empty list is written as `[]` (Go writes `[]`
+    # for the empty slice it makes).
+    var s = String("[")
+    for i in range(len(effects)):
+        ref e = effects[i]
+        if i > 0:
+            s += ","
+        s += String(t'{{"ID":{e.type_id()},"Level":{e.level()}')
+        s += String(t',"Duration":{e.duration()}')
+        s += String(t',"Ambient":{_bool(e.ambient())}')
+        s += String(t',"ParticlesHidden":{_bool(e.particles_hidden())}')
+        s += String(t',"Infinite":{_bool(e.infinite())}}}')
+    s += "]"
+    return s^
+
+
+def _bool(b: Bool) -> String:
+    return "true" if b else "false"
+
+
+def _get_b(doc: JsonDoc, obj: Int, key: StringSlice) raises -> Bool:
+    if case .Some(i) = doc.get(obj, key):
+        return doc.as_bool(i)
+    return False
 
 
 def _f(v: Float64) -> String:

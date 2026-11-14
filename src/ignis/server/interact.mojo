@@ -19,10 +19,8 @@ on the clicked face, or into the clicked block if it is replaceable by
 them. Not ported yet: `Activatable` blocks, non-block items used on blocks,
 `StateDeriver`.
 
-Not ported yet: fire extinguishing, `Punchable` blocks, `BreakHandler`,
-XP orbs, exhaustion, the `HandleStartBreak`/`HandleBlockBreak` handler
-calls, and the water/effect parts of the break context (Ignis has neither
-liquids nor player effects yet).
+Not ported yet: fire extinguishing, `Punchable` blocks, `BreakHandler` and
+the `HandleStartBreak`/`HandleBlockBreak` handler calls.
 """
 
 from minecraft.protocol.packet.level_event import (
@@ -50,7 +48,11 @@ from ..block.break_info import (
 from ..block.cube.face import Face
 from ..block.cube.pos import Pos
 from ..block.register import VanillaBlocks
-from ..item.enchantment import EFFICIENCY_ID, SILK_TOUCH_ID
+from ..entity.effect.conduit_power import ConduitPower
+from ..entity.effect.haste import Haste
+from ..entity.effect.mining_fatigue import MiningFatigue
+from ..entity.experience_orb import spawn_experience_orbs
+from ..item.enchantment import AQUA_AFFINITY_ID, EFFICIENCY_ID, SILK_TOUCH_ID
 from ..item.register import VanillaItems
 from ..item.stack import Stack
 from ..item.tool import TYPE_SWORD, ToolInfo
@@ -63,6 +65,12 @@ from ..session.session import BREAK_NOW, BlockAction, UseOnBlock
 from minecraft.protocol.packet.level_sound_event import SOUND_EVENT_PLACE
 from ..world.position import chunk_pos_from_block_pos
 from .server import Server
+from .survival import (
+    damage_item,
+    flush_living,
+    inside_of_water,
+    survival_context,
+)
 
 
 def handle_block_action(mut srv: Server, i: Int, a: BlockAction):
@@ -160,10 +168,24 @@ def break_time(mut srv: Server, i: Int, pos: Pos) -> Int:
     var efficiency = 0
     if case .Some(e) = held.enchantment(Int16(EFFICIENCY_ID)):
         efficiency = e.level
+    var underwater = inside_of_water(srv, i)
+    var aqua = Bool(
+        srv.sessions[i]
+        .invs.armour.helmet()
+        .enchantment(Int16(AQUA_AFFINITY_ID))
+    )
     ref p = srv.sessions[i].player
     var ctx = BreakContext()
+    ctx.underwater = underwater
+    ctx.aqua_affinity = aqua
     ctx.airborne = not p.on_ground()
     ctx.flying = p.flying()
+    if case .Some(e) = p.living.effect(Haste.ID):
+        ctx.haste_level = e.level()
+    if case .Some(e) = p.living.effect(ConduitPower.ID):
+        ctx.conduit_power_level = e.level()
+    if case .Some(e) = p.living.effect(MiningFatigue.ID):
+        ctx.mining_fatigue_level = e.level()
     return break_duration_ms(info, _held_tool(srv, i, rid), efficiency, ctx)
 
 
@@ -241,23 +263,38 @@ def break_block(mut srv: Server, i: Int, pos: Pos):
         resend_block(srv, i, pos)
         return
     var drops = block_drops(srv, i, rid, info)
+    var xp = 0
+    if case .Some(bi) = info:
+        var silk = (
+            srv.sessions[i].invs.held_item().enchantment(Int16(SILK_TOUCH_ID))
+        )
+        if not creative and not silk:
+            # Go `XPDropRange.RandomValue` on its global source.
+            var r = bi.xp_drops
+            xp = srv.world.global_rand().int_n(r.max - r.min + 1) + r.min
     swing_arm(srv, i)
     srv.world.set_block_runtime_id(pos, br[].air_runtime_id())
     _level_event(srv, pos, LEVEL_EVENT_PARTICLES_DESTROY_BLOCK, Int32(rid))
+    if info:
+        spawn_experience_orbs(srv.world, pos.vec3_centre(), xp)
     for ref d in drops:
         var x = srv.world.rand().float64() * 0.2 - 0.1
         var z = srv.world.rand().float64() * 0.2 - 0.1
         var vel = Vec3(x, 0.2, z)
         srv.spawn_item(pos.vec3_centre(), vel, d)
+    var ctx = survival_context(srv, i)
+    srv.sessions[i].player.living.exhaust(0.005, ctx)
+    flush_living(srv, i)
     # Only blocks that break instantly by nature cost no durability.
-    if breaks_instantly(info) or creative:
+    if breaks_instantly(info):
         return
     var held = srv.sessions[i].invs.held_item()
     if held.empty():
         return
     var it = held.item().value()
     if case .Some(d) = VanillaItems.durability_info(it.kind, it.hash):
-        srv.sessions[i].invs.set_held_item(held.damage(d.break_durability))
+        var damaged = damage_item(srv, i, held, d.break_durability)
+        srv.sessions[i].invs.set_held_item(damaged)
 
 
 def block_drops(
