@@ -21,6 +21,7 @@ from minecraft.protocol.entity_metadata import (
     ENTITY_DATA_KEY_SCALE,
     ENTITY_DATA_KEY_VARIANT,
     ENTITY_DATA_KEY_WIDTH,
+    EntityMetadata,
     new_entity_metadata,
 )
 from minecraft.protocol.packet.add_actor import AddActor
@@ -44,7 +45,19 @@ from minecraft.protocol.packet.set_time import SetTime
 from ..block.cube.pos import Pos
 from ..block.cube.rotation import Rotation
 from ..block.hash import AnyBlock
+from ..entity.arrow import Arrow
+from ..entity.bottle_of_enchanting import BottleOfEnchanting
+from ..entity.egg import Egg
+from ..entity.ender_pearl import EnderPearl
 from ..entity.falling_block import FallingBlock
+from ..entity.firework import Firework
+from ..entity.lingering_potion import LingeringPotion
+from ..entity.snowball import Snowball
+from ..entity.splash_potion import SplashPotion
+from ..entity.text import Text
+from ..entity.tnt import TNT
+from .entity_metadata import entity_metadata
+from minecraft.protocol.uuid import UUID
 from ..world.block_state import BlockState
 from ..entity.item import ItemBehaviour
 from ..item.nbt import read_disk_nbt
@@ -156,85 +169,81 @@ struct SessionViewer(Viewer):
         self.queue[].push(pk)
 
     def view_entity[E: EntityTypes](mut self, e: EntityHandle[E]):
-        """Shows a world entity (Go `ViewEntity`); only item entities are
-        shown so far."""
+        """Shows a world entity (Go `ViewEntity`): items with AddItemActor,
+        everything else with AddActor."""
         comptime if E == VanillaEntities:
             ref h = rebind[EntityHandle[VanillaEntities]](e)
-            if h.state.isa[FallingBlock]():
-                ref fb = h.state[FallingBlock]
-                self._view_falling_block(
-                    String(h.id), h.data.pos, h.data.vel, fb.block, fb.state
-                )
-                return
-            if not h.state.isa[ItemBehaviour]():
-                return
-            ref item = h.state[ItemBehaviour]
             var key = String(h.id)
             if key in self.queue[].entity_ids:
                 return
-            var id = self.queue[].new_entity_id(key)
-            var pk = AddItemActor()
-            pk.entity_unique_id = Int64(id)
-            pk.entity_runtime_id = id
-            var stack = item.item.copy()
-            if not item.resolved():
-                # Loaded from disk: only the NBT is known.
-                stack = read_disk_nbt(
-                    self.queue[].items[], item.item_nbt, item.item_nbt.root()
-                )
-            pk.item = instance_from_item(
-                self.queue[].blocks[], self.queue[].items[], stack
-            )
-            pk.position = _vec32(h.data.pos)
-            pk.velocity = _vec32(h.data.vel)
-            var m = new_entity_metadata()
+            var owner: Optional[Int64] = None
+            if case .Some(o) = _owner(e):
+                # Go `handleRuntimeID`: 0 for an owner the session lacks.
+                owner = Int64(self.queue[].entity_ids.get(String(o)).or_else(0))
+            var m: EntityMetadata
             try:
-                m.set(ENTITY_DATA_KEY_WIDTH, Float32(0.25))
-                m.set(ENTITY_DATA_KEY_HEIGHT, Float32(0.25))
-                m.set(ENTITY_DATA_KEY_SCALE, Float32(1))
-                m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_HAS_GRAVITY)
+                m = entity_metadata(h, owner)
+            except:
+                return
+            var id = self.queue[].new_entity_id(key)
+            if h.state.isa[ItemBehaviour]():
+                ref item = h.state[ItemBehaviour]
+                var pk = AddItemActor()
+                pk.entity_unique_id = Int64(id)
+                pk.entity_runtime_id = id
+                var stack = item.item.copy()
+                if not item.resolved():
+                    # Loaded from disk: only the NBT is known.
+                    stack = read_disk_nbt(
+                        self.queue[].items[],
+                        item.item_nbt,
+                        item.item_nbt.root(),
+                    )
+                pk.item = instance_from_item(
+                    self.queue[].blocks[], self.queue[].items[], stack
+                )
+                pk.position = _vec32(h.data.pos)
+                pk.velocity = _vec32(h.data.vel)
+                pk.entity_metadata = m^
+                self.queue[].push(pk)
+                return
+            try:
+                if h.state.isa[FallingBlock]():
+                    ref fb = h.state[FallingBlock]
+                    var rid = (
+                        self.queue[]
+                        .blocks[]
+                        .runtime_id_of(fb.block.kind, fb.block.state)
+                    )
+                    if not rid:
+                        rid = (
+                            self.queue[]
+                            .blocks[]
+                            .state_to_runtime_id(
+                                fb.state.name, fb.state.properties
+                            )
+                        )
+                    m.set(ENTITY_DATA_KEY_VARIANT, Int32(rid.or_else(0)))
+                elif h.state.isa[Text]():
+                    m.set(
+                        ENTITY_DATA_KEY_VARIANT,
+                        Int32(self.queue[].blocks[].air_runtime_id()),
+                    )
             except:
                 pass
+            var pk = AddActor()
+            pk.entity_unique_id = Int64(id)
+            pk.entity_runtime_id = id
+            pk.entity_type = VanillaEntities.network_identifier(h.state)
             pk.entity_metadata = m^
+            pk.position = _vec32(h.data.pos)
+            pk.velocity = _vec32(h.data.vel)
+            var yaw = Float32(h.data.rot.yaw())
+            pk.pitch = Float32(h.data.rot.pitch())
+            pk.yaw = yaw
+            pk.head_yaw = yaw
+            pk.body_yaw = yaw
             self.queue[].push(pk)
-
-    def _view_falling_block(
-        mut self,
-        key: String,
-        pos: Vec3,
-        vel: Vec3,
-        block: AnyBlock,
-        state: BlockState,
-    ):
-        # Go `ViewEntity` for `FallingBlockType`: an actor whose variant is
-        # the block's runtime ID.
-        if key in self.queue[].entity_ids:
-            return
-        var rid = self.queue[].blocks[].runtime_id_of(block.kind, block.state)
-        if not rid:
-            rid = (
-                self.queue[]
-                .blocks[]
-                .state_to_runtime_id(state.name, state.properties)
-            )
-        var id = self.queue[].new_entity_id(key)
-        var pk = AddActor()
-        pk.entity_unique_id = Int64(id)
-        pk.entity_runtime_id = id
-        pk.entity_type = String(FallingBlock.NETWORK_IDENTIFIER)
-        pk.position = _vec32(pos)
-        pk.velocity = _vec32(vel)
-        var m = new_entity_metadata()
-        try:
-            m.set(ENTITY_DATA_KEY_WIDTH, Float32(0.98))
-            m.set(ENTITY_DATA_KEY_HEIGHT, Float32(0.98))
-            m.set(ENTITY_DATA_KEY_SCALE, Float32(1))
-            m.set(ENTITY_DATA_KEY_VARIANT, Int32(rid.or_else(0)))
-            m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_HAS_GRAVITY)
-        except:
-            pass
-        pk.entity_metadata = m^
-        self.queue[].push(pk)
 
     def hide_entity[E: EntityTypes](mut self, e: EntityHandle[E]):
         """Removes a world entity from view (Go `HideEntity`)."""
@@ -253,18 +262,16 @@ struct SessionViewer(Viewer):
     def view_entity_movement[
         E: EntityTypes
     ](mut self, e: EntityHandle[E], pos: Vec3, rot: Rotation, on_ground: Bool):
-        """Shows a world entity moving (Go `ViewEntityMovement`), with the
-        item entity's network offset."""
+        """Shows a world entity moving (Go `ViewEntityMovement`), with its
+        type's network offset."""
         var found = self.queue[].entity_ids.get(String(e.id))
         if not found:
             return
         var pk = MoveActorAbsolute()
         pk.entity_runtime_id = found.value()
-        var offset = ItemBehaviour.NETWORK_OFFSET
+        var offset = 0.0
         comptime if E == VanillaEntities:
-            ref h = rebind[EntityHandle[VanillaEntities]](e)
-            if h.state.isa[FallingBlock]():
-                offset = FallingBlock.NETWORK_OFFSET
+            offset = _network_offset(e)
         pk.position = _vec32(pos.add(Vec3(0, offset, 0)))
         pk.rotation = _vec32(Vec3(rot.pitch(), rot.yaw(), rot.yaw()))
         if on_ground:
@@ -294,3 +301,45 @@ def _block_pos(pos: Pos) -> BlockPos:
 
 def _vec32(v: Vec3) -> ProtocolVec3:
     return ProtocolVec3(Float32(v.x()), Float32(v.y()), Float32(v.z()))
+
+
+def _network_offset[E: EntityTypes](e: EntityHandle[E]) -> Float64:
+    # Go `entityOffset`: the type's `NetworkOffset`, if it has one.
+    comptime if E != VanillaEntities:
+        return 0
+    ref h = rebind[EntityHandle[VanillaEntities]](e)
+    if h.state.isa[ItemBehaviour]():
+        return ItemBehaviour.NETWORK_OFFSET
+    if h.state.isa[FallingBlock]():
+        return FallingBlock.NETWORK_OFFSET
+    if h.state.isa[TNT]():
+        return TNT.NETWORK_OFFSET
+    return 0
+
+
+def _owner[E: EntityTypes](e: EntityHandle[E]) -> Optional[UUID]:
+    # Go's `owned`: projectiles, and attached fireworks.
+    comptime if E != VanillaEntities:
+        return None
+    ref h = rebind[EntityHandle[VanillaEntities]](e)
+    ref s = h.state
+    var o = UUID()
+    if s.isa[Arrow]():
+        o = s[Arrow].proj.owner
+    elif s.isa[Snowball]():
+        o = s[Snowball].proj.owner
+    elif s.isa[Egg]():
+        o = s[Egg].proj.owner
+    elif s.isa[EnderPearl]():
+        o = s[EnderPearl].proj.owner
+    elif s.isa[SplashPotion]():
+        o = s[SplashPotion].proj.owner
+    elif s.isa[LingeringPotion]():
+        o = s[LingeringPotion].proj.owner
+    elif s.isa[BottleOfEnchanting]():
+        o = s[BottleOfEnchanting].proj.owner
+    elif s.isa[Firework]():
+        o = s[Firework].owner
+    if o == UUID():
+        return None
+    return o

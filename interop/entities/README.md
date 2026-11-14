@@ -12,10 +12,17 @@ flat worlds seeded with `rand.NewPCG(1, 2)` and records:
   with (1, 2): the blocks left, the total of dropped items and the other
   entities. Checked by `test/ignis/block/test_explosion.mojo`.
 
+- `metadata.txt` (`metadata.go`): the marshalled entity metadata of each
+  entity type as Dragonfly's session builds it (`parseEntityMetadata`,
+  reached with `go:linkname`, hence `-ldflags=-checklinkname=0`). The
+  firework's NBT is a Go map whose key order is random, so it is written on
+  its own line with sorted keys. Checked by
+  `test/ignis/session/test_entity_metadata.mojo`.
+
 Things Dragonfly draws from Go's global source (orb counts of bottles o'
 enchanting, firework flight time, TNT's starting push, lightning) are kept
 out of the recorded values.
 
 Regenerate from the repository root:
 
-    (cd interop/entities && go run . -out ../../test/data/entities)
+    (cd interop/entities && go run -ldflags=-checklinkname=0 . -out ../../test/data/entities)

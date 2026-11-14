@@ -6,7 +6,7 @@
 //
 // Usage (from the repository root):
 //
-//	(cd interop/entities && go run . -out ../../test/data/entities)
+//	(cd interop/entities && go run -ldflags=-checklinkname=0 . -out ../../test/data/entities)
 package main
 
 import (
@@ -57,6 +57,7 @@ func main() {
 	}
 	write(filepath.Join(*out, "flights.txt"), b.String())
 	write(filepath.Join(*out, "explosions.txt"), explosions())
+	write(filepath.Join(*out, "metadata.txt"), metadata())
 }
 
 func write(path, s string) {
