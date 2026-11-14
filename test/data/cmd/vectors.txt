@@ -1,0 +1,298 @@
+usage	gamemode	/gamemode <mode: GameMode> [player: target]\n/gamemode <mode: int> [player: target]
+aliases	gamemode	gm,gmode,gamemode
+usage	tp	/tp <destination: x y z>\n/tp <victim: target> <destination: target>
+aliases	tp	teleport,tp
+usage	say	/say <message: text>
+aliases	say	
+usage	xp	/xp <amount: int>L [player: target]\n/xp <amount: int> [player: target]
+aliases	xp	
+usage	config	/config set <key: string> <value: float>\n/config get <key: string>\n/config toggle <key: string> [on: bool]
+aliases	config	
+usage	give	/give <player: target> <item: Item> [amount: uint] [data: int]
+aliases	give	
+usage	num	/num <i8: int> <u16: uint> <i64: int> <f32: float> <u: uint>
+aliases	num	
+usage	secret	/secret
+aliases	secret	hidden,secret
+usage	mark	/mark <pos: coord> [note: text]
+aliases	mark	
+usage	flag	/flag <on: bool>
+aliases	flag	
+case	Op	gamemode	creative
+ok	gamemode set creative unset
+end
+case	Op	gamemode	CREATIVE
+ok	gamemode set creative unset
+end
+case	Op	gamemode	1
+ok	gamemode int 1 unset
+end
+case	Op	gamemode	1 Steve
+err	§r§cSyntax error: unexpected value: at "/gamemode 1 >>Steve<<"§r	§r§c%commands.generic.syntax§r	/gamemode 1 	Steve	
+err	§r§c> That player cannot be found§r	§r§c> %commands.generic.player.notFound§r
+end
+case	Op	gamemode	1 @a
+err	§r§cSyntax error: unexpected value: at "/gamemode 1 >>@a<<"§r	§r§c%commands.generic.syntax§r	/gamemode 1 	@a	
+err	§r§cNo targets matched selector§r	§r§c%commands.generic.noTargetMatch§r
+end
+case	Op	gamemode	hardcore
+err	§r§cSyntax error: unexpected value: at "/gamemode >>hardcore<<"§r	§r§c%commands.generic.syntax§r	/gamemode 	hardcore	
+err	§r§c> 'hardcore' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	hardcore
+end
+case	Op	gamemode	
+err	§r§cSyntax error: unexpected value: at "/gamemode>><<"§r	§r§c%commands.generic.syntax§r	/gamemode		
+err	§r§cUsage: /gamemode <mode: GameMode> [player: target]\n/gamemode <mode: int> [player: target]§r	§r§c%commands.generic.usage§r	/gamemode <mode: GameMode> [player: target]\n/gamemode <mode: int> [player: target]
+end
+case	Op	gamemode	creative Steve extra
+err	§r§cSyntax error: unexpected value: at "/gamemode creative >>Steve<< extra"§r	§r§c%commands.generic.syntax§r	/gamemode creative 	Steve	 extra
+err	§r§c> That player cannot be found§r	§r§c> %commands.generic.player.notFound§r
+end
+case	Op	gm	survival
+ok	gamemode set survival unset
+end
+case	Op	tp	1 2 3
+ok	tp pos 3ff0000000000000 4000000000000000 4008000000000000
+end
+case	Op	tp	1.5 -2e3 .25
+ok	tp pos 3ff8000000000000 c09f400000000000 3fd0000000000000
+end
+case	Op	tp	1 2
+err	§r§cSyntax error: unexpected value: at "/tp 1 2>><<"§r	§r§c%commands.generic.syntax§r	/tp 1 2		
+err	§r§cUsage: /tp <destination: x y z>\n/tp <victim: target> <destination: target>§r	§r§c%commands.generic.usage§r	/tp <destination: x y z>\n/tp <victim: target> <destination: target>
+end
+case	Op	tp	1 x 3
+err	§r§cSyntax error: unexpected value: at "/tp 1 >>x<< 3"§r	§r§c%commands.generic.syntax§r	/tp 1 	x	 3
+err	§r§c> 'x' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	x
+end
+case	Op	tp	Steve Alex
+err	§r§cSyntax error: unexpected value: at "/tp >>Steve<< Alex"§r	§r§c%commands.generic.syntax§r	/tp 	Steve	 Alex
+err	§r§c> That player cannot be found§r	§r§c> %commands.generic.player.notFound§r
+end
+case	Op	tp	@s @p
+err	§r§cSyntax error: unexpected value: at "/tp >>@s<< @p"§r	§r§c%commands.generic.syntax§r	/tp 	@s	 @p
+err	§r§cNo targets matched selector§r	§r§c%commands.generic.noTargetMatch§r
+end
+case	Op	tp	inf NaN -Infinity
+ok	tp pos 7ff0000000000000 7ff8000000000001 fff0000000000000
+end
+case	Op	tp	1_0 2 3
+ok	tp pos 4024000000000000 4000000000000000 4008000000000000
+end
+case	Op	tp	0x1p4 2 3
+ok	tp pos 4030000000000000 4000000000000000 4008000000000000
+end
+case	Op	say	hello world
+ok	say [hello world]
+end
+case	Op	say	
+ok	say []
+end
+case	Op	say	"quoted words" and more
+ok	say [quoted words and more]
+end
+case	Op	say	a"b c
+ok	say [a"b c]
+end
+case	Op	say	"a ""b"" c" d
+ok	say [a "b" c d]
+end
+case	Op	say	"unterminated words
+ok	say [unterminated words]
+end
+case	Op	say	 two  spaces 
+ok	say [ two  spaces ]
+end
+case	Op	say	line\nbreak
+ok	say [line]
+end
+case	Op	say	"multi\nline" x
+ok	say [multi\nline x]
+end
+case	Op	say	crlf\r\n
+ok	say [crlf]
+end
+case	Op	xp	10
+ok	xp levels 10 unset
+end
+case	Op	xp	10 @a
+err	§r§cSyntax error: unexpected value: at "/xp 10 >>@a<<"§r	§r§c%commands.generic.syntax§r	/xp 10 	@a	
+err	§r§cNo targets matched selector§r	§r§c%commands.generic.noTargetMatch§r
+end
+case	Op	xp	-5
+ok	xp levels -5 unset
+end
+case	Op	xp	2147483648
+err	§r§cSyntax error: unexpected value: at "/xp >>2147483648<<"§r	§r§c%commands.generic.syntax§r	/xp 	2147483648	
+err	§r§c> '2147483648' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	2147483648
+end
+case	Op	xp	ten
+err	§r§cSyntax error: unexpected value: at "/xp >>ten<<"§r	§r§c%commands.generic.syntax§r	/xp 	ten	
+err	§r§c> 'ten' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	ten
+end
+case	Op	config	set volume 0.5
+ok	config set [volume] 3fe0000000000000
+end
+case	Op	config	SET volume 1e400
+err	§r§cSyntax error: unexpected value: at "/config SET volume >>1e400<<"§r	§r§c%commands.generic.syntax§r	/config SET volume 	1e400	
+err	§r§c> '1e400' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	1e400
+end
+case	Op	config	get volume
+ok	config get [volume]
+end
+case	Op	config	toggle music
+ok	config toggle [music] false false
+end
+case	Op	config	toggle music false
+ok	config toggle [music] false true
+end
+case	Op	config	toggle music maybe
+err	§r§cSyntax error: unexpected value: at "/config toggle music >>maybe<<"§r	§r§c%commands.generic.syntax§r	/config toggle music 	maybe	
+err	§r§c> 'maybe' is not true or false§r	§r§c> %commands.generic.boolean.invalid§r	maybe
+end
+case	Op	config	remove volume
+err	§r§cSyntax error: unexpected value: at "/config >>remove<< volume"§r	§r§c%commands.generic.syntax§r	/config 	remove	 volume
+err	§r§c> 'remove' is not a valid parameter§r	§r§c> %commands.generic.parameter.invalid§r	remove
+end
+case	Op	config	
+err	§r§cSyntax error: unexpected value: at "/config>><<"§r	§r§c%commands.generic.syntax§r	/config		
+err	§r§cUsage: /config set <key: string> <value: float>\n/config get <key: string>\n/config toggle <key: string> [on: bool]§r	§r§c%commands.generic.usage§r	/config set <key: string> <value: float>\n/config get <key: string>\n/config toggle <key: string> [on: bool]
+end
+case	Op	config	get
+err	§r§cSyntax error: unexpected value: at "/config get>><<"§r	§r§c%commands.generic.syntax§r	/config get		
+err	§r§cUsage: /config set <key: string> <value: float>\n/config get <key: string>\n/config toggle <key: string> [on: bool]§r	§r§c%commands.generic.usage§r	/config set <key: string> <value: float>\n/config get <key: string>\n/config toggle <key: string> [on: bool]
+end
+case	Op	give	Steve apple
+err	§r§cSyntax error: unexpected value: at "/give >>Steve<< apple"§r	§r§c%commands.generic.syntax§r	/give 	Steve	 apple
+err	§r§c> That player cannot be found§r	§r§c> %commands.generic.player.notFound§r
+end
+case	Op	give	@a apple
+err	§r§cSyntax error: unexpected value: at "/give >>@a<< apple"§r	§r§c%commands.generic.syntax§r	/give 	@a	 apple
+err	§r§cNo targets matched selector§r	§r§c%commands.generic.noTargetMatch§r
+end
+case	Op	give	Steve DIAMOND 64
+err	§r§cSyntax error: unexpected value: at "/give >>Steve<< DIAMOND 64"§r	§r§c%commands.generic.syntax§r	/give 	Steve	 DIAMOND 64
+err	§r§c> That player cannot be found§r	§r§c> %commands.generic.player.notFound§r
+end
+case	User	give	Steve diamond
+err	§r§cSyntax error: unexpected value: at "/give >>Steve<< diamond"§r	§r§c%commands.generic.syntax§r	/give 	Steve	 diamond
+err	§r§c> That player cannot be found§r	§r§c> %commands.generic.player.notFound§r
+end
+case	Op	give	Steve apple 256
+err	§r§cSyntax error: unexpected value: at "/give >>Steve<< apple 256"§r	§r§c%commands.generic.syntax§r	/give 	Steve	 apple 256
+err	§r§c> That player cannot be found§r	§r§c> %commands.generic.player.notFound§r
+end
+case	Op	give	Steve apple 3 -7
+err	§r§cSyntax error: unexpected value: at "/give >>Steve<< apple 3 -7"§r	§r§c%commands.generic.syntax§r	/give 	Steve	 apple 3 -7
+err	§r§c> That player cannot be found§r	§r§c> %commands.generic.player.notFound§r
+end
+case	Op	give	Steve apple 3 40000
+err	§r§cSyntax error: unexpected value: at "/give >>Steve<< apple 3 40000"§r	§r§c%commands.generic.syntax§r	/give 	Steve	 apple 3 40000
+err	§r§c> That player cannot be found§r	§r§c> %commands.generic.player.notFound§r
+end
+case	Op	num	-128 65535 -9223372036854775808 3.4028235e38 18446744073709551615
+ok	num -128 65535 -9223372036854775808 7f7fffff 18446744073709551615
+end
+case	Op	num	128 0 0 0 0
+err	§r§cSyntax error: unexpected value: at "/num >>128<< 0 0 0 0"§r	§r§c%commands.generic.syntax§r	/num 	128	 0 0 0 0
+err	§r§c> '128' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	128
+end
+case	Op	num	-129 0 0 0 0
+err	§r§cSyntax error: unexpected value: at "/num >>-129<< 0 0 0 0"§r	§r§c%commands.generic.syntax§r	/num 	-129	 0 0 0 0
+err	§r§c> '-129' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	-129
+end
+case	Op	num	0 65536 0 0 0
+err	§r§cSyntax error: unexpected value: at "/num 0 >>65536<< 0 0 0"§r	§r§c%commands.generic.syntax§r	/num 0 	65536	 0 0 0
+err	§r§c> '65536' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	65536
+end
+case	Op	num	0 -1 0 0 0
+err	§r§cSyntax error: unexpected value: at "/num 0 >>-1<< 0 0 0"§r	§r§c%commands.generic.syntax§r	/num 0 	-1	 0 0 0
+err	§r§c> '-1' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	-1
+end
+case	Op	num	0 +1 +5 +1.5 +3
+err	§r§cSyntax error: unexpected value: at "/num 0 >>+1<< +5 +1.5 +3"§r	§r§c%commands.generic.syntax§r	/num 0 	+1	 +5 +1.5 +3
+err	§r§c> '+1' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	+1
+end
+case	Op	num	0 0 9223372036854775808 0 0
+err	§r§cSyntax error: unexpected value: at "/num 0 0 >>9223372036854775808<< 0 0"§r	§r§c%commands.generic.syntax§r	/num 0 0 	9223372036854775808	 0 0
+err	§r§c> '9223372036854775808' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	9223372036854775808
+end
+case	Op	num	0 0 0 3.5e38 0
+err	§r§cSyntax error: unexpected value: at "/num 0 0 0 >>3.5e38<< 0"§r	§r§c%commands.generic.syntax§r	/num 0 0 0 	3.5e38	 0
+err	§r§c> '3.5e38' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	3.5e38
+end
+case	Op	num	0 0 0 1e-50 0
+ok	num 0 0 0 00000000 0
+end
+case	Op	num	0 0 0 0 -1
+err	§r§cSyntax error: unexpected value: at "/num 0 0 0 0 >>-1<<"§r	§r§c%commands.generic.syntax§r	/num 0 0 0 0 	-1	
+err	§r§c> '-1' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	-1
+end
+case	Op	num	0 0 0 0 18446744073709551616
+err	§r§cSyntax error: unexpected value: at "/num 0 0 0 0 >>18446744073709551616<<"§r	§r§c%commands.generic.syntax§r	/num 0 0 0 0 	18446744073709551616	
+err	§r§c> '18446744073709551616' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	18446744073709551616
+end
+case	Op	num	007 0 0 0 0
+ok	num 7 0 0 00000000 0
+end
+case	Op	num	1 2 3 4
+err	§r§cSyntax error: unexpected value: at "/num 1 2 3 4>><<"§r	§r§c%commands.generic.syntax§r	/num 1 2 3 4		
+err	§r§cUsage: /num <i8: int> <u16: uint> <i64: int> <f32: float> <u: uint>§r	§r§c%commands.generic.usage§r	/num <i8: int> <u16: uint> <i64: int> <f32: float> <u: uint>
+end
+case	Op	secret	
+ok	secret
+end
+case	User	secret	
+err	§r§cUnknown command: "secret": Please check that the command exists and that you have permission to use it.§r	§r§c%commands.generic.unknown§r	secret
+end
+case	Op	mark	~5
+ok	mark [~5] [none]
+end
+case	Op	mark	~5 a note here
+ok	mark [~5] [a note here]
+end
+case	Op	mark	12 x
+ok	mark [12] [x]
+end
+case	Op	mark	abc
+err	§r§cSyntax error: unexpected value: at "/mark >>abc<<"§r	§r§c%commands.generic.syntax§r	/mark 	abc	
+err	§r§c> 'abc' is not a valid number§r	§r§c> %commands.generic.num.invalid§r	abc
+end
+case	Op	flag	true
+ok	flag true
+end
+case	Op	flag	T
+ok	flag true
+end
+case	Op	flag	0
+ok	flag false
+end
+case	Op	flag	False
+ok	flag false
+end
+case	Op	flag	yes
+err	§r§cSyntax error: unexpected value: at "/flag >>yes<<"§r	§r§c%commands.generic.syntax§r	/flag 	yes	
+err	§r§c> 'yes' is not true or false§r	§r§c> %commands.generic.boolean.invalid§r	yes
+end
+case	Op	flag	
+err	§r§cSyntax error: unexpected value: at "/flag>><<"§r	§r§c%commands.generic.syntax§r	/flag		
+err	§r§cUsage: /flag <on: bool>§r	§r§c%commands.generic.usage§r	/flag <on: bool>
+end
+case	Op	flag	\n
+err	§r§cUsage: /flag <on: bool>§r	§r§c%commands.generic.usage§r	/flag <on: bool>
+end
+packet	Op	say	false	000000000001037361791542726f616463617374732061206d6573736167652e000003616e79ffffffff00010001076d6573736167654600100000000000
+packet	Op	gamemode	false	0702676d05676d6f64650867616d656d6f646508737572766976616c08637265617469766509616476656e7475726509737065637461746f720000020f67616d656d6f6465416c6961736573030000000001000000020000000847616d654d6f6465040300000004000000050000000600000000010867616d656d6f64651a53657473206120706c6179657227732067616d65206d6f64652e000003616e790000000000020002046d6f646501003000000006706c617965720800100001000002046d6f646501001000000006706c617965720800100001000000
+packet	Op	tp	false	020874656c65706f7274027470000001097470416c696173657302000000000100000000010274701354656c65706f72747320656e7469746965732e000003616e7900000000000200010b64657374696e6174696f6e41001000000000020676696374696d0800100000000b64657374696e6174696f6e0800100000000000
+packet	Op	xp	false	000001014c000001027870104164647320657870657269656e63652e000003616e79ffffffff0002000206616d6f756e7400000001000006706c61796572080010000100000206616d6f756e7401001000000006706c617965720800100001000000
+packet	Op	config	false	05037365740367657406746f67676c6504747275650566616c73650000040d537562436f6d6d616e6473657401000000000d537562436f6d6d616e64676574010100000010537562436f6d6d616e64746f67676c65010200000007426f6f6c65616e020300000004000000000106636f6e666967124368616e67657320612073657474696e672e000003616e79ffffffff0003000303736574000030000000036b65793800100000000576616c7565030010000000000203676574010030000000036b6579380010000000000306746f67676c65020030000000036b6579380010000000026f6e0300300001000000
+packet	Op	give	false	04056170706c65056272656164076469616d6f6e64086372656174697665000001044974656d0400000000010000000200000003000000000104676976650e476976657320616e206974656d2e000003616e79ffffffff0001000406706c61796572080010000000046974656d00003000000006616d6f756e7401001000010004646174610100100001000000
+packet	Op	give	true	00000000000104676976650e476976657320616e206974656d2e000003616e79ffffffff0001000406706c61796572080010000000046974656d00001004000006616d6f756e74010010000100046461746101001000010001044974656d04056170706c65056272656164076469616d6f6e6408637265617469766500
+packet	User	give	false	02056170706c65056272656164000001044974656d020000000001000000000104676976650e476976657320616e206974656d2e000003616e79ffffffff0001000406706c61796572080010000000046974656d00003000000006616d6f756e7401001000010004646174610100100001000000
+packet	Op	num	false	000000000001036e756d0f506172736573206e756d626572732e000003616e79ffffffff0001000502693801001000000003753136010010000000036936340100100000000366333203001000000001750100100000000000
+packet	Op	secret	false	020668696464656e067365637265740000010d736563726574416c69617365730200000000010000000001067365637265740f4f70657261746f7273206f6e6c792e000003616e7900000000000100000000
+packet	User	secret	false	0000000000000000
+packet	Op	mark	false	000000000001046d61726b134d61726b73206120636f6f7264696e6174652e000003616e79ffffffff0001000203706f73040010000000046e6f74654600100001000000
+packet	Op	flag	false	0204747275650566616c736500000107426f6f6c65616e020000000001000000000104666c61670e506172736573206120626f6f6c2e000003616e79ffffffff00010001026f6e0000300000000000
+packet	Op	flag,gamemode,give	true	0904747275650566616c736502676d05676d6f64650867616d656d6f646508737572766976616c08637265617469766509616476656e7475726509737065637461746f7200000307426f6f6c65616e0200000000010000000f67616d656d6f6465416c6961736573030200000003000000040000000847616d654d6f64650405000000060000000700000008000000000304666c61670e506172736573206120626f6f6c2e000003616e79ffffffff00010001026f6e0000300000000867616d656d6f64651a53657473206120706c6179657227732067616d65206d6f64652e000003616e790100000000020002046d6f646502003000000006706c617965720800100001000002046d6f646501001000000006706c6179657208001000010004676976650e476976657320616e206974656d2e000003616e79ffffffff0001000406706c61796572080010000000046974656d00001004000006616d6f756e74010010000100046461746101001000010001044974656d04056170706c65056272656164076469616d6f6e6408637265617469766500
+packet	Op	config,xp,tp	false	07037365740367657406746f67676c6504747275650566616c73650874656c65706f72740274700001014c050d537562436f6d6d616e6473657401000000000d537562436f6d6d616e64676574010100000010537562436f6d6d616e64746f67676c65010200000007426f6f6c65616e020300000004000000097470416c6961736573020500000006000000000306636f6e666967124368616e67657320612073657474696e672e000003616e79ffffffff0003000303736574000030000000036b65793800100000000576616c7565030010000000000203676574010030000000036b6579380010000000000306746f67676c65020030000000036b6579380010000000026f6e0300300001000274701354656c65706f72747320656e7469746965732e000003616e7904000000000200010b64657374696e6174696f6e41001000000000020676696374696d0800100000000b64657374696e6174696f6e080010000000027870104164647320657870657269656e63652e000003616e79ffffffff0002000206616d6f756e7400000001000006706c61796572080010000100000206616d6f756e7401001000000006706c617965720800100001000000
+packet	User	flag,secret,say	false	0204747275650566616c736500000107426f6f6c65616e020000000001000000000204666c61670e506172736573206120626f6f6c2e000003616e79ffffffff00010001026f6e000030000000037361791542726f616463617374732061206d6573736167652e000003616e79ffffffff00010001076d6573736167654600100000000000
