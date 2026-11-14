@@ -7,6 +7,10 @@ hold.
         crack animation with CRACK_DATA (Go's 65535 / break ticks), remove
         the block when the client predicts the break, drop it as an item,
         let the bot pick it up, and place it back with UseItem.
+    interact_bot.mojo creative-item ADDRESS X Y Z
+        in creative, takes the first block of the creative inventory into
+        the hotbar with ItemStackRequest (CraftCreative and Take), and
+        places it on the block at X Y Z: the stack is not used up.
     interact_bot.mojo adventure ADDRESS X Y Z
         switches to adventure with /gamemode and tries to break the block:
         the server refuses and sends the block back.
@@ -27,6 +31,26 @@ from minecraft.protocol.item import ItemInstance
 from minecraft.protocol.math import Vec3
 from minecraft.protocol.packet.add_item_actor import AddItemActor
 from minecraft.protocol.packet.command_request import CommandRequest
+from minecraft.protocol.packet.creative_content import CreativeContent
+from minecraft.protocol.packet.item_stack_request import ItemStackRequest
+from minecraft.protocol.packet.item_stack_response import ItemStackResponse
+from minecraft.protocol.container import (
+    CONTAINER_CREATED_OUTPUT,
+    CONTAINER_HOT_BAR,
+    FullContainerName,
+)
+from minecraft.protocol.item_stack import (
+    ITEM_STACK_RESPONSE_STATUS_OK,
+    CraftCreativeStackRequestAction,
+    ItemStackRequest as StackRequest,
+    StackRequestAction,
+    StackRequestSlotInfo,
+    TakeStackRequestAction,
+)
+from minecraft.protocol.packet.id import (
+    ID_CREATIVE_CONTENT,
+    ID_ITEM_STACK_RESPONSE,
+)
 from minecraft.protocol.packet.id import (
     ID_ADD_ITEM_ACTOR,
     ID_INVENTORY_CONTENT,
@@ -85,6 +109,9 @@ struct Bot(Movable):
     var taken: Bool
     var held_item: ItemInstance
     var creative: Bool
+    var creative_items: List[Tuple[UInt32, Int32]]
+    var response: Optional[UInt8]
+    var hotbar_count: Int
 
     def __init__(out self, address: String, name: String) raises:
         var d = Dialer()
@@ -99,6 +126,9 @@ struct Bot(Movable):
         self.taken = False
         self.held_item = ItemInstance()
         self.creative = False
+        self.creative_items = List[Tuple[UInt32, Int32]]()
+        self.response = None
+        self.hotbar_count = -1
         print("JOINED", name, self.eye)
 
     def reset(mut self):
@@ -136,6 +166,21 @@ struct Bot(Movable):
             var s = pk.decode[InventorySlot](sid, False)
             if s.window_id == 0 and s.slot == 0:
                 self.held_item = s.new_item.copy()
+        elif id == ID_CREATIVE_CONTENT:
+            var c = pk.decode[CreativeContent](sid, False)
+            for ref it in c.items:
+                self.creative_items.append(
+                    (it.creative_item_network_id, it.item.block_runtime_id)
+                )
+        elif id == ID_ITEM_STACK_RESPONSE:
+            var r = pk.decode[ItemStackResponse](sid, False)
+            for ref resp in r.responses:
+                self.response = resp.status
+                for ref c in resp.container_info:
+                    if c.container.container_id == CONTAINER_HOT_BAR:
+                        for ref slot in c.slot_info:
+                            if slot.slot == 0:
+                                self.hotbar_count = Int(slot.count)
         elif id == ID_SET_PLAYER_GAME_TYPE:
             var g = pk.decode[SetPlayerGameType](sid, False)
             self.creative = g.game_type == GAME_TYPE_CREATIVE
@@ -278,6 +323,74 @@ def creative(address: String, target: BlockPos) raises:
     print("DONE")
 
 
+def slot(container: UInt8, s: Int, id: Int32) -> StackRequestSlotInfo:
+    var info = StackRequestSlotInfo()
+    info.container = FullContainerName()
+    info.container.container_id = container
+    info.slot = UInt8(s)
+    info.stack_network_id = id
+    return info^
+
+
+def creative_item(address: String, target: BlockPos) raises:
+    var bot = Bot(address, "Creator")
+    bot.pump(1500, target)
+    var req = CommandRequest()
+    req.command_line = "/gamemode creative"
+    bot.conn.write_packet(req)
+    bot.pump(1000, target)
+    check(bot.creative, "/gamemode creative")
+    print("CREATIVE ITEMS", len(bot.creative_items))
+    var id = UInt32(0)
+    for e in bot.creative_items:
+        if e[1] > 0:
+            id = e[0]
+            break
+    check(id > 0, "CreativeContent lists a block")
+    # The vanilla client's creative pick: craft, then take the created stack
+    # (referred to by this request's ID) into the hotbar.
+    var r = StackRequest()
+    r.request_id = -7
+    var craft = CraftCreativeStackRequestAction()
+    craft.creative_item_network_id = id
+    craft.number_of_crafts = 1
+    r.actions.append(StackRequestAction(craft^))
+    var take = TakeStackRequestAction()
+    take.count = 1
+    take.source = slot(CONTAINER_CREATED_OUTPUT, 50, -7)
+    take.destination = slot(CONTAINER_HOT_BAR, 0, 0)
+    r.actions.append(StackRequestAction(take^))
+    var pk = ItemStackRequest()
+    pk.requests.append(r^)
+    bot.conn.write_packet(pk)
+    bot.pump(1000, target)
+    check(
+        Bool(bot.response)
+        and bot.response.value() == ITEM_STACK_RESPONSE_STATUS_OK,
+        "the creative request is accepted",
+    )
+    check(bot.hotbar_count == 1, "one creative item lands in the hotbar")
+    bot.updated = False
+    var top = BlockPos()
+    top.x = target.x
+    top.y = target.y + 1
+    top.z = target.z
+    var use = UseItemTransactionData()
+    use.action_type = USE_ITEM_ACTION_CLICK_BLOCK
+    use.block_position = target.copy()
+    use.block_face = FACE_UP
+    use.hot_bar_slot = 0
+    use.held_item = bot.held_item.copy()
+    use.position = bot.eye
+    var tr = InventoryTransaction()
+    tr.transaction_data = InventoryTransactionData(use^)
+    bot.conn.write_packet(tr)
+    bot.idle(800, top)
+    check(bot.updated, "the creative block is placed")
+    bot.conn.close()
+    print("DONE")
+
+
 def adventure(address: String, target: BlockPos) raises:
     var bot = Bot(address, "Visitor")
     bot.pump(1500, target)
@@ -310,6 +423,8 @@ def main() raises:
         survival(address, target, Int32(Int(args[6])))
     elif mode == "creative":
         creative(address, target)
+    elif mode == "creative-item":
+        creative_item(address, target)
     elif mode == "adventure":
         adventure(address, target)
     else:

@@ -237,5 +237,29 @@ def test_creative_craft_then_take() raises:
     assert_equal(invs.inv.item(4).count(), 64)
 
 
+def test_creative_craft_and_take_in_one_request() raises:
+    # What the vanilla client sends when it picks a creative item: the take
+    # refers to the created output by the request's own ID.
+    var invs = Inventories()
+    var h = ItemStackRequestHandler()
+    var req = ItemStackRequest()
+    req.request_id = -7
+    var c = CraftCreativeStackRequestAction()
+    c.creative_item_network_id = 1
+    c.number_of_crafts = 1
+    req.actions.append(StackRequestAction(c^))
+    req.actions.append(
+        take(
+            1,
+            slot(CONTAINER_CREATED_OUTPUT, CRAFTING_RESULT, -7),
+            slot(CONTAINER_HOT_BAR, 0, 0),
+        )
+    )
+    var pk = ItemStackRequestPacket()
+    pk.requests.append(req^)
+    assert_equal(run(h, pk, invs, True)[0], ITEM_STACK_RESPONSE_STATUS_OK)
+    assert_equal(invs.inv.item(0).count(), 1)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

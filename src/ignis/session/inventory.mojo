@@ -120,7 +120,9 @@ struct Inventories(Copyable):
     def get(
         ref self, kind: Int
     ) -> ref[
-        self.inv, self.off_hand, self.armour.inv, self.ui, self.ender_chest
+        origin_of(
+            self.inv, self.off_hand, self.armour.inv, self.ui, self.ender_chest
+        )
     ] Inventory:
         """Returns the inventory of a kind (`INV_*`)."""
         if kind == INV_OFF_HAND:
