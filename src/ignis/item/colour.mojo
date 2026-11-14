@@ -1,8 +1,9 @@
 """Colours, ported from Dragonfly `server/item/colour.go`.
 
-`RGBA` and `SignRGBA` follow with their users.
+`SignRGBA` follows with its users.
 """
 
+from ..internal.color import RGBA
 from ..internal.enum import enum_name
 
 
@@ -87,6 +88,21 @@ struct Colour(Equatable, ImplicitlyCopyable, Writable):
             )
         )
 
+    def rgba(self) -> RGBA:
+        """Returns the colour as RGBA (Go `RGBA`)."""
+        comptime table = (
+            "f0f0f0f9801dc74ebd3ab3dafed83d80c71ff38baa474f529d9d97169c9c"
+            "8932b83c44aa8354325e7c16b02e261d1d21"
+        )
+        var b = table.as_bytes()
+        var i = Int(self._c) * 6
+        return RGBA(
+            _hex_byte(b[i], b[i + 1]),
+            _hex_byte(b[i + 2], b[i + 3]),
+            _hex_byte(b[i + 4], b[i + 5]),
+            0xFF,
+        )
+
     def silver_string(self) -> String:
         """Returns the name, with `silver` for light grey (Go
         `SilverString`).
@@ -109,3 +125,24 @@ def colours() -> List[Colour]:
     for i in range(16):
         out.append(Colour(i))
     return out^
+
+
+def _hex_byte(hi: UInt8, lo: UInt8) -> UInt8:
+    return _nibble(hi) << 4 | _nibble(lo)
+
+
+def _nibble(c: UInt8) -> UInt8:
+    if c >= UInt8(ord("a")):
+        return c - UInt8(ord("a")) + 10
+    return c - UInt8(ord("0"))
+
+
+def invert_colour(c: Colour) -> Int16:
+    """Returns the colour's ID inverted, as items and NBT store it (Go
+    `invertColour`)."""
+    return ~Int16(c.uint8()) & 0xF
+
+
+def invert_colour_id(id: Int16) -> Colour:
+    """Returns the colour of an inverted ID (Go `invertColourID`)."""
+    return Colour(Int(~id & 0xF))

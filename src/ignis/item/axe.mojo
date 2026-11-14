@@ -60,8 +60,7 @@ struct Axe(
         return self.tier.harvest_level
 
     def base_mining_efficiency(self, block_kind: UInt64) -> Float64:
-        """Returns the mining efficiency (Go `BaseMiningEfficiency`): the tier's.
-        """
+        """Returns the tier's mining efficiency (Go `BaseMiningEfficiency`)."""
         return self.tier.base_mining_efficiency
 
     def max_count(self) -> Int:

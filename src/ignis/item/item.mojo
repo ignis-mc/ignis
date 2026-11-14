@@ -21,6 +21,7 @@ each item.
 """
 
 from ..entity.effect import Effect
+from ..internal.color import RGBA
 from ..world.item import Item, ItemInfo
 from .durability import Durable, DurabilityInfo, Repairable
 from .stack import Stack
@@ -188,6 +189,22 @@ trait Compostable:
     def compost_chance(self) -> Float64:
         """Returns the chance that the item adds a layer of compost."""
         ...
+
+
+def int32_from_rgba(x: RGBA) -> Int32:
+    """Packs a colour as ARGB into an int32 (Go `int32FromRGBA`); black is
+    opaque black, since a zero value would be transparent."""
+    if x.r == 0 and x.g == 0 and x.b == 0:
+        return -0x1000000
+    return Int32(
+        UInt32(x.a) << 24 | UInt32(x.r) << 16 | UInt32(x.g) << 8 | UInt32(x.b)
+    )
+
+
+def rgba_from_int32(x: Int32) -> RGBA:
+    """Unpacks an ARGB int32 into a colour (Go `rgbaFromInt32`)."""
+    var u = UInt32(x)
+    return RGBA(UInt8(u >> 16), UInt8(u >> 8), UInt8(u), UInt8(u >> 24))
 
 
 def item_info[T: Item](it: T) -> ItemInfo:

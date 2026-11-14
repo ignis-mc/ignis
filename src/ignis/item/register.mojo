@@ -32,6 +32,7 @@ from .bow import Bow
 from .bowl import Bowl
 from .bread import Bread
 from .brick import Brick
+from .bucket import Bucket
 from .carrot_on_a_stick import CarrotOnAStick
 from .charcoal import Charcoal
 from .clay_ball import ClayBall
@@ -59,12 +60,14 @@ from .feather import Feather
 from .fermented_spider_eye import FermentedSpiderEye
 from .fire_charge import FireCharge
 from .firework import Firework
+from .firework_star import FireworkStar
 from .flint import Flint
 from .flint_and_steel import FlintAndSteel
 from .ghast_tear import GhastTear
 from .glass_bottle import GlassBottle
 from .glistering_melon_slice import GlisteringMelonSlice
 from .glowstone_dust import GlowstoneDust
+from .goat_horn import GoatHorn
 from .gold_ingot import GoldIngot
 from .gold_nugget import GoldNugget
 from .golden_apple import GoldenApple
@@ -74,6 +77,7 @@ from .heart_of_the_sea import HeartOfTheSea
 from .hoe import Hoe
 from .honey_bottle import HoneyBottle
 from .honeycomb import Honeycomb
+from .ink_sac import InkSac
 from .iron_ingot import IronIngot
 from .iron_nugget import IronNugget
 from .lapis_lazuli import LapisLazuli
@@ -82,6 +86,7 @@ from .lingering_potion import LingeringPotion
 from .magma_cream import MagmaCream
 from .melon_slice import MelonSlice
 from .mushroom_stew import MushroomStew
+from .music_disc import MusicDisc
 from .nautilus_shell import NautilusShell
 from .nether_brick import NetherBrick
 from .nether_quartz import NetherQuartz
@@ -147,6 +152,7 @@ comptime VanillaItems = ItemSet[
     Bowl,
     Bread,
     Brick,
+    Bucket,
     CarrotOnAStick,
     Charcoal,
     ClayBall,
@@ -174,12 +180,14 @@ comptime VanillaItems = ItemSet[
     FermentedSpiderEye,
     FireCharge,
     Firework,
+    FireworkStar,
     Flint,
     FlintAndSteel,
     GhastTear,
     GlassBottle,
     GlisteringMelonSlice,
     GlowstoneDust,
+    GoatHorn,
     GoldIngot,
     GoldNugget,
     GoldenApple,
@@ -189,6 +197,7 @@ comptime VanillaItems = ItemSet[
     Hoe,
     HoneyBottle,
     Honeycomb,
+    InkSac,
     IronIngot,
     IronNugget,
     LapisLazuli,
@@ -197,6 +206,7 @@ comptime VanillaItems = ItemSet[
     MagmaCream,
     MelonSlice,
     MushroomStew,
+    MusicDisc,
     NautilusShell,
     NetherBrick,
     NetherQuartz,

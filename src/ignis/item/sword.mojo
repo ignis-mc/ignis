@@ -59,7 +59,8 @@ struct Sword(
         return self.tier.harvest_level
 
     def base_mining_efficiency(self, block_kind: UInt64) -> Float64:
-        """Returns the mining efficiency (Go `BaseMiningEfficiency`): 15 for cobwebs, 1.5 otherwise.
+        """Returns the mining efficiency (Go `BaseMiningEfficiency`): 15 for
+        cobwebs, 1.5 otherwise.
         """
         if block_kind == HASH_COBWEB:
             return 15
