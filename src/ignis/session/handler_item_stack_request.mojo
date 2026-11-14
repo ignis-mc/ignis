@@ -32,6 +32,9 @@ from minecraft.protocol.container import (
     CONTAINER_GRINDSTONE_ADDITIONAL,
     CONTAINER_GRINDSTONE_INPUT,
     CONTAINER_INVENTORY,
+    CONTAINER_LOOM_DYE,
+    CONTAINER_LOOM_INPUT,
+    CONTAINER_LOOM_MATERIAL,
     CONTAINER_SMITHING_TABLE_INPUT,
     CONTAINER_SMITHING_TABLE_MATERIAL,
     CONTAINER_SMITHING_TABLE_TEMPLATE,
@@ -45,6 +48,7 @@ from minecraft.protocol.item_stack import (
     ConsumeStackRequestAction,
     CraftCreativeStackRequestAction,
     CraftGrindstoneRecipeStackRequestAction,
+    CraftLoomRecipeStackRequestAction,
     CraftRecipeStackRequestAction,
     CraftResultsDeprecatedStackRequestAction,
     CreateStackRequestAction,
@@ -76,10 +80,21 @@ from ..block.decorated_pot import DecoratedPot
 from ..block.hash import (
     HASH_CRAFTING_TABLE,
     HASH_GRINDSTONE,
+    HASH_LOOM,
     HASH_SMITHING_TABLE,
     HASH_STONECUTTER,
 )
+from ..block.banner import Banner
+from ..block.banner_pattern_layer import BannerPatternLayer
+from ..block.banner_pattern_type import (
+    BannerPatternType as BlockPatternType,
+    banner_pattern_by_id,
+)
+from ..item.banner_pattern import BannerPattern
+from ..item.banner_pattern_type import BannerPatternType
 from ..item.boots import Boots
+from ..item.dye import Dye
+from ..world.block_set import encode_block_nbt
 from ..item.enchantment.register import VanillaEnchantments
 from ..item.stack import Enchantment
 from ..item.chestplate import Chestplate
@@ -123,6 +138,12 @@ comptime SMITHING_MATERIAL_SLOT = 0x34
 """Go `smithingMaterialSlot`."""
 comptime SMITHING_TEMPLATE_SLOT = 0x35
 """Go `smithingTemplateSlot`."""
+comptime LOOM_INPUT_SLOT = 0x09
+"""Go `loomInputSlot`."""
+comptime LOOM_DYE_SLOT = 0x0A
+"""Go `loomDyeSlot`."""
+comptime LOOM_PATTERN_SLOT = 0x0B
+"""Go `loomPatternSlot`."""
 comptime GRINDSTONE_FIRST_INPUT_SLOT = 0x10
 """Go `grindstoneFirstInputSlot`."""
 comptime GRINDSTONE_SECOND_INPUT_SLOT = 0x11
@@ -273,6 +294,9 @@ struct ItemStackRequestHandler(Defaultable, Movable):
                     self._craft(
                         a.recipe_network_id, Int(a.number_of_crafts), invs
                     )
+            elif v.isa[CraftLoomRecipeStackRequestAction]():
+                ref a = v[CraftLoomRecipeStackRequestAction]
+                self._loom(a.pattern, Int(a.times_crafted), invs)
             elif v.isa[CraftGrindstoneRecipeStackRequestAction]():
                 self._grindstone(invs)
             elif v.isa[AutoCraftRecipeStackRequestAction]():
@@ -594,6 +618,64 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         _ = nbt.put_string(c, "Material", String(mname.value()))
         _ = nbt.put_string(c, "Pattern", t.value().template.name())
         self._create_results([result.with_item_nbt(nbt^)], invs)
+
+    def _loom(
+        mut self, pattern_id: String, times: Int, mut invs: Inventories
+    ) raises:
+        """Go `handleLoomCraft`: adds a pattern layer in the dye's colour to
+        a banner."""
+        if self._window.block != HASH_LOOM:
+            raise Error("no loom container opened")
+        if times < 1:
+            raise Error("times crafted must be least 1")
+        var at_input = _slot(CONTAINER_LOOM_INPUT, LOOM_INPUT_SLOT)
+        var input = self._item(at_input, invs)
+        if input.count() < times:
+            raise Error("input item count is less than times crafted")
+        var it = input.item().value()
+        if not it.block or it.kind != Banner.BASE_HASH:
+            raise Error("input item is not a banner")
+        var b = Banner.from_item_hash(it.hash)
+        var own = input.item_nbt()
+        if not own.is_empty():
+            b = b.decode_nbt(own, own.root())
+        if b.illager:
+            raise Error("input item is an illager banner")
+        var at_dye = _slot(CONTAINER_LOOM_DYE, LOOM_DYE_SLOT)
+        var dye = self._item(at_dye, invs)
+        if dye.count() < times:
+            raise Error("dye item count is less than times crafted")
+        var d = dye.item_as[Dye]()
+        if not d:
+            raise Error("dye item is not a dye")
+        var expected = banner_pattern_by_id(pattern_id)
+        if not expected:
+            raise Error(t"unknown banner pattern id {pattern_id}")
+        var pattern = self._item(
+            _slot(CONTAINER_LOOM_MATERIAL, LOOM_PATTERN_SLOT), invs
+        )
+        if case .Some(need) = _pattern_item(expected.value()):
+            if pattern.empty():
+                raise Error("pattern item is empty but the pattern is required")
+            var p = pattern.item_as[BannerPattern]()
+            if not p:
+                raise Error("pattern item is not a banner pattern")
+            if p.value().type != need:
+                raise Error("pattern item does not match the expected pattern")
+        var layer = BannerPatternLayer()
+        layer.type = expected.value()
+        layer.colour = d.value().colour
+        b.patterns.append(layer)
+        self._set(at_input, input.grow(-times), invs)
+        self._set(at_dye, dye.grow(-times), invs)
+        self._create_results(
+            [
+                input.grow(times - input.count()).with_item_nbt(
+                    encode_block_nbt(b)
+                )
+            ],
+            invs,
+        )
 
     def _grindstone(mut self, mut invs: Inventories) raises:
         """Go `handleGrindstoneCraft`: removes the enchantments that are not
@@ -982,3 +1064,30 @@ def grindstone_experience(cost: Int, roll: Int) -> Int:
     if cost == 0:
         return 0
     return (cost + 1) // 2 + roll
+
+
+def _pattern_item(p: BlockPatternType) -> Optional[BannerPatternType]:
+    """Returns the banner pattern item a pattern needs in the loom (Go
+    `bannerPatternType.Item`)."""
+    var v = Int(p.uint8())
+    if v == 1:
+        return BannerPatternType.FIELD_MASONED
+    if v == 3:
+        return BannerPatternType.CREEPER
+    if v == 5:
+        return BannerPatternType.BORDURE_INDENTED
+    if v == 10:
+        return BannerPatternType.FLOWER
+    if v == 17:
+        return BannerPatternType.MOJANG
+    if v == 19:
+        return BannerPatternType.SKULL
+    if v == 38:
+        return BannerPatternType.GLOBE
+    if v == 39:
+        return BannerPatternType.PIGLIN
+    if v == 40:
+        return BannerPatternType.FLOW
+    if v == 41:
+        return BannerPatternType.GUSTER
+    return None

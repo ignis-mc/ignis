@@ -1,7 +1,9 @@
 from ignis.block.crafting_table import CraftingTable
+from ignis.block.banner import Banner
 from ignis.block.hash import (
     HASH_CRAFTING_TABLE,
     HASH_GRINDSTONE,
+    HASH_LOOM,
     HASH_SMITHING_TABLE,
     HASH_STONECUTTER,
 )
@@ -9,7 +11,11 @@ from ignis.block.stone import Stone
 from ignis.item.smithing_template import SmithingTemplate
 from ignis.block.log import Log
 from ignis.block.planks import Planks
+from ignis.item.banner_pattern import BannerPattern
+from ignis.item.banner_pattern_type import BannerPatternType
+from ignis.item.colour import Colour
 from ignis.item.diamond import Diamond
+from ignis.item.dye import Dye
 from ignis.item.enchantment import CURSE_OF_VANISHING_ID, EFFICIENCY_ID
 from ignis.item.shears import Shears
 from ignis.item.stack import Enchantment
@@ -48,6 +54,7 @@ from minecraft.protocol.item_stack import (
     AutoCraftRecipeStackRequestAction,
     CraftCreativeStackRequestAction,
     CraftGrindstoneRecipeStackRequestAction,
+    CraftLoomRecipeStackRequestAction,
     CraftRecipeStackRequestAction,
     DestroyStackRequestAction,
     DropStackRequestAction,
@@ -494,6 +501,56 @@ def test_grindstone_needs_the_same_type() raises:
     assert_equal(
         run(h, packet(1, grind()), invs)[0], ITEM_STACK_RESPONSE_STATUS_ERROR
     )
+
+
+def loom(pattern: String) -> StackRequestAction:
+    var a = CraftLoomRecipeStackRequestAction()
+    a.pattern = pattern
+    a.times_crafted = 1
+    return StackRequestAction(a^)
+
+
+def _loom_inputs() raises -> Inventories:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_LOOM)
+    invs.ui.set_item(0x09, Stack(Banner(), 1))
+    var d = Dye()
+    d.colour = Colour(14)
+    invs.ui.set_item(0x0A, Stack(d, 2))
+    return invs^
+
+
+def test_loom_adds_a_pattern() raises:
+    var invs = _loom_inputs()
+    var h = ItemStackRequestHandler()
+    assert_equal(
+        run(h, packet(1, loom("bo")), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    var out = invs.ui.item(CRAFTING_RESULT)
+    assert_true(out.item_as[Banner]())
+    var nbt = out.item_nbt()
+    var l = nbt.get_list(nbt.root(), "Patterns")
+    assert_equal(nbt.length(l), 1)
+    assert_equal(nbt.get_string(nbt.at(l, 0), "Pattern"), "bo")
+    assert_true(invs.ui.item(0x09).empty())
+    assert_equal(invs.ui.item(0x0A).count(), 1)
+
+
+def test_loom_needs_the_pattern_item() raises:
+    var invs = _loom_inputs()
+    var h = ItemStackRequestHandler()
+    assert_equal(
+        run(h, packet(1, loom("cre")), invs)[0],
+        ITEM_STACK_RESPONSE_STATUS_ERROR,
+    )
+    invs.ui.set_item(
+        0x0B, Stack(BannerPattern(type=BannerPatternType.CREEPER), 1)
+    )
+    assert_equal(
+        run(h, packet(2, loom("cre")), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    # The pattern item is not used up (Go keeps it).
+    assert_equal(invs.ui.item(0x0B).count(), 1)
 
 
 def main() raises:
