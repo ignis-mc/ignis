@@ -199,3 +199,29 @@ func craftingVectors(out string) {
 	}
 	must(os.WriteFile(filepath.Join(out, "crafting_data.bin"), buf.Bytes(), 0o644))
 }
+
+// trimVectors writes trim_data.bin, the TrimData packet of
+// Session.sendArmourTrimData (server/session/player.go).
+func trimVectors(out string) {
+	var pk packet.TrimData
+	for _, t := range item.SmithingTemplates() {
+		if t == item.TemplateNetheriteUpgrade() {
+			continue
+		}
+		name, _ := item.SmithingTemplate{Template: t}.EncodeItem()
+		pk.Patterns = append(pk.Patterns, protocol.TrimPattern{ItemName: name, PatternID: t.String()})
+	}
+	for _, i := range item.ArmourTrimMaterials() {
+		if material, ok := i.(item.ArmourTrimMaterial); ok {
+			name, _ := i.EncodeItem()
+			pk.Materials = append(pk.Materials, protocol.TrimMaterial{
+				MaterialID: material.TrimMaterial(),
+				Colour:     material.MaterialColour(),
+				ItemName:   name,
+			})
+		}
+	}
+	buf := new(bytes.Buffer)
+	pk.Marshal(protocol.NewWriter(buf, 0))
+	must(os.WriteFile(filepath.Join(out, "trim_data.bin"), buf.Bytes(), 0o644))
+}

@@ -18,6 +18,7 @@ from ..world.item import (
     ItemRegistry,
     from_any_hash,
 )
+from .armour_trim import ArmourTrimMaterial
 from .armour import (
     Armour,
     BootsType,
@@ -309,6 +310,28 @@ struct ItemSet[*Ts: Item]:
         return None
 
     @staticmethod
+    def trim_material(kind: UInt64, hash: UInt64) -> Optional[StaticString]:
+        """Returns `ArmourTrimMaterial.trim_material` (Go
+        `it.(ArmourTrimMaterial)`)."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, ArmourTrimMaterial):
+                if kind == T.BASE_HASH:
+                    return _trim_material(from_any_hash[T](hash))
+        return None
+
+    @staticmethod
+    def material_colour(kind: UInt64, hash: UInt64) -> Optional[StaticString]:
+        """Returns `ArmourTrimMaterial.material_colour` (Go
+        `it.(ArmourTrimMaterial)`)."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, ArmourTrimMaterial):
+                if kind == T.BASE_HASH:
+                    return _material_colour(from_any_hash[T](hash))
+        return None
+
+    @staticmethod
     def state_hash(kind: UInt64, hash: UInt64) -> Optional[UInt64]:
         """Returns the block state hash of a block item from its
         `AnyItem.hash`; None if no block type in the set has that kind."""
@@ -416,3 +439,11 @@ def _item_nbt[T: NBTer](it: T, data: Tree) raises -> Tree:
     var out = Tree()
     v.encode_nbt(out, out.root())
     return out^
+
+
+def _trim_material[T: ArmourTrimMaterial](it: T) -> StaticString:
+    return it.trim_material()
+
+
+def _material_colour[T: ArmourTrimMaterial](it: T) -> StaticString:
+    return it.material_colour()

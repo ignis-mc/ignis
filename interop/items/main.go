@@ -278,5 +278,6 @@ func main() {
 	recipe_registerVanilla()
 	creativeVectors(*out)
 	craftingVectors(*out)
+	trimVectors(*out)
 	v.write(filepath.Join(*out, "vectors.txt"))
 }

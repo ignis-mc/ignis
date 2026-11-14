@@ -195,6 +195,15 @@ struct Config(Copyable, Defaultable):
     var biome_definitions: List[UInt8]
     """The encoded `BiomeDefinitionList` packet sent first (Go
     `sendBiomes`), from `load_biome_definitions`; empty sends none."""
+    var creative_content: List[UInt8]
+    """The encoded `CreativeContent` packet sent next (Go
+    `creativeContent`); empty sends none."""
+    var crafting_data: List[UInt8]
+    """The encoded `CraftingData` packet (Go `sendRecipes`); empty sends
+    none."""
+    var trim_data: List[UInt8]
+    """The encoded `TrimData` packet (Go `sendArmourTrimData`); empty sends
+    none."""
 
     def __init__(out self):
         """Creates the settings Dragonfly's server uses by default."""
@@ -203,6 +212,9 @@ struct Config(Copyable, Defaultable):
         self.join_message = True
         self.quit_message = True
         self.biome_definitions = List[UInt8]()
+        self.creative_content = List[UInt8]()
+        self.crafting_data = List[UInt8]()
+        self.trim_data = List[UInt8]()
 
 
 comptime BIOME_DEFINITIONS_PATH = "resources/biome_definitions.bin"
@@ -434,11 +446,11 @@ struct Session[C: Conn](Movable):
         self._entity_runtime_ids[
             uuid_key(self.player.uuid())
         ] = SELF_ENTITY_RUNTIME_ID
-        if len(conf.biome_definitions) > 0:
-            try:
-                self.conn.write(conf.biome_definitions.copy())
-            except e:
-                self._write_error = String(e)
+        # Go: sendBiomes, CreativeContent, sendRecipes, sendArmourTrimData.
+        self._write_encoded(conf.biome_definitions)
+        self._write_encoded(conf.creative_content)
+        self._write_encoded(conf.crafting_data)
+        self._write_encoded(conf.trim_data)
         if clamped:
             var pk = ChunkRadiusUpdated()
             pk.chunk_radius = self.chunk_radius
@@ -448,6 +460,15 @@ struct Session[C: Conn](Movable):
     # ===------------------------------------------------------------------=== #
     # Writing
     # ===------------------------------------------------------------------=== #
+
+    def _write_encoded(mut self, data: List[UInt8]):
+        """Writes an encoded packet unless it is empty."""
+        if len(data) == 0:
+            return
+        try:
+            self.conn.write(data.copy())
+        except e:
+            self._write_error = String(e)
 
     def write_packet[P: Packet](mut self, mut pk: P):
         """Queues a packet (Go `writePacket`). A failed write is kept for
