@@ -1,6 +1,6 @@
 """Snowball, ported from Dragonfly `server/item/snowball.go`.
 
-TODO(player): `Use`.
+`Use` is `server.use.use_item` with `entity.throw`.
 """
 
 from ..world.item import EncodedItem, Item, item_hash

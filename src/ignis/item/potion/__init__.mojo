@@ -4,7 +4,7 @@
 Mojo cannot have a module and a package with the same name, so Go's
 `item/potion.go` lives in this package's `__init__`.
 
-TODO(player): applying `consume_info` to the consumer (Go `Consume`).
+`server.use.consume` applies `consume_info` (Go `Consume`).
 """
 
 from ...world.item import EncodedItem, Item, item_hash

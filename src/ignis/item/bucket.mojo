@@ -5,8 +5,9 @@ Go's `BucketContent` holds a `world.Liquid` value; here the liquid is an
 `AnyBlock` (water or lava, any state). `Liquid()` returns it; its
 `LiquidType` is read from the block type.
 
+Drinking milk (`CanConsume`, `consume_info`) is in `server.use`.
 TODO(player): `UseOnBlock`, `fillFrom` (filling and emptying need the world
-and liquids), `CanConsume`, and applying `consume_info` (Go `Consume`).
+and liquids).
 """
 
 from ..block.hash import (

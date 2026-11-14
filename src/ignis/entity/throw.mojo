@@ -2,10 +2,9 @@
 throwable items (`server/item/snowball.go`, `egg.go`, `ender_pearl.go`,
 `splash_potion.go`, `lingering_potion.go`, `bottle_of_enchanting.go`).
 
-TODO(player): Go's player calls these through `item.Usable` when a player
-uses an item in the air, then takes one item from the stack; sessions do not
-handle using items in the air yet. The helpers take what Go reads from the
-user: its position, eye height, rotation and UUID.
+`server.use.use_item` calls these when a player uses the item in the air,
+then takes one item from the stack (Go `item.Usable`). The helpers take what
+Go reads from the user: its position, eye height, rotation and UUID.
 """
 
 from std.math import sqrt

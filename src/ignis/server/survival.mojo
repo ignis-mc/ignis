@@ -26,6 +26,7 @@ from minecraft.protocol.uuid import UUID
 from nethernet.os.time import monotonic_ms
 
 
+from ..block.anvil import Anvil
 from ..block.cactus import Cactus
 from ..block.campfire import Campfire
 from ..block.cobweb import Cobweb
@@ -684,7 +685,11 @@ def death_message_key(src: AnyDamageSource) -> StaticString:
     if src.kind == DAMAGE_MAGMA:
         return "death.attack.magma"
     if src.kind == DAMAGE_BLOCK:
-        return "death.attack.cactus"
+        if src.block.kind == Anvil.BASE_HASH:
+            return "death.attack.anvil"
+        if src.block.kind == Cactus.BASE_HASH:
+            return "death.attack.cactus"
+        return "death.attack.generic"
     if src.kind == DAMAGE_INSTANT or src.kind == DAMAGE_POISON:
         return "death.attack.magic"
     if src.kind == DAMAGE_WITHER:

@@ -1,6 +1,6 @@
 """Pufferfish, ported from Dragonfly `server/item/pufferfish.go`.
 
-TODO(player): `Consume` applies `consume_info` to the consumer.
+`Consume` is `server.use.consume` applying `consume_info`.
 """
 
 from ..entity.effect import new, SECOND

@@ -129,6 +129,7 @@ struct Bot(Movable):
     var conn: Conn
     var eye: Vec3
     var health: Float32
+    var lowest: Float32
     var food: Float32
     var hurts: Int
     var deaths: Int
@@ -150,6 +151,7 @@ struct Bot(Movable):
         self.conn = d.dial(address)
         self.eye = self.conn.game_data.player_position
         self.health = -1
+        self.lowest = 100
         self.food = -1
         self.hurts = 0
         self.deaths = 0
@@ -176,6 +178,7 @@ struct Bot(Movable):
             for ref a in u.attributes:
                 if a.name == "minecraft:health":
                     self.health = a.value
+                    self.lowest = min(self.lowest, a.value)
                 elif a.name == "minecraft:absorption":
                     self.absorption = a.value
                 elif a.name == "minecraft:player.hunger":
@@ -497,17 +500,19 @@ def fight(address: String) raises:
     both(victim, fighter, 50)
     check("Victim" in fighter.players, "Fighter sees Victim (AddPlayer)")
     var target = fighter.players["Victim"]
+    victim.lowest = 100
     fighter.attack(target)
     both(victim, fighter, 4)
     print(
-        "HEALTH",
-        victim.health,
+        "LOWEST",
+        victim.lowest,
         "HURTS",
         victim.hurts,
         "KNOCKED",
         victim.knocked,
     )
-    check(victim.health == 19, "a punch deals 1 damage")
+    # Quick regeneration may heal it again within the wait.
+    check(victim.lowest == 19, "a punch deals 1 damage")
     check(victim.hurts == 1, "the victim sees its hurt animation")
     check(victim.knocked >= 1, "the punch knocks the victim back")
     fighter.attack(target)

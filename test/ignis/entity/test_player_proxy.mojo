@@ -13,16 +13,24 @@ from std.testing import (
 
 from minecraft.protocol.uuid import UUID
 
+from ignis.block.anvil import Anvil
 from ignis.block.cube.pos import Pos
+from ignis.block.hash import AnyBlock
 from ignis.entity.area_effect_cloud import AreaEffectCloud
 from ignis.entity.arrow import Arrow
-from ignis.entity.damage import DAMAGE_LIGHTNING, DAMAGE_PROJECTILE
+from ignis.entity.damage import (
+    DAMAGE_BLOCK,
+    DAMAGE_LIGHTNING,
+    DAMAGE_PROJECTILE,
+)
 from ignis.entity.effect import SECOND
 from ignis.entity.experience_orb import ExperienceOrb
+from ignis.entity.falling_block import FallingBlock
 from ignis.entity.lightning import Lightning
 from ignis.entity.living_request import (
     REQUEST_COLLECT_EXPERIENCE,
     REQUEST_EFFECT,
+    REQUEST_HURT,
     REQUEST_LIGHTNING,
     REQUEST_PROJECTILE_HIT,
     LivingRequest,
@@ -37,7 +45,7 @@ from support.entity_vectors import spawn
 from support.world_runtime import VanillaWorld, new_vanilla_world
 
 comptime _AT = Vec3(2.5, -60, 0.5)
-"""The proxy's feet, on the flat world's grass."""
+"""The proxy's feet, a block above the flat world's grass."""
 
 
 def _world() raises -> World[VanillaWorld]:
@@ -146,6 +154,34 @@ def test_cloud() raises:
     for _ in range(10):
         w.advance_tick()
     assert_equal(len(_requests(w)), 1)
+
+
+def test_falling_anvil() raises:
+    # Go `damageEntities`: an anvil from y -55.5 lands on this world's
+    # ground (top at -61) after 5.5 blocks, hurting the proxy in its box
+    # by floor(ceil(5.5 - 1) * 2) = 10, a block damage source.
+    var w = _world()
+    var anvil = Anvil()
+    var br = w.block_registry()
+    var rid = br[].block_runtime_id(anvil)
+    spawn(
+        w,
+        _AT.add(Vec3(0, 4.5, 0)),
+        Vec3(),
+        FallingBlock(AnyBlock(anvil), br[].state(rid).copy()),
+    )
+    var hit = False
+    for _ in range(40):
+        w.advance_tick()
+        if len(_requests(w)) > 0:
+            hit = True
+            break
+    assert_true(hit)
+    var r = _requests(w)
+    assert_equal(r[0].kind, REQUEST_HURT)
+    assert_equal(r[0].src.kind, DAMAGE_BLOCK)
+    assert_equal(r[0].src.block.kind, Anvil.BASE_HASH)
+    assert_equal(r[0].dmg, 10)
 
 
 def test_orb_collected() raises:

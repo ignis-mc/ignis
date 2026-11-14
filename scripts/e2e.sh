@@ -22,6 +22,9 @@
 #      entity and lands in the water.
 #   7. interop/bots/entity_bot.mojo: in a world with saved lit TNT and a
 #      flying arrow, the arrow flies and the TNT explodes, breaking blocks.
+#   8. interop/bots/health_bot.mojo: fall damage, death and respawn; an
+#      arrow and TNT hurting a player; eating a golden apple; two players
+#      fighting with fists, a bow and a sword.
 #
 # Usage: scripts/e2e.sh [port]
 set -euo pipefail
@@ -37,6 +40,7 @@ mojo build --fp-mode contract=off "${inc[@]}" interop/bots/persist_bot.mojo -o b
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/interact_bot.mojo -o build/interact_bot
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/behaviour_bot.mojo -o build/behaviour_bot
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/entity_bot.mojo -o build/entity_bot
+mojo build --fp-mode contract=off "${inc[@]}" interop/bots/health_bot.mojo -o build/health_bot
 
 dir="$(mktemp -d)"
 pid=""
@@ -152,6 +156,21 @@ if [[ $status -eq 0 ]]; then
     start server5.log
     ./build/entity_bot watch "$addr" 2>&1 | grep -v '^dial'
     stop TERM server5.log
+
+    ./build/health_bot prepare "$dir/hazards" 2>&1 | grep -v '^dial'
+    printf '[World]\nFolder = "%s/hazards"\n[Players]\nSaveData = false\n' \
+        "$dir" >"$dir/config.toml"
+    start server6.log
+    ./build/health_bot hazards "$addr" 2>&1 | grep -v '^dial'
+    stop TERM server6.log
+
+    printf '[World]\nFolder = "%s/health"\n[Players]\nSaveData = false\n' \
+        "$dir" >"$dir/config.toml"
+    start server7.log
+    ./build/health_bot fall "$addr" 2>&1 | grep -v '^dial'
+    ./build/health_bot eat "$addr" 2>&1 | grep -v '^dial'
+    ./build/health_bot fight "$addr" 2>&1 | grep -v '^dial'
+    stop TERM server7.log
 fi
 echo "--- server log"
 cat "$dir/server1.log"

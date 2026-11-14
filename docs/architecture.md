@@ -352,19 +352,26 @@ effect clouds, text).
 - `EntitySet.wrap(T())` builds a state; `e.state[T]` / `e.state.isa[T]()`
   replace Go's type assertions where the set is concrete.
 - Adding a type is: write the struct, add it to the `EntitySet` the server
-  uses (`ignis.entity.register.VanillaEntities`). Player types will join it
-  with the player package; keep large state behind an `OwnedPointer`
-  (moved structs must stay small).
+  uses (`ignis.entity.register.VanillaEntities`); keep large state behind
+  an `OwnedPointer` (moved structs must stay small).
 - **Dragonfly's behaviours** (`ProjectileBehaviour`, `PassiveBehaviour`,
   `StationaryBehaviour`, `entity/projectile.mojo` and `passive.mojo`) are
   fields of the types that use them. Go's behaviours call `Tick`, `Hit` and
   `Expire` closures; here a type's `tick` calls the behaviour in steps
   (`step`, then its own code, then `expired` or `hit_target`/`finish`).
-  `TODO(player)` marks what needs living entities or players in the world
-  (hurting, effects, pickups, following, ender pearl teleports).
 - **Hooks other entities use** are traits with `EntitySet` dispatchers:
-  `DamageableEntity` (what projectiles may hit; nothing yet),
-  `ExplodableEntity` (`World.explode_entity` pushes or destroys).
+  `DamageableEntity` (what projectiles may hit), `LivingEntity` and
+  `ExperienceCollector` (see players below), `ExplodableEntity`
+  (`World.explode_entity` pushes or destroys) and `TransientEntity` (never
+  saved).
+- **Players among the entities.** The server owns the players, so each one
+  has a `PlayerProxy` (`entity/player_proxy.mojo`) in the world: never
+  saved, never shown by sessions, kept at the player's position with the
+  facts other entities check (game mode, health, box). What Go's entities
+  call on a living entity (`Hurt`, `KnockBack`, `AddEffect`, `SetOnFire`,
+  `Teleport`, `Explode`, `CollectExperience`) is recorded on the proxy as a
+  `LivingRequest` (`entity/living_request.mojo`); after the world tick
+  `server.survival.apply_living_requests` applies them in order.
 - **Entities spawned by blocks or other entities** use
   `EntityTypes.try_wrap(E())`, which gives None when the world's set lacks
   the type (falling blocks, TNT, orbs, area effect clouds).
@@ -404,8 +411,17 @@ Implemented in `ignis.server` (Go `server.go`, `conf.go`) and
   (`resources/data_driven_blocks.nbt`): they are part of the client's
   block palette, and without them every sequential runtime ID after them
   is shifted on the client.
-- Players are not world entities yet: until the player package adds them
-  to the entity set, the server shows every player to every other one.
+- The server shows every player to every other one (the world's player
+  proxies are not shown).
+- **Survival** (`player.living.Living`, `server/survival.mojo`): the
+  player's health, hunger, experience, effects, fire and air are a
+  sans-I/O state that takes a `SurvivalContext` (the world facts a tick
+  needs) and reports `LivingEvent`s, which `flush_living` turns into
+  packets (attributes and effects to the player, animations, metadata and
+  knock-back to everyone). The server ticks it every tick, checks the
+  ground and the fall after each movement, and runs death (drops, death
+  message, `finishDying` after 1.1 s) and the Respawn packet. Using items
+  in the air and attacking are `server/use.mojo`.
 - `config.toml` keeps Dragonfly's tables and keys (`[Network] Address`,
   `[Server] Name`, ...), read by a TOML subset parser
   (`ignis.internal.toml`).

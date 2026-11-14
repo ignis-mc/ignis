@@ -1,6 +1,6 @@
 """Bread, ported from Dragonfly `server/item/bread.go`.
 
-TODO(player): `Consume` applies `consume_info` to the consumer.
+`Consume` is `server.use.consume` applying `consume_info`.
 """
 
 from ..world.item import EncodedItem, Item, item_hash

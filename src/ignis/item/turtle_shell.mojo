@@ -1,6 +1,6 @@
 """TurtleShell, ported from Dragonfly `server/item/turtle_shell.go`.
 
-TODO(player): `Use` (Go `ctx.SwapHeldWithArmour(0)`).
+`Use` (Go `ctx.SwapHeldWithArmour(0)`) is in `server.use.use_item`.
 """
 
 from ..world.item import EncodedItem, Item, item_hash

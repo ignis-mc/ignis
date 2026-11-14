@@ -14,10 +14,10 @@ consumable describes what it does as data (`ConsumeInfo`: food,
 saturation, effects, removed effects and the stack left over), which the
 player package applies.
 
-TODO(player): `UsableOnBlock`, `UsableOnEntity`, `Usable`, `Throwable`,
-`Releasable`, `Chargeable`, `Consumer`, `User`, `Carrier`, `Releaser`,
-`UseContext` (`use.go`) and the `Use*`/`Release*`/`Charge*` methods of
-each item.
+`server.use` ports `Usable` (throwables, armour), `Releasable` (bows) and
+`Consumable` for the items that have them. TODO(player): `UsableOnBlock`,
+`UsableOnEntity`, `Chargeable` and the other items' `Use*`/`Charge*`
+methods.
 """
 
 from ..entity.effect import Effect
@@ -116,7 +116,8 @@ struct ConsumeInfo(Copyable, Defaultable, Equatable):
 trait Consumable:
     """An item that may be consumed by a player (Go `Consumable`).
 
-    TODO(player): Go's `Consume(tx, c)`; `consume_info` describes it.
+    Go's `Consume(tx, c)` is `consume_info`, applied by
+    `server.use.consume`.
     """
 
     def always_consumable(self) -> Bool:

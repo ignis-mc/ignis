@@ -1,7 +1,6 @@
 """Beef, ported from Dragonfly `server/item/beef.go`.
 
-`Consume` is described by `consume_info` (TODO(player): apply it to the
-consumer).
+`Consume` is described by `consume_info`; `server.use.consume` applies it.
 """
 
 from ..world.item import EncodedItem, Item, item_hash

@@ -1,6 +1,6 @@
 """Bow, ported from Dragonfly `server/item/bow.go`.
 
-TODO(player): `Release` (Go `Releasable`, with `requirements`).
+`Release` is `server.use.release_item`.
 """
 
 from ..world.item import EncodedItem, Item, item_hash

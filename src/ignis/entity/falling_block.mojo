@@ -4,9 +4,9 @@ and `falling_block_behaviour.go`, with the parts of `passive.go` and
 
 The entity keeps the block's state next to the block, so that its NBT can
 be written without the registry; a falling block loaded from disk has only
-the state until its first tick resolves it. Anvils do not hurt entities
-yet (no living entities are ported), but they still wear out when they fall
-far, drawing from the world's stand-in for Go's global random source.
+the state until its first tick resolves it. Anvils hurt the living entities
+they land on (players, through their `PlayerProxy`) and wear out when they
+fall far, drawing from the world's stand-in for Go's global random source.
 """
 
 from std.math import ceil, floor
@@ -34,6 +34,8 @@ from ..world.entity import (
 )
 from ..world.sound.block import AnvilLand
 from ..world.world import World, WorldTypes
+from .damage import DAMAGE_BLOCK, AnyDamageSource
+from .living_request import LivingRequest
 from .movement import MovementComputer
 from ..mgl64 import Vec3
 
@@ -171,10 +173,19 @@ struct FallingBlock(
         # Go `solidify`.
         var bpos = pos_from_vec3(data.pos)
         if case .Some(a) = self.block.get[Anvil]():
-            # Go `damageEntities`; there are no living entities to hurt yet.
+            # Go `damageEntities`: living entities below are hurt.
             var dist = ceil(self.fall_distance - 1.0)
             if dist > 0:
                 var dmg = min(floor(dist * 2), 40.0)
+                var src = AnyDamageSource(DAMAGE_BLOCK)
+                src.block = self.block
+                var box = self.bbox(data).translate(data.pos).grow(0.05)
+                for other in tx.entities_within(box):
+                    var e = tx.entity(other)
+                    if e and T.Entities.living(e.value().state):
+                        _ = tx.living_request(
+                            other, LivingRequest.hurt(dmg, src)
+                        )
                 if dmg > 0 and tx.global_rand().float64() < (dist + 1) * 0.05:
                     self.block = _break_anvil(a)
             tx.play_sound(bpos.vec3_centre(), AnvilLand())

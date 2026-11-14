@@ -1,6 +1,6 @@
 """SpiderEye, ported from Dragonfly `server/item/spider_eye.go`.
 
-TODO(player): `Consume` applies `consume_info` to the consumer.
+`Consume` is `server.use.consume` applying `consume_info`.
 """
 
 from ..entity.effect import new, SECOND

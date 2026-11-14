@@ -1,7 +1,7 @@
 """GoldenApple, ported from Dragonfly `server/item/golden_apple.go`.
 
-TODO(player): `Consume` applies `consume_info` to the consumer and raises
-its absorption to `max(prev, min(prev+4, 16))`.
+`Consume` is `server.use.consume`, which applies `consume_info` and raises
+the absorption to `max(prev, min(prev+4, 16))`.
 """
 
 from ..entity.effect import new, SECOND

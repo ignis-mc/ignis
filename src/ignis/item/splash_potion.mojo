@@ -1,6 +1,6 @@
 """SplashPotion, ported from Dragonfly `server/item/splash_potion.go`.
 
-TODO(player): `Use`, `throwableOffset`.
+`Use` is `server.use.use_item` with `entity.throw` (`throwable_offset`).
 """
 
 from ..world.item import EncodedItem, Item, item_hash

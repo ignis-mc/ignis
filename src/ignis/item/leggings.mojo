@@ -3,7 +3,7 @@
 The tier's leather colour and the trim are NBT data: compared by `__eq__`
 but not hashed, so `from_hash` gives an undyed, untrimmed piece.
 
-TODO(player): `Use` (Go `ctx.SwapHeldWithArmour(2)`).
+`Use` (Go `ctx.SwapHeldWithArmour(2)`) is in `server.use.use_item`.
 """
 
 from minecraft.nbt.nbt import TAG_INT

@@ -20,6 +20,7 @@ from nethernet.os.time import monotonic_ms
 from ..entity.arrow import ArrowSpawnConfig, spawn_arrow
 from ..entity.damage import DAMAGE_ATTACK, AnyDamageSource
 from ..block.cube.rotation import Rotation
+from ..entity.effect.absorption import Absorption
 from ..entity.effect.blindness import Blindness
 from ..entity.effect.slow_falling import SlowFalling
 from ..entity.effect.strength import Strength
@@ -51,6 +52,7 @@ from ..item.enchantment.knockback import Knockback
 from ..item.enchantment.power import Power
 from ..item.enchantment.sharpness import Sharpness
 from ..item.ender_pearl import EnderPearl
+from ..item.golden_apple import GoldenApple
 from ..item.item import ConsumeInfo
 from ..item.lingering_potion import LingeringPotion
 from ..item.register import VanillaItems
@@ -254,9 +256,10 @@ def _use(mut srv: Server, i: Int, held: Stack) -> Bool:
         return True
     if case .Some(it) = held.item():
         if case .Some(slot) = VanillaItems.armour_slot(it.kind, it.hash):
-            # Go `SwapHeldWithArmour`; `Use` returns false.
-            _swap_held_with_armour(srv, i, slot)
-            return True
+            if slot >= 0:
+                # Go `SwapHeldWithArmour`; `Use` returns false.
+                _swap_held_with_armour(srv, i, slot)
+                return True
     return False
 
 
@@ -295,23 +298,31 @@ def _use_consumable(mut srv: Server, i: Int, held: Stack, info: ConsumeInfo):
     if use_duration_ms(srv, i) < duration:
         return
     srv.sessions[i].player.using_since_ms = monotonic_ms()
-    consume(srv, i, info)
+    consume(srv, i, info, Bool(held.item_as[GoldenApple]()))
     _handle_use_context(srv, i, 0, 1, info.residue, List[Stack]())
     var at = srv.sessions[i].player.position().add(Vec3(0, 1.5, 0))
     srv.world.play_sound(at, Burp())
 
 
-def consume(mut srv: Server, i: Int, info: ConsumeInfo):
+def consume(
+    mut srv: Server, i: Int, info: ConsumeInfo, golden_apple: Bool = False
+):
     """Applies what consuming an item does (Go's `Consume` methods, which
     `consume_info` describes): food, effects (some by chance, from Go's
-    global source) and removed effects."""
+    global source) and removed effects. A golden apple also raises the
+    absorption to `max(prev, min(prev + 4, 16))` after its Absorption."""
     var ctx = survival_context(srv, i)
     if info.food != 0 or info.saturation != 0:
         srv.sessions[i].player.living.saturate(info.food, info.saturation)
+    var prev = srv.sessions[i].player.living.absorption
     for ce in info.effects:
         if ce.chance < 1 and srv.world.global_rand().float64() >= ce.chance:
             continue
         srv.sessions[i].player.living.add_effect(ce.effect, ctx)
+        if golden_apple and ce.effect.type_id() == Absorption.ID:
+            srv.sessions[i].player.living.set_absorption(
+                max(prev, min(prev + 4, 16))
+            )
     for id in info.removed_effects:
         srv.sessions[i].player.living.remove_effect(id)
     if info.removes_all_effects:
