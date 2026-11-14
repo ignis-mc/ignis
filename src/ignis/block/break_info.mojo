@@ -11,6 +11,7 @@ TODO(world-runtime) port them with `item.Tool`, `item.Stack` and `Tx`.
 from std.math import ceil
 
 from ..item.enchantment.efficiency import Efficiency
+from ..item.stack import Stack
 from ..item.tool import (
     TYPE_AXE,
     TYPE_HOE,
@@ -253,6 +254,15 @@ trait Breakable:
         Returns:
             The break info.
         """
+        ...
+
+
+trait Dropper:
+    """A block whose drops are not just itself (Go's `BreakInfo.Drops`
+    function; blocks without it drop themselves, Go's `oneOf(b)`)."""
+
+    def drops(self, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+        """Returns what breaking the block with a tool drops."""
         ...
 
 

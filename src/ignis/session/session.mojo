@@ -101,6 +101,53 @@ from minecraft.protocol.packet.command_request import CommandRequest
 from minecraft.protocol.packet.item_stack_request import ItemStackRequest
 from minecraft.protocol.packet.mob_equipment import MobEquipment
 from minecraft.protocol.packet.take_item_actor import TakeItemActor
+from minecraft.protocol.packet.animate import ANIMATE_ACTION_SWING_ARM, Animate
+from minecraft.protocol.packet.level_event import LevelEvent
+from minecraft.protocol.packet.level_sound_event import LevelSoundEvent
+from minecraft.protocol.packet.update_block import (
+    BLOCK_UPDATE_NETWORK,
+    UpdateBlock,
+)
+from minecraft.protocol.packet.player_auth_input import (
+    INPUT_FLAG_PERFORM_BLOCK_ACTIONS,
+    INPUT_FLAG_PERFORM_ITEM_INTERACTION,
+    INPUT_FLAG_PERFORM_ITEM_STACK_REQUEST,
+)
+from minecraft.protocol.container import CONTAINER_INVENTORY, CONTAINER_OFFHAND
+from minecraft.protocol.item import ItemInstance
+from minecraft.protocol.inventory import (
+    INVENTORY_ACTION_SOURCE_CONTAINER,
+    INVENTORY_ACTION_SOURCE_WORLD,
+    USE_ITEM_ACTION_BREAK_BLOCK,
+    USE_ITEM_ACTION_CLICK_AIR,
+    USE_ITEM_ACTION_CLICK_BLOCK,
+    MismatchTransactionData,
+    NormalTransactionData,
+    ReleaseItemTransactionData,
+    UseItemOnEntityTransactionData,
+    UseItemTransactionData,
+)
+from minecraft.protocol.packet.inventory_transaction import (
+    InventoryTransaction,
+)
+from minecraft.protocol.player import (
+    PLAYER_ACTION_ABORT_BREAK,
+    PLAYER_ACTION_CONTINUE_DESTROY_BLOCK,
+    PLAYER_ACTION_CRACK_BREAK,
+    PLAYER_ACTION_CREATIVE_PLAYER_DESTROY_BLOCK,
+    PLAYER_ACTION_DIMENSION_CHANGE_DONE,
+    PLAYER_ACTION_INTERACT_WITH_BLOCK,
+    PLAYER_ACTION_MISSED_SWING,
+    PLAYER_ACTION_PREDICT_DESTROY_BLOCK,
+    PLAYER_ACTION_RESPAWN,
+    PLAYER_ACTION_START_BREAK,
+    PLAYER_ACTION_START_ITEM_USE_ON,
+    PLAYER_ACTION_START_SLEEPING,
+    PLAYER_ACTION_STOP_BREAK,
+    PLAYER_ACTION_STOP_ITEM_USE_ON,
+    PLAYER_ACTION_STOP_SLEEPING,
+)
+from ..block.cube.pos import Pos
 from minecraft.protocol.inventory import WINDOW_ID_INVENTORY, WINDOW_ID_OFF_HAND
 from minecraft.protocol.packet.update_player_game_type import (
     UpdatePlayerGameType,
@@ -111,6 +158,7 @@ from minecraft.protocol.packet.update_soft_enum import (
 )
 from minecraft.protocol.packet.id import (
     ID_COMMAND_REQUEST,
+    ID_INVENTORY_TRANSACTION,
     ID_ITEM_STACK_REQUEST,
     ID_MOB_EQUIPMENT,
     ID_PLAYER_AUTH_INPUT,
@@ -264,6 +312,36 @@ def biome_definition_packet(r: BiomeRegistry) raises -> List[UInt8]:
     return encode_packet(pk)
 
 
+@fieldwise_init
+struct BlockAction(Copyable):
+    """A block action of the client (Go's `handlePlayerAction` input):
+    one of the `PLAYER_ACTION_*` breaking actions, or `BREAK_NOW` for a
+    `UseItem` break."""
+
+    var action: Int32
+    """The action."""
+    var pos: Pos
+    """The block."""
+    var face: Int
+    """The clicked face."""
+
+
+@fieldwise_init
+struct UseOnBlock(Copyable):
+    """The arguments of Go's `UseItemOnBlock`."""
+
+    var pos: Pos
+    """The clicked block."""
+    var face: Int
+    """The clicked face."""
+    var click: Vec3
+    """Where on the block it was clicked, 0 to 1 on each axis."""
+
+
+comptime BREAK_NOW: Int32 = -1
+"""Go `UseItemActionBreakBlock`: break the block at once (`BreakBlock`)."""
+
+
 struct HandleResult(Copyable, Defaultable):
     """What handling a packet changed that other sessions must see. Go
     shows these through the world's viewers from inside the handler."""
@@ -281,6 +359,11 @@ struct HandleResult(Copyable, Defaultable):
     """The held items changed (Go `ViewEntityItems` to viewers)."""
     var dropped: List[Stack]
     """Stacks the player dropped (Go `Controllable.Drop`)."""
+    var block_actions: List[BlockAction]
+    """Breaking actions for the server to apply (Go `StartBreaking`,
+    `AbortBreaking`, `FinishBreaking`, `BreakBlock`)."""
+    var use_on_block: Optional[UseOnBlock]
+    """An item used on a block (Go `UseItemOnBlock`)."""
 
     def __init__(out self):
         """Creates a result in which nothing changed."""
@@ -290,6 +373,8 @@ struct HandleResult(Copyable, Defaultable):
         self.command = None
         self.held_changed = False
         self.dropped = List[Stack]()
+        self.block_actions = List[BlockAction]()
+        self.use_on_block = None
 
 
 def uuid_key(id: UUID) -> String:
@@ -741,6 +826,10 @@ struct Session[C: Conn](Movable):
                 or off != self.invs.off_hand_item()
             )
             return res^
+        if id == ID_INVENTORY_TRANSACTION:
+            return self._handle_inventory_transaction(
+                pk.decode[InventoryTransaction]()
+            )
         if id == ID_MOB_EQUIPMENT:
             return self._handle_mob_equipment(pk.decode[MobEquipment]())
         if id == ID_COMMAND_REQUEST:
@@ -784,6 +873,127 @@ struct Session[C: Conn](Movable):
             return HandleResult()
         return HandleResult()
 
+    def _handle_inventory_transaction(
+        mut self, pk: InventoryTransaction
+    ) raises -> HandleResult:
+        """Go `InventoryTransactionHandler.Handle`."""
+        if len(pk.legacy_set_item_slots) > 2:
+            raise Error("too many slot sync requests in inventory transaction")
+        var res = HandleResult()
+        ref v = pk.transaction_data.value
+        if v.isa[NormalTransactionData]():
+            self.send_inventories()
+            try:
+                self._handle_drop_transaction(pk, res)
+            except:
+                pass  # Go only debugs a bad drop.
+        elif v.isa[MismatchTransactionData]():
+            self.send_inventories()
+        elif v.isa[UseItemTransactionData]():
+            ref data = v[UseItemTransactionData]
+            res = self._verify_and_set_held_slot(
+                Int(data.hot_bar_slot), data.held_item
+            )
+            # Go resends the inventories instead of confirming the use.
+            self.send_inventories()
+            var pos = _pos(data.block_position)
+            if data.action_type == USE_ITEM_ACTION_BREAK_BLOCK:
+                res.block_actions.append(BlockAction(BREAK_NOW, pos, 0))
+            elif data.action_type == USE_ITEM_ACTION_CLICK_BLOCK:
+                res.use_on_block = UseOnBlock(
+                    pos, Int(data.block_face), vec32_to64(data.clicked_position)
+                )
+            elif data.action_type != USE_ITEM_ACTION_CLICK_AIR:
+                raise Error(t"unhandled UseItem ActionType {data.action_type}")
+        elif v.isa[UseItemOnEntityTransactionData]():
+            # Attacking and using items on entities are not ported yet.
+            self.send_inventories()
+        elif v.isa[ReleaseItemTransactionData]():
+            pass
+        self._send_legacy_slots(pk)
+        return res^
+
+    def _send_legacy_slots(mut self, pk: InventoryTransaction):
+        """Resends the slots the client asked for (Go's deferred
+        `LegacySetItemSlots` loop)."""
+        for ref slot in pk.legacy_set_item_slots:
+            if slot.container_id == CONTAINER_OFFHAND:
+                var c = inventory_content(
+                    self._conf.blocks[],
+                    self._conf.items[],
+                    self.invs.off_hand,
+                    window_id(INV_OFF_HAND),
+                )
+                self.write_packet(c)
+            elif slot.container_id == CONTAINER_INVENTORY:
+                for n in slot.slots:
+                    var it = self._slot(INV_MAIN, Int(n))
+                    var u = inventory_slot(
+                        self._conf.blocks[],
+                        self._conf.items[],
+                        it,
+                        Int(n),
+                        window_id(INV_MAIN),
+                    )
+                    self.write_packet(u)
+
+    def _handle_drop_transaction(
+        mut self, pk: InventoryTransaction, mut res: HandleResult
+    ) raises:
+        """Go `handleNormalTransaction`: dropping items with the drop key."""
+        if len(pk.actions) != 2:
+            raise Error("expected two actions for dropping an item")
+        var slot = 0
+        var count = 0
+        var expected = Stack()
+        for ref a in pk.actions:
+            if (
+                a.source_type == INVENTORY_ACTION_SOURCE_WORLD
+                and a.inventory_slot == 0
+            ):
+                count = Int(a.new_item.stack.count)
+            elif (
+                a.source_type == INVENTORY_ACTION_SOURCE_CONTAINER
+                and a.window_id
+                and a.window_id.value() == WINDOW_ID_INVENTORY
+            ):
+                expected = stack_to_item(
+                    self._conf.blocks[], self._conf.items[], a.old_item.stack
+                )
+                slot = Int(a.inventory_slot)
+            else:
+                raise Error("unexpected action type in drop item transaction")
+        var actual = self.invs.inv.item(slot)
+        if count < 1 or count > actual.count() or expected != actual:
+            raise Error("invalid drop transaction")
+        var dropped = actual.grow(count - actual.count())
+        res.dropped.append(dropped.copy())
+        self.invs.inv.set_item(slot, actual.grow(-count))
+
+    def _verify_and_set_held_slot(
+        mut self, slot: Int, held: ItemInstance
+    ) raises -> HandleResult:
+        """Go `VerifyAndSetHeldSlot`."""
+        if slot < 0 or slot > 8:
+            raise Error(t"slot exceeds hotbar range 0-8: slot is {slot}")
+        var expected = stack_to_item(
+            self._conf.blocks[], self._conf.items[], held.stack
+        )
+        var actual = self.invs.inv.item(slot)
+        if expected != actual:
+            var fix = inventory_slot(
+                self._conf.blocks[],
+                self._conf.items[],
+                actual,
+                slot,
+                window_id(INV_MAIN),
+            )
+            self.write_packet(fix)
+        var res = HandleResult()
+        res.held_changed = slot != self.invs.held_slot
+        self.invs.held_slot = slot
+        return res^
+
     def _handle_mob_equipment(
         mut self, pk: MobEquipment
     ) raises -> HandleResult:
@@ -825,7 +1035,54 @@ struct Session[C: Conn](Movable):
         """Go `PlayerAuthInputHandler.Handle`: movement and input flags."""
         var res = HandleResult()
         res.moved = self._handle_movement(pk)
+        # Go handleActions: item interaction, block actions, input flags,
+        # then the item stack request.
+        if pk.input_data.load(INPUT_FLAG_PERFORM_ITEM_INTERACTION):
+            if not pk.item_interaction_data:
+                raise Error(
+                    "item interaction flag set without item interaction data"
+                )
+            ref data = pk.item_interaction_data.value()
+            var held = stack_to_item(
+                self._conf.blocks[], self._conf.items[], data.held_item.stack
+            )
+            if held == self.invs.held_item():
+                if data.action_type != USE_ITEM_ACTION_BREAK_BLOCK:
+                    raise Error(
+                        t"unhandled UseItem ActionType for PlayerAuthInput"
+                        t" packet {data.action_type}"
+                    )
+                res.block_actions.append(
+                    BlockAction(BREAK_NOW, _pos(data.block_position), 0)
+                )
+        if pk.input_data.load(INPUT_FLAG_PERFORM_BLOCK_ACTIONS):
+            if not pk.block_actions:
+                raise Error("block actions flag set without block actions")
+            for ref a in pk.block_actions.value():
+                _check_player_action(a.action)
+                res.block_actions.append(
+                    BlockAction(a.action, _pos(a.block_pos), Int(a.face))
+                )
         res.state_changed = self._handle_input_flags(pk)
+        if pk.input_data.load(INPUT_FLAG_PERFORM_ITEM_STACK_REQUEST):
+            if not pk.item_stack_request:
+                raise Error(
+                    "item stack request flag set without item stack request"
+                )
+            var req = ItemStackRequest()
+            req.requests.append(pk.item_stack_request.value().copy())
+            var held = self.invs.held_item()
+            var resp = self._stack_requests.handle(
+                req,
+                self.invs,
+                self.player.game_mode().creative_inventory(),
+                self._conf.creative_items[],
+                monotonic_ms(),
+                res.dropped,
+            )
+            self.write_packet(resp)
+            self._discard_inventory_changes()
+            res.held_changed = held != self.invs.held_item()
         return res^
 
     def _handle_movement(mut self, mut pk: PlayerAuthInput) -> Bool:
@@ -1407,6 +1664,44 @@ struct Session[C: Conn](Movable):
         pk.teleport_data = data^
         self.write_packet(pk)
 
+    def view_level_event(mut self, event: Int32, pos: Vec3, data: Int32):
+        """Sends a level event, such as block cracking or particles (Go's
+        `ViewBlockAction` and `ViewParticle` cases)."""
+        var pk = LevelEvent()
+        pk.event_type = event
+        pk.position = vec64_to32(pos)
+        pk.event_data = data
+        self.write_packet(pk)
+
+    def view_sound(mut self, sound: StaticString, pos: Vec3, extra: Int32):
+        """Plays a sound (Go `playSound` for the block sounds)."""
+        var pk = LevelSoundEvent()
+        pk.sound_type = String(sound)
+        pk.position = vec64_to32(pos)
+        pk.extra_data = extra
+        pk.entity_type = ":"
+        self.write_packet(pk)
+
+    def view_swing_arm(mut self, p: Player):
+        """Shows a player swinging its arm (Go `ViewEntityAction` with
+        `SwingArmAction`); the player's own client animates itself."""
+        var known = self.entity_runtime_id(p)
+        if not known or known.value() == SELF_ENTITY_RUNTIME_ID:
+            return
+        var pk = Animate()
+        pk.action_type = ANIMATE_ACTION_SWING_ARM
+        pk.entity_runtime_id = known.value()
+        self.write_packet(pk)
+
+    def view_block(mut self, pos: Pos, rid: UInt32):
+        """Sends the block at a position (Go `ViewBlockUpdate`, as
+        `resendNearbyBlock` uses it)."""
+        var pk = UpdateBlock()
+        pk.position = _block_pos_of(pos)
+        pk.new_block_runtime_id = rid
+        pk.flags = BLOCK_UPDATE_NETWORK
+        self.write_packet(pk)
+
     def view_take_item(mut self, item: UUID, taker: Player):
         """Shows a player picking up an item entity (Go `ViewEntityAction`
         with `PickedUpAction`)."""
@@ -1460,6 +1755,42 @@ def _enum_values[
                 if info.kind == ParamKind.ENUM:
                     out[info.type_name] = info.options.copy()
     return out^
+
+
+def _pos(b: BlockPos) -> Pos:
+    return Pos(Int(b.x), Int(b.y), Int(b.z))
+
+
+def _block_pos_of(p: Pos) -> BlockPos:
+    var b = BlockPos()
+    b.x = Int32(p.x())
+    b.y = Int32(p.y())
+    b.z = Int32(p.z())
+    return b
+
+
+def _check_player_action(action: Int32) raises:
+    # Go handlePlayerAction: the actions it accepts; others close the
+    # session.
+    if (
+        action == PLAYER_ACTION_START_SLEEPING
+        or action == PLAYER_ACTION_RESPAWN
+        or action == PLAYER_ACTION_DIMENSION_CHANGE_DONE
+        or action == PLAYER_ACTION_STOP_SLEEPING
+        or action == PLAYER_ACTION_START_BREAK
+        or action == PLAYER_ACTION_CONTINUE_DESTROY_BLOCK
+        or action == PLAYER_ACTION_ABORT_BREAK
+        or action == PLAYER_ACTION_PREDICT_DESTROY_BLOCK
+        or action == PLAYER_ACTION_STOP_BREAK
+        or action == PLAYER_ACTION_CRACK_BREAK
+        or action == PLAYER_ACTION_START_ITEM_USE_ON
+        or action == PLAYER_ACTION_STOP_ITEM_USE_ON
+        or action == PLAYER_ACTION_INTERACT_WITH_BLOCK
+        or action == PLAYER_ACTION_CREATIVE_PLAYER_DESTROY_BLOCK
+        or action == PLAYER_ACTION_MISSED_SWING
+    ):
+        return
+    raise Error(t"unhandled ActionType {action}")
 
 
 def _bad(v: Float32) -> Bool:

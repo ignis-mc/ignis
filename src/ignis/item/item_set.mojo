@@ -10,6 +10,7 @@ become traits, and their dispatchers loop over `Ts` with
 
 from ..world.item import AnyItem, Item, ItemRegistry
 from .item import item_info
+from .durability import DurabilityInfo, Durable
 from .tool import Tool, ToolInfo, tool_info
 
 
@@ -62,6 +63,20 @@ struct ItemSet[*Ts: Item]:
                     return _tool[T](T.from_hash(hash), block_kind)
         return ToolInfo.none()
 
+    @staticmethod
+    def durability_info(kind: UInt64, hash: UInt64) -> Optional[DurabilityInfo]:
+        """Returns a `Durable` item's durability info, or None."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Durable):
+                if kind == T.BASE_HASH:
+                    return _durability[T](T.from_hash(hash))
+        return None
+
 
 def _tool[T: Tool](t: T, block_kind: UInt64) -> ToolInfo:
     return tool_info(t, block_kind)
+
+
+def _durability[T: Durable](t: T) -> DurabilityInfo:
+    return t.durability_info()

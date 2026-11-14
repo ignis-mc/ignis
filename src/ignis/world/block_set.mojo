@@ -24,7 +24,9 @@ a type to the set is all a new block needs.
 """
 
 from ..block.block import Replaceable
-from ..block.break_info import BreakInfo, Breakable
+from ..block.break_info import BreakInfo, Breakable, Dropper
+from ..item.stack import Stack
+from ..item.tool import ToolInfo
 from ..block.cube.bbox import BBox
 from ..block.cube.face import Face
 from ..block.hash import AnyBlock
@@ -182,6 +184,14 @@ trait BlockTypes:
         ...
 
     @staticmethod
+    def drops(
+        kind: UInt64, hash: UInt64, tool: ToolInfo, silk_touch: Bool
+    ) -> Optional[List[Stack]]:
+        """Returns a `Dropper` block's drops, or None for other blocks,
+        which drop themselves (Go `BreakInfo.Drops`)."""
+        ...
+
+    @staticmethod
     def block_item(kind: UInt64, hash: UInt64) -> Optional[RegisteredItem]:
         """Returns a block as an item, if its type is an item.
 
@@ -303,6 +313,18 @@ struct BlockSet[*Ts: Block](BlockTypes):
                 if kind == B.BASE_HASH:
                     return _replaceable_by(B.from_hash(hash), by)
         return False
+
+    @staticmethod
+    def drops(
+        kind: UInt64, hash: UInt64, tool: ToolInfo, silk_touch: Bool
+    ) -> Optional[List[Stack]]:
+        """Returns a `Dropper` block's drops, or None for other blocks."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, Dropper):
+                if kind == B.BASE_HASH:
+                    return _drops(B.from_hash(hash), tool, silk_touch)
+        return None
 
     @staticmethod
     def block_item(kind: UInt64, hash: UInt64) -> Optional[RegisteredItem]:
@@ -486,6 +508,10 @@ def _break_info[B: Breakable](b: B) -> BreakInfo:
 
 def _replaceable_by[B: Replaceable](b: B, by: AnyBlock) -> Bool:
     return b.replaceable_by(by)
+
+
+def _drops[B: Dropper](b: B, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+    return b.drops(tool, silk_touch)
 
 
 def _block_item[T: Item](b: T) -> RegisteredItem:

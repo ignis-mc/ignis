@@ -11,6 +11,8 @@ that a `Player` is cheap to copy.
 
 from minecraft.protocol.uuid import UUID
 
+from ..block.cube.face import Face
+from ..block.cube.pos import Pos
 from ..block.cube.rotation import Rotation
 from ..mgl64 import Vec3, approx_equal, float_equal
 from ..world.game_mode import GAME_MODE_SURVIVAL, GameMode
@@ -46,6 +48,16 @@ struct Player(Copyable):
     var _sprinting: Bool
     var _flight_speed: Float64
     var _vertical_flight_speed: Float64
+    var breaking: Bool
+    """Whether the player is breaking a block (Go `breaking`)."""
+    var breaking_pos: Pos
+    """The block being broken, or last tried (Go `breakingPos`)."""
+    var breaking_face: Face
+    """The face of the block being broken (Go `breakingFace`)."""
+    var break_counter: Int
+    """Ticks spent breaking, for the sound every 5 (Go `breakCounter`)."""
+    var last_break_duration_ms: Int
+    """The break time last shown to viewers (Go `lastBreakDuration`)."""
 
     def __init__(
         out self,
@@ -80,6 +92,11 @@ struct Player(Copyable):
         self._sprinting = False
         self._flight_speed = DEFAULT_FLIGHT_SPEED
         self._vertical_flight_speed = DEFAULT_VERTICAL_FLIGHT_SPEED
+        self.breaking = False
+        self.breaking_pos = Pos(0, 0, 0)
+        self.breaking_face = Face.UP
+        self.break_counter = 0
+        self.last_break_duration_ms = 0
 
     def name(self) -> String:
         """Returns the display name (Go `Name`).
@@ -275,6 +292,19 @@ struct Player(Copyable):
         """Moves the player to a position (Go `teleport`); the server shows it
         to the viewers."""
         self._pos = pos
+
+    def eye_position(self) -> Vec3:
+        """Returns the position of the eyes (Go `entity.EyePosition`)."""
+        return self._pos.add(Vec3(0, EYE_HEIGHT, 0))
+
+    def can_reach(self, pos: Vec3) -> Bool:
+        """Reports whether a position is within reach: 8 blocks of the eyes,
+        14 with a creative inventory (Go `canReach`)."""
+        var dist = self.eye_position().sub(pos).len()
+        var mode = self.game_mode()
+        return mode.allows_interaction() and (
+            dist <= 8.0 or (dist <= 14.0 and mode.creative_inventory())
+        )
 
     def chat(self, message: String) -> String:
         """Formats a chat message from the player (Go `Chat`, which writes

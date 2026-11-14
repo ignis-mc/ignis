@@ -90,6 +90,11 @@ from ..world.provider import uuid_key
 from ..cmd.register import Registry
 from .builtin import register_builtin_commands
 from .command import CommandSource, execute_command
+from .interact import (
+    continue_breaking,
+    handle_block_action,
+    use_item_on_block,
+)
 from .provider import WorldProvider
 from ..item.register import vanilla_item_registry
 from ..item.nbt import read_disk_nbt, write_disk_nbt
@@ -994,6 +999,10 @@ struct Server(Movable):
             self._show_held_items(i)
         for ref d in res.dropped:
             self.drop_item(i, d)
+        for ref a in res.block_actions:
+            handle_block_action(self, i, a)
+        if case .Some(u) = res.use_on_block:
+            use_item_on_block(self, i, u)
 
     def _show_held_items(mut self, i: Int):
         """Shows a player's held items to the others (Go `ViewEntityItems`
@@ -1162,6 +1171,7 @@ struct Server(Movable):
         self._ticks += 1
         self._tick_items()
         for i in range(len(self.sessions)):
+            continue_breaking(self, i)
             self.sessions[i].send_chunks(self.world)
             if self.sessions[i].send_inventory_changes():
                 self._show_held_items(i)

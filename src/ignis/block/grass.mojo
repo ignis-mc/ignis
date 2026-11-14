@@ -1,18 +1,22 @@
 """Grass blocks, ported from Dragonfly `server/block/grass.go`.
 
 TODO(world-runtime): RandomTick, BoneMeal, SoilFor, Till, Shovel,
-CompostChance and the drops.
+CompostChance.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
+from ..item.stack import Stack
+from ..item.tool import ToolInfo
+from .dirt import Dirt
 from .break_info import (
     ALWAYS_HARVESTABLE,
     SHOVEL_EFFECTIVE,
     BreakInfo,
     Breakable,
+    Dropper,
     new_break_info,
 )
 from .hash import HASH_GRASS
@@ -21,7 +25,13 @@ from .model.solid import Solid as SolidModel
 
 @fieldwise_init
 struct Grass(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Dropper,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """Grass blocks generate abundantly across the surface of the world."""
 
@@ -100,3 +110,9 @@ struct Grass(
             The model.
         """
         return SolidModel()
+
+    def drops(self, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+        """Drops dirt, itself with silk touch (Go `silkTouchOneOf`)."""
+        if silk_touch:
+            return [Stack(self, 1)]
+        return [Stack(Dirt(), 1)]
