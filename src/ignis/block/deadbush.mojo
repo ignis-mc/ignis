@@ -8,24 +8,32 @@ TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
 FlammabilityInfo and the drops.
 """
 
-from .block import Replaceable
-from .hash import AnyBlock
-from ..world.block import Block, LightDiffuser
+from .block import Replaceable, face_solid_at, is_air
+from .hash import AnyBlock, HASH_DEAD_BUSH
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    LiquidDisplacer,
+    NeighbourUpdateTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
-from .hash import HASH_DEAD_BUSH
 from .model.empty import Empty as EmptyModel
-from .liquid import LiquidRemovable
-from ..world.block import LiquidDisplacer
-from .liquid import source_water_can_displace
+from .liquid import LiquidRemovable, source_water_can_displace
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .dirt import supports_vegetation
 
 
 struct DeadBush(
@@ -38,6 +46,7 @@ struct DeadBush(
     LiquidDisplacer,
     LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
     Replaceable,
 ):
     """A transparent block in the form of an aesthetic plant."""
@@ -106,3 +115,12 @@ struct DeadBush(
     def can_displace(self, b: AnyBlock) -> Bool:
         """Holds water sources (Go `sourceWaterDisplacer`)."""
         return source_water_can_displace(b)
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks without soil below (Go `NeighbourUpdateTick`)."""
+        if not supports_vegetation(
+            AnyBlock(self), tx.block(pos.side(Face.DOWN)), tx
+        ):
+            break_block(self, pos, tx)

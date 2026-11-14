@@ -13,6 +13,7 @@ from std.math import ceil
 from ..item.enchantment.efficiency import Efficiency
 from ..mgl64 import Vec3
 from ..world.particle.block import BlockBreak
+from ..world.block import Block
 from ..world.world import World, WorldTypes
 from .cube.pos import Pos
 from .hash import AnyBlock
@@ -315,3 +316,17 @@ def break_block_no_drops[
             block=AnyBlock(kind=br[].kind(rid), state=br[].state_hash(rid))
         ),
     )
+
+
+def break_block[B: Block, T: WorldTypes](b: B, pos: Pos, mut tx: World[T]):
+    """Breaks a typed block as if without a tool and drops its drops (Go
+    `breakBlock`)."""
+    break_block(tx.block_registry()[].block_runtime_id(b), pos, tx)
+
+
+def break_block_no_drops[
+    B: Block, T: WorldTypes
+](b: B, pos: Pos, mut tx: World[T]):
+    """Removes a typed block with break particles (Go
+    `breakBlockNoDrops`)."""
+    break_block_no_drops(tx.block_registry()[].block_runtime_id(b), pos, tx)

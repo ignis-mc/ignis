@@ -12,11 +12,23 @@ from .cube.pos import Pos
 from .cube.rotation import Rotation
 from ..mgl64 import Vec3
 from ..world.world import World, WorldTypes
-from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
-from .hash import AnyBlock
+from .block import (
+    Placement,
+    UsableOnBlock,
+    face_solid_at,
+    first_replaceable,
+    is_air,
+    replaceable_with,
+)
+from .hash import AnyBlock, HASH_WOOD_DOOR
 
 from ..item.smelting_info import Fuel, FuelInfo
-from ..world.block import Block, LightDiffuser
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    LiquidDisplacer,
+    NeighbourUpdateTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -25,13 +37,13 @@ from .break_info import (
     AXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
 from .cube.direction import Direction, directions
-from .hash import HASH_WOOD_DOOR
 from .model.door import Door as DoorModel
 from .wood_type import WoodType, wood_types
-from ..world.block import LiquidDisplacer
 from .liquid import source_water_can_displace
 
 
@@ -45,6 +57,7 @@ struct WoodDoor(
     LightDiffuser,
     LiquidDisplacer,
     ModelledBlock,
+    NeighbourUpdateTicker,
     UsableOnBlock,
 ):
     """A wooden door that blocks entities, opened and closed by players."""
@@ -218,3 +231,16 @@ struct WoodDoor(
     def can_displace(self, b: AnyBlock) -> Bool:
         """Holds water sources (Go `sourceWaterDisplacer`)."""
         return source_water_can_displace(b)
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks without its other half or a solid block below (Go
+        `NeighbourUpdateTick`)."""
+        if self.top:
+            if not tx.block_as[WoodDoor](pos.side(Face.DOWN)):
+                break_block_no_drops(self, pos, tx)
+        elif not face_solid_at(tx, pos.side(Face.DOWN), Face.UP):
+            break_block(self, pos, tx)
+        elif not tx.block_as[WoodDoor](pos.side(Face.UP)):
+            break_block_no_drops(self, pos, tx)

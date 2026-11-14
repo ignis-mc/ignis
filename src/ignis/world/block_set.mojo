@@ -34,9 +34,15 @@ from ..block.cube.face import Face
 from ..block.hash import AnyBlock
 from ..block.cube.pos import Pos
 from ..item.item import item_info
+from ..block.block import FlammabilityInfo, Flammable, Solidifiable
+from ..block.crop import Crop
+from ..block.dirt import Soil
 from ..block.liquid import LiquidRemovable
+from ..block.oxidation_type import OxidationType
+from ..block.oxidizable import Oxidisable
 from .block import (
     Block,
+    LightDiffuser,
     Liquid,
     LiquidDisplacer,
     LiquidInfo,
@@ -188,6 +194,40 @@ trait BlockTypes:
     def is_liquid_displacer(kind: UInt64) -> Bool:
         """Reports whether the type with the base hash passed is a
         `LiquidDisplacer`."""
+        ...
+
+    @staticmethod
+    def soil_for(kind: UInt64, hash: UInt64, vegetation: AnyBlock) -> Bool:
+        """Calls `Soil.soil_for`; False for other blocks."""
+        ...
+
+    @staticmethod
+    def is_crop(kind: UInt64, hash: UInt64) -> Bool:
+        """Reports whether a block is a `Crop`."""
+        ...
+
+    @staticmethod
+    def flammability(kind: UInt64, hash: UInt64) -> Optional[FlammabilityInfo]:
+        """Returns `Flammable.flammability_info`, or None."""
+        ...
+
+    @staticmethod
+    def oxidation(
+        kind: UInt64, hash: UInt64
+    ) -> Optional[Tuple[Bool, OxidationType]]:
+        """Returns `Oxidisable.can_oxidate` and `oxidation_level`, or None."""
+        ...
+
+    @staticmethod
+    def solidifies[
+        T: WorldTypes
+    ](kind: UInt64, hash: UInt64, pos: Pos, mut tx: World[T]) -> Bool:
+        """Calls `Solidifiable.solidifies`; False for other blocks."""
+        ...
+
+    @staticmethod
+    def is_light_diffuser(kind: UInt64, hash: UInt64) -> Bool:
+        """Reports whether a block is a `LightDiffuser`."""
         ...
 
     @staticmethod
@@ -369,6 +409,70 @@ struct BlockSet[*Ts: Block](BlockTypes):
         return False
 
     @staticmethod
+    def soil_for(kind: UInt64, hash: UInt64, vegetation: AnyBlock) -> Bool:
+        """Calls `Soil.soil_for`; False for other blocks."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, Soil):
+                if kind == B.BASE_HASH:
+                    return _soil_for(B.from_hash(hash), vegetation)
+        return False
+
+    @staticmethod
+    def is_crop(kind: UInt64, hash: UInt64) -> Bool:
+        """Reports whether a block is a `Crop`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, Crop):
+                if kind == B.BASE_HASH:
+                    return True
+        return False
+
+    @staticmethod
+    def flammability(kind: UInt64, hash: UInt64) -> Optional[FlammabilityInfo]:
+        """Returns `Flammable.flammability_info`, or None."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, Flammable):
+                if kind == B.BASE_HASH:
+                    return _flammability(B.from_hash(hash))
+        return None
+
+    @staticmethod
+    def oxidation(
+        kind: UInt64, hash: UInt64
+    ) -> Optional[Tuple[Bool, OxidationType]]:
+        """Returns `Oxidisable.can_oxidate` and `oxidation_level`, or None."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, Oxidisable):
+                if kind == B.BASE_HASH:
+                    return _oxidation(B.from_hash(hash))
+        return None
+
+    @staticmethod
+    def solidifies[
+        T: WorldTypes
+    ](kind: UInt64, hash: UInt64, pos: Pos, mut tx: World[T]) -> Bool:
+        """Calls `Solidifiable.solidifies`; False for other blocks."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, Solidifiable):
+                if kind == B.BASE_HASH:
+                    return _solidifies(B.from_hash(hash), pos, tx)
+        return False
+
+    @staticmethod
+    def is_light_diffuser(kind: UInt64, hash: UInt64) -> Bool:
+        """Reports whether a block is a `LightDiffuser`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, LightDiffuser):
+                if kind == B.BASE_HASH:
+                    return True
+        return False
+
+    @staticmethod
     def liquid_removable(kind: UInt64, hash: UInt64) -> Optional[Bool]:
         """Returns `LiquidRemovable.has_liquid_drops` of a block, or None if
         a liquid cannot remove it."""
@@ -533,6 +637,24 @@ def _side_closed[
 
 def _has_liquid_drops[B: LiquidRemovable](b: B) -> Bool:
     return b.has_liquid_drops()
+
+
+def _soil_for[B: Soil](b: B, vegetation: AnyBlock) -> Bool:
+    return b.soil_for(vegetation)
+
+
+def _flammability[B: Flammable](b: B) -> FlammabilityInfo:
+    return b.flammability_info()
+
+
+def _oxidation[B: Oxidisable](b: B) -> Tuple[Bool, OxidationType]:
+    return (b.can_oxidate(), b.oxidation_level())
+
+
+def _solidifies[
+    B: Solidifiable, T: WorldTypes
+](b: B, pos: Pos, mut tx: World[T]) -> Bool:
+    return b.solidifies(pos, tx)
 
 
 def _block_item[T: Item](b: T) -> RegisteredItem:

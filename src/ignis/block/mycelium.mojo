@@ -14,8 +14,24 @@ from .break_info import (
     SHOVEL_EFFECTIVE,
     new_break_info,
 )
-from .hash import HASH_MYCELIUM
+from .hash import (
+    AnyBlock,
+    HASH_BAMBOO,
+    HASH_BAMBOO_SAPLING,
+    HASH_DEAD_BUSH,
+    HASH_DOUBLE_FLOWER,
+    HASH_DOUBLE_TALL_GRASS,
+    HASH_FERN,
+    HASH_FLOWER,
+    HASH_MYCELIUM,
+    HASH_NETHER_SPROUTS,
+    HASH_PINK_PETALS,
+    HASH_RED_SHRUB,
+    HASH_SHORT_GRASS,
+    HASH_SUGAR_CANE,
+)
 from .model.solid import Solid as SolidModel
+from .dirt import Soil
 
 
 struct Mycelium(
@@ -25,6 +41,7 @@ struct Mycelium(
     ImplicitlyCopyable,
     Item,
     ModelledBlock,
+    Soil,
 ):
     """A spreading dirt-type block found in mushroom fields."""
 
@@ -75,3 +92,21 @@ struct Mycelium(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def soil_for(self, b: AnyBlock) -> Bool:
+        """Grows plants, sugar cane and bamboo (Go `SoilFor`)."""
+        var k = b.kind
+        return (
+            k == HASH_SHORT_GRASS
+            or k == HASH_FERN
+            or k == HASH_DOUBLE_TALL_GRASS
+            or k == HASH_FLOWER
+            or k == HASH_DOUBLE_FLOWER
+            or k == HASH_NETHER_SPROUTS
+            or k == HASH_PINK_PETALS
+            or k == HASH_SUGAR_CANE
+            or k == HASH_DEAD_BUSH
+            or k == HASH_BAMBOO_SAPLING
+            or k == HASH_BAMBOO
+            or k == HASH_RED_SHRUB
+        )

@@ -13,24 +13,33 @@ from minecraft.nbt.tree import Tag, Tree
 from ..internal.nbtconv.read import get_uint8
 from ..item.colour import Colour, colours
 from ..item.item import MaxCounter
-from ..world.block import Block, LightDiffuser, NBTer
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    LiquidDisplacer,
+    NBTer,
+    NeighbourUpdateTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item, ItemHasher
-from .block import horizontal_direction
+from .block import face_solid_at, horizontal_direction, is_air
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
 from .cube.direction import Direction, directions
-from .hash import HASH_BED
+from .hash import AnyBlock, HASH_BED
 from .model.bed import Bed as BedModel
-from ..world.block import LiquidDisplacer
-from .hash import AnyBlock
 from .liquid import source_water_can_displace
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
 
 
 struct Bed(
@@ -45,6 +54,7 @@ struct Bed(
     MaxCounter,
     ModelledBlock,
     NBTer,
+    NeighbourUpdateTicker,
 ):
     """A block that allows players to sleep to set their spawn point and skip the night.
     """
@@ -179,3 +189,13 @@ struct Bed(
     def can_displace(self, b: AnyBlock) -> Bool:
         """Holds water sources (Go `sourceWaterDisplacer`)."""
         return source_water_can_displace(b)
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks without its other half (Go `NeighbourUpdateTick`)."""
+        var face = self.facing.face()
+        if self.head:
+            face = face.opposite()
+        if not tx.block_as[Bed](pos.side(face)):
+            break_block_no_drops(self, pos, tx)

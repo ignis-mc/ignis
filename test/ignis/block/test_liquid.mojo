@@ -41,13 +41,14 @@ def _lava() -> Lava:
 def _check(mut w: World[VanillaWorld], name: String) raises:
     var v = BehaviourVectors(_PATH)
     var tick = 0
-    var drops = 0
+    var items = 0
     for cp in v.ticks(name):
         while tick < cp:
             w.advance_tick()
-            drops += len(w.take_item_drops())
+            for d in w.take_item_drops():
+                items += d.stack.count()
             tick += 1
-        var got = dump_region(w, _LO, _HI, w.entity_count() + drops)
+        var got = dump_region(w, _LO, _HI, items)
         assert_region_equal(
             got, expected_lines(v, name, cp), String(t"{name}@{cp}")
         )

@@ -64,11 +64,13 @@ struct BehaviourVectors(Movable):
 
 def dump_region[
     T: WorldTypes
-](mut w: World[T], lo: Pos, hi: Pos, entities: Int) -> List[String]:
+](mut w: World[T], lo: Pos, hi: Pos, items: Int) -> List[String]:
     """Renders a region as `interop/behaviour` does: `x,y,z layer rid` for
     every block that differs from the flat world (grass at y=-62, dirt,
     bedrock, air above; layer 1 only for a liquid behind a non-liquid),
-    then the entity count."""
+    then the falling blocks, the dropped items (the world queues drops;
+    Dragonfly's item entities merge, so items are counted) and other
+    entities."""
     var out = List[String]()
     var br = w.block_registry()
     var air = br[].air_runtime_id()
@@ -93,7 +95,14 @@ def dump_region[
                     continue
                 if case .Some(l) = w.liquid(pos):
                     out.append(String(t"{x},{y},{z}\t1\t{l}"))
-    out.append(String(t"entities\t{entities}"))
+    var falling = 0
+    var other = 0
+    for id in w.entities():
+        if w.entity(id).value().identifier() == "minecraft:falling_block":
+            falling += 1
+        else:
+            other += 1
+    out.append(String(t"entities\t{falling}\t{items}\t{other}"))
     return out^
 
 
@@ -104,7 +113,7 @@ def expected_lines(
     var out = List[String]()
     for l in v.lines(name, tick):
         var parts = l.split("\t")
-        if len(parts) >= 4:
+        if String(parts[0]) != "entities" and len(parts) >= 4:
             out.append(String(t"{parts[0]}\t{parts[1]}\t{parts[2]}"))
         else:
             out.append(l)
@@ -199,3 +208,41 @@ def new_feature_world(
 def vanilla_registry() raises -> BasicBlockRegistry:
     """Returns the vanilla block registry."""
     return vanilla_block_registry("resources/block_states.nbt")
+
+
+struct ScenarioRun(Movable):
+    """Ticks a world through the checkpoints of a recorded scenario."""
+
+    var vectors: BehaviourVectors
+    var name: String
+    var lo: Pos
+    var hi: Pos
+    var tick: Int
+    var items: Int
+
+    def __init__(out self, path: String, name: String, lo: Pos, hi: Pos) raises:
+        self.vectors = BehaviourVectors(path)
+        self.name = name
+        self.lo = lo
+        self.hi = hi
+        self.tick = 0
+        self.items = 0
+
+    def check_until[
+        T: WorldTypes
+    ](mut self, mut w: World[T], last: Int = Int.MAX) raises:
+        """Ticks to every checkpoint up to `last` and compares the region."""
+        for cp in self.vectors.ticks(self.name):
+            if cp <= self.tick or cp > last:
+                continue
+            while self.tick < cp:
+                w.advance_tick()
+                for d in w.take_item_drops():
+                    self.items += d.stack.count()
+                self.tick += 1
+            var got = dump_region(w, self.lo, self.hi, self.items)
+            assert_region_equal(
+                got,
+                expected_lines(self.vectors, self.name, cp),
+                String(t"{self.name}@{cp}"),
+            )

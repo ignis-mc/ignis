@@ -4,7 +4,7 @@ TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, BoneMeal, Model and the
 drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -13,12 +13,18 @@ from .break_info import (
     BreakInfo,
     Breakable,
     NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_SHELF_MUSHROOM
 from .model.shelf_mushroom import ShelfMushroom as ShelfMushroomModel
 from .liquid import LiquidRemovable
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air
 
 
 struct ShelfMushroom(
@@ -30,6 +36,7 @@ struct ShelfMushroom(
     LightDiffuser,
     LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
 ):
     """A mushroom that grows on the side of logs."""
 
@@ -111,3 +118,11 @@ struct ShelfMushroom(
     def has_liquid_drops(self) -> Bool:
         """Returns True (Go `HasLiquidDrops`)."""
         return True
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks when it cannot stay attached (Go `NeighbourUpdateTick`)."""
+        var side = pos.side(self.facing.opposite().face())
+        if not face_solid_at(tx, side, self.facing.face()):
+            break_block(self, pos, tx)

@@ -7,22 +7,30 @@ TODO(world-runtime): NeighbourUpdateTick, teleport, Punch, Activate, the
 falling behaviour of `gravityAffected`, SideClosed and the drops.
 """
 
-from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    LightEmitter,
+    LiquidDisplacer,
+    NeighbourUpdateTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
-from .hash import HASH_DRAGON_EGG
+from .hash import AnyBlock, HASH_DRAGON_EGG
 from .model.solid import Solid as SolidModel
-from ..world.block import LiquidDisplacer
-from .hash import AnyBlock
 from .liquid import source_water_can_displace
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import gravity_fall
 
 
 struct DragonEgg(
@@ -35,6 +43,7 @@ struct DragonEgg(
     LightEmitter,
     LiquidDisplacer,
     ModelledBlock,
+    NeighbourUpdateTicker,
 ):
     """A decorative block or a "trophy item", and the rarest item in the game.
     """
@@ -101,3 +110,9 @@ struct DragonEgg(
     def can_displace(self, b: AnyBlock) -> Bool:
         """Holds water sources (Go `sourceWaterDisplacer`)."""
         return source_water_can_displace(b)
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Falls when nothing holds it up (Go `NeighbourUpdateTick`)."""
+        gravity_fall(self, pos, tx)

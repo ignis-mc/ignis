@@ -4,23 +4,50 @@ TODO(world-runtime): SoilFor, NeighbourUpdateTick, RandomTick (with hydrated),
 EntityLand and the drops.
 """
 
-from ..world.block import Block
+from ..world.block import Block, NeighbourUpdateTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    SHOVEL_EFFECTIVE,
     BreakInfo,
     Breakable,
+    SHOVEL_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
-from .hash import HASH_FARMLAND
+from .hash import (
+    AnyBlock,
+    HASH_DEAD_BUSH,
+    HASH_DOUBLE_FLOWER,
+    HASH_DOUBLE_TALL_GRASS,
+    HASH_FARMLAND,
+    HASH_FERN,
+    HASH_FLOWER,
+    HASH_NETHER_SPROUTS,
+    HASH_PINK_PETALS,
+    HASH_RED_SHRUB,
+    HASH_SAPLING,
+    HASH_SHORT_GRASS,
+)
 from .model.tilled_grass import TilledGrass as TilledGrassModel
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air
+from .dirt import Dirt, Soil
 
 
 struct Farmland(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    NeighbourUpdateTicker,
+    Soil,
 ):
     """A block that crops are grown on, created by using a hoe on dirt or grass.
     """
@@ -81,3 +108,26 @@ struct Farmland(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Turns into dirt under a solid face (Go `NeighbourUpdateTick`)."""
+        if face_solid_at(tx, pos.side(Face.UP), Face.DOWN):
+            tx.set_block(pos, Dirt())
+
+    def soil_for(self, b: AnyBlock) -> Bool:
+        """Grows plants and saplings (Go `SoilFor`)."""
+        var k = b.kind
+        return (
+            k == HASH_SHORT_GRASS
+            or k == HASH_FERN
+            or k == HASH_DOUBLE_TALL_GRASS
+            or k == HASH_FLOWER
+            or k == HASH_DOUBLE_FLOWER
+            or k == HASH_NETHER_SPROUTS
+            or k == HASH_PINK_PETALS
+            or k == HASH_DEAD_BUSH
+            or k == HASH_SAPLING
+            or k == HASH_RED_SHRUB
+        )

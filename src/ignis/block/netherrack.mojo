@@ -17,8 +17,11 @@ from .break_info import (
     PICKAXE_HARVESTABLE,
     new_break_info,
 )
-from .hash import HASH_NETHERRACK
+from .hash import AnyBlock, HASH_NETHERRACK
 from .model.solid import Solid as SolidModel
+from .dirt import Soil
+from .flower import Flower
+from .flower_type import FlowerType
 
 
 struct Netherrack(
@@ -29,6 +32,7 @@ struct Netherrack(
     Item,
     ModelledBlock,
     Smeltable,
+    Soil,
 ):
     """A block found commonly in the nether."""
 
@@ -83,3 +87,9 @@ struct Netherrack(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def soil_for(self, b: AnyBlock) -> Bool:
+        """Grows wither roses (Go `SoilFor`)."""
+        if case .Some(f) = b.get[Flower]():
+            return f.type == FlowerType.WITHER_ROSE
+        return False

@@ -4,22 +4,31 @@ TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, HasLiquidDrops and the
 drops.
 """
 
-from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    LightEmitter,
+    NeighbourUpdateTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
-from .block import UNKNOWN_FACE
+from .block import UNKNOWN_FACE, face_solid_at, is_air
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
 from .cube.face import Face, faces
 from .hash import HASH_COPPER_TORCH
 from .model.empty import Empty as EmptyModel
 from .liquid import LiquidRemovable
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
 
 
 struct CopperTorch(
@@ -32,6 +41,7 @@ struct CopperTorch(
     LightEmitter,
     LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
 ):
     """A non-solid block that emits light."""
 
@@ -114,3 +124,12 @@ struct CopperTorch(
     def has_liquid_drops(self) -> Bool:
         """Returns True (Go `HasLiquidDrops`)."""
         return True
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks when the block it is attached to has no solid face (Go
+        `NeighbourUpdateTick`)."""
+        var side = pos.side(self.facing)
+        if not face_solid_at(tx, side, self.facing.opposite()):
+            break_block(self, pos, tx)

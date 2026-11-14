@@ -5,21 +5,25 @@ NeighbourUpdateTick and the falling behaviour of `gravityAffected`, Damage and
 the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .anvil_type import AnvilType, anvil_types
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .cube.direction import Direction, directions
 from .hash import HASH_ANVIL
 from .model.anvil import Anvil as AnvilModel
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import gravity_fall
 
 
 struct Anvil(
@@ -30,6 +34,7 @@ struct Anvil(
     Item,
     LightDiffuser,
     ModelledBlock,
+    NeighbourUpdateTicker,
 ):
     """A block that allows players to repair items, rename items, and combine enchantments.
     """
@@ -114,3 +119,9 @@ struct Anvil(
         for t in anvil_types():
             out.append(Self(type=t))
         return out^
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Falls when nothing holds it up (Go `NeighbourUpdateTick`)."""
+        gravity_fall(self, pos, tx)

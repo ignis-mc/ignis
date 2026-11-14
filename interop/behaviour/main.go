@@ -28,13 +28,17 @@ import (
 var br = world.DefaultBlockRegistry
 
 // scenario is a world set up by setup and ticked; the blocks in [lo, hi]
-// are written after each checkpoint tick.
+// are written after each checkpoint tick. If change is set, it runs after
+// the last checkpoint and the world ticks on to the later checkpoints.
 type scenario struct {
 	name        string
 	speed       int
 	setup       func(tx *world.Tx)
 	checkpoints []int
 	lo, hi      cube.Pos
+	change      func(tx *world.Tx)
+	later       []int
+	gen         world.Generator
 }
 
 func main() {
@@ -46,6 +50,9 @@ func main() {
 	}
 	write(filepath.Join(*out, "liquids.txt"), liquidScenarios())
 	writeLight(filepath.Join(*out, "light.txt"))
+	n := neighbourScenarios()
+	n[1].change, n[1].later = popsChanges, popsLater
+	write(filepath.Join(*out, "neighbours.txt"), n)
 }
 
 func write(path string, scenarios []scenario) {
@@ -67,18 +74,32 @@ func run(b *strings.Builder, s scenario) {
 	w := world.Config{
 		Synchronous:     true,
 		RandSource:      rand.NewPCG(1, 2),
-		Generator:       flat(),
+		Generator:       s.generator(),
 		RandomTickSpeed: s.speed,
 		Entities:        entity.DefaultRegistry,
 	}.New()
 	w.Do(s.setup)
 	tick := 0
-	for _, cp := range s.checkpoints {
-		for ; tick < cp; tick++ {
-			w.AdvanceTick()
+	advance := func(cps []int) {
+		for _, cp := range cps {
+			for ; tick < cp; tick++ {
+				w.AdvanceTick()
+			}
+			w.Do(func(tx *world.Tx) { dump(b, s, tick, tx) })
 		}
-		w.Do(func(tx *world.Tx) { dump(b, s, tick, tx) })
 	}
+	advance(s.checkpoints)
+	if s.change != nil {
+		w.Do(s.change)
+		advance(s.later)
+	}
+}
+
+func (s scenario) generator() world.Generator {
+	if s.gen != nil {
+		return s.gen
+	}
+	return flat()
 }
 
 // base is the block of the flat world at a height: grass, dirt, bedrock, air.
@@ -115,11 +136,24 @@ func dump(b *strings.Builder, s scenario, tick int, tx *world.Tx) {
 			}
 		}
 	}
-	n := 0
-	for range tx.Entities() {
-		n++
+	// Item entities merge, so the items are counted, not the entities.
+	falling, items, other := 0, 0, 0
+	for e := range tx.Entities() {
+		ent, ok := e.(*entity.Ent)
+		if !ok {
+			other++
+			continue
+		}
+		switch beh := ent.Behaviour().(type) {
+		case *entity.FallingBlockBehaviour:
+			falling++
+		case *entity.ItemBehaviour:
+			items += beh.Item().Count()
+		default:
+			other++
+		}
 	}
-	fmt.Fprintf(b, "%s\t%d\tentities\t%d\n", s.name, tick, n)
+	fmt.Fprintf(b, "%s\t%d\tentities\t%d\t%d\t%d\n", s.name, tick, falling, items, other)
 }
 
 func line(b *strings.Builder, s scenario, tick int, pos cube.Pos, layer int, rid uint32) {

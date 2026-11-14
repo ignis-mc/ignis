@@ -52,11 +52,13 @@ from .block_set import BlockTypes
 from .block_source import BlockSource
 from .chunk.chunk import Chunk
 from .chunk.light import fill_light, spread_light
-from .chunk.column import Column as ChunkColumn
-from .chunk.column import Entity as ChunkEntity
-from .chunk.column import ScheduledBlockUpdate
+from .chunk.column import (
+    Column as ChunkColumn,
+    Entity as ChunkEntity,
+    ScheduledBlockUpdate,
+)
 from .difficulty import Difficulty
-from .dimension import END, NETHER, OVERWORLD, Dimension
+from .dimension import Dimension, END, NETHER, OVERWORLD
 from .entity import EntityHandle, EntityTypes
 from .game_mode import GameMode
 from .generator import Generator
@@ -180,6 +182,7 @@ struct World[T: WorldTypes](Movable):
     var _handler: Optional[Self.T.Handler]
     var _set: Settings
     var _r: Rand
+    var _global_r: Rand
     var _cols: List[Column]
     var _col_index: Dict[ChunkPos, Int]
     var _ents: List[_EntityEntry[Self.T.Entities]]
@@ -240,6 +243,7 @@ struct World[T: WorldTypes](Movable):
         self._scheduled = ScheduledTickQueue(s.current_tick)
         self._set = s^
         self._r = r^
+        self._global_r = Rand(seed[1] ^ 0x5851F42D4C957F2D, seed[0])
         self._cols = List[Column]()
         self._col_index = Dict[ChunkPos, Int]()
         self._ents = List[_EntityEntry[Self.T.Entities]]()
@@ -287,6 +291,13 @@ struct World[T: WorldTypes](Movable):
         """Returns the world's random generator (Go passes it to random and
         scheduled ticks)."""
         return self._r
+
+    def global_rand(mut self) -> ref[self._global_r] Rand:
+        """Returns a generator standing in for Go's global `math/rand`
+        source, which Dragonfly's blocks use for drops, bone meal and the
+        like. It is separate from `rand`, so those draws leave the world's
+        generator in step with Dragonfly's."""
+        return self._global_r
 
     def current_tick(self) -> Int64:
         """Returns the world's tick counter (Go `Tx.CurrentTick`)."""
@@ -1571,7 +1582,10 @@ struct World[T: WorldTypes](Movable):
 
     def _tick_entity(mut self, key: UInt128, tick: Int64):
         # The entity leaves the world while it ticks, so that it can use
-        # the world mutably.
+        # the world mutably. It goes back to its slot afterwards, so that
+        # entities tick in a stable order (Go ranges over a map, in random
+        # order).
+        var slot = self._ent_index.get(key).value()
         var entry = self._take_entity(key)
         var cp = entry.chunk
         var h = entry^.into_handle()
@@ -1590,6 +1604,11 @@ struct World[T: WorldTypes](Movable):
         self._ent_index[key] = len(self._ents)
         var shown = h.copy()
         self._ents.append(_EntityEntry(h^, cp))
+        var last = len(self._ents) - 1
+        if slot < last:
+            self._ents.swap_elements(slot, last)
+            self._ent_index[uuid_key(self._ents[slot].handle.id)] = slot
+            self._ent_index[uuid_key(self._ents[last].handle.id)] = last
         if case .Some(mv) = m:
             # Go `Movement.Send`.
             for v in self.viewers_of_chunk(cp):

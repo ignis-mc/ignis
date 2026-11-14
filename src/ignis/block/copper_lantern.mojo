@@ -7,24 +7,35 @@ TODO(world-runtime): Model, NeighbourUpdateTick, UseOnBlock, SideClosed, Wax,
 Strip, RandomTick (attemptOxidation) and the drops.
 """
 
-from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    LightEmitter,
+    LiquidDisplacer,
+    NeighbourUpdateTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
-from .hash import HASH_COPPER_LANTERN
+from .hash import AnyBlock, HASH_COPPER_LANTERN
 from .model.lantern import Lantern as LanternModel
 from .oxidation_type import OxidationType, oxidation_types
 from .oxidizable import Oxidisable, copper_block_name
-from ..world.block import LiquidDisplacer
-from .hash import AnyBlock
 from .liquid import source_water_can_displace
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air
+from .copper_chain import CopperChain
 
 
 struct CopperLantern(
@@ -37,6 +48,7 @@ struct CopperLantern(
     LightEmitter,
     LiquidDisplacer,
     ModelledBlock,
+    NeighbourUpdateTicker,
     Oxidisable,
 ):
     """A light emitting block made of copper."""
@@ -157,3 +169,16 @@ struct CopperLantern(
     def can_displace(self, b: AnyBlock) -> Bool:
         """Holds water sources (Go `sourceWaterDisplacer`)."""
         return source_water_can_displace(b)
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks without support above or below (Go `NeighbourUpdateTick`)."""
+        if self.hanging:
+            var up = pos.side(Face.UP)
+            if not tx.block_as[CopperChain](up) and not face_solid_at(
+                tx, up, Face.DOWN
+            ):
+                break_block(self, pos, tx)
+        elif not face_solid_at(tx, pos.side(Face.DOWN), Face.UP):
+            break_block(self, pos, tx)

@@ -6,7 +6,7 @@ drops.
 
 from ..item.smelting_info import SmeltInfo, Smeltable
 from ..item.stack import Stack
-from ..world.block import Block
+from ..world.block import Block, NeighbourUpdateTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
@@ -17,8 +17,13 @@ from .break_info import (
     NOTHING_EFFECTIVE,
     new_break_info,
 )
-from .hash import HASH_SPONGE
+from .hash import AnyBlock, HASH_SPONGE
 from .model.solid import Solid as SolidModel
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .water import Water
+from ..world.particle.block import BlockBreak
 
 
 struct Sponge(
@@ -28,6 +33,7 @@ struct Sponge(
     ImplicitlyCopyable,
     Item,
     ModelledBlock,
+    NeighbourUpdateTicker,
     Smeltable,
 ):
     """A block that can be used to remove water around itself when placed."""
@@ -92,3 +98,38 @@ struct Sponge(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Sponge(wet=True), Sponge()]
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Absorbs water around it (Go `NeighbourUpdateTick`)."""
+        if not self.wet:
+            if _absorb_water(pos, tx) > 0:
+                tx.set_block(pos, Sponge(wet=True))
+                tx.add_particle(
+                    pos.vec3_centre(),
+                    BlockBreak(block=AnyBlock(Water(depth=1))),
+                )
+
+
+def _absorb_water[T: WorldTypes](pos: Pos, mut tx: World[T]) -> Int:
+    # Go `Sponge.absorbWater`: removes up to 65 water blocks (in batches of
+    # a block's neighbours) within 7 blocks.
+    var queue = List[Tuple[Pos, Int]]()
+    queue.append((pos, 0))
+    var qi = 0
+    var replaced = 0
+    var br = tx.block_registry()
+    while replaced < 65:
+        if qi == len(queue):
+            break
+        var next = queue[qi]
+        qi += 1
+        for neighbour in next[0].neighbours(tx.range()):
+            if case .Some(l) = tx.liquid(neighbour):
+                if br[].is_block[Water](l):
+                    tx.remove_liquid(neighbour)
+                    replaced += 1
+                    if next[1] < 7:
+                        queue.append((neighbour, next[1] + 1))
+    return replaced

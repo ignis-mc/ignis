@@ -19,8 +19,9 @@ from .break_info import (
     new_break_info,
 )
 from .glazed_terracotta import GlazedTerracotta
-from .hash import HASH_STAINED_TERRACOTTA
+from .hash import AnyBlock, HASH_DEAD_BUSH, HASH_STAINED_TERRACOTTA
 from .model.solid import Solid as SolidModel
+from .dirt import Soil
 
 
 struct StainedTerracotta(
@@ -31,6 +32,7 @@ struct StainedTerracotta(
     Item,
     ModelledBlock,
     Smeltable,
+    Soil,
 ):
     """A block formed from clay, with a hardness and blast resistance comparable to stone.
     """
@@ -95,3 +97,8 @@ struct StainedTerracotta(
         for v in colours():
             out.append(StainedTerracotta(colour=v))
         return out^
+
+    def soil_for(self, b: AnyBlock) -> Bool:
+        """Grows dead bushes (Go `SoilFor`)."""
+        var k = b.kind
+        return k == HASH_DEAD_BUSH

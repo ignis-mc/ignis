@@ -6,7 +6,7 @@ TODO(world-runtime): SoilFor, NeighbourUpdateTick, the falling behaviour of
 
 from ..item.smelting_info import SmeltInfo, Smeltable
 from ..item.stack import Stack
-from ..world.block import Block
+from ..world.block import Block, NeighbourUpdateTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
@@ -18,8 +18,21 @@ from .break_info import (
     new_break_info,
 )
 from .glass import Glass
-from .hash import HASH_SAND
+from .hash import (
+    AnyBlock,
+    HASH_BAMBOO,
+    HASH_BAMBOO_SAPLING,
+    HASH_CACTUS,
+    HASH_DEAD_BUSH,
+    HASH_SAND,
+    HASH_SUGAR_CANE,
+)
 from .model.solid import Solid as SolidModel
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import gravity_fall
+from .dirt import Soil
 
 
 struct Sand(
@@ -29,7 +42,9 @@ struct Sand(
     ImplicitlyCopyable,
     Item,
     ModelledBlock,
+    NeighbourUpdateTicker,
     Smeltable,
+    Soil,
 ):
     """A block affected by gravity, found in deserts and beaches."""
 
@@ -91,3 +106,20 @@ struct Sand(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Sand(red=True), Sand()]
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Falls when nothing holds it up (Go `NeighbourUpdateTick`)."""
+        gravity_fall(self, pos, tx)
+
+    def soil_for(self, b: AnyBlock) -> Bool:
+        """Grows cacti, dead bushes, sugar cane and bamboo (Go `SoilFor`)."""
+        var k = b.kind
+        return (
+            k == HASH_CACTUS
+            or k == HASH_DEAD_BUSH
+            or k == HASH_SUGAR_CANE
+            or k == HASH_BAMBOO_SAPLING
+            or k == HASH_BAMBOO
+        )

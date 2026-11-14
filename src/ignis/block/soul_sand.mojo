@@ -14,8 +14,11 @@ from .break_info import (
     SHOVEL_EFFECTIVE,
     new_break_info,
 )
-from .hash import HASH_SOUL_SAND
+from .hash import AnyBlock, HASH_SOUL_SAND
 from .model.solid import Solid as SolidModel
+from .dirt import Soil
+from .flower import Flower
+from .flower_type import FlowerType
 
 
 struct SoulSand(
@@ -25,6 +28,7 @@ struct SoulSand(
     ImplicitlyCopyable,
     Item,
     ModelledBlock,
+    Soil,
 ):
     """A block found naturally only in the nether."""
 
@@ -75,3 +79,9 @@ struct SoulSand(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def soil_for(self, b: AnyBlock) -> Bool:
+        """Grows wither roses (Go `SoilFor`)."""
+        if case .Some(f) = b.get[Flower]():
+            return f.type == FlowerType.WITHER_ROSE
+        return False

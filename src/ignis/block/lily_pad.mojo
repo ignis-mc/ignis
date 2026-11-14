@@ -5,20 +5,26 @@ HasLiquidDrops, EntityInside, Model and the drops.
 """
 
 from ..item.item import Compostable
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
 from .hash import HASH_LILY_PAD
 from .model.lily_pad import LilyPad as LilyPadModel
 from .liquid import LiquidRemovable
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air
 
 
 struct LilyPad(
@@ -31,6 +37,7 @@ struct LilyPad(
     LightDiffuser,
     LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
 ):
     """A short, flat, non-solid block that can be placed on water."""
 
@@ -94,3 +101,11 @@ struct LilyPad(
     def has_liquid_drops(self) -> Bool:
         """Returns True (Go `HasLiquidDrops`)."""
         return True
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks unless on full water (Go `NeighbourUpdateTick`)."""
+        var l = tx.liquid_info(pos.side(Face.DOWN))
+        if not l or l.value().liquid_type != "water" or l.value().depth < 8:
+            break_block(self, pos, tx)
