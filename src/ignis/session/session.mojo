@@ -207,18 +207,7 @@ struct Config(Copyable, Defaultable):
 
 
 def biome_definition_packet(r: BiomeRegistry) raises -> List[UInt8]:
-    """Encodes the `BiomeDefinitionList` packet Dragonfly sends on join (Go
-    `sendBiomes` over `world.BiomeDefinitions()`).
-
-    Args:
-        r: The finalised biome registry, such as `vanilla_biome_registry()`.
-
-    Returns:
-        The packet, header included.
-
-    Raises:
-        If the packet cannot be encoded.
-    """
+    """Encodes the `BiomeDefinitionList` sent on join (Go `sendBiomes`)."""
     var defs = biome_definitions(r)
     var pk = BiomeDefinitionList()
     pk.biome_definitions = defs[0].copy()
