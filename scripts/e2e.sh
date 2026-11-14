@@ -8,6 +8,9 @@
 #   3. SIGINT saves and stops the server; after a restart the world time,
 #      the player's position, rotation and game mode are back; SIGTERM
 #      stops it again.
+#   4. A copy of the world.mcdb fixture (test/data/mcdb/dragonfly-world)
+#      loads: spawn, game mode and time come from its level.dat and the
+#      spawn column's sub-chunks come from its database.
 #
 # Usage: scripts/e2e.sh [port]
 set -euo pipefail
@@ -99,11 +102,23 @@ if [[ $status -eq 0 ]]; then
     echo "PASS keeps its game mode"
     bot command "$addr" "Teleported Persist to 1.5" /tp 1.5 -60 1.5
     stop TERM server2.log
+
+    cp -r test/data/mcdb/dragonfly-world "$dir/fixture"
+    printf '[World]\nFolder = "%s/fixture"\n[Players]\nSaveData = false\n' \
+        "$dir" >"$dir/config.toml"
+    start server3.log
+    # level.dat: spawn (1, 70, 2), creative, time 6000 with the cycle off.
+    bot expect-start "$addr" 1.5 70.5 2.5 1 6000
+    stop TERM server3.log
 fi
 echo "--- server log"
 cat "$dir/server1.log"
 if [[ -f "$dir/server2.log" ]]; then
     echo "--- server log after restart"
     cat "$dir/server2.log"
+fi
+if [[ -f "$dir/server3.log" ]]; then
+    echo "--- server log with the fixture world"
+    cat "$dir/server3.log"
 fi
 exit "$status"

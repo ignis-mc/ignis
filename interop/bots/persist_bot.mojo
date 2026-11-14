@@ -9,6 +9,9 @@ that does not hold.
         checks that it joins at (X, Z), where it left.
     persist_bot.mojo expect-time ADDRESS MIN MAX
         checks that the world time in StartGame is in [MIN, MAX].
+    persist_bot.mojo expect-start ADDRESS X Y Z MODE TIME
+        checks the StartGame position (feet), game type and time, and that
+        the sub-chunks of the spawn column hold blocks.
     persist_bot.mojo command ADDRESS EXPECT LINE...
         checks that AvailableCommands lists /gamemode, /tp, /time, /list and
         /say, sends LINE as a CommandRequest and checks that a
@@ -26,7 +29,15 @@ from minecraft.protocol.packet.id import (
     ID_COMMAND_OUTPUT,
     ID_TEXT,
 )
+from minecraft.protocol.block_pos import SubChunkPos
+from minecraft.protocol.packet.id import ID_SUB_CHUNK
 from minecraft.protocol.packet.player_auth_input import PlayerAuthInput
+from minecraft.protocol.packet.sub_chunk import SubChunk
+from minecraft.protocol.packet.sub_chunk_request import SubChunkRequest
+from minecraft.protocol.sub_chunk import (
+    SUB_CHUNK_RESULT_SUCCESS,
+    SubChunkOffset,
+)
 from minecraft.protocol.packet.text import Text
 from nethernet.os.time import monotonic_ms
 from std.sys import argv
@@ -101,6 +112,54 @@ def expect_time(address: String, lo: Int, hi: Int) raises:
     conn.close()
 
 
+def expect_start(
+    address: String, x: Float32, y: Float32, z: Float32, mode: Int, time: Int
+) raises:
+    var conn = join(address)
+    var p = conn.game_data.player_position
+    check(
+        abs(p.x - x) < 0.01
+        and abs(p.y - 1.62 - y) < 0.01
+        and abs(p.z - z) < 0.01,
+        String(t"spawns at the level.dat spawn ({x}, {y}, {z})"),
+    )
+    check(
+        Int(conn.game_data.player_game_mode) == mode,
+        String(t"game type {mode} from level.dat"),
+    )
+    check(
+        Int(conn.game_data.time) == time, String(t"time {time} from level.dat")
+    )
+    pump(conn, 1500)
+    var cx = Int32(Int(x)) >> 4
+    var cz = Int32(Int(z)) >> 4
+    var req = SubChunkRequest()
+    req.dimension = 0
+    req.position = SubChunkPos()
+    req.position.x = cx
+    req.position.y = 0
+    req.position.z = cz
+    for dy in range(-4, 20):
+        req.offsets.append(SubChunkOffset(0, Int8(dy), 0))
+    conn.write_packet(req)
+    var blocks = 0
+    var deadline = monotonic_ms() + 10000
+    var answered = False
+    while monotonic_ms() < deadline and not answered:
+        var next = conn.read_packet(10)
+        if next and next.value().id() == ID_SUB_CHUNK:
+            answered = True
+            var sc = next.value().decode[SubChunk](conn.shield_id, False)
+            for ref e in sc.sub_chunk_entries:
+                if e.result != SUB_CHUNK_RESULT_SUCCESS or not e.raw_payload:
+                    continue
+                if len(e.raw_payload.value()) > 4:
+                    blocks += 1
+    print("SUBCHUNKS with blocks:", blocks)
+    check(blocks > 0, "the spawn column has stored sub-chunks with blocks")
+    conn.close()
+
+
 def command(address: String, expect: String, line: String) raises:
     var conn = join(address)
     var deadline = monotonic_ms() + 10000
@@ -156,6 +215,15 @@ def main() raises:
         expect_pos(address, Float32(atof(args[3])), Float32(atof(args[4])))
     elif mode == "expect-time":
         expect_time(address, Int(args[3]), Int(args[4]))
+    elif mode == "expect-start":
+        expect_start(
+            address,
+            Float32(atof(args[3])),
+            Float32(atof(args[4])),
+            Float32(atof(args[5])),
+            Int(args[6]),
+            Int(args[7]),
+        )
     elif mode == "command":
         var line = String(args[4])
         for i in range(5, len(args)):
