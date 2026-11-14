@@ -29,14 +29,7 @@ struct BannerPatternLayer(Defaultable, Equatable, ImplicitlyCopyable, NBTer):
         self.colour = Colour(0)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two layers.
-
-        Args:
-            other: The layer to compare with.
-
-        Returns:
-            True if both have the same pattern and colour.
-        """
+        """Compares two layers."""
         return self.type == other.type and self.colour == other.colour
 
     def encode_nbt(self, mut tag: Tree, root: Tag) raises:

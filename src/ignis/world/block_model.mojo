@@ -23,35 +23,12 @@ trait BlockModel(Copyable, Deinitable):
 
     def bbox[S: BlockSource](self, pos: Pos, src: S) -> List[BBox]:
         """Returns the boxes that make up the model, relative to the block's
-        position (Go `BBox`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            src: The blocks around it.
-
-        Returns:
-            The boxes; empty for blocks without collision.
-        """
+        position (Go `BBox`)."""
         ...
 
     def face_solid[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
         """Reports whether a face of the block is solid, so that other blocks
-        can attach to it (Go `FaceSolid`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the face is solid.
-        """
+        can attach to it (Go `FaceSolid`)."""
         ...
 
 
@@ -62,11 +39,7 @@ trait ModelledBlock(Block):
     """The type of the block's model."""
 
     def model(self) -> Self.ModelType:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         ...
 
 
@@ -79,32 +52,9 @@ struct UnknownModel(BlockModel, ImplicitlyCopyable):
     """The model ID of unknown blocks."""
 
     def bbox[S: BlockSource](self, pos: Pos, src: S) -> List[BBox]:
-        """Returns a full cube (Go `BBox`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            src: The blocks around it.
-
-        Returns:
-            One box from (0, 0, 0) to (1, 1, 1).
-        """
+        """Returns a full cube (Go `BBox`)."""
         return [BBox(Vec3(0, 0, 0), Vec3(1, 1, 1))]
 
     def face_solid[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
-        """Reports every face as solid (Go `FaceSolid`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True.
-        """
+        """Reports every face as solid (Go `FaceSolid`)."""
         return True

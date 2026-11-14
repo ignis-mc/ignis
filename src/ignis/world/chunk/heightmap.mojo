@@ -12,56 +12,23 @@ struct HeightMap(Copyable, Equatable, Sized):
         self._values = List[Int16](length=256, fill=0)
 
     def __len__(self) -> Int:
-        """Returns the number of columns.
-
-        Returns:
-            256.
-        """
+        """Returns the number of columns."""
         return len(self._values)
 
     def __getitem__(self, i: Int) -> Int16:
-        """Returns the value at an index (`x << 4 | z`).
-
-        Args:
-            i: The index.
-
-        Returns:
-            The height.
-        """
+        """Returns the value at an index (`x << 4 | z`)."""
         return self._values[i]
 
     def at(self, x: UInt8, z: UInt8) -> Int16:
-        """Returns the height of a column.
-
-        Args:
-            x: The X coordinate, 0 to 15.
-            z: The Z coordinate, 0 to 15.
-
-        Returns:
-            The height.
-        """
+        """Returns the height of a column."""
         return self._values[(Int(x) << 4) | Int(z)]
 
     def set(mut self, x: UInt8, z: UInt8, val: Int16):
-        """Sets the height of a column.
-
-        Args:
-            x: The X coordinate, 0 to 15.
-            z: The Z coordinate, 0 to 15.
-            val: The height.
-        """
+        """Sets the height of a column."""
         self._values[(Int(x) << 4) | Int(z)] = val
 
     def highest_neighbour(self, x: UInt8, z: UInt8) -> Int16:
-        """Returns the highest value of the columns directly next to one.
-
-        Args:
-            x: The X coordinate, 0 to 15.
-            z: The Z coordinate, 0 to 15.
-
-        Returns:
-            The highest neighbouring height, or `Int16.MIN` if none.
-        """
+        """Returns the highest value of the columns directly next to one."""
         var highest = Int16.MIN
         if x != 15:
             highest = max(highest, self.at(x + 1, z))
@@ -74,12 +41,5 @@ struct HeightMap(Copyable, Equatable, Sized):
         return highest
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two height maps.
-
-        Args:
-            other: The height map to compare with.
-
-        Returns:
-            True if every column is equal.
-        """
+        """Compares two height maps."""
         return self._values == other._values

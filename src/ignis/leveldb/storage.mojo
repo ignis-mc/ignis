@@ -46,14 +46,7 @@ def _pad6(n: Int) -> String:
 
 
 def file_name(fd: FileDesc) -> String:
-    """Returns the file name for a descriptor (Go `fsGenName`).
-
-    Args:
-        fd: The descriptor.
-
-    Returns:
-        The name, such as `000005.ldb`.
-    """
+    """Returns the file name for a descriptor (Go `fsGenName`)."""
     if fd.type == TYPE_MANIFEST:
         return String("MANIFEST-", _pad6(fd.num))
     if fd.type == TYPE_JOURNAL:
@@ -75,14 +68,7 @@ def _parse_num(b: Span[mut=False, UInt8, _]) -> Optional[Int]:
 
 
 def parse_file_name(name: StringSlice) -> Optional[FileDesc]:
-    """Parses a LevelDB file name (Go `fsParseName`).
-
-    Args:
-        name: The file name.
-
-    Returns:
-        The descriptor, or None for other files.
-    """
+    """Parses a LevelDB file name (Go `fsParseName`)."""
     var b = name.as_bytes()
     if name.startswith("MANIFEST-"):
         if case .Some(n) = _parse_num(b[9:]):
@@ -110,18 +96,7 @@ def parse_file_name(name: StringSlice) -> Optional[FileDesc]:
 
 def table_path(dir: StringSlice, num: Int) raises -> String:
     """Returns the path of table `num`, preferring `.ldb` and falling back to
-    an existing `.sst` (Go `fsHasOldName`).
-
-    Args:
-        dir: The database directory.
-        num: The file number.
-
-    Returns:
-        The path.
-
-    Raises:
-        If the path is invalid.
-    """
+    an existing `.sst` (Go `fsHasOldName`)."""
     var p = join(dir, file_name(FileDesc(TYPE_TABLE, num)))
     if exists(p):
         return p^
@@ -132,17 +107,7 @@ def table_path(dir: StringSlice, num: Int) raises -> String:
 
 
 def list_files(dir: StringSlice) raises -> List[Tuple[FileDesc, String]]:
-    """Lists the LevelDB files in a directory.
-
-    Args:
-        dir: The directory.
-
-    Returns:
-        Each descriptor with its file name.
-
-    Raises:
-        If the directory cannot be read.
-    """
+    """Lists the LevelDB files in a directory."""
     var out = List[Tuple[FileDesc, String]]()
     for name in list_dir(dir):
         if case .Some(fd) = parse_file_name(name):
@@ -169,17 +134,7 @@ def _try_current(dir: StringSlice, name: StringSlice) -> Optional[FileDesc]:
 def get_meta(dir: StringSlice) raises -> Optional[FileDesc]:
     """Finds the live manifest (Go `fileStorage.GetMeta`): pending
     `CURRENT.<num>` files in descending order, then `CURRENT`, then
-    `CURRENT.bak`, skipping corrupt ones and ones naming a missing file.
-
-    Args:
-        dir: The database directory.
-
-    Returns:
-        The manifest descriptor, or None if no valid pointer exists.
-
-    Raises:
-        If the directory cannot be read.
-    """
+    `CURRENT.bak`, skipping corrupt ones and ones naming a missing file."""
     var pending = List[Int]()
     for name in list_dir(dir):
         if name.startswith("CURRENT.") and name != "CURRENT.bak":
@@ -201,15 +156,7 @@ def get_meta(dir: StringSlice) raises -> Optional[FileDesc]:
 
 
 def set_meta(dir: StringSlice, fd: FileDesc) raises:
-    """Points `CURRENT` at a manifest durably (Go `fileStorage.setMeta`).
-
-    Args:
-        dir: The database directory.
-        fd: The manifest.
-
-    Raises:
-        If a file cannot be written or renamed.
-    """
+    """Points `CURRENT` at a manifest durably (Go `fileStorage.setMeta`)."""
     var content = file_name(fd) + "\n"
     var current = join(dir, "CURRENT")
     if exists(current):

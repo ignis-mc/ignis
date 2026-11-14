@@ -23,11 +23,7 @@ struct ToolType(Equatable, ImplicitlyCopyable, Writable):
     """Go's unexported value: -1 for none, then pickaxe 0 to sword 5."""
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the tool type's name.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the tool type's name."""
         if self.t == 0:
             writer.write("pickaxe")
         elif self.t == 1:
@@ -163,30 +159,15 @@ trait Tool:
     """An item that may be used as a tool (Go `Tool`)."""
 
     def tool_type(self) -> ToolType:
-        """Returns the type of the tool.
-
-        Returns:
-            The tool type.
-        """
+        """Returns the type of the tool."""
         ...
 
     def harvest_level(self) -> Int:
-        """Returns the highest harvest level of blocks the tool harvests.
-
-        Returns:
-            The level.
-        """
+        """Returns the highest harvest level of blocks the tool harvests."""
         ...
 
     def base_mining_efficiency(self, block_kind: UInt64) -> Float64:
-        """Returns the base speed at which the tool mines a block.
-
-        Args:
-            block_kind: The `BASE_HASH` of the block's type.
-
-        Returns:
-            The efficiency.
-        """
+        """Returns the base speed at which the tool mines a block."""
         ...
 
 
@@ -198,28 +179,13 @@ struct ToolNone(Defaultable, ImplicitlyCopyable, Tool):
         pass
 
     def tool_type(self) -> ToolType:
-        """Returns `TYPE_NONE`.
-
-        Returns:
-            The tool type.
-        """
+        """Returns `TYPE_NONE`."""
         return TYPE_NONE
 
     def harvest_level(self) -> Int:
-        """Returns 0.
-
-        Returns:
-            The level.
-        """
+        """Returns 0."""
         return 0
 
     def base_mining_efficiency(self, block_kind: UInt64) -> Float64:
-        """Returns 1.
-
-        Args:
-            block_kind: The block's type.
-
-        Returns:
-            The efficiency.
-        """
+        """Returns 1."""
         return 1

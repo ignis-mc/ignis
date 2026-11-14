@@ -16,24 +16,13 @@ struct SubChunk(Copyable, Movable):
     var _storages: List[PalettedStorage]
 
     def __init__(out self, air: UInt32):
-        """Creates an empty sub-chunk (Go `NewSubChunk`).
-
-        Args:
-            air: The runtime ID of air.
-        """
+        """Creates an empty sub-chunk (Go `NewSubChunk`)."""
         self._air = air
         self._storages = List[PalettedStorage]()
 
     def equals(self, s: Self) -> Bool:
         """Reports whether two sub-chunks are equal (Go `Equals`), using
-        `PalettedStorage.equal` for each layer.
-
-        Args:
-            s: The sub-chunk to compare with.
-
-        Returns:
-            True if they compare equal.
-        """
+        `PalettedStorage.equal` for each layer."""
         if s._air != self._air or len(s._storages) != len(self._storages):
             return False
         for i in range(len(s._storages)):
@@ -43,11 +32,7 @@ struct SubChunk(Copyable, Movable):
 
     def empty(self) -> Bool:
         """Reports whether the sub-chunk has no layers, or a single one
-        filled with air.
-
-        Returns:
-            True if the sub-chunk holds only air.
-        """
+        filled with air."""
         if len(self._storages) == 0:
             return True
         if len(self._storages) != 1:
@@ -57,38 +42,17 @@ struct SubChunk(Copyable, Movable):
 
     def layer(mut self, layer: UInt8) -> ref[self._storages[0]] PalettedStorage:
         """Returns a layer, creating it and every layer below it if needed
-        (Go `Layer`).
-
-        Args:
-            layer: The layer index.
-
-        Returns:
-            The layer.
-        """
+        (Go `Layer`)."""
         while UInt8(len(self._storages)) <= layer:
             self._storages.append(PalettedStorage.empty(self._air))
         return self._storages[Int(layer)]
 
     def layers(ref self) -> ref[self._storages] List[PalettedStorage]:
-        """Returns all layers; there may be none.
-
-        Returns:
-            The layers.
-        """
+        """Returns all layers; there may be none."""
         return self._storages
 
     def block(self, x: UInt8, y: UInt8, z: UInt8, layer: UInt8) -> UInt32:
-        """Returns the runtime ID at a position (coordinates 0 to 15).
-
-        Args:
-            x: The X coordinate.
-            y: The Y coordinate.
-            z: The Z coordinate.
-            layer: The layer.
-
-        Returns:
-            The runtime ID; air for layers that do not exist.
-        """
+        """Returns the runtime ID at a position (coordinates 0 to 15)."""
         if UInt8(len(self._storages)) <= layer:
             return self._air
         return self._storages[Int(layer)].at(x, y, z)
@@ -96,15 +60,7 @@ struct SubChunk(Copyable, Movable):
     def set_block(
         mut self, x: UInt8, y: UInt8, z: UInt8, layer: UInt8, block: UInt32
     ):
-        """Sets the runtime ID at a position (coordinates 0 to 15).
-
-        Args:
-            x: The X coordinate.
-            y: The Y coordinate.
-            z: The Z coordinate.
-            layer: The layer, created if needed.
-            block: The runtime ID.
-        """
+        """Sets the runtime ID at a position (coordinates 0 to 15)."""
         self.layer(layer).set(x, y, z, block)
 
     def compact(mut self):

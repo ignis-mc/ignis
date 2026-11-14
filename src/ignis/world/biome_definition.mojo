@@ -18,12 +18,6 @@ def biome_definitions(
     Names come first in the string list, in ID order, followed by tags as
     they are first used. Vanilla biomes are sent with biome ID -1; custom
     ones (IDs above `max_vanilla_id`) with their ID.
-
-    Args:
-        r: The finalised biome registry.
-
-    Returns:
-        The definitions, sorted by ID, and the interned string list.
     """
     var strings = List[String]()
     var index = Dict[String, Int]()

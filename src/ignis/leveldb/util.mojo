@@ -5,12 +5,7 @@ from nethernet.crypto.crc import crc32c
 
 
 def put_uvarint(mut out: List[UInt8], x: UInt64):
-    """Appends an unsigned LEB128 varint (Go `binary.PutUvarint`).
-
-    Args:
-        out: The destination.
-        x: The value.
-    """
+    """Appends an unsigned LEB128 varint (Go `binary.PutUvarint`)."""
     var v = x
     while v >= 0x80:
         out.append(UInt8(v & 0x7F) | 0x80)
@@ -21,18 +16,7 @@ def put_uvarint(mut out: List[UInt8], x: UInt64):
 def read_uvarint(
     data: Span[mut=False, UInt8, _], mut pos: Int
 ) raises -> UInt64:
-    """Reads an unsigned varint (Go `binary.Uvarint`).
-
-    Args:
-        data: The input.
-        pos: The offset; advanced past the varint.
-
-    Returns:
-        The value.
-
-    Raises:
-        If the input ends early or the varint overflows 64 bits.
-    """
+    """Reads an unsigned varint (Go `binary.Uvarint`)."""
     var x = UInt64(0)
     var shift = UInt64(0)
     for i in range(10):
@@ -52,18 +36,7 @@ def read_uvarint(
 def read_varint_int(
     data: Span[mut=False, UInt8, _], mut pos: Int
 ) raises -> Int:
-    """Reads an unsigned varint that must fit a non-negative `Int`.
-
-    Args:
-        data: The input.
-        pos: The offset; advanced past the varint.
-
-    Returns:
-        The value.
-
-    Raises:
-        If the varint is malformed or too large.
-    """
+    """Reads an unsigned varint that must fit a non-negative `Int`."""
     var v = read_uvarint(data, pos)
     if v > UInt64(Int.MAX):
         raise Error("leveldb: varint out of range")
@@ -71,12 +44,7 @@ def read_varint_int(
 
 
 def put_u32(mut out: List[UInt8], x: UInt32):
-    """Appends a little-endian uint32.
-
-    Args:
-        out: The destination.
-        x: The value.
-    """
+    """Appends a little-endian uint32."""
     out.append(UInt8(x & 0xFF))
     out.append(UInt8((x >> 8) & 0xFF))
     out.append(UInt8((x >> 16) & 0xFF))
@@ -84,26 +52,13 @@ def put_u32(mut out: List[UInt8], x: UInt32):
 
 
 def put_u64(mut out: List[UInt8], x: UInt64):
-    """Appends a little-endian uint64.
-
-    Args:
-        out: The destination.
-        x: The value.
-    """
+    """Appends a little-endian uint64."""
     for i in range(8):
         out.append(UInt8((x >> UInt64(8 * i)) & 0xFF))
 
 
 def get_u32(data: Span[mut=False, UInt8, _], pos: Int) -> UInt32:
-    """Reads a little-endian uint32; the caller checks the bounds.
-
-    Args:
-        data: The input.
-        pos: The offset.
-
-    Returns:
-        The value.
-    """
+    """Reads a little-endian uint32; the caller checks the bounds."""
     return (
         UInt32(data[pos])
         | (UInt32(data[pos + 1]) << 8)
@@ -113,15 +68,7 @@ def get_u32(data: Span[mut=False, UInt8, _], pos: Int) -> UInt32:
 
 
 def get_u64(data: Span[mut=False, UInt8, _], pos: Int) -> UInt64:
-    """Reads a little-endian uint64; the caller checks the bounds.
-
-    Args:
-        data: The input.
-        pos: The offset.
-
-    Returns:
-        The value.
-    """
+    """Reads a little-endian uint64; the caller checks the bounds."""
     var x = UInt64(0)
     for i in range(8):
         x |= UInt64(data[pos + i]) << UInt64(8 * i)
@@ -130,27 +77,13 @@ def get_u64(data: Span[mut=False, UInt8, _], pos: Int) -> UInt64:
 
 def masked_crc(data: Span[mut=False, UInt8, _]) -> UInt32:
     """Returns LevelDB's masked CRC-32C of the data (Go `util.NewCRC(b).Value`).
-
-    Args:
-        data: The bytes.
-
-    Returns:
-        The masked checksum.
     """
     var c = crc32c(data)
     return ((c >> 15) | (c << 17)) + 0xA282EAD8
 
 
 def hash(data: Span[mut=False, UInt8, _], seed: UInt32) -> UInt32:
-    """LevelDB's murmur-like hash with unsigned tail bytes (Go `util.Hash`).
-
-    Args:
-        data: The bytes.
-        seed: The seed.
-
-    Returns:
-        The hash.
-    """
+    """LevelDB's murmur-like hash with unsigned tail bytes (Go `util.Hash`)."""
     comptime m = UInt32(0xC6A4A793)
     var h = seed ^ (UInt32(len(data)) * m)
     var i = 0
@@ -175,15 +108,7 @@ def hash(data: Span[mut=False, UInt8, _], seed: UInt32) -> UInt32:
 def hash_signed_tail(data: Span[mut=False, UInt8, _], seed: UInt32) -> UInt32:
     """The same hash with tail bytes sign-extended, as C++ LevelDB computed it
     on `char`-signed platforms before 1.21. Filters written by such builds
-    are only consistent with this variant.
-
-    Args:
-        data: The bytes.
-        seed: The seed.
-
-    Returns:
-        The hash.
-    """
+    are only consistent with this variant."""
     comptime m = UInt32(0xC6A4A793)
     var h = seed ^ (UInt32(len(data)) * m)
     var i = 0
@@ -208,15 +133,7 @@ def hash_signed_tail(data: Span[mut=False, UInt8, _], seed: UInt32) -> UInt32:
 def compare_bytes(
     a: Span[mut=False, UInt8, _], b: Span[mut=False, UInt8, _]
 ) -> Int:
-    """Compares two byte strings lexicographically (Go `bytes.Compare`).
-
-    Args:
-        a: The first string.
-        b: The second string.
-
-    Returns:
-        -1, 0 or 1.
-    """
+    """Compares two byte strings lexicographically (Go `bytes.Compare`)."""
     var n = min(len(a), len(b))
     for i in range(n):
         if a[i] != b[i]:

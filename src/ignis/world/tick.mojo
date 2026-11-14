@@ -46,25 +46,14 @@ struct ScheduledTickQueue(Copyable):
     """The tick the queue last processed."""
 
     def __init__(out self, tick: Int64):
-        """Creates an empty queue (Go `newScheduledTickQueue`).
-
-        Args:
-            tick: The world's current tick.
-        """
+        """Creates an empty queue (Go `newScheduledTickQueue`)."""
         self.ticks = List[ScheduledTick]()
         self._furthest = Dict[_TickIndex, Int64]()
         self.current_tick = tick
 
     def schedule(mut self, pos: Pos, rid: UInt32, bhash: UInt64, delay_ms: Int):
         """Schedules an update unless one for the same position and block is
-        already scheduled at or after the resulting tick (Go `schedule`).
-
-        Args:
-            pos: The position.
-            rid: The runtime ID of the block.
-            bhash: The block's registry hash.
-            delay_ms: The delay; at least one tick.
-        """
+        already scheduled at or after the resulting tick (Go `schedule`)."""
         var res_tick = self.current_tick + Int64(max(delay_ms // 50, 1))
         var index = _TickIndex(pos, bhash)
         if case .Some(t) = self._furthest.get(index):
@@ -75,14 +64,7 @@ struct ScheduledTickQueue(Copyable):
 
     def take_due(mut self, tick: Int64) -> List[ScheduledTick]:
         """Removes and returns the updates due at `tick` (the first half of
-        Go's `tick`; the world runs them).
-
-        Args:
-            tick: The current tick.
-
-        Returns:
-            The due updates, in scheduling order.
-        """
+        Go's `tick`; the world runs them)."""
         self.current_tick = tick
         var due = List[ScheduledTick]()
         var kept = List[ScheduledTick]()
@@ -101,14 +83,7 @@ struct ScheduledTickQueue(Copyable):
         return due^
 
     def from_chunk(self, pos: ChunkPos) -> List[ScheduledTick]:
-        """Returns the updates in a chunk (Go `fromChunk`).
-
-        Args:
-            pos: The chunk position.
-
-        Returns:
-            The updates.
-        """
+        """Returns the updates in a chunk (Go `fromChunk`)."""
         var out = List[ScheduledTick]()
         for t in self.ticks:
             if chunk_pos_from_block_pos(t.pos) == pos:
@@ -116,11 +91,7 @@ struct ScheduledTickQueue(Copyable):
         return out^
 
     def remove_chunk(mut self, pos: ChunkPos):
-        """Removes the updates in a chunk (Go `removeChunk`).
-
-        Args:
-            pos: The chunk position.
-        """
+        """Removes the updates in a chunk (Go `removeChunk`)."""
         var kept = List[ScheduledTick]()
         for t in self.ticks:
             if chunk_pos_from_block_pos(t.pos) != pos:
@@ -134,11 +105,7 @@ struct ScheduledTickQueue(Copyable):
             _ = self._furthest.pop(k, 0)
 
     def add(mut self, ticks: List[ScheduledTick]):
-        """Adds updates read from a provider (Go `add`).
-
-        Args:
-            ticks: The updates; no duplicates.
-        """
+        """Adds updates read from a provider (Go `add`)."""
         for t in ticks:
             self.ticks.append(t.copy())
             var index = _TickIndex(t.pos, t.bhash)
@@ -171,14 +138,7 @@ struct RandUint4(Copyable, Defaultable):
         self._n = 0
 
     def uint4(mut self, mut r: Rand) -> UInt8:
-        """Returns a random value in [0, 16) (Go `uint4`).
-
-        Args:
-            r: The generator to refill from.
-
-        Returns:
-            The value.
-        """
+        """Returns a random value in [0, 16) (Go `uint4`)."""
         if self._n == 0:
             self._x = r.uint64()
             self._n = 16
@@ -192,16 +152,7 @@ def any_within_distance(
     pos: ChunkPos, loaded: List[ChunkPos], r: Int32
 ) -> Bool:
     """Reports whether any of the positions is within `r` chunks of `pos`
-    (Go `anyWithinDistance`).
-
-    Args:
-        pos: The chunk to check.
-        loaded: The chunks of the loaders.
-        r: The distance.
-
-    Returns:
-        True if one is within the distance.
-    """
+    (Go `anyWithinDistance`)."""
     for c in loaded:
         var dx = c.x() - pos.x()
         var dz = c.z() - pos.z()

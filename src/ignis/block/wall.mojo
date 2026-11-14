@@ -66,14 +66,6 @@ struct Wall(
         post: Bool = False,
     ):
         """Creates the block; `block` is required, the other fields default to Go zero values.
-
-        Args:
-            block: The block the wall is made of.
-            north_connection: The connection to the north of the post.
-            east_connection: The connection to the east of the post.
-            south_connection: The connection to the south of the post.
-            west_connection: The connection to the west of the post.
-            post: Whether the wall extends to the full height of a block.
         """
         self.block = block
         self.north_connection = north_connection
@@ -83,22 +75,11 @@ struct Wall(
         self.post = post
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         return BlockState(
             String(t"minecraft:{encode_wall_block(self.block)}_wall"),
             Properties()
@@ -118,11 +99,7 @@ struct Wall(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             hash_block(self.block)
             | UInt64(self.north_connection.uint8()) << 32
@@ -134,14 +111,7 @@ struct Wall(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Wall(
             block=unhash_block(hash & 0xFFFFFFFF),
             north_connection=WallConnectionType(Int((hash >> 32) & 0x3)),
@@ -153,11 +123,7 @@ struct Wall(
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for b in wall_blocks():
             for north in wall_connection_types():
@@ -178,11 +144,7 @@ struct Wall(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         var info = break_info(self.block.kind, self.block.state).value()
         return new_break_info(
             info.hardness, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
@@ -190,19 +152,11 @@ struct Wall(
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go
-        `LightDiffusionLevel`).
-
-        Returns:
-            The diffusion level, 0 to 15.
-        """
+        `LightDiffusionLevel`)."""
         return 0
 
     def model(self) -> WallModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return WallModel(
             north_connection=self.north_connection.height(),
             east_connection=self.east_connection.height(),

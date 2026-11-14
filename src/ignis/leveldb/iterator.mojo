@@ -32,40 +32,24 @@ struct TableStream(Movable):
     var _block: Optional[BlockIter]
 
     def __init__(out self, var tables: List[Table]):
-        """Creates an unpositioned iterator.
-
-        Args:
-            tables: The tables, sorted by key range.
-        """
+        """Creates an unpositioned iterator."""
         self._tables = tables^
         self._ti = 0
         self._bi = 0
         self._block = None
 
     def valid(self) -> Bool:
-        """Reports whether the iterator is at an entry.
-
-        Returns:
-            True if positioned.
-        """
+        """Reports whether the iterator is at an entry."""
         if self._block:
             return self._block.value().valid()
         return False
 
     def key(self) -> Span[UInt8, origin_of(self._block.value()._key)]:
-        """Returns the current internal key.
-
-        Returns:
-            A view of the key.
-        """
+        """Returns the current internal key."""
         return self._block.value().key()
 
     def value(self) -> Span[UInt8, origin_of(self._block.value()._data)]:
-        """Returns the current value.
-
-        Returns:
-            A view of the value.
-        """
+        """Returns the current value."""
         return self._block.value().value()
 
     def _settle(mut self) raises:
@@ -87,35 +71,20 @@ struct TableStream(Movable):
             self._block = b^
 
     def first(mut self) raises:
-        """Moves to the first entry.
-
-        Raises:
-            If a block cannot be read or is corrupt.
-        """
+        """Moves to the first entry."""
         self._ti = 0
         self._bi = 0
         self._block = None
         self._settle()
 
     def next(mut self) raises:
-        """Moves to the next entry.
-
-        Raises:
-            If a block cannot be read or is corrupt.
-        """
+        """Moves to the next entry."""
         if self._block:
             self._block.value().next()
         self._settle()
 
     def seek(mut self, ikey: Span[mut=False, UInt8, _]) raises:
-        """Moves to the first entry not less than `ikey`.
-
-        Args:
-            ikey: The internal key.
-
-        Raises:
-            If a block cannot be read or is corrupt.
-        """
+        """Moves to the first entry not less than `ikey`."""
         self._block = None
         var lo = 0
         var hi = len(self._tables)
@@ -144,36 +113,20 @@ struct MemStream(Movable):
     var _node: Int
 
     def __init__(out self, var mem: MemDB):
-        """Creates an unpositioned iterator.
-
-        Args:
-            mem: The memtable snapshot.
-        """
+        """Creates an unpositioned iterator."""
         self._mem = mem^
         self._node = 0
 
     def valid(self) -> Bool:
-        """Reports whether the iterator is at an entry.
-
-        Returns:
-            True if positioned.
-        """
+        """Reports whether the iterator is at an entry."""
         return self._node != 0
 
     def key(self) -> Span[UInt8, origin_of(self._mem._kv)]:
-        """Returns the current internal key.
-
-        Returns:
-            A view of the key.
-        """
+        """Returns the current internal key."""
         return self._mem.key_at(self._node)
 
     def value(self) -> Span[UInt8, origin_of(self._mem._kv)]:
-        """Returns the current value.
-
-        Returns:
-            A view of the value.
-        """
+        """Returns the current value."""
         return self._mem.value_at(self._node)
 
     def first(mut self):
@@ -186,11 +139,7 @@ struct MemStream(Movable):
             self._node = self._mem.next(self._node)
 
     def seek(mut self, ikey: Span[mut=False, UInt8, _]):
-        """Moves to the first entry not less than `ikey`.
-
-        Args:
-            ikey: The internal key.
-        """
+        """Moves to the first entry not less than `ikey`."""
         self._node = self._mem.find_ge(ikey)
 
 
@@ -210,12 +159,7 @@ struct MergedStream(Movable):
     def __init__(
         out self, var mem: Optional[MemStream], var tables: List[TableStream]
     ):
-        """Creates an unpositioned merged iterator.
-
-        Args:
-            mem: The memtable iterator, if any.
-            tables: The table iterators.
-        """
+        """Creates an unpositioned merged iterator."""
         self._mem = mem^
         self._tables = tables^
         self._cur = -2
@@ -223,11 +167,7 @@ struct MergedStream(Movable):
         self.value = List[UInt8]()
 
     def valid(self) -> Bool:
-        """Reports whether the iterator is at an entry.
-
-        Returns:
-            True if positioned.
-        """
+        """Reports whether the iterator is at an entry."""
         return self._cur != -2
 
     def _pick(mut self):
@@ -264,11 +204,7 @@ struct MergedStream(Movable):
             self.value = List[UInt8](self._tables[best].value())
 
     def first(mut self) raises:
-        """Moves to the first entry.
-
-        Raises:
-            If a block cannot be read or is corrupt.
-        """
+        """Moves to the first entry."""
         if self._mem:
             self._mem.value().first()
         for i in range(len(self._tables)):
@@ -276,14 +212,7 @@ struct MergedStream(Movable):
         self._pick()
 
     def seek(mut self, ikey: Span[mut=False, UInt8, _]) raises:
-        """Moves to the first entry not less than `ikey`.
-
-        Args:
-            ikey: The internal key.
-
-        Raises:
-            If a block cannot be read or is corrupt.
-        """
+        """Moves to the first entry not less than `ikey`."""
         if self._mem:
             self._mem.value().seek(ikey)
         for i in range(len(self._tables)):
@@ -291,11 +220,7 @@ struct MergedStream(Movable):
         self._pick()
 
     def next(mut self) raises:
-        """Moves to the next entry.
-
-        Raises:
-            If a block cannot be read or is corrupt.
-        """
+        """Moves to the next entry."""
         if self._cur == -1:
             self._mem.value().next()
         elif self._cur >= 0:
@@ -320,11 +245,7 @@ struct Iterator(Movable):
     var _value: List[UInt8]
 
     def __init__(out self, var m: MergedStream):
-        """Wraps a merged stream.
-
-        Args:
-            m: The stream over the memtable and every table.
-        """
+        """Wraps a merged stream."""
         self._m = m^
         self._started = False
         self._valid = False
@@ -332,27 +253,15 @@ struct Iterator(Movable):
         self._value = List[UInt8]()
 
     def key(self) -> Span[UInt8, origin_of(self._key)]:
-        """Returns the current user key.
-
-        Returns:
-            A view of the key.
-        """
+        """Returns the current user key."""
         return Span(self._key)
 
     def value(self) -> Span[UInt8, origin_of(self._value)]:
-        """Returns the current value.
-
-        Returns:
-            A view of the value.
-        """
+        """Returns the current value."""
         return Span(self._value)
 
     def valid(self) -> Bool:
-        """Reports whether the iterator is at an entry.
-
-        Returns:
-            True if positioned.
-        """
+        """Reports whether the iterator is at an entry."""
         return self._valid
 
     def _fill(mut self, var skip_ukey: Bool) raises -> Bool:
@@ -378,45 +287,21 @@ struct Iterator(Movable):
         return False
 
     def first(mut self) raises -> Bool:
-        """Moves to the first live entry (Go `First`).
-
-        Returns:
-            True if there is one.
-
-        Raises:
-            If a block cannot be read or is corrupt.
-        """
+        """Moves to the first live entry (Go `First`)."""
         self._started = True
         self._m.first()
         return self._fill(False)
 
     def seek(mut self, key: Span[mut=False, UInt8, _]) raises -> Bool:
         """Moves to the first live entry with a key not less than `key` (Go
-        `Seek`).
-
-        Args:
-            key: The user key.
-
-        Returns:
-            True if there is one.
-
-        Raises:
-            If a block cannot be read or is corrupt.
-        """
+        `Seek`)."""
         self._started = True
         self._m.seek(Span(internal_key(key, KEY_MAX_SEQ, KEY_TYPE_VAL)))
         return self._fill(False)
 
     def next(mut self) raises -> Bool:
         """Moves to the next live entry; the first call moves to the first
-        (Go `Next`).
-
-        Returns:
-            True if there is one.
-
-        Raises:
-            If a block cannot be read or is corrupt.
-        """
+        (Go `Next`)."""
         if not self._started:
             return self.first()
         if not self._valid:

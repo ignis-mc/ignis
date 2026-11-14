@@ -69,34 +69,17 @@ struct Sign(
         attach: Attachment = Attachment(),
         waxed: Bool = False,
     ):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            wood: The type of wood of the sign.
-            attach: How the sign is attached.
-            waxed: Whether the sign is waxed, which stops it from being edited.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.wood = wood
         self.attach = attach
         self.waxed = waxed
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state and hold the same data.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash() and self.waxed == other.waxed
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         var wood = String(t"{self.wood}_")
         if self.wood == WoodType.OAK:
             wood = ""
@@ -117,23 +100,12 @@ struct Sign(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return UInt64(self.wood.uint8()) | UInt64(self.attach.uint8()) << 4
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Sign(
             wood=WoodType(Int(hash & 0xF)),
             attach=attachment_from_uint8(Int((hash >> 4) & 0x1F)),
@@ -141,11 +113,7 @@ struct Sign(
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for w in wood_types():
             for d in directions():
@@ -157,28 +125,16 @@ struct Sign(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(1, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go
-        `LightDiffusionLevel`).
-
-        Returns:
-            The diffusion level, 0 to 15.
-        """
+        `LightDiffusionLevel`)."""
         return 0
 
     def model(self) -> EmptyModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
 
     def encode_item(self) -> EncodedItem:

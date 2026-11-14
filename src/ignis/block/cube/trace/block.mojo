@@ -26,36 +26,20 @@ struct BlockResult(ImplicitlyCopyable, Result):
     var _block_pos: Pos
 
     def bbox(self) -> BBox:
-        """Returns the box of the block that was hit (Go `BBox`).
-
-        Returns:
-            The box, in world coordinates.
-        """
+        """Returns the box of the block that was hit (Go `BBox`)."""
         return self._bb
 
     def position(self) -> Vec3:
-        """Returns the point where the ray hit the block (Go `Position`).
-
-        Returns:
-            The point.
-        """
+        """Returns the point where the ray hit the block (Go `Position`)."""
         return self._pos
 
     def face(self) -> Face:
-        """Returns the face of the block that was hit (Go `Face`).
-
-        Returns:
-            The face.
-        """
+        """Returns the face of the block that was hit (Go `Face`)."""
         return self._face
 
     def block_position(self) -> Pos:
         """Returns the position of the block that was hit (Go
-        `BlockPosition`).
-
-        Returns:
-            The position.
-        """
+        `BlockPosition`)."""
         return self._block_pos
 
 
@@ -65,21 +49,7 @@ def block_intercept[
     BlockResult
 ]:
     """Finds where the segment from `start` to `end` first hits the model of
-    a block (Go `BlockIntercept`).
-
-    Parameters:
-        S: The block source type.
-
-    Args:
-        pos: The position of the block.
-        src: The blocks around it.
-        b: The block.
-        start: The start of the ray.
-        end: The end of the ray.
-
-    Returns:
-        The hit on the nearest box, or None if the ray misses the block.
-    """
+    a block (Go `BlockIntercept`)."""
     var bbs = block_model_bbox(b, pos, src)
     var hit = Optional[BBoxResult](None)
     var dist = Float64.MAX
@@ -102,21 +72,7 @@ def block_intersects[
     """Reports whether the segment from `start` to `end` touches the model of
     a block (Go `BlockIntersects`). Go short-cuts `model.Empty` (no boxes)
     and `model.Solid` (one full box); both give the same result through
-    their boxes.
-
-    Parameters:
-        S: The block source type.
-
-    Args:
-        pos: The position of the block.
-        src: The blocks around it.
-        b: The block.
-        start: The start of the ray.
-        end: The end of the ray.
-
-    Returns:
-        True if the ray touches one of the block's boxes.
-    """
+    their boxes."""
     for bb in block_model_bbox(b, pos, src):
         if bbox_intersects(bb.translate(pos.vec3()), start, end):
             return True

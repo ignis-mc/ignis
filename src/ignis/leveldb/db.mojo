@@ -187,16 +187,7 @@ struct DB(Movable):
     def __init__(
         out self, dir: StringSlice, var opts: Options = Options()
     ) raises:
-        """Opens or creates the database in `dir` (Go `leveldb.OpenFile`).
-
-        Args:
-            dir: The database directory; created if missing.
-            opts: The options.
-
-        Raises:
-            If the directory is locked by another process, the manifest or a
-            table is corrupt or missing, or a file cannot be written.
-        """
+        """Opens or creates the database in `dir` (Go `leveldb.OpenFile`)."""
         var d = String(dir)
         make_dir_all(d)
         var lock = open_rw(join(d, "LOCK"))
@@ -327,35 +318,19 @@ struct DB(Movable):
         self._comp_ptrs = comp_ptrs^
 
     def dir(self) -> String:
-        """Returns the database directory.
-
-        Returns:
-            The path.
-        """
+        """Returns the database directory."""
         return self._dir
 
     def seq(self) -> UInt64:
-        """Returns the last sequence number used.
-
-        Returns:
-            The sequence number.
-        """
+        """Returns the last sequence number used."""
         return self._seq
 
     def version(self) -> ref[self._version] Version:
-        """Returns the current tables of every level.
-
-        Returns:
-            A reference to the version.
-        """
+        """Returns the current tables of every level."""
         return self._version
 
     def memtable_size(self) -> Int:
-        """Returns the bytes held by the memtable.
-
-        Returns:
-            The size in bytes.
-        """
+        """Returns the bytes held by the memtable."""
         return self._mem.size()
 
     # ===------------------------------------------------------------------=== #
@@ -366,17 +341,7 @@ struct DB(Movable):
         self, key: Span[mut=False, UInt8, _]
     ) raises -> Optional[List[UInt8]]:
         """Returns the value of a key (Go `DB.Get`; None replaces
-        `ErrNotFound`).
-
-        Args:
-            key: The user key.
-
-        Returns:
-            The value, or None if the key is absent or deleted.
-
-        Raises:
-            If a table is corrupt or unreadable.
-        """
+        `ErrNotFound`)."""
         var ik = internal_key(key, KEY_MAX_SEQ, KEY_TYPE_VAL)
         var node = self._mem.find_ge(Span(ik))
         if node != 0:
@@ -423,28 +388,14 @@ struct DB(Movable):
         return None
 
     def has(self, key: Span[mut=False, UInt8, _]) raises -> Bool:
-        """Reports whether a key is present (Go `DB.Has`).
-
-        Args:
-            key: The user key.
-
-        Returns:
-            True if present.
-
-        Raises:
-            If a table is corrupt or unreadable.
-        """
+        """Reports whether a key is present (Go `DB.Has`)."""
         return Bool(self.get(key))
 
     def new_iterator(self) -> Iterator:
         """Returns an iterator over every live key in order (Go
         `DB.NewIterator(nil, nil)`). It reads a copy of the memtable and of
         the table list; compactions run after it is created may remove
-        files it reads.
-
-        Returns:
-            The iterator, before the first entry.
-        """
+        files it reads."""
         var tables = List[TableStream]()
         for t in self._version.levels[0]:
             tables.append(TableStream([t.copy()]))
@@ -462,42 +413,20 @@ struct DB(Movable):
         key: Span[mut=False, UInt8, _],
         value: Span[mut=False, UInt8, _],
     ) raises:
-        """Sets a key (Go `DB.Put`).
-
-        Args:
-            key: The user key.
-            value: The value.
-
-        Raises:
-            If the journal or a flush cannot be written.
-        """
+        """Sets a key (Go `DB.Put`)."""
         var b = Batch()
         b.put(key, value)
         self.write(b)
 
     def delete(mut self, key: Span[mut=False, UInt8, _]) raises:
-        """Deletes a key (Go `DB.Delete`).
-
-        Args:
-            key: The user key.
-
-        Raises:
-            If the journal or a flush cannot be written.
-        """
+        """Deletes a key (Go `DB.Delete`)."""
         var b = Batch()
         b.delete(key)
         self.write(b)
 
     def write(mut self, batch: Batch) raises:
         """Applies a batch atomically (Go `DB.Write`): one journal record,
-        then the memtable.
-
-        Args:
-            batch: The batch.
-
-        Raises:
-            If the journal or a flush cannot be written.
-        """
+        then the memtable."""
         if len(batch) == 0:
             return
         if (
@@ -519,11 +448,7 @@ struct DB(Movable):
             self.flush()
 
     def sync(self) raises:
-        """Flushes the journal to disk.
-
-        Raises:
-            If `fsync` fails.
-        """
+        """Flushes the journal to disk."""
         self._journal.sync()
 
     # ===------------------------------------------------------------------=== #
@@ -551,11 +476,7 @@ struct DB(Movable):
     def flush(mut self) raises:
         """Writes the memtable to a level-0 table and starts a new journal
         (Go `DB.rotateMem` and `memCompaction`), then runs up to two
-        compaction steps.
-
-        Raises:
-            If a file cannot be written.
-        """
+        compaction steps."""
         var old_journal = self._journal_num
         var new_num = self._alloc()
         var journal = create(
@@ -604,14 +525,7 @@ struct DB(Movable):
         are `compaction_l0_trigger` of them, otherwise one table of the
         fullest level into the next. Callers that want bounded pauses can
         call this from an idle loop instead of relying on the automatic
-        steps after a flush.
-
-        Returns:
-            True if a compaction ran.
-
-        Raises:
-            If a file cannot be read or written.
-        """
+        steps after a flush."""
         var level = self._pick_level()
         if level < 0:
             return False
@@ -637,11 +551,7 @@ struct DB(Movable):
     def compact_all(mut self) raises:
         """Flushes the memtable and merges every table into the deepest
         non-empty level (at least 1), dropping overwritten versions and
-        deletion markers (Go `DB.CompactRange` over the whole key space).
-
-        Raises:
-            If a file cannot be read or written.
-        """
+        deletion markers (Go `DB.CompactRange` over the whole key space)."""
         if len(self._mem) > 0:
             self.flush()
         var out_level = 1

@@ -19,47 +19,24 @@ struct WireConnection(Equatable, ImplicitlyCopyable, Writable):
     """Go `UpWireConnection()`."""
 
     def __init__(out self, v: Int):
-        """Creates the value with index `v` (Go `WireConnection{v}`).
-
-        Args:
-            v: 0 to 2.
-        """
+        """Creates the value with index `v` (Go `WireConnection{v}`)."""
         self._v = UInt8(v)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two values.
-
-        Args:
-            other: The value to compare with.
-
-        Returns:
-            True if both are the same.
-        """
+        """Compares two values."""
         return self._v == other._v
 
     def uint8(self) -> UInt8:
-        """Returns the value as a byte (Go `Uint8`).
-
-        Returns:
-            0 to 2.
-        """
+        """Returns the value as a byte (Go `Uint8`)."""
         return self._v
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the value's string form (Go `String`).
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the value's string form (Go `String`)."""
         writer.write(enum_name("none,side,up", Int(self._v)))
 
 
 def wire_connection_types() -> List[WireConnection]:
-    """Returns every wire connection, none, side and up (no Go counterpart).
-
-    Returns:
-        The values.
-    """
+    """Returns every wire connection, none, side and up (no Go counterpart)."""
     var out = List[WireConnection](capacity=3)
     for i in range(3):
         out.append(WireConnection(i))
@@ -90,11 +67,7 @@ struct WireConnections(Equatable, ImplicitlyCopyable):
         )
 
     def __init__(out self, *, bits: Int):
-        """Unpacks the value `uint8` returns.
-
-        Args:
-            bits: The connections as a base-3 number, 0 to 80.
-        """
+        """Unpacks the value `uint8` returns."""
         self = WireConnections(
             WireConnection(bits % 3),
             WireConnection(bits // 3 % 3),
@@ -103,22 +76,11 @@ struct WireConnections(Equatable, ImplicitlyCopyable):
         )
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two connection sets.
-
-        Args:
-            other: The set to compare with.
-
-        Returns:
-            True if all four sides are equal.
-        """
+        """Compares two connection sets."""
         return self.uint8() == other.uint8()
 
     def uint8(self) -> UInt8:
-        """Packs the connections into a base-3 number (Go `Uint8`).
-
-        Returns:
-            `north + east * 3 + south * 9 + west * 27`.
-        """
+        """Packs the connections into a base-3 number (Go `Uint8`)."""
         return (
             self.north.uint8()
             + self.east.uint8() * 3
@@ -127,14 +89,7 @@ struct WireConnections(Equatable, ImplicitlyCopyable):
         )
 
     def properties(self, var p: Properties) -> Properties:
-        """Adds the wire connection block properties (Go `properties`).
-
-        Args:
-            p: The properties to extend.
-
-        Returns:
-            The properties with `redstone_*` set.
-        """
+        """Adds the wire connection block properties (Go `properties`)."""
         return p^.with_string("redstone_north", String(self.north)).with_string(
             "redstone_east", String(self.east)
         ).with_string("redstone_south", String(self.south)).with_string(
@@ -143,11 +98,7 @@ struct WireConnections(Equatable, ImplicitlyCopyable):
 
 
 def all_wire_connections() -> List[WireConnections]:
-    """Returns all 81 wire connection sets (Go `allWireConnections`).
-
-    Returns:
-        The sets, ordered by their `uint8` value.
-    """
+    """Returns all 81 wire connection sets (Go `allWireConnections`)."""
     var out = List[WireConnections](capacity=81)
     for i in range(81):
         out.append(WireConnections(bits=i))

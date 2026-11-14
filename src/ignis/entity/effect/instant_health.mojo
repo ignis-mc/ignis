@@ -20,11 +20,7 @@ struct InstantHealth(Defaultable, EffectType, ImplicitlyCopyable):
     """The effect ID (Go `effect.Register(6, InstantHealth)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0xf8, 0x24, 0x23, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0xF8, 0x24, 0x23, 0xFF)
 
 

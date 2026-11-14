@@ -17,42 +17,21 @@ struct BBoxResult(ImplicitlyCopyable, Result):
     var _face: Face
 
     def bbox(self) -> BBox:
-        """Returns the box that was hit (Go `BBox`).
-
-        Returns:
-            The box.
-        """
+        """Returns the box that was hit (Go `BBox`)."""
         return self._bb
 
     def position(self) -> Vec3:
-        """Returns the point where the ray hit the box (Go `Position`).
-
-        Returns:
-            The point.
-        """
+        """Returns the point where the ray hit the box (Go `Position`)."""
         return self._pos
 
     def face(self) -> Face:
-        """Returns the face of the box that was hit (Go `Face`).
-
-        Returns:
-            The face.
-        """
+        """Returns the face of the box that was hit (Go `Face`)."""
         return self._face
 
 
 def bbox_intercept(bb: BBox, start: Vec3, end: Vec3) -> Optional[BBoxResult]:
     """Finds where the segment from `start` to `end` first enters a box (Go
-    `BBoxIntercept`).
-
-    Args:
-        bb: The box.
-        start: The start of the ray.
-        end: The end of the ray.
-
-    Returns:
-        The hit, or None if the segment misses the box.
-    """
+    `BBoxIntercept`)."""
     var lo = bb.min()
     var hi = bb.max()
     # Candidates in Go's order: west, east, down, up, north, south.
@@ -95,16 +74,7 @@ def bbox_intercept(bb: BBox, start: Vec3, end: Vec3) -> Optional[BBoxResult]:
 
 def bbox_intersects(bb: BBox, start: Vec3, end: Vec3) -> Bool:
     """Reports whether the segment from `start` to `end` touches a box, using
-    the slab method (Go `BBoxIntersects`).
-
-    Args:
-        bb: The box.
-        start: The start of the ray.
-        end: The end of the ray.
-
-    Returns:
-        True if the segment intersects the box.
-    """
+    the slab method (Go `BBoxIntersects`)."""
     var lo = bb.min()
     var hi = bb.max()
     var dir = end.sub(start)

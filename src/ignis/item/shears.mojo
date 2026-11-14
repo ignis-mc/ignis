@@ -18,38 +18,19 @@ struct Shears(Durable, Equatable, ImplicitlyCopyable, Item, MaxCounter, Tool):
     """`item_hash("Shears")`."""
 
     def tool_type(self) -> ToolType:
-        """Returns the tool type (Go `ToolType`).
-
-        Returns:
-            `TYPE_SHEARS`.
-        """
+        """Returns the tool type (Go `ToolType`)."""
         return TYPE_SHEARS
 
     def harvest_level(self) -> Int:
-        """Returns the harvest level (Go `HarvestLevel`).
-
-        Returns:
-            1.
-        """
+        """Returns the harvest level (Go `HarvestLevel`)."""
         return 1
 
     def base_mining_efficiency(self, block_kind: UInt64) -> Float64:
-        """Returns the base mining efficiency (Go `BaseMiningEfficiency`).
-
-        Args:
-            block_kind: The block's type.
-
-        Returns:
-            1.5 for every block.
-        """
+        """Returns the base mining efficiency (Go `BaseMiningEfficiency`)."""
         return 1.5
 
     def durability_info(self) -> DurabilityInfo:
-        """Returns the durability info (Go `DurabilityInfo`).
-
-        Returns:
-            238 uses, 1 per block broken, none per attack.
-        """
+        """Returns the durability info (Go `DurabilityInfo`)."""
         return DurabilityInfo(
             max_durability=238,
             attack_durability=0,
@@ -58,46 +39,23 @@ struct Shears(Durable, Equatable, ImplicitlyCopyable, Item, MaxCounter, Tool):
         )
 
     def max_count(self) -> Int:
-        """Returns the maximum count (Go `MaxCount`).
-
-        Returns:
-            1.
-        """
+        """Returns the maximum count (Go `MaxCount`)."""
         return 1
 
     def encode_item(self) -> EncodedItem:
-        """Encodes the item (Go `EncodeItem`).
-
-        Returns:
-            `minecraft:shears`, metadata 0.
-        """
+        """Encodes the item (Go `EncodeItem`)."""
         return EncodedItem("minecraft:shears", 0)
 
     def hash(self) -> UInt64:
-        """Returns the item hash; the type has one value.
-
-        Returns:
-            0.
-        """
+        """Returns the item hash; the type has one value."""
         return 0
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the item from its hash.
-
-        Args:
-            hash: The hash.
-
-        Returns:
-            The shears.
-        """
+        """Rebuilds the item from its hash."""
         return Self()
 
     @staticmethod
     def all_items() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            The one value.
-        """
+        """Returns the registered values (Go `register.go`)."""
         return [Self()]

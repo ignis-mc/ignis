@@ -1,5 +1,4 @@
-"""The block sounds, ported from Dragonfly `server/world/sound/block.go`.
-"""
+"""The block sounds, ported from Dragonfly `server/world/sound/block.go`."""
 
 from ...block.hash import AnyBlock
 from ..block_registry import UNKNOWN_KIND
@@ -21,11 +20,7 @@ struct BlockPlace(ImplicitlyCopyable, Sound):
     def __init__(
         out self, *, block: AnyBlock = AnyBlock(kind=UNKNOWN_KIND, state=0)
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            block: Block is the block which is placed, for which a sound...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.block = block
 
 
@@ -43,11 +38,7 @@ struct BlockBreaking(ImplicitlyCopyable, Sound):
     def __init__(
         out self, *, block: AnyBlock = AnyBlock(kind=UNKNOWN_KIND, state=0)
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            block: Block is the block which is being broken, for which a...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.block = block
 
 
@@ -182,11 +173,7 @@ struct DoorOpen(ImplicitlyCopyable, Sound):
     def __init__(
         out self, *, block: AnyBlock = AnyBlock(kind=UNKNOWN_KIND, state=0)
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            block: Block is the block which is being opened, for which a...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.block = block
 
 
@@ -203,11 +190,7 @@ struct DoorClose(ImplicitlyCopyable, Sound):
     def __init__(
         out self, *, block: AnyBlock = AnyBlock(kind=UNKNOWN_KIND, state=0)
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            block: Block is the block which is being closed, for which a...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.block = block
 
 
@@ -224,11 +207,7 @@ struct TrapdoorOpen(ImplicitlyCopyable, Sound):
     def __init__(
         out self, *, block: AnyBlock = AnyBlock(kind=UNKNOWN_KIND, state=0)
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            block: Block is the block which is being opened, for which a...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.block = block
 
 
@@ -245,11 +224,7 @@ struct TrapdoorClose(ImplicitlyCopyable, Sound):
     def __init__(
         out self, *, block: AnyBlock = AnyBlock(kind=UNKNOWN_KIND, state=0)
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            block: Block is the block which is being closed, for which a...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.block = block
 
 
@@ -266,11 +241,7 @@ struct FenceGateOpen(ImplicitlyCopyable, Sound):
     def __init__(
         out self, *, block: AnyBlock = AnyBlock(kind=UNKNOWN_KIND, state=0)
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            block: Block is the block which is being opened, for which a...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.block = block
 
 
@@ -288,11 +259,7 @@ struct FenceGateClose(ImplicitlyCopyable, Sound):
     def __init__(
         out self, *, block: AnyBlock = AnyBlock(kind=UNKNOWN_KIND, state=0)
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            block: Block is the block which is being closed, for which a...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.block = block
 
 
@@ -351,12 +318,7 @@ struct Note(ImplicitlyCopyable, Sound):
     def __init__(
         out self, *, instrument: Instrument = Instrument.PIANO, pitch: Int = 0
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            instrument: Instrument is the instrument of the note block.
-            pitch: Pitch is the pitch of the note.
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.instrument = instrument
         self.pitch = pitch
 
@@ -372,11 +334,7 @@ struct MusicDiscPlay(ImplicitlyCopyable, Sound):
     """DiscType is the disc type of the music disc."""
 
     def __init__(out self, *, disc_type: DiscType = DiscType.DISC_13):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            disc_type: DiscType is the disc type of the music disc.
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.disc_type = disc_type
 
 
@@ -569,11 +527,7 @@ struct DecoratedPotInserted(ImplicitlyCopyable, Sound):
     """Progress is how much of the decorated pot has been filled."""
 
     def __init__(out self, *, progress: Float64 = 0):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            progress: Progress is how much of the decorated pot has been filled.
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.progress = progress
 
 

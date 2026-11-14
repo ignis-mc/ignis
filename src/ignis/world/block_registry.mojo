@@ -59,58 +59,31 @@ struct BlockInfo(Equatable, ImplicitlyCopyable):
     """The packed value."""
 
     def set(mut self, flag: UInt16):
-        """Sets a flag.
-
-        Args:
-            flag: The flag bit.
-        """
+        """Sets a flag."""
         self.bits |= flag
 
     def get(self, flag: UInt16) -> Bool:
-        """Reports whether a flag is set.
-
-        Args:
-            flag: The flag bit.
-
-        Returns:
-            True if the flag is set.
-        """
+        """Reports whether a flag is set."""
         return self.bits & flag != 0
 
     def set_light(mut self, light: UInt8):
-        """Sets the light emission level.
-
-        Args:
-            light: The level; only the low 4 bits are kept.
-        """
+        """Sets the light emission level."""
         self.bits = (self.bits & ~(UInt16(0xF) << 8)) | (
             UInt16(light & 0xF) << 8
         )
 
     def set_light_filter(mut self, light: UInt8):
-        """Sets the light filtering level.
-
-        Args:
-            light: The level; only the low 4 bits are kept.
-        """
+        """Sets the light filtering level."""
         self.bits = (self.bits & ~(UInt16(0xF) << 12)) | (
             UInt16(light & 0xF) << 12
         )
 
     def get_light(self) -> UInt8:
-        """Returns the light emission level.
-
-        Returns:
-            The level.
-        """
+        """Returns the light emission level."""
         return UInt8((self.bits >> 8) & 0xF)
 
     def get_light_filter(self) -> UInt8:
-        """Returns the light filtering level.
-
-        Returns:
-            The level.
-        """
+        """Returns the light filtering level."""
         return UInt8((self.bits >> 12) & 0xF)
 
 
@@ -198,17 +171,7 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
     @staticmethod
     def from_block_states(data: Span[UInt8, _]) raises -> Self:
         """Creates a registry holding every state in a `block_states.nbt`
-        file (Go `block_state.go` `init`).
-
-        Args:
-            data: The file: concatenated network little-endian compounds.
-
-        Returns:
-            An unfinalized registry.
-
-        Raises:
-            If the data is malformed or holds a state twice.
-        """
+        file (Go `block_state.go` `init`)."""
         var br = Self()
         var pos = 0
         while pos < len(data):
@@ -218,31 +181,14 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
 
     @staticmethod
     def load(path: String) raises -> Self:
-        """Creates a registry from a `block_states.nbt` file on disk.
-
-        Args:
-            path: The path of the file.
-
-        Returns:
-            An unfinalized registry.
-
-        Raises:
-            If the file cannot be read or is malformed.
-        """
+        """Creates a registry from a `block_states.nbt` file on disk."""
         var data: List[UInt8]
         with open(path, "r") as f:
             data = f.read_bytes()
         return Self.from_block_states(Span(data))
 
     def register_block_state(mut self, var s: BlockState) raises:
-        """Registers a state that blocks may encode to.
-
-        Args:
-            s: The state.
-
-        Raises:
-            If the registry is finalized or the state is already registered.
-        """
+        """Registers a state that blocks may encode to."""
         if self._finalized:
             raise Error("register_block_state called on finalized registry")
         var key = state_key(s.name, s.properties)
@@ -265,16 +211,6 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
         The light levels and flags of the state come from the traits `T`
         conforms to, as Go derives them from the interfaces a block
         implements.
-
-        Parameters:
-            T: The block type.
-
-        Args:
-            b: The block.
-
-        Raises:
-            If the registry is finalized, the state is not registered or
-            already has an implementation.
         """
         if self._finalized:
             raise Error("register_block called on finalized registry")
@@ -304,11 +240,7 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
 
     def finalize(mut self) raises:
         """Assigns the final runtime IDs and builds the lookup tables (Go
-        `Finalize`). Calling it again does nothing.
-
-        Raises:
-            If two states or blocks collide, or no air state is registered.
-        """
+        `Finalize`). Calling it again does nothing."""
         if self._finalized:
             return
         var n = len(self._states)
@@ -373,59 +305,32 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
         self._finalized = True
 
     def finalized(self) -> Bool:
-        """Reports whether `finalize` has run.
-
-        Returns:
-            True after `finalize`.
-        """
+        """Reports whether `finalize` has run."""
         return self._finalized
 
     def bit_size(self) -> Int:
-        """Returns the number of bits used by the type part of `block_hash`.
-
-        Returns:
-            The bit length of the number of runtime IDs.
-        """
+        """Returns the number of bits used by the type part of `block_hash`."""
         debug_assert(self._finalized, "bit_size on non-finalized registry")
         return self._bit_size
 
     def block_count(self) -> Int:
-        """Returns the number of runtime IDs.
-
-        Returns:
-            The number of registered states.
-        """
+        """Returns the number of runtime IDs."""
         debug_assert(self._finalized, "block_count on non-finalized registry")
         return len(self._block_infos)
 
     def air_runtime_id(self) -> UInt32:
-        """Returns the runtime ID of air.
-
-        Returns:
-            The air runtime ID.
-        """
+        """Returns the runtime ID of air."""
         debug_assert(
             self._finalized, "air_runtime_id on non-finalized registry"
         )
         return self._air_rid
 
     def air(self) -> UInt32:
-        """Returns the air block (Go `Air`), which is its runtime ID here.
-
-        Returns:
-            The air runtime ID.
-        """
+        """Returns the air block (Go `Air`), which is its runtime ID here."""
         return self.air_runtime_id()
 
     def runtime_id_to_state(self, runtime_id: UInt32) -> Optional[BlockState]:
-        """Returns the name and properties of a runtime ID.
-
-        Args:
-            runtime_id: The runtime ID.
-
-        Returns:
-            The state, or None if the runtime ID is out of range.
-        """
+        """Returns the name and properties of a runtime ID."""
         debug_assert(self._finalized, "runtime_id_to_state on non-finalized")
         if Int(runtime_id) >= len(self._states):
             return None
@@ -433,29 +338,14 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
 
     def state(ref self, runtime_id: UInt32) -> ref[self._states[0]] BlockState:
         """Returns the state of a runtime ID known to be valid, without
-        copying it.
-
-        Args:
-            runtime_id: A runtime ID below `block_count()`.
-
-        Returns:
-            A reference to the state.
-        """
+        copying it."""
         return self._states[Int(runtime_id)]
 
     def state_to_runtime_id(
         self, name: StringSlice, properties: Properties
     ) -> Optional[UInt32]:
         """Returns the runtime ID of a name and properties, or of the block's
-        default state if the properties match none.
-
-        Args:
-            name: The block name.
-            properties: The properties.
-
-        Returns:
-            The runtime ID, or None if the name is unknown.
-        """
+        default state if the properties match none."""
         debug_assert(self._finalized, "state_to_runtime_id on non-finalized")
         if case .Some(rid) = self._state_runtime_ids.get(
             state_key(name, properties)
@@ -467,14 +357,7 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
 
     def default_properties(self, name: StringSlice) -> Optional[Properties]:
         """Returns the properties of the first state registered for a name,
-        which is the block's default state.
-
-        Args:
-            name: The block name.
-
-        Returns:
-            The properties, or None if the name is unknown.
-        """
+        which is the block's default state."""
         debug_assert(self._finalized, "default_properties on non-finalized")
         return self._block_properties.get(String(name))
 
@@ -482,161 +365,62 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
         self, name: StringSlice, properties: Properties
     ) -> Optional[UInt32]:
         """Looks up a block by its exact name and properties (Go
-        `BlockByName`).
-
-        Args:
-            name: The block name.
-            properties: The properties.
-
-        Returns:
-            The runtime ID, or None if no such state is registered.
-        """
+        `BlockByName`)."""
         debug_assert(self._finalized, "block_by_name on non-finalized")
         return self._state_runtime_ids.get(state_key(name, properties))
 
     def filtering_block(self, rid: UInt32) -> UInt8:
-        """Returns how much light the block filters.
-
-        Args:
-            rid: The runtime ID.
-
-        Returns:
-            The light filtering level, 15 for opaque blocks.
-        """
+        """Returns how much light the block filters."""
         return self._block_infos[Int(rid)].get_light_filter()
 
     def light_block(self, rid: UInt32) -> UInt8:
-        """Returns the light level the block emits.
-
-        Args:
-            rid: The runtime ID.
-
-        Returns:
-            The light emission level.
-        """
+        """Returns the light level the block emits."""
         return self._block_infos[Int(rid)].get_light()
 
     def random_tick_block(self, rid: UInt32) -> Bool:
-        """Reports whether the block receives random ticks.
-
-        Args:
-            rid: The runtime ID.
-
-        Returns:
-            True for random-ticking blocks.
-        """
+        """Reports whether the block receives random ticks."""
         return self._block_infos[Int(rid)].get(_FLAG_RANDOM_TICK)
 
     def nbt_block(self, rid: UInt32) -> Bool:
-        """Reports whether the block carries NBT data.
-
-        Args:
-            rid: The runtime ID.
-
-        Returns:
-            True for blocks with NBT data.
-        """
+        """Reports whether the block carries NBT data."""
         return self._block_infos[Int(rid)].get(_FLAG_NBT)
 
     def liquid_displacing_block(self, rid: UInt32) -> Bool:
-        """Reports whether the block displaces liquids.
-
-        Args:
-            rid: The runtime ID.
-
-        Returns:
-            True for liquid displacers.
-        """
+        """Reports whether the block displaces liquids."""
         return self._block_infos[Int(rid)].get(_FLAG_LIQUID_DISPLACING)
 
     def liquid_block(self, rid: UInt32) -> Bool:
-        """Reports whether the block is a liquid.
-
-        Args:
-            rid: The runtime ID.
-
-        Returns:
-            True for liquids.
-        """
+        """Reports whether the block is a liquid."""
         return self._block_infos[Int(rid)].get(_FLAG_LIQUID)
 
     def hash_to_runtime_id(self, hash: UInt32) -> Optional[UInt32]:
-        """Resolves a network block hash to a runtime ID.
-
-        Args:
-            hash: The network block hash.
-
-        Returns:
-            The runtime ID, or None if no state has the hash.
-        """
+        """Resolves a network block hash to a runtime ID."""
         debug_assert(self._finalized, "hash_to_runtime_id on non-finalized")
         return self._networkhash_to_rids.get(hash)
 
     def runtime_id_to_hash(self, runtime_id: UInt32) -> Optional[UInt32]:
-        """Resolves a runtime ID to its network block hash.
-
-        Args:
-            runtime_id: The runtime ID.
-
-        Returns:
-            The hash, or None if the runtime ID is out of range.
-        """
+        """Resolves a runtime ID to its network block hash."""
         debug_assert(self._finalized, "runtime_id_to_hash on non-finalized")
         if Int(runtime_id) >= len(self._rids_to_networkhash):
             return None
         return self._rids_to_networkhash[Int(runtime_id)]
 
     def kind(self, rid: UInt32) -> UInt64:
-        """Returns the `BASE_HASH` of the type registered for a runtime ID.
-
-        Args:
-            rid: A runtime ID below `block_count()`.
-
-        Returns:
-            The base hash, or `UNKNOWN_KIND` for states without a type.
-        """
+        """Returns the `BASE_HASH` of the type registered for a runtime ID."""
         return self._kinds[Int(rid)]
 
     def state_hash(self, rid: UInt32) -> UInt64:
-        """Returns the state hash of the block registered for a runtime ID.
-
-        Args:
-            rid: A runtime ID below `block_count()`.
-
-        Returns:
-            The value `hash()` returned for the block, or `UInt64.MAX` for
-            states without a type.
-        """
+        """Returns the state hash of the block registered for a runtime ID."""
         return self._state_hashes[Int(rid)]
 
     def block_hash[T: Block](self, b: T) -> UInt64:
         """Returns a registry-unique identifier of the block including its
-        state (Go `BlockHash`); it does not match anything in the game.
-
-        Parameters:
-            T: The block type.
-
-        Args:
-            b: The block.
-
-        Returns:
-            `T.BASE_HASH | b.hash() << bit_size()`.
-        """
+        state (Go `BlockHash`); it does not match anything in the game."""
         return T.BASE_HASH | (b.hash() << UInt64(self._bit_size))
 
     def block_runtime_id[T: Block](self, b: T) -> UInt32:
         """Returns the runtime ID of a registered block (Go
-        `BlockRuntimeID`). Aborts if the block was never registered.
-
-        Parameters:
-            T: The block type.
-
-        Args:
-            b: The block.
-
-        Returns:
-            The runtime ID.
-        """
+        `BlockRuntimeID`). Aborts if the block was never registered."""
         debug_assert(self._finalized, "block_runtime_id on non-finalized")
         if case .Some(rid) = self._hashes.get(self.block_hash(b)):
             return rid
@@ -645,46 +429,18 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
     def runtime_id_of(self, kind: UInt64, hash: UInt64) -> Optional[UInt32]:
         """Returns the runtime ID of a block given its type's base hash and
         its state hash, for blocks whose type is only known at run time
-        (for example a block held as an `AnyItem`).
-
-        Args:
-            kind: The type's `BASE_HASH`.
-            hash: The block's `hash()`.
-
-        Returns:
-            The runtime ID, or None if no such block is registered.
-        """
+        (for example a block held as an `AnyItem`)."""
         return self._hashes.get(kind | (hash << UInt64(self._bit_size)))
 
     def is_block[T: Block](self, rid: UInt32) -> Bool:
         """Reports whether a runtime ID holds a block of type `T` (Go
-        `b.(T)`).
-
-        Parameters:
-            T: The block type.
-
-        Args:
-            rid: The runtime ID.
-
-        Returns:
-            True if the state is registered by `T`.
-        """
+        `b.(T)`)."""
         return (
             Int(rid) < len(self._kinds) and self._kinds[Int(rid)] == T.BASE_HASH
         )
 
     def block[T: Block](self, rid: UInt32) -> Optional[T]:
-        """Returns the block at a runtime ID as a `T` (Go `b, ok := x.(T)`).
-
-        Parameters:
-            T: The block type.
-
-        Args:
-            rid: The runtime ID.
-
-        Returns:
-            The block, or None if the runtime ID holds another type.
-        """
+        """Returns the block at a runtime ID as a `T` (Go `b, ok := x.(T)`)."""
         if not self.is_block[T](rid):
             return None
         return T.from_hash(self._state_hashes[Int(rid)])

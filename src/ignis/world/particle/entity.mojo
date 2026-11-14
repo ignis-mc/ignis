@@ -52,11 +52,7 @@ struct Splash(ImplicitlyCopyable, Particle):
     """Colour is the colour that should be splashed."""
 
     def __init__(out self, *, colour: RGBA = RGBA()):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            colour: Colour is the colour that should be splashed.
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.colour = colour
 
 
@@ -71,11 +67,7 @@ struct Effect(ImplicitlyCopyable, Particle):
     """Colour is the colour of the particle."""
 
     def __init__(out self, *, colour: RGBA = RGBA()):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            colour: Colour is the colour of the particle.
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.colour = colour
 
 

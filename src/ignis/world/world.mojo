@@ -121,12 +121,7 @@ struct Column(Movable):
     (Go hands out an unregistered empty column instead)."""
 
     def __init__(out self, pos: ChunkPos, var chunk: Chunk):
-        """Creates a column without entities or viewers.
-
-        Args:
-            pos: The chunk's position.
-            chunk: The chunk.
-        """
+        """Creates a column without entities or viewers."""
         self.pos = pos
         self.modified = False
         self.chunk = chunk^
@@ -150,11 +145,7 @@ struct _EntityEntry[E: EntityTypes](Copyable):
 
 struct World[T: WorldTypes](Movable):
     """A Minecraft world: chunks, entities, viewers, time and weather (Go
-    `World`).
-
-    Parameters:
-        T: The world's types.
-    """
+    `World`)."""
 
     var _dim: Dimension
     var _ra: Range
@@ -203,24 +194,7 @@ struct World[T: WorldTypes](Movable):
         now_ms: Int,
     ):
         """Creates a world and runs its first tick (Go `Config.New`). Use
-        `Config.new`, which fills in the defaults.
-
-        Args:
-            dim: The dimension.
-            generator: The generator.
-            provider: The provider.
-            blocks: The finalized block registry.
-            read_only: Never write to the provider.
-            save_interval_ms: How often to save; 0 or less never saves on
-                its own.
-            chunk_unload_interval_ms: How often to unload unused chunks.
-            random_tick_speed: Random ticks per sub-chunk per tick; below 0
-                disables random ticks.
-            seed: The seeds of the world's generator.
-            synchronous: Tick even without viewers, and tick every loaded
-                chunk and entity (Go `Synchronous`; for tests).
-            now_ms: The current monotonic time.
-        """
+        `Config.new`, which fills in the defaults."""
         var r = Rand(seed[0], seed[1])
         var s: Settings
         if case .Some(ref saved) = provider.settings():
@@ -265,76 +239,40 @@ struct World[T: WorldTypes](Movable):
     # ===------------------------------------------------------------------=== #
 
     def name(self) -> String:
-        """Returns the display name of the world (Go `Name`).
-
-        Returns:
-            The name from the settings.
-        """
+        """Returns the display name of the world (Go `Name`)."""
         return self._set.name
 
     def dimension(self) -> Dimension:
-        """Returns the world's dimension (Go `Dimension`).
-
-        Returns:
-            The dimension.
-        """
+        """Returns the world's dimension (Go `Dimension`)."""
         return self._dim
 
     def range(self) -> Range:
-        """Returns the world's height range (Go `Range`).
-
-        Returns:
-            The range.
-        """
+        """Returns the world's height range (Go `Range`)."""
         return self._ra
 
     def block_registry(self) -> ArcPointer[BasicBlockRegistry]:
-        """Returns the block registry (Go `BlockRegistry`).
-
-        Returns:
-            A shared reference to the registry.
-        """
+        """Returns the block registry (Go `BlockRegistry`)."""
         return self._br
 
     def settings(ref self) -> ref[self._set] Settings:
-        """Returns the world's settings.
-
-        Returns:
-            The settings.
-        """
+        """Returns the world's settings."""
         return self._set
 
     def rand(mut self) -> ref[self._r] Rand:
         """Returns the world's random generator (Go passes it to random and
-        scheduled ticks).
-
-        Returns:
-            The generator.
-        """
+        scheduled ticks)."""
         return self._r
 
     def current_tick(self) -> Int64:
-        """Returns the world's tick counter (Go `Tx.CurrentTick`).
-
-        Returns:
-            The tick.
-        """
+        """Returns the world's tick counter (Go `Tx.CurrentTick`)."""
         return self._set.current_tick
 
     def handler(ref self) -> ref[self._handler] Optional[Self.T.Handler]:
-        """Returns the world's event handler.
-
-        Returns:
-            The handler, or None if none was set.
-        """
+        """Returns the world's event handler."""
         return self._handler
 
     def handle(mut self, var h: Self.T.Handler):
-        """Sets the world's event handler (Go `Handle`).
-
-        Args:
-            h: The handler.
-        """
+        """Sets the world's event handler (Go `Handle`)."""
         self._handler = h^
 
     def source(mut self) -> WorldSource[origin_of(self), Self.T]:
@@ -347,9 +285,6 @@ struct World[T: WorldTypes](Movable):
         holds a pointer to the world and loads chunks the same way. Use it
         for the duration of a call:
         `model.face_solid(pos, Face.UP, tx.source())`.
-
-        Returns:
-            The view.
         """
         return WorldSource(Pointer(to=self))
 
@@ -359,14 +294,7 @@ struct World[T: WorldTypes](Movable):
 
     def block(mut self, pos: Pos) -> UInt32:
         """Returns the block at a position, loading or generating its chunk
-        if needed (Go `Tx.Block`).
-
-        Args:
-            pos: The position.
-
-        Returns:
-            The runtime ID; air outside the world's range.
-        """
+        if needed (Go `Tx.Block`)."""
         if pos.out_of_bounds(self._ra):
             return self._br[].air_runtime_id()
         var ci = self._chunk(chunk_pos_from_block_pos(pos))
@@ -376,31 +304,13 @@ struct World[T: WorldTypes](Movable):
 
     def block_as[B: Block](mut self, pos: Pos) -> Optional[B]:
         """Returns the block at a position as a `B` (Go
-        `tx.Block(pos).(B)`).
-
-        Parameters:
-            B: The block type.
-
-        Args:
-            pos: The position.
-
-        Returns:
-            The block, or None if it is of another type.
-        """
+        `tx.Block(pos).(B)`)."""
         var rid = self.block(pos)
         return self._br[].block[B](rid)
 
     def block_loaded(self, pos: Pos) -> Optional[UInt32]:
         """Returns the block at a position only if its chunk is loaded (Go
-        `Tx.BlockLoaded`).
-
-        Args:
-            pos: The position.
-
-        Returns:
-            The runtime ID, or None if the chunk is not loaded or the
-            position is out of range.
-        """
+        `Tx.BlockLoaded`)."""
         if pos.out_of_bounds(self._ra):
             return None
         if case .Some(ci) = self._col_index.get(chunk_pos_from_block_pos(pos)):
@@ -412,16 +322,7 @@ struct World[T: WorldTypes](Movable):
     def set_block[
         B: Block
     ](mut self, pos: Pos, b: B, opts: SetOpts = SetOpts()):
-        """Sets a block (Go `Tx.SetBlock`).
-
-        Parameters:
-            B: The block type.
-
-        Args:
-            pos: The position.
-            b: The block; it must be registered.
-            opts: Updates to leave out.
-        """
+        """Sets a block (Go `Tx.SetBlock`)."""
         self.set_block_runtime_id(pos, self._br[].block_runtime_id(b), opts)
 
     def set_block_runtime_id(
@@ -429,13 +330,7 @@ struct World[T: WorldTypes](Movable):
     ):
         """Sets a block given its runtime ID (Go `Tx.SetBlock`): viewers of
         the chunk see the change, a liquid on layer 1 is kept consistent,
-        and the block and its neighbours get a neighbour update next tick.
-
-        Args:
-            pos: The position; nothing happens outside the world's range.
-            rid: The runtime ID.
-            opts: Updates to leave out.
-        """
+        and the block and its neighbours get a neighbour update next tick."""
         if pos.out_of_bounds(self._ra):
             return
         var x = UInt8(pos.x() & 0xF)
@@ -477,14 +372,7 @@ struct World[T: WorldTypes](Movable):
             self._loader(id).viewer.view_block_update(pos, rid, layer)
 
     def biome(mut self, pos: Pos) -> Int:
-        """Returns the biome ID at a position (Go `Tx.Biome`).
-
-        Args:
-            pos: The position.
-
-        Returns:
-            The biome ID; 0 (ocean) outside the world's range.
-        """
+        """Returns the biome ID at a position (Go `Tx.Biome`)."""
         if pos.out_of_bounds(self._ra):
             return 0
         var ci = self._chunk(chunk_pos_from_block_pos(pos))
@@ -495,12 +383,7 @@ struct World[T: WorldTypes](Movable):
         )
 
     def set_biome(mut self, pos: Pos, biome: Int):
-        """Sets the biome ID at a position (Go `Tx.SetBiome`).
-
-        Args:
-            pos: The position.
-            biome: The biome ID (`encode_biome`).
-        """
+        """Sets the biome ID at a position (Go `Tx.SetBiome`)."""
         if pos.out_of_bounds(self._ra):
             return
         var ci = self._chunk(chunk_pos_from_block_pos(pos))
@@ -514,15 +397,7 @@ struct World[T: WorldTypes](Movable):
 
     def highest_block(mut self, x: Int, z: Int) -> Int:
         """Returns the Y of the highest non-air block in a column (Go
-        `Tx.HighestBlock`).
-
-        Args:
-            x: The X coordinate.
-            z: The Z coordinate.
-
-        Returns:
-            The Y coordinate, or the world's minimum.
-        """
+        `Tx.HighestBlock`)."""
         var ci = self._chunk(ChunkPos(Int32(x >> 4), Int32(z >> 4)))
         return Int(
             self._cols[ci].chunk.highest_block(UInt8(x & 0xF), UInt8(z & 0xF))
@@ -530,15 +405,7 @@ struct World[T: WorldTypes](Movable):
 
     def highest_obstructing_block(mut self, x: Int, z: Int) -> Int:
         """Returns the Y of the highest block in a column with a solid top
-        or bottom face (Go `Tx.highestObstructingBlock`).
-
-        Args:
-            x: The X coordinate.
-            z: The Z coordinate.
-
-        Returns:
-            The Y coordinate, or the world's minimum.
-        """
+        or bottom face (Go `Tx.highestObstructingBlock`)."""
         var y = self.highest_block(x, z)
         while y >= self._ra.min():
             var pos = Pos(x, y, z)
@@ -556,15 +423,7 @@ struct World[T: WorldTypes](Movable):
 
     def highest_light_blocker(mut self, x: Int, z: Int) -> Int:
         """Returns the Y of the highest fully light-blocking block in a
-        column (Go `Tx.HighestLightBlocker`).
-
-        Args:
-            x: The X coordinate.
-            z: The Z coordinate.
-
-        Returns:
-            The Y coordinate, or the world's minimum.
-        """
+        column (Go `Tx.HighestLightBlocker`)."""
         var ci = self._chunk(ChunkPos(Int32(x >> 4), Int32(z >> 4)))
         return Int(
             self._cols[ci].chunk.highest_light_blocker(
@@ -576,17 +435,7 @@ struct World[T: WorldTypes](Movable):
         B: Block
     ](mut self, pos: Pos, b: B, delay_ms: Int):
         """Schedules an update for a block at a position (Go
-        `Tx.ScheduleBlockUpdate`).
-
-        Parameters:
-            B: The block type.
-
-        Args:
-            pos: The position.
-            b: The block the update is for: it only runs if that block is
-                still there.
-            delay_ms: The delay; at least one tick.
-        """
+        `Tx.ScheduleBlockUpdate`)."""
         self.schedule_block_update_runtime_id(
             pos, self._br[].block_runtime_id(b), delay_ms
         )
@@ -595,23 +444,13 @@ struct World[T: WorldTypes](Movable):
         mut self, pos: Pos, rid: UInt32, delay_ms: Int
     ):
         """Schedules an update for a block given its runtime ID. An update
-        for the same position and block that is due later wins.
-
-        Args:
-            pos: The position.
-            rid: The runtime ID of the block the update is for.
-            delay_ms: The delay; at least one tick.
-        """
+        for the same position and block that is due later wins."""
         if pos.out_of_bounds(self._ra):
             return
         self._scheduled.schedule(pos, rid, self._block_hash(rid), delay_ms)
 
     def scheduled_updates(self) -> List[ScheduledTick]:
-        """Returns the pending scheduled block updates.
-
-        Returns:
-            The updates, in scheduling order.
-        """
+        """Returns the pending scheduled block updates."""
         return self._scheduled.ticks.copy()
 
     def _block_hash(self, rid: UInt32) -> UInt64:
@@ -632,19 +471,11 @@ struct World[T: WorldTypes](Movable):
     # ===------------------------------------------------------------------=== #
 
     def time(self) -> Int:
-        """Returns the time of day (Go `Time`).
-
-        Returns:
-            The time.
-        """
+        """Returns the time of day (Go `Time`)."""
         return Int(self._set.time)
 
     def set_time(mut self, new: Int):
-        """Sets the time of day, even while time is stopped (Go `SetTime`).
-
-        Args:
-            new: The time.
-        """
+        """Sets the time of day, even while time is stopped (Go `SetTime`)."""
         self._set.time = Int64(new)
         for id in self.loaders():
             self._loader(id).viewer.view_time(new)
@@ -658,11 +489,7 @@ struct World[T: WorldTypes](Movable):
         self._enable_time_cycle(True)
 
     def time_cycle(self) -> Bool:
-        """Reports whether time advances (Go `TimeCycle`).
-
-        Returns:
-            The flag.
-        """
+        """Reports whether time advances (Go `TimeCycle`)."""
         return self._set.time_cycle
 
     def _enable_time_cycle(mut self, v: Bool):
@@ -671,27 +498,15 @@ struct World[T: WorldTypes](Movable):
             self._loader(id).viewer.view_time_cycle(v)
 
     def raining(self) -> Bool:
-        """Reports whether it rains anywhere (Go `Tx.Raining`).
-
-        Returns:
-            False in dimensions without weather.
-        """
+        """Reports whether it rains anywhere (Go `Tx.Raining`)."""
         return self._dim.weather_cycle() and self._set.raining
 
     def thundering(self) -> Bool:
-        """Reports whether it thunders anywhere (Go `Tx.Thundering`).
-
-        Returns:
-            False in dimensions without weather.
-        """
+        """Reports whether it thunders anywhere (Go `Tx.Thundering`)."""
         return self._dim.weather_cycle() and self._set.thundering
 
     def start_raining(mut self, duration_ms: Int):
-        """Makes it rain for a duration (Go `StartRaining`).
-
-        Args:
-            duration_ms: How long.
-        """
+        """Makes it rain for a duration (Go `StartRaining`)."""
         set_raining(self._set, True, duration_ms)
 
     def stop_raining(mut self):
@@ -705,11 +520,7 @@ struct World[T: WorldTypes](Movable):
 
     def start_thundering(mut self, duration_ms: Int):
         """Makes it thunder and rain for a duration (Go
-        `StartThundering`).
-
-        Args:
-            duration_ms: How long.
-        """
+        `StartThundering`)."""
         set_thunder(self._set, True, duration_ms)
         set_raining(self._set, True, duration_ms)
 
@@ -727,12 +538,7 @@ struct World[T: WorldTypes](Movable):
         self._set.weather_cycle = False
 
     def spawn(self) -> Pos:
-        """Returns the world's spawn position (Go `Spawn`).
-
-        Returns:
-            (100, 50, 0) in the End, the origin in the Nether, else the
-            spawn from the settings.
-        """
+        """Returns the world's spawn position (Go `Spawn`)."""
         if self._dim == END:
             return Pos(100, 50, 0)
         if self._dim == NETHER:
@@ -741,11 +547,7 @@ struct World[T: WorldTypes](Movable):
 
     def set_spawn(mut self, pos: Pos):
         """Sets the spawn position; ignored in the Nether and End (Go
-        `SetSpawn`).
-
-        Args:
-            pos: The position.
-        """
+        `SetSpawn`)."""
         if self._dim == NETHER or self._dim == END:
             return
         self._set.spawn = pos
@@ -753,14 +555,7 @@ struct World[T: WorldTypes](Movable):
             self._loader(id).viewer.view_world_spawn(pos)
 
     def player_spawn(mut self, id: UUID) -> Pos:
-        """Returns a player's spawn position (Go `PlayerSpawn`).
-
-        Args:
-            id: The player's UUID.
-
-        Returns:
-            The saved position, or the world spawn.
-        """
+        """Returns a player's spawn position (Go `PlayerSpawn`)."""
         try:
             if case .Some(p) = self._provider.load_player_spawn_position(id):
                 return p
@@ -769,65 +564,36 @@ struct World[T: WorldTypes](Movable):
         return self.spawn()
 
     def set_player_spawn(mut self, id: UUID, pos: Pos):
-        """Saves a player's spawn position (Go `SetPlayerSpawn`).
-
-        Args:
-            id: The player's UUID.
-            pos: The position.
-        """
+        """Saves a player's spawn position (Go `SetPlayerSpawn`)."""
         try:
             self._provider.save_player_spawn_position(id, pos)
         except e:
             self.last_error = String(t"save player spawn: {e}")
 
     def default_game_mode(self) -> GameMode:
-        """Returns the game mode of new players (Go `DefaultGameMode`).
-
-        Returns:
-            The game mode.
-        """
+        """Returns the game mode of new players (Go `DefaultGameMode`)."""
         return self._set.default_game_mode
 
     def set_default_game_mode(mut self, mode: GameMode):
-        """Sets the game mode of new players (Go `SetDefaultGameMode`).
-
-        Args:
-            mode: The game mode.
-        """
+        """Sets the game mode of new players (Go `SetDefaultGameMode`)."""
         self._set.default_game_mode = mode
 
     def difficulty(self) -> Difficulty:
-        """Returns the difficulty (Go `Difficulty`).
-
-        Returns:
-            The difficulty.
-        """
+        """Returns the difficulty (Go `Difficulty`)."""
         return self._set.difficulty
 
     def set_difficulty(mut self, d: Difficulty):
-        """Sets the difficulty (Go `SetDifficulty`).
-
-        Args:
-            d: The difficulty.
-        """
+        """Sets the difficulty (Go `SetDifficulty`)."""
         self._set.difficulty = d
 
     def set_tick_range(mut self, v: Int):
         """Sets the radius in chunks around viewers that is ticked (Go
-        `SetTickRange`).
-
-        Args:
-            v: The radius; 0 stops block ticking.
-        """
+        `SetTickRange`)."""
         self._set.tick_range = Int32(v)
 
     def set_required_sleep_duration(mut self, duration_ms: Int):
         """Sets how long players must sleep to skip the night (Go
-        `SetRequiredSleepDuration`).
-
-        Args:
-            duration_ms: The duration.
-        """
+        `SetRequiredSleepDuration`)."""
         self._set.required_sleep_ticks = Int64(duration_ms // TICK_MS)
 
     # ===------------------------------------------------------------------=== #
@@ -836,30 +602,14 @@ struct World[T: WorldTypes](Movable):
 
     def add_entity(mut self, var e: EntityHandle[Self.T.Entities]) -> UUID:
         """Adds an entity at its position (Go `Tx.AddEntity`). Viewers of
-        its chunk see it, and the handler's `handle_entity_spawn` runs.
-
-        Args:
-            e: The entity; its UUID is assigned if nil.
-
-        Returns:
-            The entity's UUID.
-        """
+        its chunk see it, and the handler's `handle_entity_spawn` runs."""
         var pos = e.data.pos
         return self.add_entity_at(e^, pos)
 
     def add_entity_at(
         mut self, var e: EntityHandle[Self.T.Entities], pos: Vec3
     ) -> UUID:
-        """Adds an entity at a position (Go `Tx.AddEntityAt`).
-
-        Args:
-            e: The entity; its UUID is assigned if nil.
-            pos: The position.
-
-        Returns:
-            The entity's UUID, or the nil UUID if an entity with the same
-            UUID is already in the world (Go panics).
-        """
+        """Adds an entity at a position (Go `Tx.AddEntityAt`)."""
         if e.id == UUID():
             e.id = self._new_entity_id()
         var key = uuid_key(e.id)
@@ -890,13 +640,6 @@ struct World[T: WorldTypes](Movable):
 
         An entity that removes itself while it ticks is removed when its
         tick ends, and its handle is dropped.
-
-        Args:
-            id: The entity's UUID.
-
-        Returns:
-            The entity's handle, which may be added to another world, or
-            None if the entity is not in this world.
         """
         var key = uuid_key(id)
         if self._ticking == key:
@@ -952,54 +695,28 @@ struct World[T: WorldTypes](Movable):
             return UUID()
 
     def has_entity(self, id: UUID) -> Bool:
-        """Reports whether an entity is in the world.
-
-        Args:
-            id: The entity's UUID.
-
-        Returns:
-            True if it is (False while it ticks).
-        """
+        """Reports whether an entity is in the world."""
         return uuid_key(id) in self._ent_index
 
     def entity(self, id: UUID) -> Optional[EntityHandle[Self.T.Entities]]:
-        """Returns a copy of an entity (Go `EntityHandle.Entity(tx)`).
-
-        Args:
-            id: The entity's UUID.
-
-        Returns:
-            The entity, or None if it is not in the world.
-        """
+        """Returns a copy of an entity (Go `EntityHandle.Entity(tx)`)."""
         if case .Some(i) = self._ent_index.get(uuid_key(id)):
             return self._ents[i].handle.copy()
         return None
 
     def entity_count(self) -> Int:
-        """Returns the number of entities in the world.
-
-        Returns:
-            The count.
-        """
+        """Returns the number of entities in the world."""
         return len(self._ents)
 
     def entities(self) -> List[UUID]:
-        """Returns the UUIDs of every entity (Go `Tx.Entities`).
-
-        Returns:
-            The UUIDs.
-        """
+        """Returns the UUIDs of every entity (Go `Tx.Entities`)."""
         var out = List[UUID](capacity=len(self._ents))
         for ref e in self._ents:
             out.append(e.handle.id)
         return out^
 
     def players(self) -> List[UUID]:
-        """Returns the UUIDs of every player entity (Go `Tx.Players`).
-
-        Returns:
-            The UUIDs of entities of type `minecraft:player`.
-        """
+        """Returns the UUIDs of every player entity (Go `Tx.Players`)."""
         var out = List[UUID]()
         for ref e in self._ents:
             if e.handle.identifier() == "minecraft:player":
@@ -1008,14 +725,7 @@ struct World[T: WorldTypes](Movable):
 
     def entities_within(self, box: BBox) -> List[UUID]:
         """Returns the entities whose position is inside a box, in loaded
-        chunks (Go `Tx.EntitiesWithin`).
-
-        Args:
-            box: The box.
-
-        Returns:
-            The UUIDs.
-        """
+        chunks (Go `Tx.EntitiesWithin`)."""
         var out = List[UUID]()
         var lo = chunk_pos_from_vec3(box.min())
         var hi = chunk_pos_from_vec3(box.max())
@@ -1033,14 +743,7 @@ struct World[T: WorldTypes](Movable):
     ):
         """Moves an entity, showing the movement to the viewers of its chunk
         (what Go's entities do in `Move`). The entity changes chunk at the
-        next tick.
-
-        Args:
-            id: The entity's UUID.
-            pos: The new position.
-            rot: The new rotation.
-            on_ground: Whether it is on the ground.
-        """
+        next tick."""
         if case .Some(i) = self._ent_index.get(uuid_key(id)):
             self._ents[i].handle.data.pos = pos
             self._ents[i].handle.data.rot = rot
@@ -1056,26 +759,13 @@ struct World[T: WorldTypes](Movable):
         rot: Rotation,
         on_ground: Bool,
     ):
-        """Shows the movement of an entity to the viewers of a chunk.
-
-        Args:
-            e: The entity.
-            cp: The chunk whose viewers see it, usually the entity's.
-            pos: The new position.
-            rot: The new rotation.
-            on_ground: Whether it is on the ground.
-        """
+        """Shows the movement of an entity to the viewers of a chunk."""
         for v in self.viewers_of_chunk(cp):
             self._loader(v).viewer.view_entity_movement(e, pos, rot, on_ground)
 
     def teleport_entity(mut self, id: UUID, pos: Vec3):
         """Teleports an entity, showing it to the viewers of its chunk (what
-        Go's entities do in `Teleport`).
-
-        Args:
-            id: The entity's UUID.
-            pos: The target position.
-        """
+        Go's entities do in `Teleport`)."""
         if case .Some(i) = self._ent_index.get(uuid_key(id)):
             var e = self._ents[i].handle.copy()
             for v in self.viewers_of_chunk(self._ents[i].chunk):
@@ -1083,12 +773,7 @@ struct World[T: WorldTypes](Movable):
             self._ents[i].handle.data.pos = pos
 
     def set_entity_velocity(mut self, id: UUID, vel: Vec3):
-        """Sets an entity's velocity, showing it to the viewers of its chunk.
-
-        Args:
-            id: The entity's UUID.
-            vel: The velocity.
-        """
+        """Sets an entity's velocity, showing it to the viewers of its chunk."""
         if case .Some(i) = self._ent_index.get(uuid_key(id)):
             self._ents[i].handle.data.vel = vel
             var e = self._ents[i].handle.copy()
@@ -1108,35 +793,17 @@ struct World[T: WorldTypes](Movable):
 
     def viewers(self, pos: Vec3) -> List[LoaderID]:
         """Returns the loaders viewing the chunk of a position (Go
-        `Tx.Viewers`).
-
-        Args:
-            pos: The position.
-
-        Returns:
-            The loader IDs; reach each viewer with `viewer`.
-        """
+        `Tx.Viewers`)."""
         return self.viewers_of_chunk(chunk_pos_from_vec3(pos))
 
     def viewers_of_chunk(self, pos: ChunkPos) -> List[LoaderID]:
-        """Returns the loaders viewing a chunk.
-
-        Args:
-            pos: The chunk position.
-
-        Returns:
-            The loader IDs; none if the chunk is not loaded.
-        """
+        """Returns the loaders viewing a chunk."""
         if case .Some(ci) = self._col_index.get(pos):
             return self._cols[ci].viewers.copy()
         return List[LoaderID]()
 
     def loaders(self) -> List[LoaderID]:
-        """Returns every open loader (Go `allViewers`).
-
-        Returns:
-            The loader IDs.
-        """
+        """Returns every open loader (Go `allViewers`)."""
         var out = List[LoaderID](capacity=self._viewer_count)
         for i in range(len(self._loaders)):
             if self._loaders[i]:
@@ -1147,14 +814,7 @@ struct World[T: WorldTypes](Movable):
         mut self, id: LoaderID
     ) -> ref[self._loaders[0].value().viewer] Self.T.Viewer:
         """Returns the viewer of a loader, for example to drain the packets
-        a session's viewer queued. Aborts if the loader is closed.
-
-        Args:
-            id: The loader.
-
-        Returns:
-            The viewer.
-        """
+        a session's viewer queued. Aborts if the loader is closed."""
         return self._loader(id).viewer
 
     def _loader(
@@ -1178,15 +838,7 @@ struct World[T: WorldTypes](Movable):
         """Adds a loader at chunk (0, 0) that loads chunks within `radius`
         for a viewer (Go `NewLoader`). The viewer sees the time, time cycle,
         weather and spawn at once; call `move_loader` and `load` to load
-        chunks.
-
-        Args:
-            radius: The chunk radius.
-            v: The viewer; the world owns it until `close_loader`.
-
-        Returns:
-            The loader's ID.
-        """
+        chunks."""
         var loader = Loader[Self.T.Viewer](radius, v^)
         loader.populate_load_queue()
         var i: Int
@@ -1213,12 +865,7 @@ struct World[T: WorldTypes](Movable):
 
     def move_loader(mut self, id: LoaderID, pos: Vec3):
         """Moves a loader (Go `Loader.Move`): chunks now out of range stop
-        being viewed and the load queue is rebuilt around the new chunk.
-
-        Args:
-            id: The loader.
-            pos: The new position.
-        """
+        being viewed and the load queue is rebuilt around the new chunk."""
         var cp = chunk_pos_from_vec3(pos)
         if cp == self._loader(id).pos:
             return
@@ -1227,12 +874,7 @@ struct World[T: WorldTypes](Movable):
         self._loader(id).populate_load_queue()
 
     def change_loader_radius(mut self, id: LoaderID, radius: Int):
-        """Changes a loader's chunk radius (Go `Loader.ChangeRadius`).
-
-        Args:
-            id: The loader.
-            radius: The new radius.
-        """
+        """Changes a loader's chunk radius (Go `Loader.ChangeRadius`)."""
         self._loader(id).r = radius
         self._evict_unused(id)
         self._loader(id).populate_load_queue()
@@ -1240,12 +882,7 @@ struct World[T: WorldTypes](Movable):
     def load(mut self, id: LoaderID, n: Int):
         """Loads up to `n` queued chunks, nearest first, and shows each to
         the loader's viewer (Go `Loader.Load`). Chunks are generated here
-        if the provider does not have them, so `n` bounds the work.
-
-        Args:
-            id: The loader.
-            n: The maximum number of chunks.
-        """
+        if the provider does not have them, so `n` bounds the work."""
         for _ in range(n):
             if len(self._loader(id).load_queue) == 0:
                 return
@@ -1272,39 +909,16 @@ struct World[T: WorldTypes](Movable):
 
     def loader_has_chunk(mut self, id: LoaderID, pos: ChunkPos) -> Bool:
         """Reports whether a loader's viewer is viewing a chunk (Go
-        `Loader.Chunk`).
-
-        Args:
-            id: The loader.
-            pos: The chunk position.
-
-        Returns:
-            True if the chunk is loaded for the loader.
-        """
+        `Loader.Chunk`)."""
         return pos in self._loader(id).loaded
 
     def loader_position(mut self, id: LoaderID) -> ChunkPos:
-        """Returns the chunk a loader is in.
-
-        Args:
-            id: The loader.
-
-        Returns:
-            The chunk position.
-        """
+        """Returns the chunk a loader is in."""
         return self._loader(id).pos
 
     def close_loader(mut self, id: LoaderID) -> Optional[Self.T.Viewer]:
         """Closes a loader (Go `Loader.Close`): its chunks stop being viewed
-        and their entities are hidden from its viewer.
-
-        Args:
-            id: The loader.
-
-        Returns:
-            The viewer, for example to add it to another world (Go
-            `Loader.ChangeWorld`), or None if the loader is not open.
-        """
+        and their entities are hidden from its viewer."""
         if not self._valid_loader(id):
             return None
         var loaded = List[ChunkPos]()
@@ -1345,22 +959,11 @@ struct World[T: WorldTypes](Movable):
     # ===------------------------------------------------------------------=== #
 
     def chunk_loaded(self, pos: ChunkPos) -> Bool:
-        """Reports whether a chunk is loaded.
-
-        Args:
-            pos: The chunk position.
-
-        Returns:
-            True if loaded.
-        """
+        """Reports whether a chunk is loaded."""
         return pos in self._col_index
 
     def loaded_chunks(self) -> List[ChunkPos]:
-        """Returns the positions of every loaded chunk.
-
-        Returns:
-            The positions.
-        """
+        """Returns the positions of every loaded chunk."""
         var out = List[ChunkPos](capacity=len(self._cols))
         for i in range(len(self._cols)):
             out.append(self._cols[i].pos)
@@ -1368,14 +971,7 @@ struct World[T: WorldTypes](Movable):
 
     def chunk(mut self, pos: ChunkPos) -> ref[self._cols[0].chunk] Chunk:
         """Returns a chunk, loading or generating it if needed (Go
-        `Tx.chunk`).
-
-        Args:
-            pos: The chunk position.
-
-        Returns:
-            The chunk; valid until the world changes its set of chunks.
-        """
+        `Tx.chunk`)."""
         var ci = self._chunk(pos)
         return self._cols[ci].chunk
 
@@ -1537,19 +1133,11 @@ struct World[T: WorldTypes](Movable):
             self.last_error = String(t"close provider: {e}")
 
     def closed(self) -> Bool:
-        """Reports whether `close` was called.
-
-        Returns:
-            The flag.
-        """
+        """Reports whether `close` was called."""
         return self._closed
 
     def provider(ref self) -> ref[self._provider] Self.T.Provider:
-        """Returns the world's provider.
-
-        Returns:
-            The provider.
-        """
+        """Returns the world's provider."""
         return self._provider
 
     # ===------------------------------------------------------------------=== #
@@ -1563,12 +1151,6 @@ struct World[T: WorldTypes](Movable):
 
         A loop that fell behind catches up at most 10 ticks and then skips
         the rest, as Go's `time.Ticker` drops ticks.
-
-        Args:
-            now_ms: The current monotonic time.
-
-        Returns:
-            The number of ticks run.
         """
         var n = 0
         while now_ms >= self._next_tick_ms and n < _MAX_CATCH_UP:
@@ -1586,11 +1168,7 @@ struct World[T: WorldTypes](Movable):
         return n
 
     def next_deadline_ms(self) -> Int:
-        """Returns when `tick` next has work to do.
-
-        Returns:
-            A monotonic time.
-        """
+        """Returns when `tick` next has work to do."""
         var d = min(self._next_tick_ms, self._next_unload_ms)
         if self._save_interval_ms > 0:
             d = min(d, self._next_save_ms)
@@ -1818,55 +1396,25 @@ struct WorldSource[o: MutOrigin, T: WorldTypes](
     BlockSource, ImplicitlyCopyable
 ):
     """A world seen as a `BlockSource` (Go `*Tx` as a `BlockSource`); see
-    `World.source`.
-
-    Parameters:
-        o: The origin of the world.
-        T: The world's types.
-    """
+    `World.source`."""
 
     var _w: Pointer[World[Self.T], Self.o]
 
     def __init__(out self, w: Pointer[World[Self.T], Self.o]):
-        """Creates the view.
-
-        Args:
-            w: The world.
-        """
+        """Creates the view."""
         self._w = w
 
     def block(self, pos: Pos) -> UInt32:
         """Returns the block at a position, loading or generating its chunk
-        if needed (Go `Tx.Block`).
-
-        Args:
-            pos: The position.
-
-        Returns:
-            The runtime ID; air outside the world's range.
-        """
+        if needed (Go `Tx.Block`)."""
         return self._w[].block(pos)
 
     def kind(self, rid: UInt32) -> UInt64:
-        """Returns the base hash of a block's type (the registry's `kind`).
-
-        Args:
-            rid: The runtime ID.
-
-        Returns:
-            The base hash.
-        """
+        """Returns the base hash of a block's type (the registry's `kind`)."""
         return self._w[]._br[].kind(rid)
 
     def state_hash(self, rid: UInt32) -> UInt64:
-        """Returns a block's state hash (the registry's `state_hash`).
-
-        Args:
-            rid: The runtime ID.
-
-        Returns:
-            The state hash.
-        """
+        """Returns a block's state hash (the registry's `state_hash`)."""
         return self._w[]._br[].state_hash(rid)
 
 

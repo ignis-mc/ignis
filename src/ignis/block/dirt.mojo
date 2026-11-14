@@ -37,50 +37,27 @@ struct Dirt(
         self.coarse = False
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            `minecraft:coarse_dirt` or `minecraft:dirt`, no properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         if self.coarse:
             return BlockState("minecraft:coarse_dirt")
         return BlockState("minecraft:dirt")
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            1 for coarse dirt, 0 otherwise.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return UInt64(1) if self.coarse else UInt64(0)
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The dirt.
-        """
+        """Rebuilds the block from its state hash."""
         return Dirt(coarse=hash & 1 != 0)
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Coarse dirt and dirt.
-        """
+        """Returns the registered values (Go `register.go`)."""
         return [Dirt(coarse=True), Dirt()]
 
     def encode_item(self) -> EncodedItem:
-        """Encodes the block as an item (Go `EncodeItem`).
-
-        Returns:
-            `minecraft:coarse_dirt` or `minecraft:dirt`, metadata 0.
-        """
+        """Encodes the block as an item (Go `EncodeItem`)."""
         if self.coarse:
             return EncodedItem("minecraft:coarse_dirt", 0)
         return EncodedItem("minecraft:dirt", 0)
@@ -88,25 +65,13 @@ struct Dirt(
     @staticmethod
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `RegisterItem` calls
-        in `register.go`).
-
-        Returns:
-            Coarse dirt and dirt.
-        """
+        in `register.go`)."""
         return [Dirt(coarse=True), Dirt()]
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(0.5, ALWAYS_HARVESTABLE, SHOVEL_EFFECTIVE)
 
     def model(self) -> SolidModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return SolidModel()

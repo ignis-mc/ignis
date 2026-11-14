@@ -25,16 +25,7 @@ def _put_string(mut data: List[UInt8], s: StringSlice):
 def network_block_hash(
     name: StringSlice, properties: Properties, mut scratch: List[UInt8]
 ) -> UInt32:
-    """Returns the network block hash of a block state.
-
-    Args:
-        name: The block name.
-        properties: The block state properties.
-        scratch: A reusable buffer; its contents are replaced.
-
-    Returns:
-        The hash.
-    """
+    """Returns the network block hash of a block state."""
     if name == "minecraft:unknown":
         return UNKNOWN_BLOCK_HASH
     scratch.clear()

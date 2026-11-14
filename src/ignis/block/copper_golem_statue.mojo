@@ -65,36 +65,18 @@ struct CopperGolemStatue(
         oxidation: OxidationType = OxidationType.UNOXIDISED,
         waxed: Bool = False,
     ):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            facing: The direction the statue faces.
-            pose: The pose of the statue, kept in NBT.
-            oxidation: The level of oxidation of the block.
-            waxed: Whether the block is waxed, which stops it from oxidising.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.facing = facing
         self.pose = pose
         self.oxidation = oxidation
         self.waxed = waxed
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state and hold the same data.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash() and self.pose == other.pose
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         return BlockState(
             copper_block_name(
                 "copper_golem_statue", self.oxidation, self.waxed
@@ -105,11 +87,7 @@ struct CopperGolemStatue(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             UInt64(Int(self.facing))
             | UInt64(self.oxidation.uint8()) << 2
@@ -118,14 +96,7 @@ struct CopperGolemStatue(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return CopperGolemStatue(
             facing=Direction(Int(hash & 0x3)),
             oxidation=OxidationType(Int((hash >> 2) & 0x3)),
@@ -134,11 +105,7 @@ struct CopperGolemStatue(
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for waxed in [True, False]:
             for o in oxidation_types():
@@ -149,60 +116,33 @@ struct CopperGolemStatue(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(
             3, ALWAYS_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go
-        `LightDiffusionLevel`).
-
-        Returns:
-            The diffusion level, 0 to 15.
-        """
+        `LightDiffusionLevel`)."""
         return 0
 
     def can_oxidate(self) -> Bool:
-        """Reports whether the block can still oxidise (Go `CanOxidate`).
-
-        Returns:
-            True unless the block is waxed.
-        """
+        """Reports whether the block can still oxidise (Go `CanOxidate`)."""
         return not self.waxed
 
     def oxidation_level(self) -> OxidationType:
-        """Returns the oxidation level (Go `OxidationLevel`).
-
-        Returns:
-            The oxidation level.
-        """
+        """Returns the oxidation level (Go `OxidationLevel`)."""
         return self.oxidation
 
     def with_oxidation_level(self, o: OxidationType) -> Self:
         """Returns the block with another oxidation level (Go
-        `WithOxidationLevel`).
-
-        Args:
-            o: The new oxidation level.
-
-        Returns:
-            The updated block.
-        """
+        `WithOxidationLevel`)."""
         var b = self
         b.oxidation = o
         return b
 
     def model(self) -> SolidModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return SolidModel()
 
     def encode_item(self) -> EncodedItem:

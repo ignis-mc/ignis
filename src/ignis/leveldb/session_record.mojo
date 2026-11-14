@@ -81,11 +81,7 @@ struct SessionRecord(Copyable, Defaultable, Movable):
 
     def encode(self, mut out: List[UInt8]):
         """Appends the edit in goleveldb's field order (Go
-        `sessionRecord.encode`).
-
-        Args:
-            out: The destination.
-        """
+        `sessionRecord.encode`)."""
         if case .Some(c) = self.comparer:
             put_uvarint(out, REC_COMPARER)
             put_uvarint(out, UInt64(c.byte_length()))
@@ -123,17 +119,7 @@ struct SessionRecord(Copyable, Defaultable, Movable):
 
     @staticmethod
     def decode(data: Span[mut=False, UInt8, _]) raises -> Self:
-        """Parses an edit (Go `sessionRecord.decode`).
-
-        Args:
-            data: One MANIFEST record.
-
-        Returns:
-            The edit.
-
-        Raises:
-            If a field is truncated or the tag is unknown.
-        """
+        """Parses an edit (Go `sessionRecord.decode`)."""
         var r = Self()
         var pos = 0
         while pos < len(data):

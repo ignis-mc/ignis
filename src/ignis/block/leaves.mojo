@@ -59,34 +59,17 @@ struct Leaves(
         persistent: Bool = False,
         should_update: Bool = False,
     ):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            type: The type of leaves.
-            persistent: Whether the leaves were placed by a player and never decay.
-            should_update: Whether the leaves should check for logs on the next random tick.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.type = type
         self.persistent = persistent
         self.should_update = should_update
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         return BlockState(
             String(t"minecraft:{self.type}"),
             Properties()
@@ -95,11 +78,7 @@ struct Leaves(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             UInt64(self.type.uint8())
             | (UInt64(1) if self.persistent else UInt64(0)) << 4
@@ -108,14 +87,7 @@ struct Leaves(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Leaves(
             type=LeavesType(Int(hash & 0xF)),
             persistent=(hash >> 4) & 0x1 != 0,
@@ -124,11 +96,7 @@ struct Leaves(
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for flags in [
             (True, True),
@@ -143,30 +111,18 @@ struct Leaves(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(
             0.2, ALWAYS_HARVESTABLE, ToolFilter(TYPE_SHEARS, TYPE_HOE)
         )
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go
-        `LightDiffusionLevel`).
-
-        Returns:
-            The diffusion level, 0 to 15.
-        """
+        `LightDiffusionLevel`)."""
         return 1
 
     def model(self) -> LeavesModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return LeavesModel()
 
     def compost_chance(self) -> Float64:

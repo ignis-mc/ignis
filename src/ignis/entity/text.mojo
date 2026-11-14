@@ -47,46 +47,18 @@ struct Text(Copyable, NetworkEncodedEntity, TickerEntity):
         self.close = False
 
     def bbox(self, data: EntityData) -> BBox:
-        """Returns the bounding box (Go `textType.BBox`).
-
-        Args:
-            data: The entity's data.
-
-        Returns:
-            An empty box.
-        """
+        """Returns the bounding box (Go `textType.BBox`)."""
         return BBox()
 
     def encode_nbt(self, data: EntityData, mut tree: Tree, tag: Tag) raises:
         """Writes nothing: text entities have no fields of their own (Go
-        `textType.EncodeNBT`).
-
-        Args:
-            data: The entity's data.
-            tree: The tree being written.
-            tag: The entity's compound.
-
-        Raises:
-            Never; the signature follows the trait.
-        """
+        `textType.EncodeNBT`)."""
         pass
 
     @staticmethod
     def decode_nbt(tree: Tree, tag: Tag, mut data: EntityData) raises -> Self:
         """Creates the state of a loaded text entity (Go
-        `textType.DecodeNBT`).
-
-        Args:
-            tree: The tree read.
-            tag: The entity's compound.
-            data: The entity's data.
-
-        Returns:
-            A text entity that lasts forever.
-
-        Raises:
-            Never; the signature follows the trait.
-        """
+        `textType.DecodeNBT`)."""
         return Self()
 
     def tick[
@@ -100,20 +72,7 @@ struct Text(Copyable, NetworkEncodedEntity, TickerEntity):
     ) -> Optional[EntityMovement]:
         """Ticks the entity (Go `Ent.Tick` with `StationaryBehaviour.Tick`):
         it closes below the world or once its time is up, never moves, and
-        ages.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            id: The entity's UUID.
-            data: The entity's data.
-            tx: The world.
-            current: The current tick.
-
-        Returns:
-            None: stationary entities never move.
-        """
+        ages."""
         if data.pos.y() < Float64(tx.range().min()) and current % 10 == 0:
             _ = tx.remove_entity(id)
             return None
@@ -132,18 +91,7 @@ struct Text(Copyable, NetworkEncodedEntity, TickerEntity):
 
 def new_text[E: EntityTypes](text: String, pos: Vec3) -> EntityHandle[E]:
     """Creates a text entity (Go `NewText`). The entity set `E` must
-    contain `Text`.
-
-    Parameters:
-        E: The world's entity set.
-
-    Args:
-        text: The text, shown as the name tag.
-        pos: The position.
-
-    Returns:
-        The entity, to add with `World.add_entity`.
-    """
+    contain `Text`."""
     var opts = EntitySpawnOpts()
     opts.position = pos
     opts.name_tag = text

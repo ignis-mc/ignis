@@ -16,9 +16,5 @@ struct Levitation(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(24, Levitation)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0xce, 0xff, 0xff, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0xCE, 0xFF, 0xFF, 0xFF)

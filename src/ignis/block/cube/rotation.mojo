@@ -24,66 +24,35 @@ struct Rotation(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         self._pitch = 0
 
     def yaw(self) -> Float64:
-        """Returns the yaw (Go `r[0]`).
-
-        Returns:
-            The yaw in degrees.
-        """
+        """Returns the yaw (Go `r[0]`)."""
         return self._yaw
 
     def pitch(self) -> Float64:
-        """Returns the pitch (Go `r[1]`).
-
-        Returns:
-            The pitch in degrees.
-        """
+        """Returns the pitch (Go `r[1]`)."""
         return self._pitch
 
     def add(self, r2: Self) -> Self:
         """Adds two rotations element-wise, wrapping the yaw and clamping the
-        pitch into range (Go `Add`).
-
-        Args:
-            r2: The rotation to add.
-
-        Returns:
-            The sum.
-        """
+        pitch into range (Go `Add`)."""
         return Self(self._yaw + r2._yaw, self._pitch + r2._pitch)._fix()
 
     def elem(self) -> Tuple[Float64, Float64]:
-        """Returns the yaw and the pitch (Go `Elem`).
-
-        Returns:
-            The yaw and the pitch.
-        """
+        """Returns the yaw and the pitch (Go `Elem`)."""
         return (self._yaw, self._pitch)
 
     def opposite(self) -> Self:
-        """Returns the rotation pointing the other way (Go `Opposite`).
-
-        Returns:
-            The yaw turned 180 degrees and the pitch negated.
-        """
+        """Returns the rotation pointing the other way (Go `Opposite`)."""
         var fixed = self._fix()
         return Self(fixed._yaw + 180, -fixed._pitch)._fix()
 
     def neg(self) -> Self:
-        """Negates both angles (Go `Neg`).
-
-        Returns:
-            The negated rotation.
-        """
+        """Negates both angles (Go `Neg`)."""
         var fixed = self._fix()
         return Self(-fixed._yaw, -fixed._pitch)
 
     def direction(self) -> Direction:
         """Returns the horizontal direction the rotation points in (Go
-        `Direction`).
-
-        Returns:
-            The direction.
-        """
+        `Direction`)."""
         var yaw = self._fix()._yaw
         if yaw > 45 and yaw <= 135:
             return Direction.WEST
@@ -96,11 +65,7 @@ struct Rotation(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         return Direction(0)
 
     def orientation(self) -> Orientation:
-        """Returns the orientation closest to the yaw (Go `Orientation`).
-
-        Returns:
-            The orientation, 0 to 16.
-        """
+        """Returns the orientation closest to the yaw (Go `Orientation`)."""
         comptime step = 360 / 16.0
         var yaw = self._fix()._yaw
         if yaw < -step / 2:
@@ -111,11 +76,7 @@ struct Rotation(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         return Orientation(Int(r))
 
     def vec3(self) -> Vec3:
-        """Returns the unit direction vector of the rotation (Go `Vec3`).
-
-        Returns:
-            The vector.
-        """
+        """Returns the unit direction vector of the rotation (Go `Vec3`)."""
         var fixed = self._fix()
         var yaw_rad = deg_to_rad(fixed._yaw)
         var pitch_rad = deg_to_rad(fixed._pitch)
@@ -135,11 +96,7 @@ struct Rotation(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         )
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the rotation as `[yaw pitch]`.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the rotation as `[yaw pitch]`."""
         writer.write("[", self._yaw, " ", self._pitch, "]")
 
 

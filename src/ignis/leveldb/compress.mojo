@@ -28,14 +28,7 @@ comptime MAX_BLOCK_LEN = 64 * 1024 * 1024
 
 
 def adler32(data: Span[mut=False, UInt8, _]) -> UInt32:
-    """Computes the Adler-32 checksum (RFC 1950).
-
-    Args:
-        data: The bytes.
-
-    Returns:
-        The checksum.
-    """
+    """Computes the Adler-32 checksum (RFC 1950)."""
     comptime MOD = UInt32(65521)
     var a = UInt32(1)
     var b = UInt32(0)
@@ -54,18 +47,7 @@ def adler32(data: Span[mut=False, UInt8, _]) -> UInt32:
 def compress(
     data: Span[mut=False, UInt8, _], kind: UInt8
 ) raises -> List[UInt8]:
-    """Compresses a block with the given block type.
-
-    Args:
-        data: The raw block.
-        kind: One of the `*_COMPRESSION` constants.
-
-    Returns:
-        The compressed bytes (a copy for `NO_COMPRESSION`).
-
-    Raises:
-        If the type is unknown.
-    """
+    """Compresses a block with the given block type."""
     if kind == NO_COMPRESSION:
         return List[UInt8](data)
     if kind == SNAPPY_COMPRESSION:
@@ -91,18 +73,7 @@ def compress(
 def decompress(
     data: Span[mut=False, UInt8, _], kind: UInt8
 ) raises -> List[UInt8]:
-    """Decompresses a block of the given block type.
-
-    Args:
-        data: The stored block, without its trailer.
-        kind: The block type byte from the trailer.
-
-    Returns:
-        The raw block.
-
-    Raises:
-        If the type is unknown or the data is corrupt.
-    """
+    """Decompresses a block of the given block type."""
     if kind == NO_COMPRESSION:
         return List[UInt8](data)
     if kind == SNAPPY_COMPRESSION:

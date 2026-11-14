@@ -18,9 +18,5 @@ struct Slowness(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(2, Slowness)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0x8b, 0xaf, 0xe0, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0x8B, 0xAF, 0xE0, 0xFF)

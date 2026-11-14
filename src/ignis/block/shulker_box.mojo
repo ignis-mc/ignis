@@ -61,26 +61,13 @@ struct ShulkerBox(
         facing: Face = Face.DOWN,
         custom_name: String = String(),
     ):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            colour: The colour of the shulker box, or none.
-            facing: The direction the shulker box opens to, kept in NBT.
-            custom_name: The custom name of the shulker box.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.colour = colour
         self.facing = facing
         self.custom_name = custom_name
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state and hold the same data.
-        """
+        """Compares two blocks."""
         return (
             self.hash() == other.hash()
             and self.facing == other.facing
@@ -88,70 +75,39 @@ struct ShulkerBox(
         )
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         if case .Some(c) = self.colour.colour():
             return BlockState(String(t"minecraft:{c}_shulker_box"))
         return BlockState("minecraft:undyed_shulker_box")
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return UInt64(self.colour.uint8())
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return ShulkerBox(colour=OptionalColour(Int(hash & 0x1F)))
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for colour in optional_colours():
             out.append(ShulkerBox(colour=colour))
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(2, ALWAYS_HARVESTABLE, PICKAXE_EFFECTIVE)
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go
-        `LightDiffusionLevel`).
-
-        Returns:
-            The diffusion level, 0 to 15.
-        """
+        `LightDiffusionLevel`)."""
         return 0
 
     def model(self) -> ShulkerModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return ShulkerModel(facing=self.facing, progress=0)
 
     def encode_item(self) -> EncodedItem:

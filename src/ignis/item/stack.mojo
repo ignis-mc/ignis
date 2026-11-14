@@ -74,15 +74,7 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
 
     def __init__[T: Item](out self, it: T, count: Int):
         """Creates a stack of a typed item (Go `NewStack`). Aborts if the
-        count is negative, as Go panics.
-
-        Parameters:
-            T: The item type.
-
-        Args:
-            it: The item.
-            count: The count.
-        """
+        count is negative, as Go panics."""
         self = Self(RegisteredItem(AnyItem.of(it), item_info(it)), count)
         comptime if conforms_to(T, NBTer):
             try:
@@ -92,12 +84,7 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
 
     def __init__(out self, it: RegisteredItem, count: Int):
         """Creates a stack of an item of unknown type, as found in the
-        `ItemRegistry`. Aborts if the count is negative.
-
-        Args:
-            it: The item and its info.
-            count: The count.
-        """
+        `ItemRegistry`. Aborts if the count is negative."""
         if count < 0:
             abort("cannot use negative count for item stack")
         self = Self()
@@ -107,14 +94,7 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
 
     def __eq__(self, other: Self) -> Bool:
         """Reports whether two stacks are equal (Go `Equal`): comparable,
-        with the same count and damage.
-
-        Args:
-            other: The other stack.
-
-        Returns:
-            True if equal.
-        """
+        with the same count and damage."""
         return (
             self.comparable(other)
             and self._count == other._count
@@ -122,93 +102,48 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
         )
 
     def id(self) -> Int32:
-        """Returns the stack's network ID (Go's unexported `id`).
-
-        Returns:
-            The ID set with `with_id`, or 0.
-        """
+        """Returns the stack's network ID (Go's unexported `id`)."""
         return self._id
 
     def with_id(self, id: Int32) -> Self:
-        """Returns a copy of the stack with a network ID.
-
-        Args:
-            id: The ID.
-
-        Returns:
-            The stack.
-        """
+        """Returns a copy of the stack with a network ID."""
         var s = self.copy()
         s._id = id
         return s^
 
     def count(self) -> Int:
-        """Returns the number of items on the stack (Go `Count`).
-
-        Returns:
-            The count; never negative.
-        """
+        """Returns the number of items on the stack (Go `Count`)."""
         return self._count
 
     def max_count(self) -> Int:
-        """Returns the maximum count of the stack (Go `MaxCount`).
-
-        Returns:
-            The item's `MaxCount`, or 64.
-        """
+        """Returns the maximum count of the stack (Go `MaxCount`)."""
         return self._info.max_count
 
     def info(self) -> ItemInfo:
-        """Returns what the stack knows about its item type.
-
-        Returns:
-            The item info.
-        """
+        """Returns what the stack knows about its item type."""
         return self._info
 
     def grow(self, n: Int) -> Self:
         """Returns the stack with its count changed by `n`, never below 0
-        (Go `Grow`).
-
-        Args:
-            n: The change; negative to shrink.
-
-        Returns:
-            The stack.
-        """
+        (Go `Grow`)."""
         var s = self.copy()
         s._count = max(s._count + n, 0)
         return s^
 
     def durability(self) -> Int:
-        """Returns the current durability (Go `Durability`).
-
-        Returns:
-            The durability left, or -1 if the item is not durable.
-        """
+        """Returns the current durability (Go `Durability`)."""
         if not self._info.durable():
             return -1
         return self._info.max_durability - self._damage
 
     def max_durability(self) -> Int:
-        """Returns the maximum durability (Go `MaxDurability`).
-
-        Returns:
-            The maximum durability, or -1 if the item is not durable.
-        """
+        """Returns the maximum durability (Go `MaxDurability`)."""
         return self._info.max_durability
 
     def damage(self, d: Int) -> Self:
         """Returns the stack damaged by `d` (Go `Damage`). A negative `d`
         repairs. At durability 0 the item breaks into an empty stack unless
-        it is persistent; durability never exceeds the maximum.
-
-        Args:
-            d: The damage.
-
-        Returns:
-            The stack.
-        """
+        it is persistent; durability never exceeds the maximum."""
         if not self._info.durable() or self._unbreakable:
             return self.copy()
         var durability = self.durability()
@@ -225,15 +160,7 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
         return s^
 
     def with_durability(self, d: Int) -> Self:
-        """Returns the stack with durability `d` (Go `WithDurability`).
-
-        Args:
-            d: The durability; 0 breaks the item, above the maximum repairs
-                it fully.
-
-        Returns:
-            The stack.
-        """
+        """Returns the stack with durability `d` (Go `WithDurability`)."""
         if not self._info.durable():
             return self.copy()
         var s = self.copy()
@@ -246,20 +173,12 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
         return s^
 
     def unbreakable(self) -> Bool:
-        """Reports whether the stack is unbreakable (Go `Unbreakable`).
-
-        Returns:
-            The flag.
-        """
+        """Reports whether the stack is unbreakable (Go `Unbreakable`)."""
         return self._unbreakable
 
     def as_unbreakable(self) -> Self:
         """Returns the stack marked unbreakable if the item is durable (Go
-        `AsUnbreakable`).
-
-        Returns:
-            The stack.
-        """
+        `AsUnbreakable`)."""
         var s = self.copy()
         if s._info.durable():
             s._unbreakable = True
@@ -267,11 +186,7 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
 
     def as_breakable(self) -> Self:
         """Returns the stack without the unbreakable mark if the item is
-        durable (Go `AsBreakable`).
-
-        Returns:
-            The stack.
-        """
+        durable (Go `AsBreakable`)."""
         var s = self.copy()
         if s._info.durable():
             s._unbreakable = False
@@ -279,32 +194,17 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
 
     def empty(self) -> Bool:
         """Reports whether the stack is empty: no items, or air (Go
-        `Empty`).
-
-        Returns:
-            True if empty.
-        """
+        `Empty`)."""
         return self._count == 0 or self._info.air
 
     def item(self) -> Optional[AnyItem]:
-        """Returns the item of the stack (Go `Item`).
-
-        Returns:
-            The item, or None if the stack is empty.
-        """
+        """Returns the item of the stack (Go `Item`)."""
         if self.empty():
             return None
         return self._item
 
     def item_as[T: Item](self) -> Optional[T]:
-        """Returns the item as a `T` (Go `s.Item().(T)`).
-
-        Parameters:
-            T: The item type.
-
-        Returns:
-            The item, or None if the stack is empty or holds another type.
-        """
+        """Returns the item as a `T` (Go `s.Item().(T)`)."""
         if self.empty():
             return None
         var it = self._item.get[T]()
@@ -329,59 +229,30 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
         return s^
 
     def with_custom_name(self, name: String) -> Self:
-        """Returns the stack with a custom name (Go `WithCustomName`).
-
-        Args:
-            name: The name; empty to clear it.
-
-        Returns:
-            The stack.
-        """
+        """Returns the stack with a custom name (Go `WithCustomName`)."""
         var s = self.copy()
         s._custom_name = name
         return s^
 
     def custom_name(self) -> String:
-        """Returns the custom name (Go `CustomName`).
-
-        Returns:
-            The name, or an empty string.
-        """
+        """Returns the custom name (Go `CustomName`)."""
         return self._custom_name
 
     def with_lore(self, var lines: List[String]) -> Self:
-        """Returns the stack with lore lines, top first (Go `WithLore`).
-
-        Args:
-            lines: The lines; empty to clear the lore.
-
-        Returns:
-            The stack.
-        """
+        """Returns the stack with lore lines, top first (Go `WithLore`)."""
         var s = self.copy()
         s._lore = lines^
         return s^
 
     def lore(self) -> List[String]:
-        """Returns the lore lines (Go `Lore`).
-
-        Returns:
-            The lines; none if the stack is empty.
-        """
+        """Returns the lore lines (Go `Lore`)."""
         if self.empty():
             return List[String]()
         return self._lore.copy()
 
     def with_forced_enchantments(self, enchants: List[Enchantment]) -> Self:
         """Returns the stack with enchantments added or replaced, without
-        compatibility checks (Go `WithForcedEnchantments`).
-
-        Args:
-            enchants: The enchantments.
-
-        Returns:
-            The stack.
-        """
+        compatibility checks (Go `WithForcedEnchantments`)."""
         var s = self.copy()
         for e in enchants:
             var replaced = False
@@ -395,14 +266,7 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
 
     def without_enchantments(self, ids: List[Int16]) -> Self:
         """Returns the stack without the enchantments passed (Go
-        `WithoutEnchantments`).
-
-        Args:
-            ids: The enchantment IDs to remove.
-
-        Returns:
-            The stack.
-        """
+        `WithoutEnchantments`)."""
         var s = self.copy()
         var kept = List[Enchantment]()
         for e in s._enchantments:
@@ -412,14 +276,7 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
         return s^
 
     def enchantment(self, id: Int16) -> Optional[Enchantment]:
-        """Returns an enchantment of the stack (Go `Enchantment`).
-
-        Args:
-            id: The enchantment ID.
-
-        Returns:
-            The enchantment, or None.
-        """
+        """Returns an enchantment of the stack (Go `Enchantment`)."""
         if self.empty():
             return None
         for e in self._enchantments:
@@ -428,11 +285,7 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
         return None
 
     def enchantments(self) -> List[Enchantment]:
-        """Returns the enchantments sorted by ID (Go `Enchantments`).
-
-        Returns:
-            The enchantments; none if the stack is empty.
-        """
+        """Returns the enchantments sorted by ID (Go `Enchantments`)."""
         var out = List[Enchantment]()
         if self.empty():
             return out^
@@ -444,23 +297,12 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
         return out^
 
     def anvil_cost(self) -> Int:
-        """Returns the anvil cost (Go `AnvilCost`).
-
-        Returns:
-            The experience levels added to anvil uses.
-        """
+        """Returns the anvil cost (Go `AnvilCost`)."""
         return self._anvil_cost
 
     def with_anvil_cost(self, anvil_cost: Int) -> Self:
         """Returns the stack with an anvil cost, if the item is repairable
-        (Go `WithAnvilCost`).
-
-        Args:
-            anvil_cost: The cost.
-
-        Returns:
-            The stack.
-        """
+        (Go `WithAnvilCost`)."""
         var s = self.copy()
         if s._info.repairable:
             s._anvil_cost = anvil_cost
@@ -468,15 +310,7 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
 
     def add_stack(self, s2: Self) -> Tuple[Self, Self]:
         """Moves as many items of `s2` onto the stack as fit (Go
-        `AddStack`).
-
-        Args:
-            s2: The stack to take items from.
-
-        Returns:
-            The filled stack and what is left of `s2`; both unchanged if
-            the stacks are not comparable or the stack is full.
-        """
+        `AddStack`)."""
         if self._count >= self.max_count() or not self.comparable(s2):
             return (self.copy(), s2.copy())
         var diff = min(self.max_count() - self._count, s2._count)
@@ -489,14 +323,7 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
     def comparable(self, s2: Self) -> Bool:
         """Reports whether two stacks hold the same item with the same
         properties, ignoring count and damage, or one is empty (Go
-        `Comparable`).
-
-        Args:
-            s2: The other stack.
-
-        Returns:
-            True if comparable.
-        """
+        `Comparable`)."""
         if self.empty() or s2.empty():
             return True
         if (
@@ -522,11 +349,7 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
             return False
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the stack for debugging (Go `String`).
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the stack for debugging (Go `String`)."""
         writer.write(
             "Stack<",
             self._item,

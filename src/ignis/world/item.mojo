@@ -34,12 +34,6 @@ def item_hash(type_name: StaticString) -> UInt64:
     Dragonfly has no item hashes; Ignis derives them from the type name so
     that they are stable and need no generated table. Use it as
     `comptime BASE_HASH: UInt64 = item_hash("Stick")`.
-
-    Args:
-        type_name: The name of the Go type, such as `"Stick"`.
-
-    Returns:
-        The hash.
     """
     return fnv1a_64(type_name.as_bytes())
 
@@ -55,11 +49,7 @@ struct EncodedItem(Equatable, Hashable, ImplicitlyCopyable, Writable):
     """The metadata value, usually 0."""
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the item as `name:meta`.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the item as `name:meta`."""
         writer.write(self.name, ":", self.meta)
 
 
@@ -77,42 +67,23 @@ trait Item(Copyable, Deinitable):
     for items, the block's `BASE_HASH` for blocks."""
 
     def encode_item(self) -> EncodedItem:
-        """Encodes the item to its name and metadata value (Go `EncodeItem`).
-
-        Returns:
-            The name and metadata value.
-        """
+        """Encodes the item to its name and metadata value (Go `EncodeItem`)."""
         ...
 
     def hash(self) -> UInt64:
         """Returns a value that identifies the item among the values of its
-        type.
-
-        Returns:
-            The hash.
-        """
+        type."""
         ...
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the item from the value `hash` returned.
-
-        Args:
-            hash: A value previously returned by `hash`.
-
-        Returns:
-            The item.
-        """
+        """Rebuilds the item from the value `hash` returned."""
         ...
 
     @staticmethod
     def all_items() -> List[Self]:
         """Returns every value of the type registered as an item (the
-        `world.RegisterItem` calls for the type in Go's `register.go`).
-
-        Returns:
-            The values, in Go's registration order.
-        """
+        `world.RegisterItem` calls for the type in Go's `register.go`)."""
         ...
 
 
@@ -145,51 +116,23 @@ struct AnyItem(Equatable, Hashable, ImplicitlyCopyable, Writable):
 
     @staticmethod
     def of[T: Item](it: T) -> AnyItem:
-        """Wraps a typed item.
-
-        Parameters:
-            T: The item type.
-
-        Args:
-            it: The item.
-
-        Returns:
-            The item as an `AnyItem`.
-        """
+        """Wraps a typed item."""
         comptime if conforms_to(T, ItemHasher):
             return AnyItem(T.BASE_HASH, _item_hash(it), conforms_to(T, Block))
         return AnyItem(T.BASE_HASH, it.hash(), conforms_to(T, Block))
 
     def is_a[T: Item](self) -> Bool:
-        """Reports whether the item is of type `T` (Go `_, ok := it.(T)`).
-
-        Parameters:
-            T: The item type.
-
-        Returns:
-            True if the item's kind is `T.BASE_HASH`.
-        """
+        """Reports whether the item is of type `T` (Go `_, ok := it.(T)`)."""
         return self.kind == T.BASE_HASH
 
     def get[T: Item](self) -> Optional[T]:
-        """Returns the item as a `T` (Go `it, ok := it.(T)`).
-
-        Parameters:
-            T: The item type.
-
-        Returns:
-            The item, or None if it is of another type.
-        """
+        """Returns the item as a `T` (Go `it, ok := it.(T)`)."""
         if not self.is_a[T]():
             return None
         return from_any_hash[T](self.hash)
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the kind and hash, for debugging.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the kind and hash, for debugging."""
         writer.write("AnyItem(", self.kind, ", ", self.hash, ")")
 
 
@@ -223,11 +166,7 @@ struct ItemInfo(Equatable, ImplicitlyCopyable, Writable):
         self.air = False
 
     def durable(self) -> Bool:
-        """Reports whether the item has durability (Go `it.(Durable)`).
-
-        Returns:
-            True if `max_durability` is set.
-        """
+        """Reports whether the item has durability (Go `it.(Durable)`)."""
         return self.max_durability >= 0
 
 
@@ -291,18 +230,7 @@ struct ItemRegistry(Copyable, Defaultable):
     @staticmethod
     def from_vanilla_items(data: Span[UInt8, _]) raises -> Self:
         """Creates a registry holding the runtime IDs of a
-        `vanilla_items.nbt` file (Go `world/item.go` `init`).
-
-        Args:
-            data: The file: one network little-endian compound mapping item
-                names to `{runtime_id, component_based, version, data?}`.
-
-        Returns:
-            A registry without registered items.
-
-        Raises:
-            If the data is malformed or a name or runtime ID repeats.
-        """
+        `vanilla_items.nbt` file (Go `world/item.go` `init`)."""
         var reg = Self()
         var tree = decode(data, NETWORK_LITTLE_ENDIAN)
         for e in tree.children(tree.root()):
@@ -335,17 +263,7 @@ struct ItemRegistry(Copyable, Defaultable):
 
     @staticmethod
     def load(path: String) raises -> Self:
-        """Creates a registry from a `vanilla_items.nbt` file on disk.
-
-        Args:
-            path: The path of the file.
-
-        Returns:
-            A registry without registered items.
-
-        Raises:
-            If the file cannot be read or is malformed.
-        """
+        """Creates a registry from a `vanilla_items.nbt` file on disk."""
         var data: List[UInt8]
         with open(path, "r") as f:
             data = f.read_bytes()
@@ -353,19 +271,7 @@ struct ItemRegistry(Copyable, Defaultable):
 
     def register_item[T: Item](mut self, it: T, info: ItemInfo) raises:
         """Registers an item so that it can be found by name and runtime ID
-        (Go `RegisterItem`).
-
-        Parameters:
-            T: The item type.
-
-        Args:
-            it: The item.
-            info: Its stack behaviour.
-
-        Raises:
-            If an item with the same name and metadata is registered, or the
-            name has no runtime ID (Go panics in both cases).
-        """
+        (Go `RegisterItem`)."""
         var enc = it.encode_item()
         if enc in self._items:
             raise Error(
@@ -383,15 +289,7 @@ struct ItemRegistry(Copyable, Defaultable):
         self, name: StringSlice, meta: Int16
     ) -> Optional[RegisteredItem]:
         """Looks up a registered item by name and metadata value (Go
-        `ItemByName`), falling back to metadata 0 for items with durability.
-
-        Args:
-            name: The item name.
-            meta: The metadata value.
-
-        Returns:
-            The item, or None if neither key is registered.
-        """
+        `ItemByName`), falling back to metadata 0 for items with durability."""
         if case .Some(it) = self._items.get(EncodedItem(String(name), meta)):
             return it
         return self._items.get(EncodedItem(String(name), 0))
@@ -399,30 +297,12 @@ struct ItemRegistry(Copyable, Defaultable):
     def item_runtime_id[T: Item](self, it: T) -> Optional[ItemRuntimeID]:
         """Returns the runtime ID and metadata of an item (Go
         `ItemRuntimeID`). The item need not be registered; only its name
-        must have a runtime ID.
-
-        Parameters:
-            T: The item type.
-
-        Args:
-            it: The item.
-
-        Returns:
-            The runtime ID and metadata, or None if the name is unknown.
-        """
+        must have a runtime ID."""
         return self._runtime_id(it.encode_item())
 
     def any_item_runtime_id(self, it: AnyItem) -> Optional[ItemRuntimeID]:
         """Returns the runtime ID and metadata of a registered item of
-        unknown type.
-
-        Args:
-            it: The item.
-
-        Returns:
-            The runtime ID and metadata, or None if the item is not
-            registered.
-        """
+        unknown type."""
         if case .Some(enc) = self._encoded.get(it):
             return self._runtime_id(enc)
         return None
@@ -434,61 +314,31 @@ struct ItemRegistry(Copyable, Defaultable):
 
     def encode_item(self, it: AnyItem) -> Optional[EncodedItem]:
         """Returns the name and metadata of a registered item of unknown
-        type (Go `it.EncodeItem()`).
-
-        Args:
-            it: The item.
-
-        Returns:
-            The name and metadata, or None if the item is not registered.
-        """
+        type (Go `it.EncodeItem()`)."""
         return self._encoded.get(it)
 
     def item_by_runtime_id(
         self, rid: Int32, meta: Int16
     ) -> Optional[RegisteredItem]:
         """Looks up a registered item by runtime ID and metadata (Go
-        `ItemByRuntimeID`), falling back to metadata 0.
-
-        Args:
-            rid: The runtime ID.
-            meta: The metadata value.
-
-        Returns:
-            The item, or None if none is registered.
-        """
+        `ItemByRuntimeID`), falling back to metadata 0."""
         if case .Some(name) = self._rids_to_names.get(rid):
             return self.item_by_name(name, meta)
         return None
 
     def runtime_id(self, name: StringSlice) -> Optional[Int32]:
-        """Returns the runtime ID of an item name.
-
-        Args:
-            name: The item name.
-
-        Returns:
-            The runtime ID, or None if the name is unknown.
-        """
+        """Returns the runtime ID of an item name."""
         return self._names_to_rids.get(String(name))
 
     def items(self) -> List[AnyItem]:
         """Returns every registered item, in registration order (Go
-        `Items`, whose order is random).
-
-        Returns:
-            The items.
-        """
+        `Items`, whose order is random)."""
         return self._order.copy()
 
     def vanilla_entries(
         ref self,
     ) -> ref[self._entries] List[VanillaItemEntry]:
-        """Returns the entries of `vanilla_items.nbt`, in file order.
-
-        Returns:
-            The entries.
-        """
+        """Returns the entries of `vanilla_items.nbt`, in file order."""
         return self._entries
 
     def item_entries(self) raises -> List[ItemEntry]:
@@ -497,12 +347,6 @@ struct ItemRegistry(Copyable, Defaultable):
         Go builds the list from a map, so its order is random; Ignis keeps
         the file order. An entry without data carries an empty compound, as
         gophertunnel writes a nil map.
-
-        Returns:
-            One entry per vanilla item.
-
-        Raises:
-            If item data cannot be encoded.
         """
         var out = List[ItemEntry](capacity=len(self._entries))
         for ref e in self._entries:

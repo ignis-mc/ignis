@@ -18,27 +18,16 @@ trait Source:
     """The world view handed to commands (Go `*world.Tx`)."""
 
     def position(self) -> Vec3:
-        """Gets the source's position (Go `Target.Position`), used by `@p`.
-
-        Returns:
-            The position.
-        """
+        """Gets the source's position (Go `Target.Position`), used by `@p`."""
         ...
 
     def target(self) -> Target:
-        """Gets the source as a target, for `@s`.
-
-        Returns:
-            The source's own target.
-        """
+        """Gets the source as a target, for `@s`."""
         ...
 
     def send_command_output(mut self, o: Output):
         """Delivers the output of a command (Go `SendCommandOutput`).
 
         `Command.execute` calls it after every execution.
-
-        Args:
-            o: The output.
         """
         ...

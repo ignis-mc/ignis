@@ -1,5 +1,4 @@
-"""The custom sounds, ported from Dragonfly `server/world/sound/custom.go`.
-"""
+"""The custom sounds, ported from Dragonfly `server/world/sound/custom.go`."""
 
 from . import Sound
 
@@ -25,13 +24,7 @@ struct Custom(ImplicitlyCopyable, Sound):
         volume: Float64 = 0,
         pitch: Float64 = 0,
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            name: Name is the identifier of the sound.
-            volume: Volume is the volume of the sound.
-            pitch: Pitch is the pitch of the sound.
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.name = name
         self.volume = volume
         self.pitch = pitch

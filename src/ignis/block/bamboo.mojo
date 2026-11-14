@@ -52,34 +52,17 @@ struct Bamboo(
         thick: Bool = False,
         leaf_size: BambooLeafSize = BambooLeafSize.NO_LEAVES,
     ):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            ready: Whether the bamboo is ready to grow.
-            thick: Whether the stalk is thick.
-            leaf_size: The size of the leaves on the bamboo.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.ready = ready
         self.thick = thick
         self.leaf_size = leaf_size
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         var thickness = "thick" if self.thick else "thin"
         return BlockState(
             "minecraft:bamboo",
@@ -90,11 +73,7 @@ struct Bamboo(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             (UInt64(1) if self.ready else UInt64(0))
             | (UInt64(1) if self.thick else UInt64(0)) << 1
@@ -103,14 +82,7 @@ struct Bamboo(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Bamboo(
             ready=hash & 0x1 != 0,
             thick=(hash >> 1) & 0x1 != 0,
@@ -119,11 +91,7 @@ struct Bamboo(
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for ready in [False, True]:
             for thick in [False, True]:
@@ -134,28 +102,16 @@ struct Bamboo(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(1, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go
-        `LightDiffusionLevel`).
-
-        Returns:
-            The diffusion level, 0 to 15.
-        """
+        `LightDiffusionLevel`)."""
         return 0
 
     def model(self) -> BambooModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return BambooModel(thick=self.thick)
 
     def fuel_info(self) -> FuelInfo:

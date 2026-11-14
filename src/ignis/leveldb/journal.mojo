@@ -35,22 +35,13 @@ struct JournalWriter(Movable):
     """Bytes already used in the current block."""
 
     def __init__(out self, offset: Int = 0):
-        """Creates a writer that continues a journal of `offset` bytes.
-
-        Args:
-            offset: The current length of the journal.
-        """
+        """Creates a writer that continues a journal of `offset` bytes."""
         self._offset = offset % BLOCK_SIZE
 
     def append(
         mut self, record: Span[mut=False, UInt8, _], mut out: List[UInt8]
     ):
-        """Frames one record and appends the bytes to `out`.
-
-        Args:
-            record: The record.
-            out: The destination.
-        """
+        """Frames one record and appends the bytes to `out`."""
         var pos = 0
         var first = True
         while True:
@@ -107,11 +98,7 @@ struct JournalReader(Movable):
     """Bytes skipped because of corruption so far."""
 
     def __init__(out self, var data: List[UInt8]):
-        """Creates a reader over journal bytes.
-
-        Args:
-            data: The whole journal file.
-        """
+        """Creates a reader over journal bytes."""
         self._data = data^
         self._pos = 0
         self.dropped = 0
@@ -121,11 +108,7 @@ struct JournalReader(Movable):
         self._pos = block_end
 
     def next(mut self) -> Optional[List[UInt8]]:
-        """Returns the next intact record.
-
-        Returns:
-            The record, or None at the end of the journal.
-        """
+        """Returns the next intact record."""
         var record = List[UInt8]()
         var in_record = False
         var n = len(self._data)

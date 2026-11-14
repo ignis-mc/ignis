@@ -37,14 +37,7 @@ struct PacketQueue(Defaultable, Movable):
         self.error = None
 
     def push[P: Packet](mut self, mut pk: P):
-        """Encodes and queues a packet.
-
-        Parameters:
-            P: The packet type.
-
-        Args:
-            pk: The packet.
-        """
+        """Encodes and queues a packet."""
         try:
             self.packets.append(encode_packet(pk))
         except e:
@@ -59,31 +52,17 @@ struct SessionViewer(Viewer):
     """The queue shared with the session."""
 
     def __init__(out self, queue: ArcPointer[PacketQueue]):
-        """Creates a viewer writing into a session's queue.
-
-        Args:
-            queue: The session's queue (`Session.queue()`).
-        """
+        """Creates a viewer writing into a session's queue."""
         self.queue = queue
 
     def view_chunk(mut self, pos: ChunkPos, dim: Dimension, c: Chunk):
         """Sends a chunk's biomes; the client then requests its sub-chunks
-        (Go `ViewChunk` and `sendNetworkChunk`).
-
-        Args:
-            pos: The position of the chunk.
-            dim: The dimension of the chunk.
-            c: The chunk.
-        """
+        (Go `ViewChunk` and `sendNetworkChunk`)."""
         var pk = network_chunk(pos, Int32(dim.id), c)
         self.queue[].push(pk)
 
     def view_time(mut self, t: Int):
-        """Sends the time of day (Go `ViewTime`).
-
-        Args:
-            t: The time in ticks.
-        """
+        """Sends the time of day (Go `ViewTime`)."""
         var pk = SetTime()
         pk.time = Int32(t)
         self.queue[].push(pk)

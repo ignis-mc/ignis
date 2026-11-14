@@ -21,60 +21,30 @@ struct SilkTouch(Defaultable, EnchantmentType, ImplicitlyCopyable):
     """The enchantment ID (Go `item.RegisterEnchantment(16, SilkTouch)`)."""
 
     def name(self) -> String:
-        """Returns the name of the enchantment (Go `Name`).
-
-        Returns:
-            `Silk Touch`.
-        """
+        """Returns the name of the enchantment (Go `Name`)."""
         return "Silk Touch"
 
     def max_level(self) -> Int:
-        """Returns the highest level of the enchantment (Go `MaxLevel`).
-
-        Returns:
-            1.
-        """
+        """Returns the highest level of the enchantment (Go `MaxLevel`)."""
         return 1
 
     def cost(self, level: Int) -> Tuple[Int, Int]:
         """Returns the range of enchanting levels that can give the
-        enchantment at a level (Go `Cost`).
-
-        Args:
-            level: The enchantment level.
-
-        Returns:
-            The minimum and maximum cost.
-        """
+        enchantment at a level (Go `Cost`)."""
         return (15, 65)
 
     def rarity(self) -> EnchantmentRarity:
-        """Returns the rarity of the enchantment (Go `Rarity`).
-
-        Returns:
-            `EnchantmentRarity.VERY_RARE`.
-        """
+        """Returns the rarity of the enchantment (Go `Rarity`)."""
         return EnchantmentRarity.VERY_RARE
 
     def compatible_with_enchantment(self, id: Int) -> Bool:
         """Reports whether the enchantment can be on an item together with
-        another (Go `CompatibleWithEnchantment`, which takes the type).
-
-        Args:
-            id: The ID of the other enchantment.
-
-        Returns:
-            True if they are compatible.
-        """
+        another (Go `CompatibleWithEnchantment`, which takes the type)."""
         return id != FORTUNE_ID
 
     def compatible_items(self) -> ItemFilter:
         """Returns the items the enchantment applies to (the data of Go's
-        `CompatibleWithItem`).
-
-        Returns:
-            The filter.
-        """
+        `CompatibleWithItem`)."""
         return ItemFilter(
             tools=ToolFilter(
                 TYPE_PICKAXE,

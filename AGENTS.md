@@ -95,9 +95,10 @@ The goal is that a reader can put a Go file and its Mojo port side by side.
   format (chunk encodings, block runtime IDs and hashes, NBT). Generate the
   expected bytes with a small Go program under `interop/` that imports
   Dragonfly at the pinned version, and commit its output as test data.
-- Comments: keep Dragonfly's doc comments as docstrings, shortened. Every
-  public symbol needs one (`pixi run lint-docs`). Module docstrings name the
-  Go file.
+- Docstrings are short: one line, taken from Dragonfly's doc comment and
+  shortened; more only when something is genuinely not obvious. Never write
+  `Args:`, `Returns:`, `Raises:` or `Parameters:` sections. Module
+  docstrings name the Go file.
 
 ## Quality bar
 

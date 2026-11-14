@@ -8,38 +8,22 @@ trait DamageSource(Copyable, Deinitable):
 
     def reduced_by_armour(self) -> Bool:
         """Reports whether armour reduces the damage (Go
-        `ReducedByArmour`).
-
-        Returns:
-            True if armour reduces it.
-        """
+        `ReducedByArmour`)."""
         ...
 
     def reduced_by_resistance(self) -> Bool:
         """Reports whether the resistance effect reduces the damage (Go
-        `ReducedByResistance`).
-
-        Returns:
-            True if resistance reduces it.
-        """
+        `ReducedByResistance`)."""
         ...
 
     def fire(self) -> Bool:
         """Reports whether the damage is fire related, so that fire
-        resistance ignores it (Go `Fire`).
-
-        Returns:
-            True for fire damage.
-        """
+        resistance ignores it (Go `Fire`)."""
         ...
 
     def ignore_totem(self) -> Bool:
         """Reports whether a totem of undying is ignored if the damage is
-        lethal (Go `IgnoreTotem`).
-
-        Returns:
-            True if the totem does not save the entity.
-        """
+        lethal (Go `IgnoreTotem`)."""
         ...
 
 

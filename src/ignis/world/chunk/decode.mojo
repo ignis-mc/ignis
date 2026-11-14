@@ -36,23 +36,7 @@ def network_decode[
     R: BlockRegistry
 ](br: R, data: Span[UInt8, _], count: Int, r: Range) raises -> Chunk:
     """Decodes network-encoded sub-chunks followed by biomes (Go
-    `NetworkDecode`).
-
-    Parameters:
-        R: The registry type.
-
-    Args:
-        br: The finalized registry the runtime IDs belong to.
-        data: The payload, as in a `LevelChunk` packet.
-        count: The sub-chunk count from the `LevelChunk` packet.
-        r: The vertical range of the chunk.
-
-    Returns:
-        The chunk.
-
-    Raises:
-        If the payload is malformed or does not fit the range.
-    """
+    `NetworkDecode`)."""
     var c = Chunk(br, r)
     if count < 0 or count > len(c._sub):
         raise Error(
@@ -85,24 +69,7 @@ def decode_sub_chunk[
 ](
     data: Span[UInt8, _], mut pos: Int, c: Chunk, mut index: UInt8
 ) raises -> SubChunk:
-    """Decodes one sub-chunk of version 1, 8 or 9 (Go `decodeSubChunk`).
-
-    Parameters:
-        E: The encoding.
-
-    Args:
-        data: The input.
-        pos: The offset to read at; advanced past the sub-chunk.
-        c: The chunk the sub-chunk belongs to (for air and the range).
-        index: The expected index; version 9 replaces it with the index
-            derived from the Y stored in the data.
-
-    Returns:
-        The sub-chunk.
-
-    Raises:
-        If the input is malformed.
-    """
+    """Decodes one sub-chunk of version 1, 8 or 9 (Go `decodeSubChunk`)."""
     if pos >= len(data):
         raise Error("error reading version: unexpected end of data")
     var ver = data[pos]
@@ -141,22 +108,7 @@ def decode_sub_chunk[
 def decode_paletted_storage[
     E: Encoding
 ](data: Span[UInt8, _], mut pos: Int) raises -> Optional[PalettedStorage]:
-    """Decodes one paletted storage (Go `decodePalettedStorage`).
-
-    Parameters:
-        E: The encoding.
-
-    Args:
-        data: The input.
-        pos: The offset to read at; advanced past the storage.
-
-    Returns:
-        The storage, or None if the header says "same as the previous
-        storage".
-
-    Raises:
-        If the input is malformed.
-    """
+    """Decodes one paletted storage (Go `decodePalettedStorage`)."""
     if pos >= len(data):
         raise Error("error reading block size: unexpected end of data")
     var block_size = data[pos] >> 1
@@ -207,22 +159,6 @@ def disk_decode[
     Sub-chunks with no data stay empty. If a stored block state was older
     than the current version or lacked properties, the chunk is marked as
     having legacy states (Go `MarkLegacyStates` via the palette decoder).
-
-    Parameters:
-        R: The registry type.
-
-    Args:
-        br: The finalized registry to map block states to.
-        up: The upgrade data for old block states.
-        data: The stored sub-chunks (one per sub-chunk index, empty when
-            absent) and the biome storages.
-        r: The vertical range of the chunk.
-
-    Returns:
-        The chunk.
-
-    Raises:
-        If the data is malformed or holds an unknown block state.
     """
     var c = Chunk(br, r)
     var bpos = 0
@@ -262,27 +198,7 @@ def disk_decode_sub_chunk[
     mut index: UInt8,
 ) raises -> SubChunk:
     """Decodes one stored sub-chunk of version 1, 8 or 9 (Go
-    `decodeSubChunk` with `DiskEncoding`).
-
-    Parameters:
-        R: The registry type.
-
-    Args:
-        br: The registry.
-        up: The upgrade data.
-        data: The input.
-        pos: The offset; advanced past the sub-chunk.
-        c: The chunk the sub-chunk belongs to; marked as having legacy
-            states if an entry needed upgrading.
-        index: The expected index; version 9 replaces it with the index
-            derived from the stored Y.
-
-    Returns:
-        The sub-chunk.
-
-    Raises:
-        If the input is malformed.
-    """
+    `decodeSubChunk` with `DiskEncoding`)."""
     if pos >= len(data):
         raise Error("error reading version: unexpected end of data")
     var ver = data[pos]

@@ -18,9 +18,5 @@ struct FatalPoison(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(25, FatalPoison)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0x4e, 0x93, 0x31, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0x4E, 0x93, 0x31, 0xFF)

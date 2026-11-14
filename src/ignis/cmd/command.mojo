@@ -25,18 +25,7 @@ trait Runnable(Defaultable, Deinitable, Movable):
     """
 
     def run[S: Source](mut self, mut src: S, mut o: Output, mut tx: S.Tx):
-        """Runs the command (Go `Run`).
-
-        Parameters:
-            S: The source type.
-
-        Args:
-            src: The source running the command.
-            o: The output; messages and errors added to it are sent to the
-                source afterwards.
-            tx: The source's world view (Go `*world.Tx`); for a source
-                outside a world its `attached()` is False.
-        """
+        """Runs the command (Go `Run`)."""
         ...
 
     @staticmethod
@@ -46,12 +35,6 @@ trait Runnable(Defaultable, Deinitable, Movable):
         It is evaluated at compile time. Return `""` to use the field name,
         `"name"` or `"name,suffix"` to rename the parameter or add a suffix,
         and `"-"` to make the field not a parameter.
-
-        Args:
-            field: The field name.
-
-        Returns:
-            The tag.
         """
         return ""
 
@@ -60,17 +43,7 @@ trait Allower:
     """Limits the sources that may run a runnable (Go `cmd.Allower`)."""
 
     def allow[S: Source](self, src: S) -> Bool:
-        """Reports whether the source may run the runnable.
-
-        Parameters:
-            S: The source type.
-
-        Args:
-            src: The source.
-
-        Returns:
-            True if it may.
-        """
+        """Reports whether the source may run the runnable."""
         ...
 
 
@@ -79,17 +52,7 @@ trait ParamDescriber:
     its fields (Go `cmd.ParamDescriber`)."""
 
     def describe_params[S: Source](self, src: S) -> List[ParamInfo]:
-        """Describes the parameters for a source.
-
-        Parameters:
-            S: The source type.
-
-        Args:
-            src: The source.
-
-        Returns:
-            The parameters, in order.
-        """
+        """Describes the parameters for a source."""
         ...
 
 
@@ -125,22 +88,11 @@ struct ParamKind(Equatable, ImplicitlyCopyable, Writable):
     """A custom `Parameter`."""
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares kinds.
-
-        Args:
-            other: The other kind.
-
-        Returns:
-            True if equal.
-        """
+        """Compares kinds."""
         return self.value == other.value
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the kind number.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the kind number."""
         writer.write("ParamKind(", self.value, ")")
 
 
@@ -179,16 +131,7 @@ struct ParamInfo(Copyable, Defaultable):
         optional: Bool,
         var suffix: String,
     ):
-        """Creates a description.
-
-        Args:
-            name: The parameter name.
-            kind: The kind of value.
-            type_name: The type name.
-            options: The enum options.
-            optional: Whether it may be left out.
-            suffix: The suffix.
-        """
+        """Creates a description."""
         self.name = name^
         self.kind = kind
         self.type_name = type_name^
@@ -505,11 +448,7 @@ struct _Overload[S: Source](ImplicitlyCopyable):
 
 struct Command[S: Source](Copyable):
     """A named command with one or more runnable overloads (Go
-    `cmd.Command`). Create one with `new`.
-
-    Parameters:
-        S: The source type that runs it.
-    """
+    `cmd.Command`). Create one with `new`."""
 
     var _v: List[_Overload[Self.S]]
     var _name: String
@@ -523,13 +462,7 @@ struct Command[S: Source](Copyable):
         var description: String,
         var aliases: List[String],
     ):
-        """Creates a command without overloads; `new` adds them.
-
-        Args:
-            name: The name.
-            description: The description.
-            aliases: The aliases.
-        """
+        """Creates a command without overloads; `new` adds them."""
         self._v = List[_Overload[Self.S]]()
         self._name = name^
         self._description = description^
@@ -538,36 +471,20 @@ struct Command[S: Source](Copyable):
 
     def name(self) -> String:
         """Gets the name: lower case, used to run the command and shown in
-        `/help` (Go `Name`).
-
-        Returns:
-            The name.
-        """
+        `/help` (Go `Name`)."""
         return self._name
 
     def description(self) -> String:
-        """Gets the description shown in `/help` (Go `Description`).
-
-        Returns:
-            The description.
-        """
+        """Gets the description shown in `/help` (Go `Description`)."""
         return self._description
 
     def usage(self) -> String:
-        """Gets the usage, one line per overload (Go `Usage`).
-
-        Returns:
-            The usage.
-        """
+        """Gets the usage, one line per overload (Go `Usage`)."""
         return self._usage
 
     def aliases(self) -> List[String]:
         """Gets the aliases, lower case; when there are any, the name is
-        among them (Go `Aliases`).
-
-        Returns:
-            The aliases.
-        """
+        among them (Go `Aliases`)."""
         return self._aliases.copy()
 
     def execute(self, args: String, mut source: Self.S, mut tx: Self.S.Tx):
@@ -577,11 +494,6 @@ struct Command[S: Source](Copyable):
         If none does, the error of the overload that got furthest is
         reported, preceded by a syntax error pointing at the argument where
         it stopped. Either way the output is sent to the source.
-
-        Args:
-            args: The arguments.
-            source: The source running the command.
-            tx: The source's world view.
         """
         var output = Output()
         var least_erroneous = Optional[Message]()
@@ -612,14 +524,7 @@ struct Command[S: Source](Copyable):
 
     def params(self, src: Self.S) -> List[List[ParamInfo]]:
         """Describes the parameters of every overload the source may run
-        (Go `Params`).
-
-        Args:
-            src: The source.
-
-        Returns:
-            One list of parameters per allowed overload.
-        """
+        (Go `Params`)."""
         var out = List[List[ParamInfo]]()
         for i in range(len(self._v)):
             if not self._v[i].allow(src):
@@ -629,14 +534,7 @@ struct Command[S: Source](Copyable):
 
     def runnables(self, src: Self.S) -> List[Int]:
         """Lists the overloads the source may run (Go `Runnables`, which
-        maps their indices to the runnables).
-
-        Args:
-            src: The source.
-
-        Returns:
-            The indices of the allowed overloads.
-        """
+        maps their indices to the runnables)."""
         var out = List[Int]()
         for i in range(len(self._v)):
             if self._v[i].allow(src):
@@ -673,18 +571,6 @@ def new[
         "tp", "Teleports entities.", ["teleport"]
     )
     ```
-
-    Parameters:
-        S: The source type.
-        Rs: The runnable types.
-
-    Args:
-        name: The command name.
-        description: The description.
-        aliases: Other names for the command.
-
-    Returns:
-        The command.
     """
     var lower_name = name.lower()
     var lowered = List[String](capacity=len(aliases) + 1)

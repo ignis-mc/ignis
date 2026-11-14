@@ -1,5 +1,4 @@
-"""The entity sounds, ported from Dragonfly `server/world/sound/entity.go`.
-"""
+"""The entity sounds, ported from Dragonfly `server/world/sound/entity.go`."""
 
 from . import Sound
 
@@ -17,11 +16,7 @@ struct Attack(ImplicitlyCopyable, Sound):
     set to true."""
 
     def __init__(out self, *, damage: Bool = False):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            damage: Damage specifies if the attack actually dealt damage to...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.damage = damage
 
 
@@ -52,11 +47,7 @@ struct Fall(ImplicitlyCopyable, Sound):
     """Distance is the distance the entity has fallen."""
 
     def __init__(out self, *, distance: Float64 = 0):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            distance: Distance is the distance the entity has fallen.
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.distance = distance
 
 

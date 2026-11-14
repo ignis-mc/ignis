@@ -9,51 +9,27 @@ struct DeepLukewarmOcean(Biome, Defaultable):
     """The deep_lukewarm_ocean biome (Go `biome.DeepLukewarmOcean`)."""
 
     def temperature(self) -> Float64:
-        """Returns the temperature (Go `Temperature`).
-
-        Returns:
-            0.5.
-        """
+        """Returns the temperature (Go `Temperature`)."""
         return 0.5
 
     def rainfall(self) -> Float64:
-        """Returns the rainfall (Go `Rainfall`).
-
-        Returns:
-            0.5.
-        """
+        """Returns the rainfall (Go `Rainfall`)."""
         return 0.5
 
     def depth(self) -> Float64:
-        """Returns the depth (Go `Depth`).
-
-        Returns:
-            -1.8.
-        """
+        """Returns the depth (Go `Depth`)."""
         return -1.8
 
     def scale(self) -> Float64:
-        """Returns the scale (Go `Scale`).
-
-        Returns:
-            0.1.
-        """
+        """Returns the scale (Go `Scale`)."""
         return 0.1
 
     def water_colour(self) -> RGBA:
-        """Returns the colour of water in the biome (Go `WaterColour`).
-
-        Returns:
-            RGBA(0x0d, 0x96, 0xdb, 0xa5).
-        """
+        """Returns the colour of water in the biome (Go `WaterColour`)."""
         return RGBA(0x0D, 0x96, 0xDB, 0xA5)
 
     def tags(self) -> List[String]:
-        """Returns the tags of the biome (Go `Tags`).
-
-        Returns:
-            9 tags.
-        """
+        """Returns the tags of the biome (Go `Tags`)."""
         return [
             "deep",
             "lukewarm",
@@ -67,17 +43,9 @@ struct DeepLukewarmOcean(Biome, Defaultable):
         ]
 
     def string(self) -> String:
-        """Returns the name of the biome (Go `String`).
-
-        Returns:
-            `deep_lukewarm_ocean`.
-        """
+        """Returns the name of the biome (Go `String`)."""
         return "deep_lukewarm_ocean"
 
     def encode_biome(self) -> Int:
-        """Returns the biome ID (Go `EncodeBiome`).
-
-        Returns:
-            43.
-        """
+        """Returns the biome ID (Go `EncodeBiome`)."""
         return 43

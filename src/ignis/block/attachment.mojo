@@ -25,14 +25,7 @@ struct Attachment(Equatable, ImplicitlyCopyable):
         self = Attachment(False, Direction.NORTH, Orientation(0))
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two attachments field by field (Go `==`).
-
-        Args:
-            other: The attachment to compare with.
-
-        Returns:
-            True if both are equal.
-        """
+        """Compares two attachments field by field (Go `==`)."""
         return (
             self._hanging == other._hanging
             and self._facing == other._facing
@@ -40,106 +33,57 @@ struct Attachment(Equatable, ImplicitlyCopyable):
         )
 
     def hanging(self) -> Bool:
-        """Reports whether the block is attached to the side of a block.
-
-        Returns:
-            True for wall attachments.
-        """
+        """Reports whether the block is attached to the side of a block."""
         return self._hanging
 
     def facing(self) -> Direction:
-        """Returns the direction a wall attachment faces.
-
-        Returns:
-            The direction; north for standing attachments.
-        """
+        """Returns the direction a wall attachment faces."""
         return self._facing
 
     def orientation(self) -> Orientation:
-        """Returns the orientation of a standing attachment.
-
-        Returns:
-            The orientation; 0 for wall attachments.
-        """
+        """Returns the orientation of a standing attachment."""
         return self._o
 
     def uint8(self) -> UInt8:
-        """Packs the attachment into a byte (Go `Uint8`).
-
-        Returns:
-            `1 | o << 1` standing, `facing << 1` on a wall.
-        """
+        """Packs the attachment into a byte (Go `Uint8`)."""
         if not self._hanging:
             return 1 | (UInt8(Int(self._o)) << 1)
         return UInt8(Int(self._facing)) << 1
 
     def face_uint8(self) -> UInt8:
         """Packs the attachment into a byte, ignoring the orientation (Go
-        `FaceUint8`).
-
-        Returns:
-            1 standing, `facing << 1` on a wall.
-        """
+        `FaceUint8`)."""
         if not self._hanging:
             return 1
         return UInt8(Int(self._facing)) << 1
 
     def rotate_left(self) -> Attachment:
         """Rotates the attachment 90 degrees counter-clockwise (Go
-        `RotateLeft`).
-
-        Returns:
-            The rotated attachment.
-        """
+        `RotateLeft`)."""
         return Attachment(
             self._hanging, self._facing.rotate_left(), self._o.rotate_left()
         )
 
     def rotate_right(self) -> Attachment:
         """Rotates the attachment 90 degrees clockwise (Go `RotateRight`,
-        which rotates left; see the module docstring).
-
-        Returns:
-            The rotated attachment.
-        """
+        which rotates left; see the module docstring)."""
         return Attachment(
             self._hanging, self._facing.rotate_right(), self._o.rotate_right()
         )
 
 
 def wall_attachment(facing: Direction) -> Attachment:
-    """Returns an attachment to the side of a block (Go `WallAttachment`).
-
-    Args:
-        facing: The direction the block faces.
-
-    Returns:
-        The attachment.
-    """
+    """Returns an attachment to the side of a block (Go `WallAttachment`)."""
     return Attachment(True, facing, Orientation(0))
 
 
 def standing_attachment(o: Orientation) -> Attachment:
-    """Returns an attachment on top of a block (Go `StandingAttachment`).
-
-    Args:
-        o: The orientation of the block.
-
-    Returns:
-        The attachment.
-    """
+    """Returns an attachment on top of a block (Go `StandingAttachment`)."""
     return Attachment(False, Direction.NORTH, o)
 
 
 def attachment_from_uint8(v: Int) -> Attachment:
-    """Unpacks the value `uint8` returns.
-
-    Args:
-        v: The packed attachment.
-
-    Returns:
-        The attachment.
-    """
+    """Unpacks the value `uint8` returns."""
     if v & 1 != 0:
         return standing_attachment(Orientation(v >> 1))
     return wall_attachment(Direction(v >> 1))

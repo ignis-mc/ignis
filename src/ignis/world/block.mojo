@@ -37,42 +37,23 @@ trait Block(Copyable, Deinitable):
     constant generated for the type in `block/hash.go`, unique per type."""
 
     def encode_block(self) -> BlockState:
-        """Encodes the block to its name and properties (Go `EncodeBlock`).
-
-        Returns:
-            The block state; its version is unused.
-        """
+        """Encodes the block to its name and properties (Go `EncodeBlock`)."""
         ...
 
     def hash(self) -> UInt64:
         """Returns the hash of the block's own state (second value of Go's
-        `Hash()`).
-
-        Returns:
-            A value unique among the block's states, below `1 << 49`.
-        """
+        `Hash()`)."""
         ...
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from the value `hash` returned.
-
-        Args:
-            hash: A value previously returned by `hash`.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from the value `hash` returned."""
         ...
 
     @staticmethod
     def all_states() -> List[Self]:
         """Returns every value of the type that is registered (the
-        `RegisterBlock` calls for the type in Go's `block/register.go`).
-
-        Returns:
-            The values, in Go's registration order.
-        """
+        `RegisterBlock` calls for the type in Go's `block/register.go`)."""
         ...
 
 
@@ -98,11 +79,7 @@ trait LightEmitter:
     same trait for its private `lightEmitter`)."""
 
     def light_emission_level(self) -> UInt8:
-        """Returns the light level the block emits, 0 to 15.
-
-        Returns:
-            The light emission level.
-        """
+        """Returns the light level the block emits, 0 to 15."""
         ...
 
 
@@ -111,11 +88,7 @@ trait LightDiffuser:
     `block.LightDiffuser`). Blocks that do not conform block all light."""
 
     def light_diffusion_level(self) -> UInt8:
-        """Returns how much light the block takes away, 0 to 15.
-
-        Returns:
-            The light diffusion level.
-        """
+        """Returns how much light the block takes away, 0 to 15."""
         ...
 
 
@@ -125,15 +98,7 @@ trait RandomTicker(Block):
     sub-chunk near a viewer are picked."""
 
     def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
-        """Handles a random tick of the block.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            pos: The position of the block.
-            tx: The world.
-        """
+        """Handles a random tick of the block."""
         ...
 
 
@@ -142,15 +107,7 @@ trait ScheduledTicker(Block):
     (Go `ScheduledTicker`)."""
 
     def scheduled_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
-        """Handles a scheduled tick of the block.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            pos: The position of the block.
-            tx: The world.
-        """
+        """Handles a scheduled tick of the block."""
         ...
 
 
@@ -161,14 +118,5 @@ trait NeighbourUpdateTicker(Block):
     def neighbour_update_tick[
         T: WorldTypes
     ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
-        """Handles a neighbouring block being updated.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            pos: The position of this block.
-            changed_neighbour: The position of the block that changed.
-            tx: The world.
-        """
+        """Handles a neighbouring block being updated."""
         ...

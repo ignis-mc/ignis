@@ -13,33 +13,17 @@ struct Range(Equatable, ImplicitlyCopyable, Writable):
     var _max: Int
 
     def min(self) -> Int:
-        """Returns the minimum Y value (Go `Range[0]`).
-
-        Returns:
-            The lowest valid Y coordinate.
-        """
+        """Returns the minimum Y value (Go `Range[0]`)."""
         return self._min
 
     def max(self) -> Int:
-        """Returns the maximum Y value (Go `Range[1]`).
-
-        Returns:
-            The highest valid Y coordinate.
-        """
+        """Returns the maximum Y value (Go `Range[1]`)."""
         return self._max
 
     def height(self) -> Int:
-        """Returns the difference between `max()` and `min()`.
-
-        Returns:
-            The height of the range.
-        """
+        """Returns the difference between `max()` and `min()`."""
         return self._max - self._min
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the range as `[min max]`, as Go prints it.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the range as `[min max]`, as Go prints it."""
         writer.write("[", self._min, " ", self._max, "]")

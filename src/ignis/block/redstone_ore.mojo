@@ -46,43 +46,23 @@ struct RedstoneOre(
     """Whether the ore is lit up."""
 
     def __init__(out self, *, type: OreType = OreType.STONE, lit: Bool = False):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            type: The rock the ore is embedded in.
-            lit: Whether the ore is lit up.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.type = type
         self.lit = lit
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         var lit = "lit_" if self.lit else ""
         return BlockState(
             String(t"minecraft:{lit}{self.type.prefix()}redstone_ore")
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             UInt64(self.type.uint8())
             | (UInt64(1) if self.lit else UInt64(0)) << 1
@@ -90,25 +70,14 @@ struct RedstoneOre(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return RedstoneOre(
             type=OreType(Int(hash & 0x1)), lit=(hash >> 1) & 0x1 != 0
         )
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for t in ore_types():
             out.append(RedstoneOre(type=t))
@@ -116,11 +85,7 @@ struct RedstoneOre(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return (
             new_break_info(
                 self.type.hardness(),
@@ -132,19 +97,11 @@ struct RedstoneOre(
         )
 
     def light_emission_level(self) -> UInt8:
-        """Returns the light the block emits (Go `LightEmissionLevel`).
-
-        Returns:
-            The light level, 0 to 15.
-        """
+        """Returns the light the block emits (Go `LightEmissionLevel`)."""
         return 9 if self.lit else 0
 
     def model(self) -> SolidModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return SolidModel()
 
     def encode_item(self) -> EncodedItem:

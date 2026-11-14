@@ -9,51 +9,27 @@ struct Desert(Biome, Defaultable):
     """The desert biome (Go `biome.Desert`)."""
 
     def temperature(self) -> Float64:
-        """Returns the temperature (Go `Temperature`).
-
-        Returns:
-            2.0.
-        """
+        """Returns the temperature (Go `Temperature`)."""
         return 2.0
 
     def rainfall(self) -> Float64:
-        """Returns the rainfall (Go `Rainfall`).
-
-        Returns:
-            0.0.
-        """
+        """Returns the rainfall (Go `Rainfall`)."""
         return 0.0
 
     def depth(self) -> Float64:
-        """Returns the depth (Go `Depth`).
-
-        Returns:
-            0.125.
-        """
+        """Returns the depth (Go `Depth`)."""
         return 0.125
 
     def scale(self) -> Float64:
-        """Returns the scale (Go `Scale`).
-
-        Returns:
-            0.05.
-        """
+        """Returns the scale (Go `Scale`)."""
         return 0.05
 
     def water_colour(self) -> RGBA:
-        """Returns the colour of water in the biome (Go `WaterColour`).
-
-        Returns:
-            RGBA(0x32, 0xa5, 0x98, 0xa5).
-        """
+        """Returns the colour of water in the biome (Go `WaterColour`)."""
         return RGBA(0x32, 0xA5, 0x98, 0xA5)
 
     def tags(self) -> List[String]:
-        """Returns the tags of the biome (Go `Tags`).
-
-        Returns:
-            6 tags.
-        """
+        """Returns the tags of the biome (Go `Tags`)."""
         return [
             "desert",
             "monster",
@@ -64,17 +40,9 @@ struct Desert(Biome, Defaultable):
         ]
 
     def string(self) -> String:
-        """Returns the name of the biome (Go `String`).
-
-        Returns:
-            `desert`.
-        """
+        """Returns the name of the biome (Go `String`)."""
         return "desert"
 
     def encode_biome(self) -> Int:
-        """Returns the biome ID (Go `EncodeBiome`).
-
-        Returns:
-            2.
-        """
+        """Returns the biome ID (Go `EncodeBiome`)."""
         return 2

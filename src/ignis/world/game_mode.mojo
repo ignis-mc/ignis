@@ -16,76 +16,40 @@ struct GameMode(Equatable, ImplicitlyCopyable, Writable):
     survival, 1 creative, 2 adventure, 3 spectator."""
 
     def allows_editing(self) -> Bool:
-        """Reports whether a player can edit the world.
-
-        Returns:
-            True in survival and creative.
-        """
+        """Reports whether a player can edit the world."""
         return self.id <= 1
 
     def allows_taking_damage(self) -> Bool:
-        """Reports whether a player can take damage.
-
-        Returns:
-            True in survival and adventure.
-        """
+        """Reports whether a player can take damage."""
         return self.id == 0 or self.id == 2
 
     def creative_inventory(self) -> Bool:
-        """Reports whether a player has the creative inventory.
-
-        Returns:
-            True in creative.
-        """
+        """Reports whether a player has the creative inventory."""
         return self.id == 1
 
     def has_collision(self) -> Bool:
-        """Reports whether a player collides with blocks and entities.
-
-        Returns:
-            False in spectator.
-        """
+        """Reports whether a player collides with blocks and entities."""
         return self.id != 3
 
     def allows_flying(self) -> Bool:
-        """Reports whether a player can fly.
-
-        Returns:
-            True in creative and spectator.
-        """
+        """Reports whether a player can fly."""
         return self.id == 1 or self.id == 3
 
     def allows_interaction(self) -> Bool:
         """Reports whether a player can interact with entities and use
-        items.
-
-        Returns:
-            False in spectator.
-        """
+        items."""
         return self.id != 3
 
     def visible(self) -> Bool:
-        """Reports whether a player is visible to others.
-
-        Returns:
-            False in spectator.
-        """
+        """Reports whether a player is visible to others."""
         return self.id != 3
 
     def instant_portal_travel(self) -> Bool:
-        """Reports whether a player travels through nether portals at once.
-
-        Returns:
-            True in creative.
-        """
+        """Reports whether a player travels through nether portals at once."""
         return self.id == 1
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the game mode's name.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the game mode's name."""
         if self.id == 0:
             writer.write("survival")
         elif self.id == 1:
@@ -109,15 +73,7 @@ comptime GAME_MODE_SPECTATOR = GameMode(3)
 
 
 def game_mode_by_id(id: Int) -> Optional[GameMode]:
-    """Looks up a game mode by ID (Go `GameModeByID`).
-
-    Args:
-        id: 0 to 3.
-
-    Returns:
-        The game mode, or None for other IDs (Go returns survival and
-        false).
-    """
+    """Looks up a game mode by ID (Go `GameModeByID`)."""
     if id < 0 or id > 3:
         return None
     return GameMode(id)

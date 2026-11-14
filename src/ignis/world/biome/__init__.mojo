@@ -19,67 +19,35 @@ trait Biome(ImplicitlyCopyable):
     """A region with distinct features, temperature, rainfall and colours."""
 
     def temperature(self) -> Float64:
-        """Returns the temperature of the biome.
-
-        Returns:
-            The temperature.
-        """
+        """Returns the temperature of the biome."""
         ...
 
     def rainfall(self) -> Float64:
-        """Returns the rainfall of the biome.
-
-        Returns:
-            The rainfall.
-        """
+        """Returns the rainfall of the biome."""
         ...
 
     def depth(self) -> Float64:
-        """Returns the depth of the biome.
-
-        Returns:
-            The depth.
-        """
+        """Returns the depth of the biome."""
         ...
 
     def scale(self) -> Float64:
-        """Returns the scale of the biome.
-
-        Returns:
-            The scale.
-        """
+        """Returns the scale of the biome."""
         ...
 
     def water_colour(self) -> RGBA:
-        """Returns the water colour of the biome.
-
-        Returns:
-            The colour.
-        """
+        """Returns the water colour of the biome."""
         ...
 
     def tags(self) -> List[String]:
-        """Returns the tags of the biome.
-
-        Returns:
-            The tags.
-        """
+        """Returns the tags of the biome."""
         ...
 
     def string(self) -> String:
-        """Returns the biome name (Go `String`).
-
-        Returns:
-            The name, such as `plains`.
-        """
+        """Returns the biome name (Go `String`)."""
         ...
 
     def encode_biome(self) -> Int:
-        """Returns the biome ID used on the network and in chunks.
-
-        Returns:
-            The biome ID.
-        """
+        """Returns the biome ID used on the network and in chunks."""
         ...
 
 
@@ -106,17 +74,7 @@ struct BiomeInfo(Copyable, Equatable, Writable):
 
     @staticmethod
     def of[B: Biome](b: B) -> Self:
-        """Collects the data of a biome.
-
-        Parameters:
-            B: The biome type.
-
-        Args:
-            b: The biome.
-
-        Returns:
-            The data.
-        """
+        """Collects the data of a biome."""
         return BiomeInfo(
             b.encode_biome(),
             b.string(),
@@ -129,14 +87,7 @@ struct BiomeInfo(Copyable, Equatable, Writable):
         )
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two biomes field by field.
-
-        Args:
-            other: The biome to compare with.
-
-        Returns:
-            True if all fields are equal.
-        """
+        """Compares two biomes field by field."""
         return (
             self.id == other.id
             and self.name == other.name
@@ -149,24 +100,13 @@ struct BiomeInfo(Copyable, Equatable, Writable):
         )
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the biome as `name(id)`.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the biome as `name(id)`."""
         writer.write(self.name, "(", self.id, ")")
 
 
 def unknown_biome(id: Int) -> BiomeInfo:
     """Returns the biome Dragonfly uses for IDs without a registered biome
-    (Go `unknownBiome`).
-
-    Args:
-        id: The biome ID.
-
-    Returns:
-        A biome named `unknown` with temperature 0.5 and no rain.
-    """
+    (Go `unknownBiome`)."""
     return BiomeInfo(
         id, "unknown", 0.5, 0, 0.1, 0.1, RGBA(0x44, 0xAF, 0xF5, 0xFF), []
     )
@@ -188,17 +128,7 @@ struct BiomeRegistry(Copyable, Defaultable):
         self._max_vanilla_id = 0
 
     def register[B: Biome](mut self, b: B) raises:
-        """Registers a biome (Go `RegisterBiome`).
-
-        Parameters:
-            B: The biome type.
-
-        Args:
-            b: The biome.
-
-        Raises:
-            If a biome with the same ID is already registered (Go panics).
-        """
+        """Registers a biome (Go `RegisterBiome`)."""
         var info = BiomeInfo.of(b)
         if info.id in self._by_id:
             raise Error(t"cannot register the same biome ({info.name}) twice")
@@ -215,46 +145,24 @@ struct BiomeRegistry(Copyable, Defaultable):
                 self._max_vanilla_id = id
 
     def max_vanilla_id(self) -> Int:
-        """Returns the highest vanilla biome ID (Go `maxVanillaBiomeID`).
-
-        Returns:
-            The ID; 0 before `finalise`.
-        """
+        """Returns the highest vanilla biome ID (Go `maxVanillaBiomeID`)."""
         return self._max_vanilla_id
 
     def by_id(self, id: Int) -> Optional[BiomeInfo]:
-        """Looks up a biome by ID (Go `BiomeByID`).
-
-        Args:
-            id: The biome ID.
-
-        Returns:
-            The biome, or None if no biome has the ID.
-        """
+        """Looks up a biome by ID (Go `BiomeByID`)."""
         if case .Some(ref b) = self._by_id.get(id):
             return b.copy()
         return None
 
     def by_name(self, name: String) -> Optional[BiomeInfo]:
-        """Looks up a biome by name (Go `BiomeByName`).
-
-        Args:
-            name: The biome name, such as `plains`.
-
-        Returns:
-            The biome, or None if no biome has the name.
-        """
+        """Looks up a biome by name (Go `BiomeByName`)."""
         if case .Some(id) = self._id_by_name.get(name):
             return self.by_id(id)
         return None
 
     def biomes(self) -> List[BiomeInfo]:
         """Returns every registered biome (Go `Biomes`, whose order is
-        random), sorted by ID.
-
-        Returns:
-            The biomes.
-        """
+        random), sorted by ID."""
         var ids = List[Int]()
         for id in self._by_id:
             ids.append(id)
@@ -267,21 +175,10 @@ struct BiomeRegistry(Copyable, Defaultable):
 
 struct BiomeSet[*Ts: Biome & Defaultable & Deinitable]:
     """A compile-time list of biome types (no Go counterpart: it replaces
-    the `RegisterBiome` calls).
-
-    Parameters:
-        Ts: The biome types.
-    """
+    the `RegisterBiome` calls)."""
 
     @staticmethod
     def register_all(mut r: BiomeRegistry) raises:
-        """Registers one value of every type.
-
-        Args:
-            r: The registry.
-
-        Raises:
-            If two types share a biome ID.
-        """
+        """Registers one value of every type."""
         comptime for i in range(len(Self.Ts)):
             r.register(Self.Ts[i]())

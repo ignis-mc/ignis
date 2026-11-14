@@ -16,9 +16,5 @@ struct JumpBoost(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(8, JumpBoost)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0xfd, 0xff, 0x84, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0xFD, 0xFF, 0x84, 0xFF)

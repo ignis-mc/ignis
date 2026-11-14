@@ -19,12 +19,7 @@ struct PCG(Copyable, Defaultable):
         self._lo = 0
 
     def __init__(out self, seed1: UInt64, seed2: UInt64):
-        """Creates a generator (Go `NewPCG`).
-
-        Args:
-            seed1: The high half of the state.
-            seed2: The low half of the state.
-        """
+        """Creates a generator (Go `NewPCG`)."""
         self._hi = seed1
         self._lo = seed2
 
@@ -46,11 +41,7 @@ struct PCG(Copyable, Defaultable):
         return (hi, lo)
 
     def uint64(mut self) -> UInt64:
-        """Returns a uniformly distributed 64-bit value (Go `Uint64`).
-
-        Returns:
-            The value.
-        """
+        """Returns a uniformly distributed 64-bit value (Go `Uint64`)."""
         var state = self._next()
         var hi = state[0]
         var lo = state[1]
@@ -72,50 +63,26 @@ struct Rand(Copyable, Defaultable):
         self._src = PCG()
 
     def __init__(out self, seed1: UInt64, seed2: UInt64):
-        """Creates a generator (Go `rand.New(rand.NewPCG(seed1, seed2))`).
-
-        Args:
-            seed1: The first seed.
-            seed2: The second seed.
-        """
+        """Creates a generator (Go `rand.New(rand.NewPCG(seed1, seed2))`)."""
         self._src = PCG(seed1, seed2)
 
     def uint64(mut self) -> UInt64:
-        """Returns a uniformly distributed 64-bit value (Go `Uint64`).
-
-        Returns:
-            The value.
-        """
+        """Returns a uniformly distributed 64-bit value (Go `Uint64`)."""
         return self._src.uint64()
 
     def int32(mut self) -> Int32:
-        """Returns a non-negative 31-bit value (Go `Int32`).
-
-        Returns:
-            The value.
-        """
+        """Returns a non-negative 31-bit value (Go `Int32`)."""
         return Int32(self._src.uint64() >> 33)
 
     def int_n(mut self, n: Int) -> Int:
         """Returns a value in [0, n) (Go `IntN`). Aborts if `n <= 0`, as Go
-        panics.
-
-        Args:
-            n: The exclusive bound.
-
-        Returns:
-            The value.
-        """
+        panics."""
         if n <= 0:
             abort("invalid argument to IntN")
         return Int(self._uint64n(UInt64(n)))
 
     def float64(mut self) -> Float64:
-        """Returns a value in [0, 1) (Go `Float64`).
-
-        Returns:
-            The value.
-        """
+        """Returns a value in [0, 1) (Go `Float64`)."""
         return Float64((self._src.uint64() << 11) >> 11) / Float64(1 << 53)
 
     def _uint64n(mut self, n: UInt64) -> UInt64:

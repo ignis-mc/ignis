@@ -18,11 +18,7 @@ from .world import World, WorldTypes
 
 
 struct Config[T: WorldTypes](Movable):
-    """The settings a world is created with (Go `Config`).
-
-    Parameters:
-        T: The world's types.
-    """
+    """The settings a world is created with (Go `Config`)."""
 
     var dim: Dimension
     """The dimension (Go default: the Overworld)."""
@@ -54,13 +50,7 @@ struct Config[T: WorldTypes](Movable):
         var provider: Self.T.Provider,
         blocks: ArcPointer[BasicBlockRegistry],
     ):
-        """Creates a configuration with Go's defaults.
-
-        Args:
-            generator: The generator.
-            provider: The provider.
-            blocks: The finalized block registry.
-        """
+        """Creates a configuration with Go's defaults."""
         self.dim = OVERWORLD
         self.provider = provider^
         self.generator = generator^
@@ -74,18 +64,7 @@ struct Config[T: WorldTypes](Movable):
 
     def new(deinit self, now_ms: Int) raises -> World[Self.T]:
         """Creates the world (Go `Config.New`). It runs its first tick at
-        once and is then driven by `World.tick`.
-
-        Args:
-            now_ms: The current monotonic time.
-
-        Returns:
-            The world.
-
-        Raises:
-            If no seed was given and the operating system has no
-            randomness.
-        """
+        once and is then driven by `World.tick`."""
         var seed: Tuple[UInt64, UInt64]
         if case .Some(s) = self.seed:
             seed = s

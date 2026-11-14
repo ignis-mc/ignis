@@ -30,12 +30,7 @@ struct PalettedStorage(Copyable, Movable):
     def __init__(out self, var indices: List[UInt32], var palette: Palette):
         """Creates a storage from index words and a palette (Go
         `newPalettedStorage`); the bits per index follow from the number of
-        words.
-
-        Args:
-            indices: The index words: 0, or `uint32s(size)` of them.
-            palette: The palette.
-        """
+        words."""
         var bits = UInt16(len(indices) // 32 // 4)
         self._bits_per_index = bits
         self._index_mask = (UInt32(1) << UInt32(bits)) - 1
@@ -47,77 +42,33 @@ struct PalettedStorage(Copyable, Movable):
 
     @staticmethod
     def empty(v: UInt32) -> Self:
-        """Creates a storage filled with one value (Go `emptyStorage`).
-
-        Args:
-            v: The value.
-
-        Returns:
-            A storage with 0 bits per index.
-        """
+        """Creates a storage filled with one value (Go `emptyStorage`)."""
         return Self(List[UInt32](), Palette(0, [v]))
 
     def palette(ref self) -> ref[self._palette] Palette:
-        """Returns the palette of the storage.
-
-        Returns:
-            The palette.
-        """
+        """Returns the palette of the storage."""
         return self._palette
 
     def bits_per_index(self) -> UInt16:
-        """Returns the bits used per index.
-
-        Returns:
-            0, 1, 2, 3, 4, 5, 6, 8 or 16.
-        """
+        """Returns the bits used per index."""
         return self._bits_per_index
 
     def indices(ref self) -> ref[self._indices] List[UInt32]:
-        """Returns the index words, as encoded on disk and on the network.
-
-        Returns:
-            The words.
-        """
+        """Returns the index words, as encoded on disk and on the network."""
         return self._indices
 
     def at(self, x: UInt8, y: UInt8, z: UInt8) -> UInt32:
-        """Returns the value at a position; coordinates are taken modulo 16.
-
-        Args:
-            x: The X coordinate.
-            y: The Y coordinate.
-            z: The Z coordinate.
-
-        Returns:
-            The value.
-        """
+        """Returns the value at a position; coordinates are taken modulo 16."""
         return self._palette.value(self._palette_index(x & 15, y & 15, z & 15))
 
     def palette_index(self, x: UInt8, y: UInt8, z: UInt8) -> UInt16:
         """Returns the palette index stored at a position (Go
-        `PaletteIndex`).
-
-        Args:
-            x: The X coordinate.
-            y: The Y coordinate.
-            z: The Z coordinate.
-
-        Returns:
-            The index into the palette.
-        """
+        `PaletteIndex`)."""
         return self._palette_index(x & 15, y & 15, z & 15)
 
     def set(mut self, x: UInt8, y: UInt8, z: UInt8, v: UInt32):
         """Sets the value at a position, growing the palette and the storage
-        as needed.
-
-        Args:
-            x: The X coordinate.
-            y: The Y coordinate.
-            z: The Z coordinate.
-            v: The value.
-        """
+        as needed."""
         var index = self._palette.index(v)
         if index == -1:
             index = self._add_new(v)
@@ -130,12 +81,6 @@ struct PalettedStorage(Copyable, Movable):
         never compare equal. This only decides when a biome storage is
         written as "same as the previous one", and keeping it gives the same
         bytes as Dragonfly.
-
-        Args:
-            other: The storage to compare with.
-
-        Returns:
-            True if both have the same index words and palette values.
         """
         if len(self._indices) == 0 or len(other._indices) == 0:
             return False

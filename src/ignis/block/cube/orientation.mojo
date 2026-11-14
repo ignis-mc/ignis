@@ -10,63 +10,32 @@ struct Orientation(Equatable, ImplicitlyCopyable, Intable):
     var _o: Int
 
     def __init__(out self, o: Int):
-        """Creates an orientation from its value (Go `cube.Orientation(o)`).
-
-        Args:
-            o: 0 to 15; 0 faces south and each step is 22.5 degrees.
-        """
+        """Creates an orientation from its value (Go `cube.Orientation(o)`)."""
         self._o = o
 
     def __int__(self) -> Int:
-        """Returns the value of the orientation (Go `int(o)`).
-
-        Returns:
-            The value.
-        """
+        """Returns the value of the orientation (Go `int(o)`)."""
         return self._o
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two orientations.
-
-        Args:
-            other: The orientation to compare with.
-
-        Returns:
-            True if both have the same value.
-        """
+        """Compares two orientations."""
         return self._o == other._o
 
     def yaw(self) -> Float64:
-        """Returns the yaw of the orientation (Go `Yaw`).
-
-        Returns:
-            The yaw in degrees.
-        """
+        """Returns the yaw of the orientation (Go `Yaw`)."""
         return Float64(self._o) / 16 * 360
 
     def opposite(self) -> Orientation:
-        """Returns the orientation rotated 180 degrees (Go `Opposite`).
-
-        Returns:
-            The opposite orientation.
-        """
+        """Returns the orientation rotated 180 degrees (Go `Opposite`)."""
         return orientation_from_yaw(self.yaw() + 180)
 
     def rotate_left(self) -> Orientation:
         """Rotates the orientation 90 degrees counter-clockwise (Go
-        `RotateLeft`).
-
-        Returns:
-            The rotated orientation.
-        """
+        `RotateLeft`)."""
         return orientation_from_yaw(self.yaw() - 90)
 
     def rotate_right(self) -> Orientation:
-        """Rotates the orientation 90 degrees clockwise (Go `RotateRight`).
-
-        Returns:
-            The rotated orientation.
-        """
+        """Rotates the orientation 90 degrees clockwise (Go `RotateRight`)."""
         return orientation_from_yaw(self.yaw() + 90)
 
 
@@ -76,12 +45,6 @@ def orientation_from_yaw(yaw: Float64) -> Orientation:
     As in Go, the yaw is reduced with a truncating modulo (`math.Mod`) and
     rounded half away from zero (`math.Round`), so negative yaws give
     negative orientations.
-
-    Args:
-        yaw: The yaw in degrees.
-
-    Returns:
-        The orientation.
     """
     var y = yaw - trunc(yaw / 360) * 360
     var x = y / 360 * 16

@@ -11,31 +11,16 @@ trait Oxidisable(Block):
     """A copper block that oxidises over time (Go `Oxidisable`)."""
 
     def can_oxidate(self) -> Bool:
-        """Reports whether the block can still oxidise (Go `CanOxidate`).
-
-        Returns:
-            True unless the block is waxed.
-        """
+        """Reports whether the block can still oxidise (Go `CanOxidate`)."""
         ...
 
     def oxidation_level(self) -> OxidationType:
-        """Returns the oxidation level (Go `OxidationLevel`).
-
-        Returns:
-            The oxidation level.
-        """
+        """Returns the oxidation level (Go `OxidationLevel`)."""
         ...
 
     def with_oxidation_level(self, o: OxidationType) -> Self:
         """Returns the block with another oxidation level (Go
-        `WithOxidationLevel`).
-
-        Args:
-            o: The new oxidation level.
-
-        Returns:
-            The updated block.
-        """
+        `WithOxidationLevel`)."""
         ...
 
 
@@ -43,16 +28,7 @@ def copper_block_name(
     block_name: StringSlice, oxidation: OxidationType, waxed: Bool
 ) -> String:
     """Returns the name of a copper block with its oxidation and wax
-    prefixes (Go `copperBlockName`).
-
-    Args:
-        block_name: The name without prefixes or namespace.
-        oxidation: The oxidation level.
-        waxed: Whether the block is waxed.
-
-    Returns:
-        The namespaced name.
-    """
+    prefixes (Go `copperBlockName`)."""
     var name = String(block_name)
     if oxidation != OxidationType.UNOXIDISED:
         name = String(t"{oxidation}_{name}")

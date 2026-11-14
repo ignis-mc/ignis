@@ -78,18 +78,7 @@ struct UserConfig(Copyable, Defaultable):
 
     @staticmethod
     def from_toml(text: StringSlice) raises -> UserConfig:
-        """Reads a `config.toml`; missing keys keep their defaults.
-
-        Args:
-            text: The file contents.
-
-        Returns:
-            The configuration.
-
-        Raises:
-            If the text is not valid in the TOML subset, a value has the
-            wrong type, or `Transport` lacks `nethernet`.
-        """
+        """Reads a `config.toml`; missing keys keep their defaults."""
         var doc = parse_toml(text)
         var c = UserConfig()
         c.network_address = doc.get_string("Network.Address", c.network_address)
@@ -130,11 +119,7 @@ struct UserConfig(Copyable, Defaultable):
         return c^
 
     def to_toml(self) -> String:
-        """Writes the configuration as a `config.toml`.
-
-        Returns:
-            The file contents, with comments on the Ignis-only keys.
-        """
+        """Writes the configuration as a `config.toml`."""
         var s = String()
         s += "[Network]\n"
         s += String(t"Address = {toml_quote(self.network_address)}\n")
@@ -165,14 +150,7 @@ struct UserConfig(Copyable, Defaultable):
         return s^
 
     def config(self) raises -> Config:
-        """Converts to the server's settings (Go `UserConfig.Config`).
-
-        Returns:
-            The settings.
-
-        Raises:
-            If the game mode is unknown.
-        """
+        """Converts to the server's settings (Go `UserConfig.Config`)."""
         var c = Config()
         c.address = self.network_address.copy()
         c.lan_discovery = self.network_lan_discovery
@@ -195,15 +173,7 @@ struct UserConfig(Copyable, Defaultable):
 
 
 def game_mode_by_name(name: StringSlice) -> Optional[GameMode]:
-    """Looks a game mode up by the name `config.toml` uses.
-
-    Args:
-        name: `survival`, `creative`, `adventure`, `spectator`, or the ID
-            `0` to `3`.
-
-    Returns:
-        The game mode, or `None` if the name is unknown.
-    """
+    """Looks a game mode up by the name `config.toml` uses."""
     for i in range(4):
         var mode = game_mode_by_id(i).value()
         if name == String(mode) or name == String(i):
@@ -277,17 +247,7 @@ struct Config(Copyable, Defaultable):
 
 def load_user_config(path: String) raises -> UserConfig:
     """Reads `config.toml`, writing the defaults there first if the file
-    does not exist (what Dragonfly's `main.go` does).
-
-    Args:
-        path: The path of the file.
-
-    Returns:
-        The configuration.
-
-    Raises:
-        If the file cannot be read or written, or is invalid.
-    """
+    does not exist (what Dragonfly's `main.go` does)."""
     if not exists(path):
         var c = UserConfig()
         with open(path, "w") as f:

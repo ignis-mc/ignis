@@ -35,30 +35,15 @@ struct Loom(
     """The direction the loom faces."""
 
     def __init__(out self, *, facing: Direction = Direction.NORTH):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            facing: The direction the loom faces.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.facing = facing
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         return BlockState(
             "minecraft:loom",
             Properties().with_int(
@@ -67,51 +52,28 @@ struct Loom(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return UInt64(Int(self.facing))
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Loom(facing=Direction(Int(hash & 0x3)))
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for facing in directions():
             out.append(Loom(facing=facing))
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(2.5, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
 
     def model(self) -> SolidModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return SolidModel()
 
     def fuel_info(self) -> FuelInfo:
