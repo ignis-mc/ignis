@@ -2,10 +2,12 @@
 
 Go's `Air` embeds `empty` (model), `replaceable` and `transparent`. Mojo has
 no embedding, so the methods those provide are written out where they are
-ported: `transparent` is `LightDiffuser` returning 0. The model and
-`ReplaceableBy` follow with the model package and `world.Tx`.
+ported: `transparent` is `LightDiffuser` returning 0 and `replaceable` is
+`Replaceable`.
 """
 
+from .block import Replaceable
+from .hash import AnyBlock
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -17,7 +19,13 @@ from .model.empty import Empty as EmptyModel
 
 @fieldwise_init
 struct Air(
-    Block, Equatable, ImplicitlyCopyable, Item, LightDiffuser, ModelledBlock
+    Block,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    LightDiffuser,
+    ModelledBlock,
+    Replaceable,
 ):
     """The block present in otherwise empty space."""
 
@@ -71,3 +79,7 @@ struct Air(
     def model(self) -> EmptyModel:
         """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
+
+    def replaceable_by(self, b: AnyBlock) -> Bool:
+        """Any block replaces it (Go's embedded `replaceable`)."""
+        return True

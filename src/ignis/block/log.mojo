@@ -1,7 +1,15 @@
 """`Log`, ported from Dragonfly `server/block/log.go`.
 
-TODO(world-runtime): UseOnBlock, Strip, FlammabilityInfo and the drops.
+TODO(world-runtime): Strip, FlammabilityInfo and the drops.
 """
+
+from .cube.face import Face
+from .cube.pos import Pos
+from .cube.rotation import Rotation
+from ..mgl64 import Vec3
+from ..world.world import World, WorldTypes
+from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
+from .hash import AnyBlock
 
 from ..item.charcoal import Charcoal
 from ..item.smelting_info import Fuel, FuelInfo, SmeltInfo, Smeltable
@@ -32,6 +40,7 @@ struct Log(
     Item,
     ModelledBlock,
     Smeltable,
+    UsableOnBlock,
 ):
     """A naturally occurring block found in trees, used to craft other blocks.
     """
@@ -114,6 +123,28 @@ struct Log(
     def model(self) -> SolidModel:
         """Returns the model of the block (Go `Model`)."""
         return SolidModel()
+
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: Rotation,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places the log along the clicked face's axis (Go `UseOnBlock`)."""
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var b = self
+        b.axis = at.value()[1].axis()
+        return [
+            Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()), False)
+        ]
 
     def fuel_info(self) -> FuelInfo:
         """Returns the fuel info (Go `FuelInfo`): 15 s if the wood burns."""

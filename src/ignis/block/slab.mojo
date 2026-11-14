@@ -1,8 +1,16 @@
 """`Slab`, ported from Dragonfly `server/block/slab.go`.
 
-TODO(world-runtime): UseOnBlock, Instrument, FlammabilityInfo, CanDisplace,
+TODO(world-runtime): Instrument, FlammabilityInfo, CanDisplace,
 SideClosed, CanRedstoneWireStepDown, Model and the drops.
 """
+
+from .cube.face import Face
+from .cube.pos import Pos
+from .cube.rotation import Rotation
+from ..mgl64 import Vec3
+from ..world.world import World, WorldTypes
+from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
+from .hash import AnyBlock
 
 from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
@@ -47,6 +55,7 @@ struct Slab(
     Item,
     LightDiffuser,
     ModelledBlock,
+    UsableOnBlock,
 ):
     """A half block that allows entities to walk up blocks without jumping."""
 
@@ -150,6 +159,65 @@ struct Slab(
     def model(self) -> SlabModel:
         """Returns the model of the block (Go `Model`)."""
         return SlabModel(double=self.double, top=self.top)
+
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: Rotation,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places a top or bottom slab, or completes a half slab of the same
+        kind into a double slab (Go `UseOnBlock`)."""
+        var br = tx.block_registry()
+        if not self.double:
+            var rid = tx.block(pos)
+            if br[].kind(rid) == Self.BASE_HASH:
+                var clicked = Self.from_hash(br[].state_hash(rid))
+                if (
+                    not clicked.double
+                    and clicked.block == self.block
+                    and (
+                        (face == Face.UP and not clicked.top)
+                        or (face == Face.DOWN and clicked.top)
+                    )
+                ):
+                    var d = clicked.copy()
+                    d.double = True
+                    return [
+                        Placement(
+                            pos, AnyBlock(Self.BASE_HASH, d.hash()), False
+                        )
+                    ]
+            var side = pos.side(face)
+            var srid = tx.block(side)
+            if br[].kind(srid) == Self.BASE_HASH and not replaceable_with(
+                tx, pos, AnyBlock(Self.BASE_HASH, self.hash())
+            ):
+                var s = Self.from_hash(br[].state_hash(srid))
+                if not s.double and s.block == self.block:
+                    var d = s.copy()
+                    d.double = True
+                    return [
+                        Placement(
+                            side, AnyBlock(Self.BASE_HASH, d.hash()), False
+                        )
+                    ]
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var f = at.value()[1]
+        var b = self.copy()
+        if f == Face.DOWN or (click.y() > 0.5 and f != Face.UP):
+            b.top = True
+        return [
+            Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()), False)
+        ]
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

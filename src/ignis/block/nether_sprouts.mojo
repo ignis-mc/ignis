@@ -1,6 +1,6 @@
 """`NetherSprouts`, ported from Dragonfly `server/block/nether_sprouts.go`.
 
-Go's `replaceable` helper (ReplaceableBy) comes with `world.Tx`.
+Go's `replaceable` helper is `Replaceable`.
 
 TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
 FlammabilityInfo and the drops.
@@ -8,6 +8,8 @@ FlammabilityInfo and the drops.
 
 from ..item.item import Compostable
 from ..item.tool import TYPE_SHEARS
+from .block import Replaceable
+from .hash import AnyBlock
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -32,6 +34,7 @@ struct NetherSprouts(
     Item,
     LightDiffuser,
     ModelledBlock,
+    Replaceable,
 ):
     """A non-solid plant block that generates in warped forests."""
 
@@ -78,6 +81,10 @@ struct NetherSprouts(
     def model(self) -> EmptyModel:
         """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
+
+    def replaceable_by(self, b: AnyBlock) -> Bool:
+        """Any block replaces it (Go's embedded `replaceable`)."""
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

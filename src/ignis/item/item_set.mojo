@@ -41,7 +41,7 @@ from .item import (
 )
 from .smelting_info import Fuel, FuelInfo, Smeltable, SmeltInfo
 from .stack import Stack, has_nbt
-from .tool import Tool, ToolType
+from .tool import Tool, ToolInfo, ToolType
 
 
 struct ItemSet[*Ts: Item]:
@@ -350,6 +350,19 @@ struct ItemSet[*Ts: Item]:
             if kind == T.BASE_HASH:
                 return from_any_hash[T](hash).encode_item()
         return None
+
+    @staticmethod
+    def tool(kind: UInt64, hash: UInt64, block_kind: UInt64) -> ToolInfo:
+        """Returns an item's tool info for breaking a block of type
+        `block_kind`, or Go's `ToolNone` for items that are not tools."""
+        var t = Self.tool_type(kind, hash)
+        if not t:
+            return ToolInfo.none()
+        return ToolInfo(
+            t.value(),
+            Self.harvest_level(kind, hash).or_else(0),
+            Self.base_mining_efficiency(kind, hash, block_kind).or_else(1),
+        )
 
 
 def _max_count[T: MaxCounter](it: T) -> Int:

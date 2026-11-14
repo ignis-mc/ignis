@@ -33,6 +33,11 @@ struct Efficiency(Defaultable, EnchantmentType, ImplicitlyCopyable):
         var min_cost = 1 + 10 * (level - 1)
         return (min_cost, min_cost + 50)
 
+    @staticmethod
+    def addend(level: Int) -> Float64:
+        """Returns the mining speed added at a level (Go `Addend`)."""
+        return Float64(level * level + 1)
+
     def rarity(self) -> EnchantmentRarity:
         """Returns the rarity of the enchantment (Go `Rarity`)."""
         return EnchantmentRarity.COMMON

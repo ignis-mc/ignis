@@ -4,6 +4,8 @@ from ignis.block.grass import Grass
 from ignis.block.register import vanilla_block_registry
 from ignis.block.register import VanillaBlocks
 from ignis.entity.register import VanillaEntities
+from ignis.item.stack import Stack
+from ignis.item.stick import Stick
 from ignis.mgl64 import Vec3
 from ignis.player.player import Player
 from ignis.session.session import (
@@ -31,13 +33,23 @@ from minecraft.protocol.block_pos import SubChunkPos as ProtocolSubChunkPos
 from minecraft.protocol.math import Vec3 as ProtocolVec3
 from minecraft.protocol.packet.add_player import AddPlayer
 from minecraft.protocol.packet.chunk_radius_updated import ChunkRadiusUpdated
+from minecraft.protocol.packet.container_close import ContainerClose
+from minecraft.protocol.packet.container_open import ContainerOpen
+from minecraft.protocol.packet.interact import (
+    INTERACT_ACTION_NPC_OPEN,
+    INTERACT_ACTION_OPEN_INVENTORY,
+    Interact,
+)
 from minecraft.protocol.packet.id import (
+    ID_CONTAINER_CLOSE,
+    ID_CONTAINER_OPEN,
     ID_ADD_PLAYER,
     ID_AVAILABLE_ACTOR_IDENTIFIERS,
     ID_CHUNK_RADIUS_UPDATED,
     ID_LEVEL_CHUNK,
     ID_NETWORK_CHUNK_PUBLISHER_UPDATE,
     ID_PLAYER_LIST,
+    ID_INVENTORY_CONTENT,
     ID_SET_ACTOR_DATA,
     ID_SET_PLAYER_GAME_TYPE,
     ID_UPDATE_ABILITIES,
@@ -157,6 +169,9 @@ def test_spawn_packets() raises:
     assert_equal(ids[2], ID_SET_PLAYER_GAME_TYPE)
     assert_equal(ids[3], ID_UPDATE_ABILITIES)
     assert_equal(ids[4], ID_SET_ACTOR_DATA)
+    # Go's sendInv: inventory, UI, off-hand, armour.
+    for i in range(5, 9):
+        assert_equal(ids[i], ID_INVENTORY_CONTENT)
     assert_equal(s.conn.last[SetPlayerGameType]().game_type, GAME_TYPE_CREATIVE)
 
 
@@ -292,6 +307,40 @@ def test_view_other_player() raises:
         PLAYER_LIST_ACTION_REMOVE,
     )
     assert_false(s.entity_runtime_id(alex))
+
+
+def test_open_and_close_inventory() raises:
+    var w = _world()
+    var s = _session("Steve", 1)
+    _spawn(s, w)
+    var open = Interact()
+    open.action_type = INTERACT_ACTION_OPEN_INVENTORY
+    _ = s.handle_packet(_packet(open), w)
+    var pk = s.conn.last[ContainerOpen]()
+    assert_equal(pk.window_id, 0)
+    assert_equal(pk.container_type, 0xFF)
+    assert_equal(pk.container_entity_unique_id, -1)
+    assert_equal(pk.container_position.y, -59)
+    # A second ContainerOpen would crash the client.
+    _ = s.handle_packet(_packet(open), w)
+    assert_equal(s.conn.count(ID_CONTAINER_OPEN), 1)
+    # Closing moves what the UI holds back into the inventory.
+    s.invs.ui.set_item(0, Stack(Stick(), 5))
+    var close = ContainerClose()
+    var res = s.handle_packet(_packet(close), w)
+    assert_equal(s.conn.last[ContainerClose]().window_id, 0)
+    assert_true(s.invs.ui.empty())
+    assert_equal(s.invs.inv.item(0).count(), 5)
+    assert_equal(len(res.dropped), 0)
+    _ = s.handle_packet(_packet(open), w)
+    assert_equal(s.conn.count(ID_CONTAINER_OPEN), 2)
+    # Window 0xFF (with the chat) gets no reply.
+    close.window_id = 0xFF
+    _ = s.handle_packet(_packet(close), w)
+    assert_equal(s.conn.count(ID_CONTAINER_CLOSE), 1)
+    open.action_type = INTERACT_ACTION_NPC_OPEN
+    with assert_raises(contains="interact"):
+        _ = s.handle_packet(_packet(open), w)
 
 
 def test_write_error_kept() raises:
