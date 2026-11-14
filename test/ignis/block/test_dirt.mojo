@@ -14,5 +14,11 @@ def test_encode_block() raises:
     )
 
 
+def test_encode_item() raises:
+    assert_equal(Dirt().encode_item().name, "minecraft:dirt")
+    assert_equal(Dirt(coarse=True).encode_item().name, "minecraft:coarse_dirt")
+    assert_equal(len(Dirt.all_items()), 2)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

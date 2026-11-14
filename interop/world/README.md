@@ -32,6 +32,8 @@ expected bytes that the Mojo tests under `test/ignis/world/` compare against:
 - `vectors.txt`: runtime IDs and block hashes of the implemented blocks,
   network-encoded sub-chunks and biomes, height maps, and the `LevelChunk` and
   `SubChunk` packets Dragonfly's session sends for a few fixed chunks.
+- `vectors.txt` also holds the first values of Go's `rand.New(rand.NewPCG(1, 2))`,
+  the generator Dragonfly's worlds use (`ignis.internal.rand`).
 
 Regenerate from the repository root:
 

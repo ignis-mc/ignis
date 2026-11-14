@@ -27,7 +27,7 @@ from minecraft.nbt.decode import decode_from
 from minecraft.nbt.nbt import NETWORK_LITTLE_ENDIAN
 
 from ..internal.fnv import fnv1_64
-from .block import Block, LightDiffuser, LightEmitter
+from .block import Block, LightDiffuser, LightEmitter, RandomTicker
 from .block_state import (
     BlockState,
     Properties,
@@ -296,8 +296,10 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
             info.set_light_filter(_diffusion[T](b))
         comptime if conforms_to(T, LightEmitter):
             info.set_light(_emission[T](b))
-        # TODO: NBTer, RandomTicker, Liquid and LiquidDisplacer flags once
-        # those traits are ported with world.Tx.
+        comptime if conforms_to(T, RandomTicker):
+            info.set(_FLAG_RANDOM_TICK)
+        # TODO: NBTer, Liquid and LiquidDisplacer flags once block entities
+        # and liquids are ported.
         self._block_infos[rid] = info
 
     def finalize(mut self) raises:
@@ -639,6 +641,20 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
         if case .Some(rid) = self._hashes.get(self.block_hash(b)):
             return rid
         abort(t"cannot find block by hash: {b.encode_block()}")
+
+    def runtime_id_of(self, kind: UInt64, hash: UInt64) -> Optional[UInt32]:
+        """Returns the runtime ID of a block given its type's base hash and
+        its state hash, for blocks whose type is only known at run time
+        (for example a block held as an `AnyItem`).
+
+        Args:
+            kind: The type's `BASE_HASH`.
+            hash: The block's `hash()`.
+
+        Returns:
+            The runtime ID, or None if no such block is registered.
+        """
+        return self._hashes.get(kind | (hash << UInt64(self._bit_size)))
 
     def is_block[T: Block](self, rid: UInt32) -> Bool:
         """Reports whether a runtime ID holds a block of type `T` (Go

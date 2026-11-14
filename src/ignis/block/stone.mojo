@@ -1,12 +1,13 @@
 """`Stone`, `Granite`, `Diorite`, `Andesite`, ported from Dragonfly
 `server/block/stone.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the `oneOf` drops.
+TODO(world-runtime): SmeltInfo and the `oneOf` drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -18,7 +19,9 @@ from .hash import HASH_ANDESITE, HASH_DIORITE, HASH_GRANITE, HASH_STONE
 from .model.solid import Solid as SolidModel
 
 
-struct Stone(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Stone(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A block found underground in the world or on mountains."""
 
     comptime BASE_HASH: UInt64 = HASH_STONE
@@ -84,6 +87,26 @@ struct Stone(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
 
         Returns:
             Every state of the block.
+        """
+        return [Stone(smooth=True), Stone()]
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`).
+
+        Returns:
+            `minecraft:smooth_stone` or `minecraft:stone`, metadata 0.
+        """
+        if self.smooth:
+            return EncodedItem("minecraft:smooth_stone", 0)
+        return EncodedItem("minecraft:stone", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `RegisterItem` calls
+        in `register.go`).
+
+        Returns:
+            Smooth stone and stone.
         """
         return [Stone(smooth=True), Stone()]
 

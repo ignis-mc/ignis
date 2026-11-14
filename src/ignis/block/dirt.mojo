@@ -1,12 +1,12 @@
 """Dirt, ported from Dragonfly `server/block/dirt.go`.
 
-TODO(world-runtime): SoilFor, Till, Shovel, spreadDirt, EncodeItem and the
-drops.
+TODO(world-runtime): SoilFor, Till, Shovel, spreadDirt and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     SHOVEL_EFFECTIVE,
@@ -19,7 +19,9 @@ from .model.solid import Solid as SolidModel
 
 
 @fieldwise_init
-struct Dirt(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Dirt(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A block found abundantly in most biomes under a layer of grass."""
 
     comptime BASE_HASH: UInt64 = HASH_DIRT
@@ -67,6 +69,26 @@ struct Dirt(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     @staticmethod
     def all_states() -> List[Self]:
         """Returns the registered values (Go `register.go`).
+
+        Returns:
+            Coarse dirt and dirt.
+        """
+        return [Dirt(coarse=True), Dirt()]
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`).
+
+        Returns:
+            `minecraft:coarse_dirt` or `minecraft:dirt`, metadata 0.
+        """
+        if self.coarse:
+            return EncodedItem("minecraft:coarse_dirt", 0)
+        return EncodedItem("minecraft:dirt", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `RegisterItem` calls
+        in `register.go`).
 
         Returns:
             Coarse dirt and dirt.

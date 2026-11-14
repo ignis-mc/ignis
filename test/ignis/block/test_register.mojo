@@ -13,6 +13,7 @@ from ignis.block.register import (
     break_info,
     vanilla_block_registry,
 )
+from ignis.item.tool import ToolType
 from ignis.world.block_registry import UNKNOWN_KIND, BasicBlockRegistry
 from std.memory import bitcast
 from std.testing import TestSuite, assert_equal, assert_true
@@ -60,9 +61,9 @@ def _break_line(info: Optional[BreakInfo]) -> String:
     var harvest = UInt64(0)
     var effective = UInt64(0)
     for i in range(len(tools)):
-        if b.harvestable.matches(tools[i][0], tools[i][1]):
+        if b.harvestable.matches(ToolType(tools[i][0]), tools[i][1]):
             harvest |= UInt64(1) << UInt64(i)
-        if b.effective.matches(tools[i][0], tools[i][1]):
+        if b.effective.matches(ToolType(tools[i][0]), tools[i][1]):
             effective |= UInt64(1) << UInt64(i)
     return String(
         t"{_float_hex(b.hardness)},{_float_hex(b.blast_resistance)},"

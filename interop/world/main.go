@@ -15,6 +15,7 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -374,6 +375,20 @@ func chunkVectors(v vectors, name string, c *chunk.Chunk) {
 	v.hex(name+".sub_chunk", marshal(subChunkPacket(world.SubChunkPos{3, 0, -2}, offsets, c)))
 }
 
+// randVectors writes the first values of the generator Dragonfly's worlds
+// use (rand.New over rand.PCG), seeded with (1, 2).
+func randVectors(v vectors) {
+	r := rand.New(rand.NewPCG(1, 2))
+	v.int("rand.uint64.0", r.Uint64())
+	v.int("rand.uint64.1", r.Uint64())
+	v.int("rand.intn_8400", r.IntN(8400))
+	v.int("rand.intn_600", r.IntN(600))
+	v.int("rand.int32", r.Int32())
+	v.int("rand.intn_pow2", r.IntN(1<<20))
+	v.int("rand.intn_large", r.IntN(1000000007))
+	v["rand.float64_bits"] = fmt.Sprintf("%016x", math.Float64bits(r.Float64()))
+}
+
 func main() {
 	out := flag.String("out", "../../test/data/world", "output directory")
 	flag.Parse()
@@ -398,6 +413,7 @@ func main() {
 	for i := range widths {
 		v.hex(fmt.Sprintf("mixed.sub.%02d", i), data.SubChunks[i])
 	}
+	randVectors(v)
 	v.write(filepath.Join(*out, "vectors.txt"))
 }
 

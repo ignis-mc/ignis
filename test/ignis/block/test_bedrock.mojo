@@ -18,5 +18,10 @@ def test_behaviour() raises:
     assert_true(Bedrock().supports_end_crystal())
 
 
+def test_encode_item() raises:
+    assert_equal(Bedrock().encode_item().name, "minecraft:bedrock")
+    assert_equal(len(Bedrock.all_items()), 1)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

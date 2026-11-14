@@ -10,12 +10,12 @@ WithAttachment, SetAttachment, Attachment, Attachments, EncodeItem and the
 drops.
 """
 
+from ..item.tool import TYPE_SHEARS
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     AXE_EFFECTIVE,
-    TOOL_TYPE_SHEARS,
     BreakInfo,
     Breakable,
     ToolFilter,
@@ -155,7 +155,7 @@ struct Vines(
         Returns:
             The hardness, blast resistance and tools.
         """
-        return new_break_info(0.2, ToolFilter(TOOL_TYPE_SHEARS), AXE_EFFECTIVE)
+        return new_break_info(0.2, ToolFilter(TYPE_SHEARS), AXE_EFFECTIVE)
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go

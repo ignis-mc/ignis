@@ -3,12 +3,13 @@
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .hash import HASH_BEDROCK
 from .model.solid import Solid as SolidModel
 
 
 @fieldwise_init
-struct Bedrock(Block, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Bedrock(Block, Equatable, ImplicitlyCopyable, Item, ModelledBlock):
     """A block that is indestructible in survival."""
 
     comptime BASE_HASH: UInt64 = HASH_BEDROCK
@@ -63,6 +64,24 @@ struct Bedrock(Block, Equatable, ImplicitlyCopyable, ModelledBlock):
             Burning bedrock and bedrock.
         """
         return [Bedrock(infinite_burning=True), Bedrock()]
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`).
+
+        Returns:
+            `minecraft:bedrock`, metadata 0.
+        """
+        return EncodedItem("minecraft:bedrock", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `RegisterItem` calls
+        in `register.go`).
+
+        Returns:
+            Bedrock that does not burn.
+        """
+        return [Bedrock()]
 
     def supports_end_crystal(self) -> Bool:
         """Reports whether an end crystal may be placed on the block.

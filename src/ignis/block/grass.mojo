@@ -1,12 +1,13 @@
 """Grass blocks, ported from Dragonfly `server/block/grass.go`.
 
 TODO(world-runtime): RandomTick, BoneMeal, SoilFor, Till, Shovel,
-CompostChance, EncodeItem and the drops.
+CompostChance and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     SHOVEL_EFFECTIVE,
@@ -19,7 +20,9 @@ from .model.solid import Solid as SolidModel
 
 
 @fieldwise_init
-struct Grass(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Grass(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """Grass blocks generate abundantly across the surface of the world."""
 
     comptime BASE_HASH: UInt64 = HASH_GRASS
@@ -58,6 +61,24 @@ struct Grass(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
     @staticmethod
     def all_states() -> List[Self]:
         """Returns the registered values (Go `RegisterBlock(Grass{})`).
+
+        Returns:
+            Grass.
+        """
+        return [Grass()]
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`).
+
+        Returns:
+            `minecraft:grass_block`, metadata 0.
+        """
+        return EncodedItem("minecraft:grass_block", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `RegisterItem` calls
+        in `register.go`).
 
         Returns:
             Grass.
