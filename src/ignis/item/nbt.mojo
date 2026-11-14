@@ -5,8 +5,9 @@
 `readItemStack`): `{Name, Damage, Block?, Count, tag?}`, with the damage in
 `tag` as a short. Reading looks the item up by `Name` and `Damage`; Go
 also decodes `Block` to pick a block item's state, which matters only for
-block items with several registered states and is not done yet. Go writes the tags into a map, so its key order is random; Ignis
-writes them in the order `WriteNBT` adds them. User values
+block items with several registered states and is not done yet. Go writes
+the tags into a map, so its key order is random; Ignis writes them in the
+order `WriteNBT` adds them. User values
 (`dragonflyData`) are not ported, and `read_nbt` keeps enchantments of any
 ID because the enchantment table is not ported yet (Go drops unknown IDs).
 """
