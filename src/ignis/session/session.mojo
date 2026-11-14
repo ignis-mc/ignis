@@ -156,8 +156,17 @@ from minecraft.protocol.packet.update_soft_enum import (
     SOFT_ENUM_ACTION_SET,
     UpdateSoftEnum,
 )
+from minecraft.protocol.packet.container_close import ContainerClose
+from minecraft.protocol.packet.container_open import ContainerOpen
+from minecraft.protocol.packet.interact import (
+    INTERACT_ACTION_MOUSE_OVER_ENTITY,
+    INTERACT_ACTION_OPEN_INVENTORY,
+    Interact,
+)
 from minecraft.protocol.packet.id import (
     ID_COMMAND_REQUEST,
+    ID_CONTAINER_CLOSE,
+    ID_INTERACT,
     ID_INVENTORY_TRANSACTION,
     ID_ITEM_STACK_REQUEST,
     ID_MOB_EQUIPMENT,
@@ -534,6 +543,8 @@ struct Session[C: Conn](Movable):
     var invs: Inventories
     """The player's inventories (Go's session inventory fields)."""
     var _stack_requests: ItemStackRequestHandler
+    var _inv_opened: Bool
+    """The client shows its inventory (Go `invOpened`)."""
 
     def __init__(
         out self,
@@ -574,6 +585,7 @@ struct Session[C: Conn](Movable):
         self._soft_enums = Set[String]()
         self.invs = Inventories()
         self._stack_requests = ItemStackRequestHandler()
+        self._inv_opened = False
         self._queue[].entity_ids[
             uuid_key(self.player.uuid())
         ] = SELF_ENTITY_RUNTIME_ID
@@ -855,6 +867,11 @@ struct Session[C: Conn](Movable):
             )
         if id == ID_MOB_EQUIPMENT:
             return self._handle_mob_equipment(pk.decode[MobEquipment]())
+        if id == ID_INTERACT:
+            self._handle_interact(pk.decode[Interact]())
+            return HandleResult()
+        if id == ID_CONTAINER_CLOSE:
+            return self._handle_container_close(pk.decode[ContainerClose]())
         if id == ID_COMMAND_REQUEST:
             # Go `CommandRequestHandler`: the origin is kept for the output.
             var req = pk.decode[CommandRequest]()
@@ -1015,6 +1032,51 @@ struct Session[C: Conn](Movable):
         var res = HandleResult()
         res.held_changed = slot != self.invs.held_slot
         self.invs.held_slot = slot
+        return res^
+
+    def _handle_interact(mut self, pk: Interact) raises:
+        """Go `InteractHandler`: the client asks to open its inventory."""
+        if pk.action_type == INTERACT_ACTION_MOUSE_OVER_ENTITY:
+            return
+        if pk.action_type != INTERACT_ACTION_OPEN_INVENTORY:
+            raise Error(t"unexpected interact packet action {pk.action_type}")
+        if self._inv_opened:
+            # A second ContainerOpen crashes the client.
+            return
+        self._inv_opened = True
+        var pos = self.player.position()
+        var open = ContainerOpen()
+        open.window_id = 0
+        open.container_type = 0xFF
+        open.container_entity_unique_id = -1
+        open.container_position.x = Int32(Int(pos.x()))
+        open.container_position.y = Int32(Int(pos.y()))
+        open.container_position.z = Int32(Int(pos.z()))
+        self.write_packet(open)
+
+    def _handle_container_close(
+        mut self, pk: ContainerClose
+    ) raises -> HandleResult:
+        """Go `ContainerCloseHandler`; only the player's own inventory opens
+        here, so other windows are acknowledged with their type."""
+        var res = HandleResult()
+        # Go `MoveItemsToInventory`: UI items go back or are dropped.
+        for it in self.invs.ui.clear():
+            var n = self.invs.inv.add_item(it.copy())
+            if n < it.count():
+                res.dropped.append(it.grow(-n))
+        var container_type = pk.container_type
+        if pk.window_id == 0:
+            self._inv_opened = False
+            container_type = 0
+        elif pk.window_id == 0xFF:
+            # Sent when a window opens together with the chat.
+            self._inv_opened = False
+            return res^
+        var close = ContainerClose()
+        close.window_id = pk.window_id
+        close.container_type = container_type
+        self.write_packet(close)
         return res^
 
     def _handle_mob_equipment(
@@ -1567,12 +1629,8 @@ struct Session[C: Conn](Movable):
         self.write_packet(pk)
 
     def view_entity(mut self, p: Player, held: Stack = Stack()):
-        """Shows another player (Go `ViewEntity` for a `Controllable` that
-        is an actual player); the session's own player gets its state.
-
-        Args:
-            p: The player to show.
-        """
+        """Shows another player holding `held` (Go `ViewEntity`); the
+        session's own player gets its state."""
         var id = self._runtime_id_for(p)
         if id == SELF_ENTITY_RUNTIME_ID:
             self.view_entity_state(p)
