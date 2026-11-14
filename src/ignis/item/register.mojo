@@ -16,6 +16,7 @@ from ..world.item import ItemRegistry
 from .amethyst_shard import AmethystShard
 from .apple import Apple
 from .baked_potato import BakedPotato
+from .banner_pattern import BannerPattern
 from .beef import Beef
 from .beetroot import Beetroot
 from .beetroot_soup import BeetrootSoup
@@ -25,6 +26,7 @@ from .bone import Bone
 from .bone_meal import BoneMeal
 from .book import Book
 from .book_and_quill import BookAndQuill
+from .boots import Boots
 from .bottle_of_enchanting import BottleOfEnchanting
 from .bow import Bow
 from .bowl import Bowl
@@ -32,6 +34,7 @@ from .bread import Bread
 from .brick import Brick
 from .carrot_on_a_stick import CarrotOnAStick
 from .charcoal import Charcoal
+from .chestplate import Chestplate
 from .chicken import Chicken
 from .clay_ball import ClayBall
 from .clock import Clock
@@ -71,12 +74,15 @@ from .golden_apple import GoldenApple
 from .golden_carrot import GoldenCarrot
 from .gunpowder import Gunpowder
 from .heart_of_the_sea import HeartOfTheSea
+from .helmet import Helmet
 from .honey_bottle import HoneyBottle
 from .honeycomb import Honeycomb
 from .iron_ingot import IronIngot
 from .iron_nugget import IronNugget
+from .item_set import ItemSet
 from .lapis_lazuli import LapisLazuli
 from .leather import Leather
+from .leggings import Leggings
 from .magma_cream import MagmaCream
 from .melon_slice import MelonSlice
 from .mushroom_stew import MushroomStew
@@ -92,6 +98,7 @@ from .phantom_membrane import PhantomMembrane
 from .poisonous_potato import PoisonousPotato
 from .popped_chorus_fruit import PoppedChorusFruit
 from .porkchop import Porkchop
+from .pottery_sherd import PotterySherd
 from .prismarine_crystal import PrismarineCrystals
 from .prismarine_shard import PrismarineShard
 from .pufferfish import Pufferfish
@@ -111,6 +118,7 @@ from .scute import Scute
 from .shears import Shears
 from .shulker_shell import ShulkerShell
 from .slimeball import Slimeball
+from .smithing_template import SmithingTemplate
 from .snowball import Snowball
 from .spider_eye import SpiderEye
 from .spyglass import Spyglass
@@ -123,12 +131,12 @@ from .turtle_shell import TurtleShell
 from .warped_fungus_on_a_stick import WarpedFungusOnAStick
 from .wheat import Wheat
 from .written_book import WrittenBook
-from .item_set import ItemSet
 
 comptime VanillaItems = ItemSet[
     AmethystShard,
     Apple,
     BakedPotato,
+    BannerPattern,
     Beef,
     Beetroot,
     BeetrootSoup,
@@ -138,6 +146,7 @@ comptime VanillaItems = ItemSet[
     BoneMeal,
     Book,
     BookAndQuill,
+    Boots,
     BottleOfEnchanting,
     Bow,
     Bowl,
@@ -145,6 +154,7 @@ comptime VanillaItems = ItemSet[
     Brick,
     CarrotOnAStick,
     Charcoal,
+    Chestplate,
     Chicken,
     ClayBall,
     Clock,
@@ -184,12 +194,14 @@ comptime VanillaItems = ItemSet[
     GoldenCarrot,
     Gunpowder,
     HeartOfTheSea,
+    Helmet,
     HoneyBottle,
     Honeycomb,
     IronIngot,
     IronNugget,
     LapisLazuli,
     Leather,
+    Leggings,
     MagmaCream,
     MelonSlice,
     MushroomStew,
@@ -205,6 +217,7 @@ comptime VanillaItems = ItemSet[
     PoisonousPotato,
     PoppedChorusFruit,
     Porkchop,
+    PotterySherd,
     PrismarineCrystals,
     PrismarineShard,
     Pufferfish,
@@ -224,6 +237,7 @@ comptime VanillaItems = ItemSet[
     Shears,
     ShulkerShell,
     Slimeball,
+    SmithingTemplate,
     Snowball,
     SpiderEye,
     Spyglass,

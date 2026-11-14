@@ -1,7 +1,4 @@
-"""Brick, ported from Dragonfly `server/item/brick.go`.
-
-TODO(port): `PotDecoration`.
-"""
+"""Brick, ported from Dragonfly `server/item/brick.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
 
@@ -12,6 +9,10 @@ struct Brick(Equatable, ImplicitlyCopyable, Item):
 
     comptime BASE_HASH: UInt64 = item_hash("Brick")
     """`item_hash("Brick")`."""
+
+    def pot_decoration(self) -> Bool:
+        """Reports that bricks decorate pots (Go `PotDecoration`)."""
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`)."""

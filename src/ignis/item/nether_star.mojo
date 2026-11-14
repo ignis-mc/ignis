@@ -1,7 +1,4 @@
-"""NetherStar, ported from Dragonfly `server/item/nether_star.go`.
-
-TODO(port): `BlastProof`.
-"""
+"""NetherStar, ported from Dragonfly `server/item/nether_star.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
 
@@ -13,6 +10,11 @@ struct NetherStar(Equatable, ImplicitlyCopyable, Item):
 
     comptime BASE_HASH: UInt64 = item_hash("NetherStar")
     """`item_hash("NetherStar")`."""
+
+    def blast_proof(self) -> Bool:
+        """Reports that the item survives explosions as an item entity (Go
+        `BlastProof`)."""
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`)."""
