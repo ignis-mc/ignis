@@ -4,7 +4,7 @@ Go's `sourceWaterDisplacer` makes beacons a `LiquidDisplacer`; that trait
 comes with liquids.
 
 TODO(world-runtime): the `Primary` and `Secondary` `effect.LastingType` fields,
-, SideClosed, Activate, Level, Tick, recalculateLevel, obstructed,
+SideClosed, Activate, Level, Tick, recalculateLevel, obstructed,
 broadcastBeaconEffects and the drops.
 """
 

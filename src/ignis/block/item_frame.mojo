@@ -4,7 +4,7 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the `Item item.Stack` field, Activate, Punch, UseOnBlock,
-NeighbourUpdateTick, SideClosed, , Pick, the break handler and the drops.
+NeighbourUpdateTick, SideClosed, Pick, the break handler and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree

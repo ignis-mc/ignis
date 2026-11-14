@@ -1,6 +1,6 @@
 """`Lapis`, ported from Dragonfly `server/block/lapis.go`.
 
-TODO(world-runtime): and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.block import Block

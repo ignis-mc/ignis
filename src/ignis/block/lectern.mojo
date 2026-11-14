@@ -4,7 +4,7 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the `Book item.Stack` field, Model, SideClosed,
-UseOnBlock, Activate, Punch, TurnPage, , FlammabilityInfo and the drops (the
+UseOnBlock, Activate, Punch, TurnPage, FlammabilityInfo and the drops (the
 book).
 """
 

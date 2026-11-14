@@ -1,7 +1,7 @@
 """`DeepslateTiles`, ported from Dragonfly
 `server/block/deepslate_tiles.go`.
 
-TODO(world-runtime): and the `oneOf` drops.
+TODO(world-runtime): the `oneOf` drops.
 """
 
 from ..item.smelting_info import SmeltInfo, Smeltable

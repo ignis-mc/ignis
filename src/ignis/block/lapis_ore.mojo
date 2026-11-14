@@ -1,6 +1,6 @@
 """`LapisOre`, ported from Dragonfly `server/block/lapis_ore.go`.
 
-TODO(world-runtime): and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..item.lapis_lazuli import LapisLazuli

@@ -1,7 +1,7 @@
 """`Quartz`, `ChiseledQuartz`, `QuartzPillar`, ported from Dragonfly
 `server/block/quartz.go`.
 
-TODO(world-runtime): QuartzPillar.UseOnBlock,  and the drops.
+TODO(world-runtime): QuartzPillar.UseOnBlock and the drops.
 """
 
 from ..world.block import Block

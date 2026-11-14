@@ -1,6 +1,6 @@
 """`Banner`, ported from Dragonfly `server/block/banner.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, SideClosed, ,
+TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, SideClosed,
 FlammabilityInfo and the drops.
 """
 

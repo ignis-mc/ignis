@@ -1,6 +1,6 @@
 """`Cobblestone`, ported from Dragonfly `server/block/cobblestone.go`.
 
-TODO(world-runtime): and the `oneOf` drops, RepairsStoneTools.
+TODO(world-runtime): the `oneOf` drops, RepairsStoneTools.
 """
 
 from ..item.smelting_info import SmeltInfo, Smeltable

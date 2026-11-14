@@ -1,6 +1,6 @@
 """`Coal`, ported from Dragonfly `server/block/coal.go`.
 
-TODO(world-runtime): and the drops, FlammabilityInfo.
+TODO(world-runtime): the drops, FlammabilityInfo.
 """
 
 from ..item.smelting_info import Fuel, FuelInfo

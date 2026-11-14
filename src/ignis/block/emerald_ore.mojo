@@ -1,6 +1,6 @@
 """`EmeraldOre`, ported from Dragonfly `server/block/emerald_ore.go`.
 
-TODO(world-runtime): and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..item.emerald import Emerald

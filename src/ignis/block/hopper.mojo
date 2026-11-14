@@ -5,8 +5,7 @@ with liquids.
 
 TODO(world-runtime): the inventory and viewer fields, NewHopper, Model,
 SideClosed, Inventory, WithName, AddViewer, RemoveViewer, Activate, UseOnBlock,
-Tick, insertItem, extractItem, RedstoneUpdate, , the break handler and the
-drops.
+Tick, insertItem, extractItem, RedstoneUpdate, the break handler and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree

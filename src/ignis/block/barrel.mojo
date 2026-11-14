@@ -1,8 +1,8 @@
 """`Barrel`, ported from Dragonfly `server/block/barrel.go`.
 
 TODO(world-runtime): the inventory and viewer fields, NewBarrel, Inventory,
-WithName, open/close, AddViewer, RemoveViewer, Activate, UseOnBlock, , the
-break handler, FlammabilityInfo and the drops.
+WithName, open/close, AddViewer, RemoveViewer, Activate, UseOnBlock, the break
+handler, FlammabilityInfo and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree

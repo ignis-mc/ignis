@@ -4,8 +4,8 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the `*brewer` (brewer.go: inventory, fuel, brewing
-progress), NewBrewingStand, Tick, Model, SideClosed, Activate, UseOnBlock, ,
-the break handler and the drops.
+progress), NewBrewingStand, Tick, Model, SideClosed, Activate, UseOnBlock, the
+break handler and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree

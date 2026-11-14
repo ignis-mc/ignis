@@ -1,6 +1,6 @@
 """`GoldOre`, ported from Dragonfly `server/block/gold_ore.go`.
 
-TODO(world-runtime): and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..item.gold_ingot import GoldIngot

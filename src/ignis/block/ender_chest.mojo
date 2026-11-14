@@ -4,7 +4,7 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the viewer count, NewEnderChest, SideClosed, Activate,
-UseOnBlock, AddViewer, RemoveViewer, open/close,  and the drops.
+UseOnBlock, AddViewer, RemoveViewer, open/close and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree

@@ -5,7 +5,7 @@ with liquids.
 
 TODO(world-runtime): the `Items [4]CampfireItem` field, Model, SideClosed,
 Activate, UseOnBlock, Splash, Ignite, Extinguish, Tick, NeighbourUpdateTick,
-EntityInside, , the drops (charcoal or soul soil) and break handler,
+EntityInside, the drops (charcoal or soul soil) and break handler,
 FlammabilityInfo.
 """
 

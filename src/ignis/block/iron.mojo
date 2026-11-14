@@ -1,6 +1,6 @@
 """`Iron`, ported from Dragonfly `server/block/iron.go`.
 
-TODO(world-runtime): and the drops, Instrument, PowersBeacon.
+TODO(world-runtime): the drops, Instrument, PowersBeacon.
 """
 
 from ..world.block import Block

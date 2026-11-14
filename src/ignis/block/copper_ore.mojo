@@ -1,6 +1,6 @@
 """`CopperOre`, ported from Dragonfly `server/block/copper_ore.go`.
 
-TODO(world-runtime): and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..item.copper_ingot import CopperIngot

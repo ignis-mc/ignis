@@ -1,6 +1,6 @@
 """`Diamond`, ported from Dragonfly `server/block/diamond.go`.
 
-TODO(world-runtime): and the drops, PowersBeacon.
+TODO(world-runtime): the drops, PowersBeacon.
 """
 
 from ..world.block import Block

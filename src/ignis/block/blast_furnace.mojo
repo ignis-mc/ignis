@@ -1,7 +1,7 @@
 """`BlastFurnace`, ported from Dragonfly `server/block/blast_furnace.go`.
 
 TODO(world-runtime): the `*smelter` (smelter.go: inventory, fuel, progress,
-Experience and the XP the break info drops), NewFurnace, Tick, , Activate,
+Experience and the XP the break info drops), NewFurnace, Tick, Activate,
 UseOnBlock, the break handler dropping the inventory and the drops.
 """
 

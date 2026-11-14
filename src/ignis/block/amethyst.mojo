@@ -1,6 +1,6 @@
 """`Amethyst`, ported from Dragonfly `server/block/amethyst.go`.
 
-TODO(world-runtime): and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.block import Block

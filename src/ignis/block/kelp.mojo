@@ -3,8 +3,8 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): BoneMeal, UseOnBlock, NeighbourUpdateTick, RandomTick,
-and the drops.
+TODO(world-runtime): BoneMeal, UseOnBlock, NeighbourUpdateTick, RandomTick and
+the drops.
 """
 
 from ..item.dried_kelp import DriedKelp

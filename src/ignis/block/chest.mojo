@@ -5,8 +5,8 @@ with liquids.
 
 TODO(world-runtime): the inventory, pairing (paired, pairX, pairZ, pairInv) and
 viewer fields, NewChest, Inventory, WithName, SideClosed, AddViewer,
-RemoveViewer, Activate, UseOnBlock, open/close, Paired, pair, unpair, , the
-break handler, FlammabilityInfo and the drops.
+RemoveViewer, Activate, UseOnBlock, open/close, Paired, pair, unpair, the break
+handler, FlammabilityInfo and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree

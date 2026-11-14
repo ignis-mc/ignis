@@ -1,6 +1,6 @@
 """`EndBricks`, ported from Dragonfly `server/block/end_bricks.go`.
 
-TODO(world-runtime): and the `oneOf` drops.
+TODO(world-runtime): the `oneOf` drops.
 """
 
 from ..world.block import Block

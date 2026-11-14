@@ -1,6 +1,6 @@
 """`AncientDebris`, ported from Dragonfly `server/block/ancient_debris.go`.
 
-TODO(world-runtime): and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..item.netherite_scrap import NetheriteScrap

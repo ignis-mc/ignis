@@ -1,6 +1,6 @@
 """`Deepslate`, ported from Dragonfly `server/block/deepslate.go`.
 
-TODO(world-runtime): UseOnBlock,  and the `oneOf` drops.
+TODO(world-runtime): UseOnBlock and the `oneOf` drops.
 """
 
 from ..item.smelting_info import SmeltInfo, Smeltable

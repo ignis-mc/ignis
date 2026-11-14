@@ -1,6 +1,6 @@
 """`Basalt`, ported from Dragonfly `server/block/basalt.go`.
 
-TODO(world-runtime): UseOnBlock,  and the `oneOf` drops.
+TODO(world-runtime): UseOnBlock and the `oneOf` drops.
 """
 
 from ..world.block import Block
