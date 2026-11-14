@@ -2,8 +2,10 @@
 
 A `LightArea` is a square of N*N chunks lit together. Go's area holds
 `[]*Chunk`; here it holds `ChunkPointer`s into chunks the caller owns (the
-world's loaded columns), which must stay where they are while the area is
-used. Go's chunks hold the block registry; Ignis passes it to the area.
+world's loaded columns), which must stay where they are, and alive, while
+the area is used: the pointers do not keep them alive, and Mojo destroys a
+value after its last use, so use the owner after the last call on the
+area. Go's chunks hold the block registry; Ignis passes it to the area.
 
 The methods Go keeps in `light.go` (node insertion and propagation) are the
 free functions of `light.mojo`.
