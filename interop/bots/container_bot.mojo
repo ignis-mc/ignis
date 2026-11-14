@@ -169,6 +169,14 @@ struct Bot(Movable):
             if self.window and c.window_id == UInt32(self.window.value()[0]):
                 for i in range(len(c.content)):
                     self._window_slot(i, c.content[i])
+            elif c.window_id == 0:
+                # Go resends the whole inventory, for example after UseItem.
+                for i in range(len(c.content)):
+                    var k = _key(
+                        CONTAINER_HOT_BAR if i < 9 else CONTAINER_INVENTORY, i
+                    )
+                    self.ids[k] = c.content[i].stack_network_id
+                    self.counts[k] = Int(c.content[i].stack.count)
         elif id == ID_INVENTORY_SLOT:
             var s = pk.decode[InventorySlot](sid, False)
             if self.window and s.window_id == UInt32(self.window.value()[0]):

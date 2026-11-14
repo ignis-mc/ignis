@@ -760,6 +760,10 @@ struct Session[C: Conn](Movable):
             return self._handle_text(pk.decode[Text]())
         if id == ID_ITEM_STACK_REQUEST:
             var res = HandleResult()
+            # Changes made outside requests go out first: discarding the
+            # request's own changes below must not lose them (Go sends them
+            # from the slot funcs at once).
+            var outside = self.send_inventory_changes()
             var held = self.invs.held_item()
             var off = self.invs.off_hand_item()
             self._load_window(w)
@@ -776,7 +780,8 @@ struct Session[C: Conn](Movable):
             # Go's inTransaction: the response already told the client.
             self._discard_inventory_changes()
             res.held_changed = (
-                held != self.invs.held_item()
+                outside
+                or held != self.invs.held_item()
                 or off != self.invs.off_hand_item()
             )
             return res^
@@ -1195,6 +1200,7 @@ struct Session[C: Conn](Movable):
                 )
             var req = ItemStackRequest()
             req.requests.append(pk.item_stack_request.value().copy())
+            var outside = self.send_inventory_changes()
             var held = self.invs.held_item()
             var resp = self._stack_requests.handle(
                 req,
@@ -1206,7 +1212,7 @@ struct Session[C: Conn](Movable):
             )
             self.write_packet(resp)
             self._discard_inventory_changes()
-            res.held_changed = held != self.invs.held_item()
+            res.held_changed = outside or held != self.invs.held_item()
         return res^
 
     def _handle_movement(mut self, mut pk: PlayerAuthInput) -> Bool:
