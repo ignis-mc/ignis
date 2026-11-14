@@ -315,6 +315,7 @@ from .enchanting import (
 from .handler_item_stack_request import ENCHANTING_INPUT_SLOT
 from ..block.anvil import Anvil
 from ..block.anvil_type import AnvilType
+from ..block.beacon import Beacon
 from ..entity.experience_orb import spawn_experience_orbs
 from ..player.living import EVENT_EXPERIENCE
 from ..world.sound.block import AnvilBreak, AnvilUse
@@ -882,6 +883,8 @@ struct Session[C: Conn](Movable):
             self._stack_requests.spent_levels = 0
             self._stack_requests.anvil_used = False
             self._stack_requests.reset_enchant_seed = False
+            self._stack_requests.beacon_effects = None
+            self._stack_requests.beacon_level = self._beacon_level(w)
             var enchant_input = self.invs.ui.item(ENCHANTING_INPUT_SLOT)
             self._stack_requests.enchant_offers = self._enchant_offers(w)
             var resp = self._stack_requests.handle(
@@ -896,6 +899,7 @@ struct Session[C: Conn](Movable):
             self._store_window(w)
             self._spawn_grindstone_experience(w)
             self._apply_window_costs(w)
+            self._apply_beacon_payment(w)
             if self._stack_requests.reset_enchant_seed:
                 self._enchant_seed = _random_seed()
             if self.invs.ui.item(ENCHANTING_INPUT_SLOT) != enchant_input:
@@ -1312,6 +1316,30 @@ struct Session[C: Conn](Movable):
                 w.set_block(pos, d)
                 return
         w.play_sound(centre, AnvilUse())
+
+    def _beacon_level[T: WorldTypes](mut self, mut w: World[T]) -> Int:
+        if case .Some(ref o) = self._queue[].opened:
+            if case .Some(b) = w.block_as[Beacon](o.pos):
+                return b.level
+        return 0
+
+    def _apply_beacon_payment[T: WorldTypes](mut self, mut w: World[T]):
+        # Go `handleBeaconPayment`: `tx.SetBlock(pos, beacon, nil)`; an
+        # effect of 0 keeps the beacon's own.
+        if not self._stack_requests.beacon_effects:
+            return
+        var e = self._stack_requests.beacon_effects.value()
+        self._stack_requests.beacon_effects = None
+        if not self._queue[].opened:
+            return
+        var pos = self._queue[].opened.value().pos
+        if case .Some(b) = w.block_as[Beacon](pos):
+            var nb = b.copy()
+            if e[0] != 0:
+                nb.primary = e[0]
+            if e[1] != 0:
+                nb.secondary = e[1]
+            w.set_block(pos, nb)
 
     def _spawn_grindstone_experience[T: WorldTypes](mut self, mut w: World[T]):
         # Go's grindstone craft adds the orbs at the player's eyes.

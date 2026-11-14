@@ -287,6 +287,14 @@ trait HopperExtractable(Block):
         ...
 
 
+trait BeaconSource(Block):
+    """A block a beacon's pyramid may be built from (Go `BeaconSource`)."""
+
+    def powers_beacon(self) -> Bool:
+        """Reports whether the block powers a beacon (Go `PowersBeacon`)."""
+        ...
+
+
 trait StateDeriver(Block):
     """A block whose state depends on its neighbours (Go
     `world.StateDeriver`); placing it derives the state first."""

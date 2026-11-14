@@ -17,10 +17,17 @@ from .break_info import (
 )
 from .hash import HASH_DIAMOND
 from .model.solid import Solid as SolidModel
+from .block import BeaconSource
 
 
 struct Diamond(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    BeaconSource,
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A block which can only be gained by crafting it."""
 
@@ -64,6 +71,10 @@ struct Diamond(
     def model(self) -> SolidModel:
         """Returns the model of the block (Go `Model`)."""
         return SolidModel()
+
+    def powers_beacon(self) -> Bool:
+        """Reports that the block powers a beacon (Go `PowersBeacon`)."""
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

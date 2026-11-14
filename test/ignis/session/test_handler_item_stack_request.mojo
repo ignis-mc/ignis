@@ -1,6 +1,7 @@
 from ignis.block.crafting_table import CraftingTable
 from ignis.block.banner import Banner
 from ignis.block.hash import (
+    HASH_BEACON,
     HASH_ENCHANTING_TABLE,
     HASH_ANVIL,
     HASH_CRAFTING_TABLE,
@@ -17,6 +18,8 @@ from ignis.item.banner_pattern import BannerPattern
 from ignis.item.banner_pattern_type import BannerPatternType
 from ignis.item.colour import Colour
 from ignis.item.diamond import Diamond
+from ignis.item.emerald import Emerald
+from minecraft.protocol.item_stack import BeaconPaymentStackRequestAction
 from ignis.item.dye import Dye
 from ignis.item.book import Book
 from ignis.item.enchanted_book import EnchantedBook
@@ -79,7 +82,7 @@ from minecraft.protocol.item_stack import (
 from minecraft.protocol.packet.item_stack_request import (
     ItemStackRequest as ItemStackRequestPacket,
 )
-from std.testing import TestSuite, assert_equal, assert_true
+from std.testing import TestSuite, assert_equal, assert_false, assert_true
 
 
 def slot(container: UInt8, s: Int, id: Int32) -> StackRequestSlotInfo:
@@ -680,6 +683,58 @@ def test_enchant_needs_the_offer_level() raises:
         run(h, packet(1, craft(2, 1)), invs)[0],
         ITEM_STACK_RESPONSE_STATUS_ERROR,
     )
+
+
+def _pay(primary: Int32, secondary: Int32) -> StackRequestAction:
+    var a = BeaconPaymentStackRequestAction()
+    a.primary_effect = primary
+    a.secondary_effect = secondary
+    return StackRequestAction(a^)
+
+
+def _beacon(payment: Stack) raises -> Inventories:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_BEACON)
+    invs.ui.set_item(0x1B, payment)
+    return invs^
+
+
+def test_beacon_payment_sets_effects() raises:
+    var invs = _beacon(Stack(Emerald(), 1))
+    var h = ItemStackRequestHandler()
+    h.beacon_level = 4
+    # Regeneration (10) and Speed (1) at level 4.
+    assert_equal(
+        run(h, packet(1, _pay(1, 10)), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    assert_true(invs.ui.item(0x1B).empty())
+    var e = h.beacon_effects.value()
+    assert_equal(e[0], 1)
+    assert_equal(e[1], 10)
+
+
+def test_beacon_payment_checks_level_and_item() raises:
+    var h = ItemStackRequestHandler()
+    h.beacon_level = 2
+    # Strength (5) needs level 3.
+    var invs = _beacon(Stack(Emerald(), 1))
+    assert_equal(
+        run(h, packet(1, _pay(5, 0)), invs)[0],
+        ITEM_STACK_RESPONSE_STATUS_ERROR,
+    )
+    # A secondary effect needs level 4.
+    invs = _beacon(Stack(Emerald(), 1))
+    assert_equal(
+        run(h, packet(2, _pay(1, 1)), invs)[0],
+        ITEM_STACK_RESPONSE_STATUS_ERROR,
+    )
+    # Sticks are no payment.
+    invs = _beacon(Stack(Stick(), 1))
+    assert_equal(
+        run(h, packet(3, _pay(1, 0)), invs)[0],
+        ITEM_STACK_RESPONSE_STATUS_ERROR,
+    )
+    assert_false(h.beacon_effects)
 
 
 def main() raises:

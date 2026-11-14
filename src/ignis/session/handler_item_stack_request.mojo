@@ -26,6 +26,7 @@ come in the order they were first changed.
 from std.collections import Dict
 
 from minecraft.protocol.container import (
+    CONTAINER_BEACON_PAYMENT,
     CONTAINER_ENCHANTING_INPUT,
     CONTAINER_ENCHANTING_MATERIAL,
     CONTAINER_ANVIL_INPUT,
@@ -49,6 +50,7 @@ from minecraft.protocol.item_stack import (
     ITEM_STACK_RESPONSE_STATUS_ERROR,
     ITEM_STACK_RESPONSE_STATUS_OK,
     AutoCraftRecipeStackRequestAction,
+    BeaconPaymentStackRequestAction,
     ConsumeStackRequestAction,
     CraftCreativeStackRequestAction,
     CraftGrindstoneRecipeStackRequestAction,
@@ -83,6 +85,7 @@ from minecraft.nbt.tree import Tree
 
 from ..block.decorated_pot import DecoratedPot
 from ..block.hash import (
+    HASH_BEACON,
     HASH_ENCHANTING_TABLE,
     HASH_ANVIL,
     HASH_CRAFTING_TABLE,
@@ -228,6 +231,11 @@ struct ItemStackRequestHandler(Defaultable, Movable):
     var reset_enchant_seed: Bool
     """An item was enchanted; the caller draws a new seed (Go
     `ResetEnchantmentSeed`)."""
+    var beacon_level: Int
+    """The open beacon's pyramid level, set before `handle`."""
+    var beacon_effects: Optional[Tuple[Int, Int]]
+    """The primary and secondary effect IDs a beacon payment chose (0 keeps
+    the beacon's own); the caller stores them on the beacon."""
     var experience_costs: List[Int]
     """The enchantment costs of grindstone crafts (Go
     `experienceFromEnchantments` before its random part), for the caller to
@@ -252,6 +260,8 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         self.anvil_used = False
         self.enchant_offers = None
         self.reset_enchant_seed = False
+        self.beacon_level = 0
+        self.beacon_effects = None
 
     def use_recipes(
         mut self, recipes: ArcPointer[Recipes], items: ArcPointer[ItemRegistry]
@@ -343,6 +353,11 @@ struct ItemStackRequestHandler(Defaultable, Movable):
             elif v.isa[CraftLoomRecipeStackRequestAction]():
                 ref a = v[CraftLoomRecipeStackRequestAction]
                 self._loom(a.pattern, Int(a.times_crafted), invs)
+            elif v.isa[BeaconPaymentStackRequestAction]():
+                ref a = v[BeaconPaymentStackRequestAction]
+                self._beacon_payment(
+                    Int(a.primary_effect), Int(a.secondary_effect), invs
+                )
             elif v.isa[CraftGrindstoneRecipeStackRequestAction]():
                 self._grindstone(invs)
             elif v.isa[AutoCraftRecipeStackRequestAction]():
@@ -664,6 +679,39 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         _ = nbt.put_string(c, "Material", String(mname.value()))
         _ = nbt.put_string(c, "Pattern", t.value().template.name())
         self._create_results([result.with_item_nbt(nbt^)], invs)
+
+    def _beacon_payment(
+        mut self, primary: Int, secondary: Int, mut invs: Inventories
+    ) raises:
+        """Go `handleBeaconPayment`: takes the payment and picks the
+        beacon's effects."""
+        if self._window.block != HASH_BEACON:
+            raise Error("no beacon container opened")
+        var at = _slot(CONTAINER_BEACON_PAYMENT, BEACON_PAYMENT_SLOT)
+        var payment = self._item(at, invs)
+        var payable = False
+        if case .Some(it) = payment.item():
+            if not it.block:
+                if case .Some(p) = VanillaItems.payable_for_beacon(
+                    it.kind, it.hash
+                ):
+                    payable = p
+        if not payable:
+            raise Error("item in beacon slot cannot be used as payment")
+        var lvl = self.beacon_level
+        if not _valid_beacon_effect(primary, lvl):
+            raise Error(t"primary effect {primary} not allowed at level {lvl}")
+        if not _valid_beacon_effect(secondary, lvl) or (
+            lvl < 4 and secondary != 0
+        ):
+            raise Error(
+                t"secondary effect {secondary} not allowed at level {lvl}"
+            )
+        self.beacon_effects = (primary, secondary)
+        # The client sends a Destroy after this, but may not: Go clears the
+        # slot here and ignores the next Destroy.
+        self._set(at, Stack(), invs)
+        self._ignore_destroy = True
 
     def _enchant(mut self, id: Int, mut invs: Inventories) raises:
         """Go `handleEnchant`: applies one of the table's three offers for
@@ -1178,6 +1226,23 @@ def _is_shulker_box(it: Stack) -> Bool:
     if case .Some(i) = it.item():
         return i.block and i.kind == HASH_SHULKER_BOX
     return False
+
+
+comptime BEACON_PAYMENT_SLOT = 0x1B
+"""The UI slot of a beacon's payment."""
+
+
+def _valid_beacon_effect(id: Int, level: Int) -> Bool:
+    # Go `validBeaconEffect`.
+    if id == 1 or id == 3:
+        return level >= 1
+    if id == 8 or id == 11:
+        return level >= 2
+    if id == 5:
+        return level >= 3
+    if id == 10:
+        return level >= 4
+    return id == 0
 
 
 def _slot(container: UInt8, slot: Int) -> StackRequestSlotInfo:

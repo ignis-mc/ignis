@@ -25,6 +25,7 @@ a type to the set is all a new block needs.
 
 from ..block.block import (
     Activatable,
+    BeaconSource,
     Instrumented,
     BreakHandler,
     HopperExtractable,
@@ -285,6 +286,11 @@ trait BlockTypes:
     @staticmethod
     def is_activatable(kind: UInt64) -> Bool:
         """Reports whether blocks of a type are `Activatable`."""
+        ...
+
+    @staticmethod
+    def powers_beacon(kind: UInt64, hash: UInt64) -> Bool:
+        """Calls `BeaconSource.powers_beacon`; False for other blocks."""
         ...
 
     @staticmethod
@@ -648,6 +654,16 @@ struct BlockSet[*Ts: Block](BlockTypes):
         return None
 
     @staticmethod
+    def powers_beacon(kind: UInt64, hash: UInt64) -> Bool:
+        """Calls `BeaconSource.powers_beacon`; False for other blocks."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, BeaconSource):
+                if kind == T.BASE_HASH:
+                    return _powers_beacon(T.from_hash(hash))
+        return False
+
+    @staticmethod
     def is_activatable(kind: UInt64) -> Bool:
         """Reports whether blocks of a type are `Activatable`."""
         comptime for i in range(len(Self.Ts)):
@@ -932,6 +948,10 @@ def _instrument[B: Instrumented](b: B) -> Instrument:
 
 def _inventory_size[B: Container](b: B) -> Int:
     return b.inventory_size()
+
+
+def _powers_beacon[B: BeaconSource](b: B) -> Bool:
+    return b.powers_beacon()
 
 
 def _activate[

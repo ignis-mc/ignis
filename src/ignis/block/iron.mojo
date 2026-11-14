@@ -4,7 +4,7 @@ TODO(world-runtime): the drops, Instrument, PowersBeacon.
 """
 
 from ..world.sound.instrument import Instrument
-from .block import Instrumented
+from .block import BeaconSource, Instrumented
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
@@ -23,6 +23,7 @@ from .model.solid import Solid as SolidModel
 
 
 struct Iron(
+    BeaconSource,
     Block,
     Breakable,
     Equatable,
@@ -77,6 +78,10 @@ struct Iron(
     def model(self) -> SolidModel:
         """Returns the model of the block (Go `Model`)."""
         return SolidModel()
+
+    def powers_beacon(self) -> Bool:
+        """Reports that the block powers a beacon (Go `PowersBeacon`)."""
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""
