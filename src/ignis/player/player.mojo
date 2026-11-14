@@ -271,6 +271,11 @@ struct Player(Copyable):
         self._rot = self._rot.add(Rotation(delta_yaw, delta_pitch))
         return True
 
+    def teleport(mut self, pos: Vec3):
+        """Moves the player to a position (Go `teleport`); the server shows it
+        to the viewers."""
+        self._pos = pos
+
     def chat(self, message: String) -> String:
         """Formats a chat message from the player (Go `Chat`, which writes
         it to `chat.Global`).

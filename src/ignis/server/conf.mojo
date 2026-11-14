@@ -9,10 +9,10 @@ Ignis-only keys, marked in `default_config_toml`:
 
 - `[Network] LANDiscovery`: also answer LAN discovery on UDP 7551. Ignis is
   NetherNet only, so `Transport` must contain `nethernet` if it is set.
-- `[World] Name`: the world name in StartGame (Go takes it from the level
-  data, which Ignis does not store yet).
-- `[World] GameMode`: the default game mode (Go's `World.DefaultGameMode`
-  from the level data).
+- `[World] Name`: the world name of a new world (Go takes it from the
+  level data, which keeps the name of an existing world).
+- `[World] GameMode`: the default game mode of a new world (Go's
+  `World.DefaultGameMode` from the level data).
 
 The view distance is `[Players] MaximumChunkRadius`, as in Dragonfly; the
 client's own setting applies below it. Dragonfly has no simulation
@@ -45,12 +45,18 @@ struct UserConfig(Copyable, Defaultable):
     var world_game_mode: String
     """Ignis `World.GameMode`: `survival`, `creative`, `adventure` or
     `spectator`."""
+    var world_save_data: Bool
+    """Go `World.SaveData`: keep the world on disk in `world_folder`."""
     var world_folder: String
-    """Go `World.Folder` (worlds are not saved yet)."""
+    """Go `World.Folder`."""
     var players_max_count: Int
     """Go `Players.MaxCount`; 0 means no limit."""
     var players_maximum_chunk_radius: Int
     """Go `Players.MaximumChunkRadius`."""
+    var players_save_data: Bool
+    """Go `Players.SaveData`: keep player data in `players_folder`."""
+    var players_folder: String
+    """Go `Players.Folder`."""
 
     def __init__(out self):
         """Creates Dragonfly's defaults (Go `DefaultConfig`), listening on
@@ -63,9 +69,12 @@ struct UserConfig(Copyable, Defaultable):
         self.server_mute_emote_chat = False
         self.world_name = "World"
         self.world_game_mode = "survival"
+        self.world_save_data = True
         self.world_folder = "world"
         self.players_max_count = 0
         self.players_maximum_chunk_radius = 32
+        self.players_save_data = True
+        self.players_folder = "players"
 
     @staticmethod
     def from_toml(text: StringSlice) raises -> UserConfig:
@@ -106,6 +115,7 @@ struct UserConfig(Copyable, Defaultable):
         )
         c.world_name = doc.get_string("World.Name", c.world_name)
         c.world_game_mode = doc.get_string("World.GameMode", c.world_game_mode)
+        c.world_save_data = doc.get_bool("World.SaveData", c.world_save_data)
         c.world_folder = doc.get_string("World.Folder", c.world_folder)
         c.players_max_count = doc.get_int(
             "Players.MaxCount", c.players_max_count
@@ -113,6 +123,10 @@ struct UserConfig(Copyable, Defaultable):
         c.players_maximum_chunk_radius = doc.get_int(
             "Players.MaximumChunkRadius", c.players_maximum_chunk_radius
         )
+        c.players_save_data = doc.get_bool(
+            "Players.SaveData", c.players_save_data
+        )
+        c.players_folder = doc.get_string("Players.Folder", c.players_folder)
         return c^
 
     def to_toml(self) -> String:
@@ -139,12 +153,15 @@ struct UserConfig(Copyable, Defaultable):
         s += "# Ignis: the world name and default game mode.\n"
         s += String(t"Name = {toml_quote(self.world_name)}\n")
         s += String(t"GameMode = {toml_quote(self.world_game_mode)}\n")
+        s += String(t"SaveData = {_bool(self.world_save_data)}\n")
         s += String(t"Folder = {toml_quote(self.world_folder)}\n\n")
         s += "[Players]\n"
         s += String(t"MaxCount = {self.players_max_count}\n")
         s += String(
             t"MaximumChunkRadius = {self.players_maximum_chunk_radius}\n"
         )
+        s += String(t"SaveData = {_bool(self.players_save_data)}\n")
+        s += String(t"Folder = {toml_quote(self.players_folder)}\n")
         return s^
 
     def config(self) raises -> Config:
@@ -166,6 +183,10 @@ struct UserConfig(Copyable, Defaultable):
         c.join_quit_messages = not self.server_disable_join_quit_messages
         c.mute_emote_chat = self.server_mute_emote_chat
         c.world_name = self.world_name.copy()
+        if self.world_save_data:
+            c.world_folder = self.world_folder.copy()
+        if self.players_save_data:
+            c.players_folder = self.players_folder.copy()
         var mode = game_mode_by_name(self.world_game_mode)
         if not mode:
             raise Error(t"config: unknown game mode {self.world_game_mode}")
@@ -219,12 +240,18 @@ struct Config(Copyable, Defaultable):
     """The world name."""
     var default_game_mode: GameMode
     """The game mode of new players."""
+    var world_folder: Optional[String]
+    """The world on disk (Go `WorldProvider` from mcdb); None keeps nothing
+    (Go `NopProvider`)."""
+    var players_folder: Optional[String]
+    """The player database (Go `PlayerProvider` from playerdb); None keeps
+    nothing."""
+    var save_interval_ms: Int
+    """How often the world is saved (Go `SaveInterval`, 10 minutes)."""
     var block_states_path: String
     """Where `block_states.nbt` is."""
     var vanilla_items_path: String
     """Where `vanilla_items.nbt` is."""
-    var biome_definitions_path: String
-    """Where `biome_definitions.bin` is."""
     var data_driven_blocks_path: String
     """Where `data_driven_blocks.nbt` is."""
 
@@ -240,9 +267,11 @@ struct Config(Copyable, Defaultable):
         self.mute_emote_chat = False
         self.world_name = "World"
         self.default_game_mode = GAME_MODE_SURVIVAL
+        self.world_folder = None
+        self.players_folder = None
+        self.save_interval_ms = 10 * 60 * 1000
         self.block_states_path = "resources/block_states.nbt"
         self.vanilla_items_path = "resources/vanilla_items.nbt"
-        self.biome_definitions_path = "resources/biome_definitions.bin"
         self.data_driven_blocks_path = "resources/data_driven_blocks.nbt"
 
 
