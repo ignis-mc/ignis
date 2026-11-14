@@ -85,6 +85,7 @@ from ..item.enchantment import (
     CURSE_OF_VANISHING_ID,
     MENDING_ID,
     RESPIRATION_ID,
+    THORNS_ID,
     UNBREAKING_ID,
 )
 from ..item.register import VanillaItems
@@ -434,10 +435,48 @@ def hurt_player(
                 srv.sessions[i].invs.armour.inv.set_item(slot, damaged)
             except:
                 pass
-        # Thorns needs a living attacker: see `combat.mojo`.
+        # Go: thorns hurt a living attacker or projectile owner.
+        if src.kind == DAMAGE_ATTACK or src.kind == DAMAGE_PROJECTILE:
+            if case .Some(k) = srv.session_index(src.attacker):
+                if k != i:
+                    var t = thorns_damage(srv, i)
+                    if t > 0:
+                        var victim = srv.sessions[i].player.uuid()
+                        _ = hurt_player(
+                            srv, k, t, AnyDamageSource(DAMAGE_THORNS, victim)
+                        )
     after_hurt(srv, i, ctx)
     flush_living(srv, i)
     return res
+
+
+def thorns_damage(mut srv: Server, i: Int) -> Float64:
+    """Go `Armour.ThornsDamage`: 15% per level and piece, 1 to 4 damage
+    each (4 at most), from Go's global source; thorns above X deal their
+    level minus 10. A random piece takes 2 damage when it activates."""
+    var dmg = 0.0
+    for slot in range(4):
+        var it = srv.sessions[i].invs.armour._get(slot)
+        var level = 0
+        if case .Some(e) = it.enchantment(Int16(THORNS_ID)):
+            level = e.level
+        ref r = srv.world.global_rand()
+        if r.float64() < Float64(level) * 0.15:
+            dmg = min(dmg + Float64(1 + r.int_n(4)), 4.0)
+    var highest = srv.sessions[i].invs.armour.highest_enchantment_level(
+        THORNS_ID
+    )
+    if highest > 10:
+        dmg = Float64(highest - 10)
+    if dmg > 0:
+        var slot = srv.world.global_rand().int_n(4)
+        var it = srv.sessions[i].invs.armour._get(slot)
+        var damaged = damage_item(srv, i, it, 2)
+        try:
+            srv.sessions[i].invs.armour.inv.set_item(slot, damaged)
+        except:
+            pass
+    return dmg
 
 
 def after_hurt(mut srv: Server, i: Int, ctx: SurvivalContext):

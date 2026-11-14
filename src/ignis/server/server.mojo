@@ -97,6 +97,7 @@ from .interact import (
     use_item_on_block,
 )
 from .provider import WorldProvider
+from .use import attack_entity, release_item, tick_using, use_item
 from .survival import (
     apply_living_requests,
     finish_dying,
@@ -1005,6 +1006,16 @@ struct Server(Movable):
             sync_proxy(self, i)
         if res.respawn:
             respawn_player(self, i)
+        if res.held_changed:
+            # Go `SetHeldSlot` stops using the item.
+            self.sessions[i].player.using_item = False
+        if res.use_item:
+            use_item(self, i)
+        if res.release_item:
+            release_item(self, i)
+        if case .Some(target) = res.attack:
+            if not attack_entity(self, i, target):
+                self.sessions[i].send_held_slot_item()
         if res.moved or res.state_changed:
             var p = self.sessions[i].player.copy()
             var pos = p.position()
@@ -1213,6 +1224,7 @@ struct Server(Movable):
         finish_dying(self, monotonic_ms())
         for i in range(len(self.sessions)):
             tick_survival(self, i)
+            tick_using(self, i, self._ticks)
             continue_breaking(self, i)
             self.sessions[i].send_chunks(self.world)
             if self.sessions[i].send_inventory_changes():

@@ -61,6 +61,12 @@ struct Player(Copyable):
     """The break time last shown to viewers (Go `lastBreakDuration`)."""
     var living: Living
     """Health, hunger, experience and effects."""
+    var using_item: Bool
+    """Eating, drinking or drawing a bow (Go `usingItem`)."""
+    var using_since_ms: Int
+    """When the use started (Go `usingSince`)."""
+    var cooldowns: List[Tuple[String, Int]]
+    """Item names and when their cooldown ends (Go `cooldowns`)."""
 
     def __init__(
         out self,
@@ -92,6 +98,9 @@ struct Player(Copyable):
         self.break_counter = 0
         self.last_break_duration_ms = 0
         self.living = Living()
+        self.using_item = False
+        self.using_since_ms = 0
+        self.cooldowns = List[Tuple[String, Int]]()
 
     def name(self) -> String:
         """Returns the display name (Go `Name`)."""

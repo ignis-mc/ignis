@@ -65,6 +65,7 @@ from minecraft.protocol.command import (
 from minecraft.protocol.entity_metadata import (
     ENTITY_DATA_FLAG_INVISIBLE,
     ENTITY_DATA_FLAG_ON_FIRE,
+    ENTITY_DATA_FLAG_USING_ITEM,
     ENTITY_DATA_KEY_PLAYER_HAS_DIED,
     ENTITY_DATA_KEY_PLAYER_LAST_DEATH_DIMENSION,
     ENTITY_DATA_KEY_PLAYER_LAST_DEATH_POSITION,
@@ -92,8 +93,11 @@ from minecraft.protocol.entity_metadata import (
     new_entity_metadata,
 )
 from minecraft.protocol.os import DEVICE_UNKNOWN
-from minecraft.protocol.packet.actor_event import ActorEvent
+from minecraft.protocol.packet.actor_event import ACTOR_EVENT_FEED, ActorEvent
 from minecraft.protocol.packet.add_player import AddPlayer
+from minecraft.protocol.packet.client_start_item_cooldown import (
+    ClientStartItemCooldown,
+)
 from minecraft.protocol.packet.mob_effect import (
     MOB_EFFECT_ADD,
     MOB_EFFECT_REMOVE,
@@ -133,8 +137,12 @@ from minecraft.protocol.packet.player_auth_input import (
 from minecraft.protocol.container import CONTAINER_INVENTORY, CONTAINER_OFFHAND
 from minecraft.protocol.item import ItemInstance
 from minecraft.protocol.inventory import (
+    HAND_SLOT_MAIN_HAND,
+    HAND_SLOT_OFF_HAND,
     INVENTORY_ACTION_SOURCE_CONTAINER,
     INVENTORY_ACTION_SOURCE_WORLD,
+    USE_ITEM_ON_ENTITY_ACTION_ATTACK,
+    USE_ITEM_ON_ENTITY_ACTION_INTERACT,
     USE_ITEM_ACTION_BREAK_BLOCK,
     USE_ITEM_ACTION_CLICK_AIR,
     USE_ITEM_ACTION_CLICK_BLOCK,
@@ -411,6 +419,15 @@ struct HandleResult(Copyable, Defaultable):
     ground and fall checks of Go `Move`."""
     var respawn: Bool
     """The client asked to respawn (Go `Respawn`)."""
+    var use_item: Bool
+    """The held item is used in the air (Go `UseItem`)."""
+    var release_item: Bool
+    """The item being used is released (Go `ReleaseItem`)."""
+    var attack: Optional[UInt64]
+    """The runtime ID of an entity attacked (Go `AttackEntity`)."""
+    var interact: Optional[UInt64]
+    """The runtime ID of an entity the held item is used on (Go
+    `UseItemOnEntity`)."""
 
     def __init__(out self):
         """Creates a result in which nothing changed."""
@@ -424,6 +441,10 @@ struct HandleResult(Copyable, Defaultable):
         self.use_on_block = None
         self.movement = None
         self.respawn = False
+        self.use_item = False
+        self.release_item = False
+        self.attack = None
+        self.interact = None
 
 
 def uuid_key(id: UUID) -> String:
@@ -469,6 +490,8 @@ def player_metadata(
         m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_INVISIBLE)
     if l.fire_ticks > 0:
         m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_ON_FIRE)
+    if p.using_item:
+        m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_USING_ITEM)
     if p.game_mode().has_collision():
         m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_HAS_COLLISION)
     m.set(ENTITY_DATA_KEY_SCALE, Float32(1))
@@ -890,13 +913,49 @@ struct Session[C: Conn](Movable):
                 res.use_on_block = UseOnBlock(
                     pos, Int(data.block_face), vec32_to64(data.clicked_position)
                 )
-            elif data.action_type != USE_ITEM_ACTION_CLICK_AIR:
+            elif data.action_type == USE_ITEM_ACTION_CLICK_AIR:
+                res.use_item = True
+            else:
                 raise Error(t"unhandled UseItem ActionType {data.action_type}")
         elif v.isa[UseItemOnEntityTransactionData]():
-            # Attacking and using items on entities are not ported yet.
-            self.send_inventories()
+            # Go `handleUseItemOnEntityTransaction`.
+            ref data = v[UseItemOnEntityTransactionData]
+            if data.hand == HAND_SLOT_OFF_HAND:
+                self.send_inventories()
+            else:
+                if data.hand != HAND_SLOT_MAIN_HAND:
+                    raise Error(
+                        t"invalid hand {data.hand} in entity interaction"
+                    )
+                res = self._verify_and_set_held_slot(
+                    Int(data.hot_bar_slot), data.held_item
+                )
+                var target = data.target_entity_runtime_id
+                if target == SELF_ENTITY_RUNTIME_ID:
+                    raise Error(
+                        "invalid entity interaction: players cannot interact"
+                        " with themselves"
+                    )
+                if data.action_type == USE_ITEM_ON_ENTITY_ACTION_INTERACT:
+                    res.interact = target
+                elif data.action_type == USE_ITEM_ON_ENTITY_ACTION_ATTACK:
+                    res.attack = target
+                else:
+                    raise Error(
+                        t"unhandled UseItemOnEntity ActionType"
+                        t" {data.action_type}"
+                    )
         elif v.isa[ReleaseItemTransactionData]():
-            pass
+            ref data = v[ReleaseItemTransactionData]
+            if data.hand == HAND_SLOT_OFF_HAND:
+                self.send_inventories()
+            else:
+                if data.hand != HAND_SLOT_MAIN_HAND:
+                    raise Error(t"invalid hand {data.hand} in item release")
+                res = self._verify_and_set_held_slot(
+                    Int(data.hot_bar_slot), data.held_item
+                )
+                res.release_item = True
         self._send_legacy_slots(pk)
         return res^
 
@@ -1533,6 +1592,19 @@ struct Session[C: Conn](Movable):
         pk.hot_bar_slot = UInt8(self.invs.held_slot)
         self.write_packet(pk)
 
+    def send_held_slot_item(mut self):
+        """Sends the held slot's item again (Go `sendItem` after an entity
+        interaction that was not valid)."""
+        var slot = self.invs.held_slot
+        var pk = inventory_slot(
+            self._conf.blocks[],
+            self._conf.items[],
+            self.invs.held_item(),
+            slot,
+            window_id(INV_MAIN),
+        )
+        self.write_packet(pk)
+
     def send_inventory_changes(mut self) -> Bool:
         """Sends the slots changed outside item stack requests, as Go's
         inventory slot functions do; returns whether a held item changed."""
@@ -1818,6 +1890,21 @@ struct Session[C: Conn](Movable):
         pk.taker_entity_runtime_id = taker_id.value()
         self.write_packet(pk)
 
+    def entity_key(self, runtime_id: UInt64) -> Optional[String]:
+        """Returns the key (the UUID) of the entity the session knows by a
+        runtime ID (Go `entityFromRuntimeID`)."""
+        for e in self._queue[].entity_ids.items():
+            if e.value == runtime_id:
+                return e.key
+        return None
+
+    def send_item_cooldown(mut self, category: String, ticks: Int):
+        """Shows an item cooldown (Go `ViewItemCooldown`)."""
+        var pk = ClientStartItemCooldown()
+        pk.category = category
+        pk.duration = Int32(ticks)
+        self.write_packet(pk)
+
     def view_entity_event(mut self, p: Player, event: UInt8, data: Int32 = 0):
         """Sends an actor event of a player, its own included (Go
         `ViewEntityAction` with `HurtAction`, `DeathAction`,
@@ -1829,6 +1916,29 @@ struct Session[C: Conn](Movable):
         pk.entity_runtime_id = known.value()
         pk.event_type = event
         pk.event_data = data
+        self.write_packet(pk)
+
+    def view_entity_eat(mut self, p: Player, held: Stack):
+        """Shows a player eating (Go `ViewEntityAction` with `EatAction`)."""
+        if held.empty():
+            return
+        var it = instance_from_item(
+            self._conf.blocks[], self._conf.items[], held
+        )
+        var rid = it.stack.item_type.network_id
+        var meta = Int32(it.stack.item_type.metadata_value)
+        self.view_entity_event(p, ACTOR_EVENT_FEED, (rid << 16) | meta)
+
+    def view_entity_animate(mut self, p: Player, action: UInt8, data: Float32):
+        """Shows critical hit particles on a player (Go `ViewEntityAction`
+        with `CriticalHitAction` and `EnchantedHitAction`)."""
+        var known = self.entity_runtime_id(p)
+        if not known:
+            return
+        var pk = Animate()
+        pk.action_type = action
+        pk.entity_runtime_id = known.value()
+        pk.data = data
         self.write_packet(pk)
 
     def view_entity_velocity(mut self, p: Player, vel: Vec3):

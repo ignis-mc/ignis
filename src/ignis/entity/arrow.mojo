@@ -7,6 +7,7 @@ from minecraft.nbt.tree import Tag, Tree
 from minecraft.protocol.uuid import UUID
 
 from ..block.cube.bbox import BBox
+from ..block.cube.rotation import Rotation
 from ..world.entity import (
     EntityData,
     EntityHandle,
@@ -139,7 +140,7 @@ struct Arrow(
 
 
 @fieldwise_init
-struct ArrowSpawnConfig(Copyable):
+struct ArrowSpawnConfig(Copyable, Defaultable):
     """How a bow or crossbow shoots an arrow (Go `world.ArrowSpawnConfig`)."""
 
     var damage: Float64
@@ -159,13 +160,31 @@ struct ArrowSpawnConfig(Copyable):
     var tip: Potion
     """Go `Tip`."""
 
+    def __init__(out self):
+        """Creates the config of a plain arrow without an owner."""
+        self.damage = 2
+        self.owner = UUID()
+        self.critical = False
+        self.disable_pickup = False
+        self.obtain_arrow_on_pickup = False
+        self.punch_level = 0
+        self.piercing_level = 0
+        self.tip = Potion.WATER
+
 
 def spawn_arrow[
     T: WorldTypes
-](mut tx: World[T], pos: Vec3, vel: Vec3, conf: ArrowSpawnConfig):
+](
+    mut tx: World[T],
+    pos: Vec3,
+    vel: Vec3,
+    conf: ArrowSpawnConfig,
+    rot: Rotation = Rotation(),
+    fire_ms: Int = 0,
+):
     """Shoots an arrow (Go's `EntityRegistryConfig.Arrow` in
-    `entity/register.go`). TODO(player): bows and crossbows call it when
-    released."""
+    `entity/register.go`), burning for `fire_ms` (Go `SetOnFire` after
+    `AddEntity`); a released bow calls it."""
     var a = Arrow()
     a.proj.damage = conf.damage
     a.proj.potion = conf.tip
@@ -184,4 +203,7 @@ def spawn_arrow[
     var opts = EntitySpawnOpts()
     opts.position = pos
     opts.velocity = vel
-    _ = tx.add_entity(EntityHandle[T.Entities](opts, state.take()))
+    opts.rotation = rot
+    var h = EntityHandle[T.Entities](opts, state.take())
+    h.data.fire_duration_ms = fire_ms
+    _ = tx.add_entity(h^)
