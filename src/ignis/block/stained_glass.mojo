@@ -12,16 +12,20 @@ from .break_info import (
     ALWAYS_HARVESTABLE,
     BreakInfo,
     Breakable,
+    Dropper,
     NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_STAINED_GLASS
 from .model.solid import Solid as SolidModel
+from ..item.stack import Stack
+from ..item.tool import ToolInfo
 
 
 struct StainedGlass(
     Block,
     Breakable,
+    Dropper,
     Equatable,
     ImplicitlyCopyable,
     Item,
@@ -92,3 +96,9 @@ struct StainedGlass(
         for v in colours():
             out.append(StainedGlass(colour=v))
         return out^
+
+    def drops(self, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+        """Drops itself only with silk touch (Go `silkTouchOnlyDrop`)."""
+        if silk_touch:
+            return [Stack(self, 1)]
+        return []

@@ -1,7 +1,6 @@
 """Trace results, ported from Dragonfly `server/block/cube/trace/result.go`.
 
-`Perform` and `EntityFilter` need `world.Tx` and entities:
-TODO(world-runtime).
+`Perform` and `EntityFilter` are in `perform.mojo`.
 """
 
 from ....mgl64 import Vec3

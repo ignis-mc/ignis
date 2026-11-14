@@ -23,11 +23,13 @@ from ..item.stack import Stack
 from ..world.entity import (
     EntityData,
     EntityMovement,
+    ExplodableEntity,
     NetworkEncodedEntity,
     TickerEntity,
 )
 from ..world.world import World, WorldTypes
 from .movement import MovementComputer
+from ..mgl64 import Vec3
 
 comptime ITEM_GRAVITY = 0.04
 """Go `itemConf.Gravity`."""
@@ -41,7 +43,12 @@ comptime _MAX_DELAY_TICKS = 32767
 """A delay at or above `math.MaxInt16` ticks never runs out."""
 
 
-struct ItemBehaviour(Copyable, NetworkEncodedEntity, TickerEntity):
+struct ItemBehaviour(
+    Copyable,
+    ExplodableEntity,
+    NetworkEncodedEntity,
+    TickerEntity,
+):
     """An item stack lying in the world (Go `ItemType` with an
     `ItemBehaviour`)."""
 
@@ -155,3 +162,11 @@ struct ItemBehaviour(Copyable, NetworkEncodedEntity, TickerEntity):
             self.close = True
         data.age_ms += 50
         return m
+
+    def explode(
+        mut self, mut data: EntityData, src: Vec3, impact: Float64
+    ) -> Bool:
+        """Is destroyed by an explosion that reaches it (Go
+        `ItemBehaviour.Explode`). TODO: blast-proof (netherite) items
+        survive in Go."""
+        return impact > 0

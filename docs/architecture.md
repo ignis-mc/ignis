@@ -329,8 +329,9 @@ dispatches it through `BlockTypes`.
 
 ### Entities
 
-Implemented in `ignis.world.entity` with `ignis.entity.text.Text` as the
-worked example.
+Implemented in `ignis.world.entity`; the types are in `ignis.entity`
+(items, falling blocks, projectiles, TNT, orbs, fireworks, lightning, area
+effect clouds, text).
 
 - **An entity type is a struct conforming to `world.EntityType`**: its
   `IDENTIFIER` (Go `EncodeEntity`), `bbox`, `encode_nbt` and `decode_nbt`.
@@ -354,6 +355,24 @@ worked example.
   uses (`ignis.entity.register.VanillaEntities`). Player types will join it
   with the player package; keep large state behind an `OwnedPointer`
   (moved structs must stay small).
+- **Dragonfly's behaviours** (`ProjectileBehaviour`, `PassiveBehaviour`,
+  `StationaryBehaviour`, `entity/projectile.mojo` and `passive.mojo`) are
+  fields of the types that use them. Go's behaviours call `Tick`, `Hit` and
+  `Expire` closures; here a type's `tick` calls the behaviour in steps
+  (`step`, then its own code, then `expired` or `hit_target`/`finish`).
+  `TODO(player)` marks what needs living entities or players in the world
+  (hurting, effects, pickups, following, ender pearl teleports).
+- **Hooks other entities use** are traits with `EntitySet` dispatchers:
+  `DamageableEntity` (what projectiles may hit; nothing yet),
+  `ExplodableEntity` (`World.explode_entity` pushes or destroys).
+- **Entities spawned by blocks or other entities** use
+  `EntityTypes.try_wrap(E())`, which gives None when the world's set lacks
+  the type (falling blocks, TNT, orbs, area effect clouds).
+- **Metadata** for clients is `session.entity_metadata` (Go
+  `parseEntityMetadata`); the session viewer sends AddItemActor or
+  AddActor with it and each type's network offset.
+- **Vectors**: `interop/entities` records Dragonfly's projectile flights,
+  explosions (seeded) and metadata bytes; see its README.
 
 ### Other interfaces
 
