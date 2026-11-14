@@ -1,0 +1,145 @@
+"""`Anvil`, ported from Dragonfly `server/block/anvil.go`.
+
+TODO(world-runtime): Model, SideClosed, Activate, UseOnBlock,
+NeighbourUpdateTick and the falling behaviour of `gravityAffected`, Damage,
+EncodeItem and the drops.
+"""
+
+from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
+from ..world.block_state import BlockState, Properties
+from .anvil_type import AnvilType, anvil_types
+from .break_info import (
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
+    BreakInfo,
+    Breakable,
+    new_break_info,
+)
+from .cube.direction import Direction, directions
+from .hash import HASH_ANVIL
+from .model.anvil import Anvil as AnvilModel
+
+
+struct Anvil(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+):
+    """A block that allows players to repair items, rename items, and combine enchantments.
+    """
+
+    comptime BASE_HASH: UInt64 = HASH_ANVIL
+    """Go `hashAnvil`."""
+    comptime ModelType = AnvilModel
+    """The model type (Go `Model`)."""
+
+    var type: AnvilType
+    """How damaged the anvil is."""
+    var facing: Direction
+    """The direction the anvil faces."""
+
+    def __init__(
+        out self,
+        *,
+        type: AnvilType = AnvilType.UNDAMAGED,
+        facing: Direction = Direction.NORTH,
+    ):
+        """Creates the block; omitted fields take Go zero values.
+
+        Args:
+            type: How damaged the anvil is.
+            facing: The direction the anvil faces.
+        """
+        self.type = type
+        self.facing = facing
+
+    def __eq__(self, other: Self) -> Bool:
+        """Compares two blocks.
+
+        Args:
+            other: The block to compare with.
+
+        Returns:
+            True if both are in the same state.
+        """
+        return self.hash() == other.hash()
+
+    def encode_block(self) -> BlockState:
+        """Encodes the block (Go `EncodeBlock`).
+
+        Returns:
+            The name and properties.
+        """
+        return BlockState(
+            String(t"minecraft:{self.type}"),
+            Properties().with_string(
+                "minecraft:cardinal_direction", String(self.facing)
+            ),
+        )
+
+    def hash(self) -> UInt64:
+        """Returns the state hash (Go `Hash`).
+
+        Returns:
+            The fields packed into bits.
+        """
+        return UInt64(self.type.uint8()) | UInt64(Int(self.facing)) << 2
+
+    @staticmethod
+    def from_hash(hash: UInt64) -> Self:
+        """Rebuilds the block from its state hash.
+
+        Args:
+            hash: The state hash.
+
+        Returns:
+            The block.
+        """
+        return Anvil(
+            type=AnvilType(Int(hash & 0x3)),
+            facing=Direction(Int((hash >> 2) & 0x3)),
+        )
+
+    @staticmethod
+    def all_states() -> List[Self]:
+        """Returns the registered values (Go `register.go`).
+
+        Returns:
+            Every state of the block.
+        """
+        var out = List[Self]()
+        for type in anvil_types():
+            for facing in directions():
+                out.append(Anvil(type=type, facing=facing))
+        return out^
+
+    def break_info(self) -> BreakInfo:
+        """Returns the break info (Go `BreakInfo`).
+
+        Returns:
+            The hardness, blast resistance and tools.
+        """
+        return new_break_info(
+            5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
+        ).with_blast_resistance(1200)
+
+    def light_diffusion_level(self) -> UInt8:
+        """Returns the light the block takes away (Go
+        `LightDiffusionLevel`).
+
+        Returns:
+            The diffusion level, 0 to 15.
+        """
+        return 0
+
+    def model(self) -> AnvilModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return AnvilModel(facing=self.facing)

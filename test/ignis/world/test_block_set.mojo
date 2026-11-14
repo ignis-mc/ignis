@@ -4,7 +4,16 @@ from ignis.block.hash import HASH_DIRT
 from ignis.block.stone import Stone
 from ignis.world.block import Block
 import ignis.world.block_state
+from ignis.block.bedrock import Bedrock
+from ignis.block.cube.pos import Pos
+from ignis.block.register import VanillaBlocks
 from std.testing import TestSuite, assert_equal, assert_false, assert_true
+from support.world_runtime import (
+    RandomProbe,
+    ScheduledProbe,
+    TestBlocks,
+    new_world,
+)
 
 
 trait Spreads(Block):
@@ -61,6 +70,38 @@ def test_dispatch_by_kind() raises:
     assert_false(D.spread(HASH_DIRT, 0, log))
     assert_equal(len(log), 1)
     assert_equal(log[0], "fake 7")
+
+
+def test_tick_dispatch() raises:
+    var w = new_world(synchronous=True)
+    var br = w.block_registry()
+    # Only types with the behaviour are dispatched to.
+    assert_true(
+        TestBlocks.scheduled_tick(ScheduledProbe.BASE_HASH, 0, Pos(0, 0, 0), w)
+    )
+    assert_true(w.block_as[Dirt](Pos(0, 1, 0)))
+    assert_false(TestBlocks.scheduled_tick(HASH_DIRT, 0, Pos(0, 0, 0), w))
+    assert_false(
+        TestBlocks.neighbour_update_tick(
+            ScheduledProbe.BASE_HASH, 0, Pos(0, 0, 0), Pos(1, 0, 0), w
+        )
+    )
+    assert_true(
+        TestBlocks.random_tick(RandomProbe.BASE_HASH, 0, Pos(3, 0, 3), w)
+    )
+    assert_true(w.block_as[Stone](Pos(3, 0, 3)))
+    # The registry flags random tickers (Go `RandomTickBlock`).
+    assert_true(br[].random_tick_block(br[].block_runtime_id(RandomProbe())))
+    assert_false(br[].random_tick_block(br[].block_runtime_id(Dirt())))
+
+
+def test_block_items() raises:
+    var it = VanillaBlocks.block_item(Dirt.BASE_HASH, 1).value()
+    assert_true(it.item.get[Dirt]().value() == Dirt(coarse=True))
+    assert_true(it.item.block)
+    var enc = VanillaBlocks.encode_block_item(Bedrock.BASE_HASH, 1).value()
+    assert_equal(enc.name, "minecraft:bedrock")
+    assert_false(VanillaBlocks.block_item(12345, 0))
 
 
 def main() raises:

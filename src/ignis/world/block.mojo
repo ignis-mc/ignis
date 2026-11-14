@@ -12,9 +12,15 @@ the two roles:
   the type by `BASE_HASH`.
 
 See `docs/architecture.md` for how block ports follow this.
+
+Go passes `RandomTick` and `ScheduledTick` a `*rand.Rand` next to the
+`*Tx`; the generator is part of the world here (`tx.rand()`), since passing
+both would borrow the world twice.
 """
 
+from ..block.cube.pos import Pos
 from .block_state import BlockState
+from .world import World, WorldTypes
 
 
 trait Block(Copyable, Deinitable):
@@ -90,5 +96,60 @@ trait LightDiffuser:
 
         Returns:
             The light diffusion level.
+        """
+        ...
+
+
+trait RandomTicker(Block):
+    """A block that does something when it is ticked randomly (Go
+    `RandomTicker`). Every tick, `RandomTickSpeed` random blocks of each
+    sub-chunk near a viewer are picked."""
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Handles a random tick of the block.
+
+        Parameters:
+            T: The world's types.
+
+        Args:
+            pos: The position of the block.
+            tx: The world.
+        """
+        ...
+
+
+trait ScheduledTicker(Block):
+    """A block that does something when an update scheduled for it is due
+    (Go `ScheduledTicker`)."""
+
+    def scheduled_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Handles a scheduled tick of the block.
+
+        Parameters:
+            T: The world's types.
+
+        Args:
+            pos: The position of the block.
+            tx: The world.
+        """
+        ...
+
+
+trait NeighbourUpdateTicker(Block):
+    """A block that is updated when a block next to it changes (Go
+    `NeighbourUpdateTicker`)."""
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Handles a neighbouring block being updated.
+
+        Parameters:
+            T: The world's types.
+
+        Args:
+            pos: The position of this block.
+            changed_neighbour: The position of the block that changed.
+            tx: The world.
         """
         ...

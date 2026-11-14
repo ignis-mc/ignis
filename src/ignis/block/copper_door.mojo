@@ -1,0 +1,228 @@
+"""`CopperDoor`, ported from Dragonfly `server/block/copper_door.go`.
+
+Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
+with liquids.
+
+TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, Activate, SideClosed,
+Model, Wax, Strip, RandomTick (attemptOxidation), EncodeItem and the drops.
+"""
+
+from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
+from ..world.block_state import BlockState, Properties
+from .break_info import (
+    HARVEST_LEVEL_STONE,
+    PICKAXE_EFFECTIVE,
+    BreakInfo,
+    Breakable,
+    new_break_info,
+    pickaxe_harvestable_from,
+)
+from .cube.direction import Direction, directions
+from .hash import HASH_COPPER_DOOR
+from .model.door import Door as DoorModel
+from .oxidation_type import OxidationType, oxidation_types
+from .oxidizable import Oxidisable, copper_block_name
+
+
+struct CopperDoor(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    LightDiffuser,
+    ModelledBlock,
+    Oxidisable,
+):
+    """A copper door that blocks entities, opened and closed by players."""
+
+    comptime BASE_HASH: UInt64 = HASH_COPPER_DOOR
+    """Go `hashCopperDoor`."""
+    comptime ModelType = DoorModel
+    """The model type (Go `Model`)."""
+
+    var oxidation: OxidationType
+    """The level of oxidation of the block."""
+    var waxed: Bool
+    """Whether the block is waxed, which stops it from oxidising."""
+    var facing: Direction
+    """The direction the door faces."""
+    var open: Bool
+    """Whether the door is open."""
+    var top: Bool
+    """Whether this is the upper half of the door."""
+    var right: Bool
+    """Whether the hinge is on the right side."""
+
+    def __init__(
+        out self,
+        *,
+        oxidation: OxidationType = OxidationType.UNOXIDISED,
+        waxed: Bool = False,
+        facing: Direction = Direction.NORTH,
+        open: Bool = False,
+        top: Bool = False,
+        right: Bool = False,
+    ):
+        """Creates the block; omitted fields take Go zero values.
+
+        Args:
+            oxidation: The level of oxidation of the block.
+            waxed: Whether the block is waxed, which stops it from oxidising.
+            facing: The direction the door faces.
+            open: Whether the door is open.
+            top: Whether this is the upper half of the door.
+            right: Whether the hinge is on the right side.
+        """
+        self.oxidation = oxidation
+        self.waxed = waxed
+        self.facing = facing
+        self.open = open
+        self.top = top
+        self.right = right
+
+    def __eq__(self, other: Self) -> Bool:
+        """Compares two blocks.
+
+        Args:
+            other: The block to compare with.
+
+        Returns:
+            True if both are in the same state.
+        """
+        return self.hash() == other.hash()
+
+    def encode_block(self) -> BlockState:
+        """Encodes the block (Go `EncodeBlock`).
+
+        Returns:
+            The name and properties.
+        """
+        return BlockState(
+            copper_block_name("copper_door", self.oxidation, self.waxed),
+            Properties()
+            .with_string(
+                "minecraft:cardinal_direction",
+                String(self.facing.rotate_right()),
+            )
+            .with_bool("door_hinge_bit", self.right)
+            .with_bool("open_bit", self.open)
+            .with_bool("upper_block_bit", self.top),
+        )
+
+    def hash(self) -> UInt64:
+        """Returns the state hash (Go `Hash`).
+
+        Returns:
+            The fields packed into bits.
+        """
+        return (
+            UInt64(self.oxidation.uint8())
+            | (UInt64(1) if self.waxed else UInt64(0)) << 2
+            | UInt64(Int(self.facing)) << 3
+            | (UInt64(1) if self.open else UInt64(0)) << 5
+            | (UInt64(1) if self.top else UInt64(0)) << 6
+            | (UInt64(1) if self.right else UInt64(0)) << 7
+        )
+
+    @staticmethod
+    def from_hash(hash: UInt64) -> Self:
+        """Rebuilds the block from its state hash.
+
+        Args:
+            hash: The state hash.
+
+        Returns:
+            The block.
+        """
+        return CopperDoor(
+            oxidation=OxidationType(Int(hash & 0x3)),
+            waxed=(hash >> 2) & 0x1 != 0,
+            facing=Direction(Int((hash >> 3) & 0x3)),
+            open=(hash >> 5) & 0x1 != 0,
+            top=(hash >> 6) & 0x1 != 0,
+            right=(hash >> 7) & 0x1 != 0,
+        )
+
+    @staticmethod
+    def all_states() -> List[Self]:
+        """Returns the registered values (Go `register.go`).
+
+        Returns:
+            Every state of the block.
+        """
+        var out = List[Self]()
+        for oxidation in oxidation_types():
+            for waxed in [False, True]:
+                for facing in directions():
+                    for open in [False, True]:
+                        for top in [False, True]:
+                            for right in [False, True]:
+                                out.append(
+                                    CopperDoor(
+                                        oxidation=oxidation,
+                                        waxed=waxed,
+                                        facing=facing,
+                                        open=open,
+                                        top=top,
+                                        right=right,
+                                    )
+                                )
+        return out^
+
+    def break_info(self) -> BreakInfo:
+        """Returns the break info (Go `BreakInfo`).
+
+        Returns:
+            The hardness, blast resistance and tools.
+        """
+        return new_break_info(
+            3, pickaxe_harvestable_from(HARVEST_LEVEL_STONE), PICKAXE_EFFECTIVE
+        ).with_blast_resistance(6)
+
+    def light_diffusion_level(self) -> UInt8:
+        """Returns the light the block takes away (Go
+        `LightDiffusionLevel`).
+
+        Returns:
+            The diffusion level, 0 to 15.
+        """
+        return 0
+
+    def can_oxidate(self) -> Bool:
+        """Reports whether the block can still oxidise (Go `CanOxidate`).
+
+        Returns:
+            True unless the block is waxed.
+        """
+        return not self.waxed
+
+    def oxidation_level(self) -> OxidationType:
+        """Returns the oxidation level (Go `OxidationLevel`).
+
+        Returns:
+            The oxidation level.
+        """
+        return self.oxidation
+
+    def with_oxidation_level(self, o: OxidationType) -> Self:
+        """Returns the block with another oxidation level (Go
+        `WithOxidationLevel`).
+
+        Args:
+            o: The new oxidation level.
+
+        Returns:
+            The updated block.
+        """
+        var b = self
+        b.oxidation = o
+        return b
+
+    def model(self) -> DoorModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return DoorModel(facing=self.facing, open=self.open, right=self.right)

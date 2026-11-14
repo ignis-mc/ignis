@@ -108,11 +108,13 @@ def test_typed_lookup_rejects_other_types() raises:
     var stone = br.block_runtime_id(Stone())
     assert_false(br.is_block[Dirt](stone))
     assert_false(br.block[Dirt](stone))
-    var water = br.block_by_name(
-        "minecraft:water", Properties().with_int("liquid_depth", 0)
+    # Dragonfly has no pressure plates, so their states have no type.
+    var plate = br.block_by_name(
+        "minecraft:wooden_pressure_plate",
+        Properties().with_int("redstone_signal", 0),
     ).value()
-    assert_equal(br.kind(water), UNKNOWN_KIND)
-    assert_false(br.is_block[Air](water))
+    assert_equal(br.kind(plate), UNKNOWN_KIND)
+    assert_false(br.is_block[Air](plate))
     assert_false(br.is_block[Air](UInt32(br.block_count())))
 
 
@@ -121,10 +123,12 @@ def test_light_info() raises:
     assert_equal(br.filtering_block(br.air()), 0)
     assert_equal(br.filtering_block(br.block_runtime_id(Stone())), 15)
     # States without a type default to fully opaque, as in Go.
-    var water = br.block_by_name(
-        "minecraft:water", Properties().with_int("liquid_depth", 0)
+    # Dragonfly has no pressure plates, so their states have no type.
+    var plate = br.block_by_name(
+        "minecraft:wooden_pressure_plate",
+        Properties().with_int("redstone_signal", 0),
     ).value()
-    assert_equal(br.filtering_block(water), 15)
+    assert_equal(br.filtering_block(plate), 15)
     assert_equal(br.light_block(br.air()), 0)
 
 

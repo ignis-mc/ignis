@@ -7,17 +7,24 @@ ported: `transparent` is `LightDiffuser` returning 0. The model and
 """
 
 from ..world.block import Block, LightDiffuser
+from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.dimension import Dimension, NETHER
+from ..world.item import EncodedItem, Item
 from .hash import HASH_AIR
+from .model.empty import Empty as EmptyModel
 
 
 @fieldwise_init
-struct Air(Block, Equatable, ImplicitlyCopyable, LightDiffuser):
+struct Air(
+    Block, Equatable, ImplicitlyCopyable, Item, LightDiffuser, ModelledBlock
+):
     """The block present in otherwise empty space."""
 
     comptime BASE_HASH: UInt64 = HASH_AIR
     """Go `hashAir`."""
+    comptime ModelType = EmptyModel
+    """The model type (Go `Model`)."""
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`).
@@ -56,6 +63,24 @@ struct Air(Block, Equatable, ImplicitlyCopyable, LightDiffuser):
         """
         return [Air()]
 
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`).
+
+        Returns:
+            `minecraft:air`, metadata 0.
+        """
+        return EncodedItem("minecraft:air", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `RegisterItem` calls
+        in `register.go`).
+
+        Returns:
+            Air.
+        """
+        return [Air()]
+
     def light_diffusion_level(self) -> UInt8:
         """Air lets all light through (Go `transparent`).
 
@@ -84,3 +109,11 @@ struct Air(Block, Equatable, ImplicitlyCopyable, LightDiffuser):
             True for Nether portals.
         """
         return target == NETHER
+
+    def model(self) -> EmptyModel:
+        """Returns the model of the block (Go `Model`).
+
+        Returns:
+            The model.
+        """
+        return EmptyModel()

@@ -44,6 +44,7 @@ from ..chunk.decode import disk_decode
 from ..chunk.encode import SerialisedData, disk_encode
 from ..chunk.encoding import decode_disk_block_state, encode_disk_block_state
 from ..dimension import Dimension
+from ..provider import Provider
 from ..position import ChunkPos
 from ..settings import Settings
 from .keys import (
@@ -136,7 +137,7 @@ def _block_pos_from_nbt(t: Tree, c: Tag) raises -> Pos:
     return Pos(xyz[0], xyz[1], xyz[2])
 
 
-struct DB(Movable):
+struct DB(Movable, Provider):
     """A world in the vanilla Bedrock format (Go `mcdb.DB`)."""
 
     var _ldb: LevelDB
