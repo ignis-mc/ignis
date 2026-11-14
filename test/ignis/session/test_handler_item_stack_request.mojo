@@ -1,6 +1,7 @@
 from ignis.block.crafting_table import CraftingTable
 from ignis.block.hash import (
     HASH_CRAFTING_TABLE,
+    HASH_GRINDSTONE,
     HASH_SMITHING_TABLE,
     HASH_STONECUTTER,
 )
@@ -9,6 +10,10 @@ from ignis.item.smithing_template import SmithingTemplate
 from ignis.block.log import Log
 from ignis.block.planks import Planks
 from ignis.item.diamond import Diamond
+from ignis.item.enchantment import CURSE_OF_VANISHING_ID, EFFICIENCY_ID
+from ignis.item.shears import Shears
+from ignis.item.stack import Enchantment
+from ignis.session.handler_item_stack_request import grindstone_experience
 from ignis.item.recipe.item import Item as RecipeItem
 from ignis.item.recipe.item_tag import ItemTags, new_item_tag
 from ignis.item.recipe.recipe import (
@@ -42,6 +47,7 @@ from minecraft.protocol.item_stack import (
     ITEM_STACK_RESPONSE_STATUS_OK,
     AutoCraftRecipeStackRequestAction,
     CraftCreativeStackRequestAction,
+    CraftGrindstoneRecipeStackRequestAction,
     CraftRecipeStackRequestAction,
     DestroyStackRequestAction,
     DropStackRequestAction,
@@ -435,6 +441,59 @@ def test_smithing_transform() raises:
     assert_true(out.item_as[Stick]())
     assert_equal(out.count(), 1)
     assert_true(invs.ui.item(0x35).empty())
+
+
+def grind() -> StackRequestAction:
+    return StackRequestAction(CraftGrindstoneRecipeStackRequestAction())
+
+
+def test_grindstone_strips_all_but_curses() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_GRINDSTONE)
+    var s = Stack(Shears(), 1).with_forced_enchantments(
+        [Enchantment(EFFICIENCY_ID, 3), Enchantment(CURSE_OF_VANISHING_ID, 1)]
+    )
+    invs.ui.set_item(0x10, s.with_anvil_cost(5))
+    var h = ItemStackRequestHandler()
+    assert_equal(
+        run(h, packet(1, grind()), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    var out = invs.ui.item(CRAFTING_RESULT)
+    assert_equal(len(out.enchantments()), 1)
+    assert_equal(Int(out.enchantments()[0].id), CURSE_OF_VANISHING_ID)
+    assert_equal(out.anvil_cost(), 0)
+    assert_true(invs.ui.item(0x10).empty())
+    # Efficiency III costs at least 21 levels; the curse costs nothing.
+    assert_equal(len(h.experience_costs), 1)
+    assert_equal(h.experience_costs[0], 21)
+    assert_equal(grindstone_experience(21, 0), 11)
+
+
+def test_grindstone_repairs_two_items() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_GRINDSTONE)
+    var a = Stack(Shears(), 1)
+    var max = a.max_durability()
+    invs.ui.set_item(0x10, a.with_durability(100))
+    invs.ui.set_item(0x11, a.with_durability(50))
+    var h = ItemStackRequestHandler()
+    assert_equal(
+        run(h, packet(1, grind()), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    var out = invs.ui.item(CRAFTING_RESULT)
+    assert_equal(out.durability(), min(150 + max * 5 // 100, max))
+    assert_equal(len(h.experience_costs), 0)
+
+
+def test_grindstone_needs_the_same_type() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_GRINDSTONE)
+    invs.ui.set_item(0x10, Stack(Shears(), 1))
+    invs.ui.set_item(0x11, Stack(Stick(), 1))
+    var h = ItemStackRequestHandler()
+    assert_equal(
+        run(h, packet(1, grind()), invs)[0], ITEM_STACK_RESPONSE_STATUS_ERROR
+    )
 
 
 def main() raises:

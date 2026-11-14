@@ -29,6 +29,8 @@ from minecraft.protocol.container import (
     CONTAINER_COMBINED_HOT_BAR_AND_INVENTORY,
     CONTAINER_CRAFTING_INPUT,
     CONTAINER_CREATED_OUTPUT,
+    CONTAINER_GRINDSTONE_ADDITIONAL,
+    CONTAINER_GRINDSTONE_INPUT,
     CONTAINER_INVENTORY,
     CONTAINER_SMITHING_TABLE_INPUT,
     CONTAINER_SMITHING_TABLE_MATERIAL,
@@ -42,6 +44,7 @@ from minecraft.protocol.item_stack import (
     AutoCraftRecipeStackRequestAction,
     ConsumeStackRequestAction,
     CraftCreativeStackRequestAction,
+    CraftGrindstoneRecipeStackRequestAction,
     CraftRecipeStackRequestAction,
     CraftResultsDeprecatedStackRequestAction,
     CreateStackRequestAction,
@@ -72,10 +75,13 @@ from minecraft.nbt.tree import Tree
 from ..block.decorated_pot import DecoratedPot
 from ..block.hash import (
     HASH_CRAFTING_TABLE,
+    HASH_GRINDSTONE,
     HASH_SMITHING_TABLE,
     HASH_STONECUTTER,
 )
 from ..item.boots import Boots
+from ..item.enchantment.register import VanillaEnchantments
+from ..item.stack import Enchantment
 from ..item.chestplate import Chestplate
 from ..item.helmet import Helmet
 from ..item.leggings import Leggings
@@ -117,6 +123,10 @@ comptime SMITHING_MATERIAL_SLOT = 0x34
 """Go `smithingMaterialSlot`."""
 comptime SMITHING_TEMPLATE_SLOT = 0x35
 """Go `smithingTemplateSlot`."""
+comptime GRINDSTONE_FIRST_INPUT_SLOT = 0x10
+"""Go `grindstoneFirstInputSlot`."""
+comptime GRINDSTONE_SECOND_INPUT_SLOT = 0x11
+"""Go `grindstoneSecondInputSlot`."""
 comptime _ACK_TIMEOUT_MS = 5000
 comptime _MAX_RESPONSE_CHANGES = 256
 
@@ -163,6 +173,10 @@ struct ItemStackRequestHandler(Defaultable, Movable):
     var _window: Window
     var _recipes: ArcPointer[Recipes]
     var _items: ArcPointer[ItemRegistry]
+    var experience_costs: List[Int]
+    """The enchantment costs of grindstone crafts (Go
+    `experienceFromEnchantments` before its random part), for the caller to
+    turn into experience orbs."""
 
     def __init__(out self):
         """Creates a handler with no pending changes."""
@@ -177,6 +191,7 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         self._window = Window.none()
         self._recipes = ArcPointer(Recipes())
         self._items = ArcPointer(ItemRegistry())
+        self.experience_costs = List[Int]()
 
     def use_recipes(
         mut self, recipes: ArcPointer[Recipes], items: ArcPointer[ItemRegistry]
@@ -258,6 +273,8 @@ struct ItemStackRequestHandler(Defaultable, Movable):
                     self._craft(
                         a.recipe_network_id, Int(a.number_of_crafts), invs
                     )
+            elif v.isa[CraftGrindstoneRecipeStackRequestAction]():
+                self._grindstone(invs)
             elif v.isa[AutoCraftRecipeStackRequestAction]():
                 ref a = v[AutoCraftRecipeStackRequestAction]
                 self._auto_craft(
@@ -578,6 +595,48 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         _ = nbt.put_string(c, "Pattern", t.value().template.name())
         self._create_results([result.with_item_nbt(nbt^)], invs)
 
+    def _grindstone(mut self, mut invs: Inventories) raises:
+        """Go `handleGrindstoneCraft`: removes the enchantments that are not
+        curses, joining two damaged items of the same type."""
+        if self._window.block != HASH_GRINDSTONE:
+            raise Error("no grindstone container opened")
+        var at_first = _slot(
+            CONTAINER_GRINDSTONE_INPUT, GRINDSTONE_FIRST_INPUT_SLOT
+        )
+        var at_second = _slot(
+            CONTAINER_GRINDSTONE_ADDITIONAL, GRINDSTONE_SECOND_INPUT_SLOT
+        )
+        var first = self._item(at_first, invs)
+        var second = self._item(at_second, invs)
+        if first.empty() and second.empty():
+            raise Error("input item(s) are empty")
+        if first.count() > 1 or second.count() > 1:
+            raise Error("input item(s) are not single items")
+        var result = second.copy() if first.empty() else first.copy()
+        if not first.empty() and not second.empty():
+            if first.item().value() != second.item().value():
+                raise Error("input items must be the same type")
+            if not first.info().durable():
+                raise Error("input items must be durable")
+            result = _with_enchantments(first, second.enchantments())
+            var max_durability = first.max_durability()
+            result = result.with_durability(
+                first.durability()
+                + second.durability()
+                + max_durability * 5 // 100
+            )
+        var cost = 0
+        for e in result.enchantments():
+            if VanillaEnchantments.curse(Int(e.id)):
+                continue
+            if case .Some(c) = VanillaEnchantments.cost(Int(e.id), e.level):
+                cost += c[0]
+        if cost > 0:
+            self.experience_costs.append(cost)
+        self._set(at_first, Stack(), invs)
+        self._set(at_second, Stack(), invs)
+        self._create_results([_strip_enchantments(result)], invs)
+
     def _dynamic_craft(mut self, times_in: Int, mut invs: Inventories) raises:
         """Go `tryDynamicCraft`: the decorated pot from four decorations."""
         var times = times_in
@@ -882,3 +941,44 @@ def repeat_stacks(items: List[Stack], repetitions: Int) -> List[Stack]:
             total -= inc
             out.append(o.grow(inc - count))
     return out^
+
+
+def _with_enchantments(s: Stack, enchants: List[Enchantment]) -> Stack:
+    """Go `WithEnchantments` for two stacks of one type: an enchantment
+    that clashes with one already there is skipped; the same type takes the
+    new level."""
+    var out = s.copy()
+    for e in enchants:
+        var fits = True
+        for o in out.enchantments():
+            if o.id == e.id:
+                continue
+            var a = Int(e.id)
+            var b = Int(o.id)
+            if not VanillaEnchantments.compatible(
+                a, b
+            ) or not VanillaEnchantments.compatible(b, a):
+                fits = False
+                break
+        if fits:
+            out = out.with_forced_enchantments([e])
+    return out^
+
+
+def _strip_enchantments(s: Stack) -> Stack:
+    """Go `stripPossibleEnchantments`: drops all but the curses and resets
+    the anvil cost."""
+    var ids = List[Int16]()
+    for e in s.enchantments():
+        if not VanillaEnchantments.curse(Int(e.id)):
+            ids.append(e.id)
+    return s.without_enchantments(ids).with_anvil_cost(0)
+
+
+def grindstone_experience(cost: Int, roll: Int) -> Int:
+    """Returns the experience of a grindstone craft whose enchantments cost
+    `cost` (Go `experienceFromEnchantments`): half the cost, rounded up,
+    plus `roll`, a random number below that half."""
+    if cost == 0:
+        return 0
+    return (cost + 1) // 2 + roll

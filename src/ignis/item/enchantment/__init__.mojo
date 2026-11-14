@@ -217,6 +217,22 @@ struct EnchantmentSet[*Ts: EnchantmentType]:
         return None
 
     @staticmethod
+    def cost(id: Int, level: Int) -> Optional[Tuple[Int, Int]]:
+        """Returns the minimum and maximum enchanting cost of a level of the
+        enchantment with an ID (Go `Cost`)."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            if id == T.ID:
+                return T().cost(level)
+        return None
+
+    @staticmethod
+    def curse(id: Int) -> Bool:
+        """Reports whether the enchantment is a curse (Go's
+        `curseEnchantment`, which only Curse of Vanishing implements)."""
+        return id == CURSE_OF_VANISHING_ID
+
+    @staticmethod
     def compatible(a: Int, b: Int) -> Bool:
         """Reports whether enchantment `a` accepts enchantment `b` on the
         same item (Go `a.CompatibleWithEnchantment(b)`)."""

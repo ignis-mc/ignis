@@ -276,6 +276,8 @@ from ..block.container import (
     write_container,
 )
 from ..block.hash import HASH_CHEST
+from ..entity.experience_orb import spawn_experience_orbs
+from .handler_item_stack_request import grindstone_experience
 from .viewer import OpenedWindow, PacketQueue
 from .window import (
     WINDOW_ENDER_CHEST,
@@ -777,6 +779,7 @@ struct Session[C: Conn](Movable):
             )
             self.write_packet(resp)
             self._store_window(w)
+            self._spawn_grindstone_experience(w)
             # Go's inTransaction: the response already told the client.
             self._discard_inventory_changes()
             res.held_changed = (
@@ -1100,6 +1103,16 @@ struct Session[C: Conn](Movable):
                 if case .Some(inv) = read_container(at, w):
                     return inv.copy()
         return Inventory(1, self.invs.ids)
+
+    def _spawn_grindstone_experience[T: WorldTypes](mut self, mut w: World[T]):
+        # Go's grindstone craft adds the orbs at the player's eyes.
+        for cost in self._stack_requests.experience_costs:
+            var half = (cost + 1) // 2
+            var roll = w.global_rand().int_n(half)
+            spawn_experience_orbs(
+                w, self.player.eye_position(), grindstone_experience(cost, roll)
+            )
+        self._stack_requests.experience_costs.clear()
 
     def _load_window[T: WorldTypes](mut self, mut w: World[T]):
         # Copies the opened block's inventory in for a stack request.
