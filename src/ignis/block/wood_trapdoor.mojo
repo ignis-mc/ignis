@@ -6,6 +6,10 @@ with liquids.
 TODO(world-runtime): Activate, Model, FlammabilityInfo and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Activatable, Instrumented, UseContext
+from ..world.sound.block import TrapdoorClose, TrapdoorOpen
+
 from .cube.face import Face
 from .cube.pos import Pos
 from .cube.rotation import Rotation
@@ -41,11 +45,13 @@ from .liquid import source_water_can_displace
 
 
 struct WoodTrapdoor(
+    Activatable,
     Block,
     Breakable,
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     LiquidDisplacer,
@@ -85,6 +91,10 @@ struct WoodTrapdoor(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -170,6 +180,21 @@ struct WoodTrapdoor(
         return [
             Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()), False)
         ]
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens or closes the trapdoor (Go `Activate`)."""
+        var t = self
+        t.open = not t.open
+        tx.set_block(pos, t)
+        if t.open:
+            tx.play_sound(pos.vec3_centre(), TrapdoorOpen(block=AnyBlock(t)))
+            return True
+        tx.play_sound(pos.vec3_centre(), TrapdoorClose(block=AnyBlock(t)))
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

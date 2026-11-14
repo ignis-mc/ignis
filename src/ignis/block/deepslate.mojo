@@ -3,6 +3,9 @@
 TODO(world-runtime): UseOnBlock and the `oneOf` drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..item.smelting_info import SmeltInfo, Smeltable
 from ..item.stack import Stack
 from ..world.block import Block
@@ -27,6 +30,7 @@ struct Deepslate(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
     Smeltable,
@@ -56,6 +60,10 @@ struct Deepslate(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bassDrum`)."""
+        return Instrument.BASS_DRUM
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

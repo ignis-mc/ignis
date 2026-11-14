@@ -16,6 +16,9 @@ Differences from Go:
 - `FlammabilityInfo` is not ported.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from minecraft.nbt.nbt import TAG_INT
 from minecraft.nbt.tree import Tag, Tree
 
@@ -66,6 +69,7 @@ struct Chest(
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     ModelledBlock,
@@ -113,6 +117,10 @@ struct Chest(
             and self.pair_x == other.pair_x
             and self.pair_z == other.pair_z
         )
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

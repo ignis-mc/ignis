@@ -1,8 +1,13 @@
 """`DragonEgg`, ported from Dragonfly `server/block/dragon_egg.go`.
 
-TODO(world-runtime): teleport, Punch, Activate, the falling behaviour of
-`gravityAffected` and the drops.
+TODO(world-runtime): Punch, the falling behaviour of `gravityAffected` and the
+drops.
 """
+
+from ..world.particle.block import DragonEggTeleport
+from .air import Air
+from .block import Activatable, UseContext, is_air
+
 
 from ..world.block import (
     Block,
@@ -31,6 +36,7 @@ from .block import gravity_fall
 
 
 struct DragonEgg(
+    Activatable,
     Block,
     Breakable,
     Equatable,
@@ -57,6 +63,34 @@ struct DragonEgg(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Teleports the egg (Go `Activate`)."""
+        self.teleport(pos, tx)
+        return True
+
+    def teleport[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Moves the egg to a random free spot nearby (Go `teleport`)."""
+        var r = tx.range()
+        for _ in range(1000):
+            var x = tx.global_rand().int_n(31) - 15
+            var y = max(
+                r.min() - pos.y(),
+                min(r.max() - pos.y(), tx.global_rand().int_n(15) - 7),
+            )
+            var z = tx.global_rand().int_n(31) - 15
+            var new_pos = pos.add(Pos(x, y, z))
+            if is_air(tx, new_pos):
+                tx.set_block(new_pos, self)
+                tx.set_block(pos, Air())
+                tx.add_particle(
+                    pos.vec3(), DragonEggTeleport(diff=pos.sub(new_pos))
+                )
+                return
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

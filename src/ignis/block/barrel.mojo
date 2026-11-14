@@ -4,6 +4,9 @@ The inventory and viewers live with the world's block entity (see
 `block/container.mojo`). `FlammabilityInfo` is not ported.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from minecraft.nbt.tree import Tag, Tree
 
 from ..internal.nbtconv.read import get_string
@@ -49,6 +52,7 @@ struct Barrel(
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
     NBTer,
@@ -87,6 +91,10 @@ struct Barrel(
             self.hash() == other.hash()
             and self.custom_name == other.custom_name
         )
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

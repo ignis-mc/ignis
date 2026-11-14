@@ -3,6 +3,9 @@
 TODO(world-runtime): the drops, Instrument, PowersBeacon.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -20,7 +23,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct Gold(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Instrumented,
+    Item,
+    ModelledBlock,
 ):
     """A precious metal block crafted from 9 gold ingots."""
 
@@ -36,6 +45,10 @@ struct Gold(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `Instrument`)."""
+        return Instrument.BELL
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

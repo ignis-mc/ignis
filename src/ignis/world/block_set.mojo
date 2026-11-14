@@ -25,6 +25,7 @@ a type to the set is all a new block needs.
 
 from ..block.block import (
     Activatable,
+    Instrumented,
     BreakHandler,
     HopperExtractable,
     HopperInsertable,
@@ -53,6 +54,8 @@ from ..block.liquid import LiquidRemovable
 from ..block.oxidation_type import OxidationType
 from ..block.oxidizable import Oxidisable
 from minecraft.nbt.tree import Tree
+
+from .sound.instrument import Instrument
 
 from ..item.inventory.inventory import Inventory
 from .block import (
@@ -273,6 +276,11 @@ trait BlockTypes:
     @staticmethod
     def is_activatable(kind: UInt64) -> Bool:
         """Reports whether blocks of a type are `Activatable`."""
+        ...
+
+    @staticmethod
+    def instrument(kind: UInt64, hash: UInt64) -> Optional[Instrument]:
+        """Returns the note block instrument of an `Instrumented` block."""
         ...
 
     @staticmethod
@@ -627,6 +635,16 @@ struct BlockSet[*Ts: Block](BlockTypes):
         return False
 
     @staticmethod
+    def instrument(kind: UInt64, hash: UInt64) -> Optional[Instrument]:
+        """Returns the note block instrument of an `Instrumented` block."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Instrumented):
+                if kind == T.BASE_HASH:
+                    return _instrument(T.from_hash(hash))
+        return None
+
+    @staticmethod
     def activate[
         W: WorldTypes
     ](
@@ -883,6 +901,10 @@ def decode_block_nbt[B: NBTer](b: B, t: Tree) -> B:
         return b.decode_nbt(t, t.root())
     except:
         return b.copy()
+
+
+def _instrument[B: Instrumented](b: B) -> Instrument:
+    return b.instrument()
 
 
 def _inventory_size[B: Container](b: B) -> Int:

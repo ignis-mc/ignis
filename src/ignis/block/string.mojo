@@ -3,8 +3,8 @@
 Go names the type `String`; here it is `StringBlock` so that it does not
 shadow the built-in `String` wherever it is imported.
 
-TODO(world-runtime): UseOnBlock, EntityInside, NeighbourUpdateTick, tripwire
-hook logic, Model and the drops.
+TODO(world-runtime): UseOnBlock, EntityInside, tripwire hook logic, Model and
+the drops.
 """
 
 from ..world.block import Block, LightDiffuser
@@ -18,7 +18,19 @@ from .break_info import (
     NOTHING_EFFECTIVE,
     new_break_info,
 )
-from .connections import Connections, all_connections
+from .connections import (
+    Connections,
+    Connector,
+    all_connections,
+    calculate_connections,
+)
+from ..world.block import NeighbourUpdateTicker
+from ..world.block_source import BlockSource
+from ..world.world import World, WorldTypes
+from .block import StateDeriver, face_solid_at
+from .cube.face import Face
+from .cube.pos import Pos
+from .register import block_at
 from .hash import HASH_STRING
 from .model.empty import Empty as EmptyModel
 from .liquid import LiquidRemovable
@@ -27,12 +39,15 @@ from .liquid import LiquidRemovable
 struct StringBlock(
     Block,
     Breakable,
+    Connector,
     Equatable,
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
     LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
+    StateDeriver,
 ):
     """A tripwire: string placed as a block (Go `String`)."""
 
@@ -71,6 +86,31 @@ struct StringBlock(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Updates whether the string hangs in the air and its connections (Go
+        `NeighbourUpdateTick`)."""
+        var suspended = not face_solid_at(tx, pos.side(Face.DOWN), Face.UP)
+        var connections = calculate_connections(self, tx.source(), pos)
+        if suspended == self.suspended and connections == self.connections:
+            return
+        var b = self
+        b.suspended = suspended
+        b.connections = connections
+        tx.set_block(pos, b)
+
+    def derive_state[S: BlockSource](self, pos: Pos, src: S) -> Self:
+        """Returns the string with the sides it connects to at `pos` (Go
+        `DeriveState`)."""
+        var b = self
+        b.connections = calculate_connections(self, src, pos)
+        return b
+
+    def connects[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
+        """Connects to string on that side (Go `Connects`)."""
+        return Bool(block_at(src, pos.side(face)).get[StringBlock]())
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

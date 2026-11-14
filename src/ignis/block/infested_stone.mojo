@@ -3,6 +3,9 @@
 TODO(world-runtime): the `silkTouchOnlyDrop` drops and the silverfish spawn.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -19,7 +22,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct InfestedStone(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Instrumented,
+    Item,
+    ModelledBlock,
 ):
     """A stone block that hides a silverfish."""
 
@@ -35,6 +44,10 @@ struct InfestedStone(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `flute`)."""
+        return Instrument.FLUTE
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

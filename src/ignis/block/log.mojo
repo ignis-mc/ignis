@@ -3,6 +3,9 @@
 TODO(world-runtime): Strip, FlammabilityInfo and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from .cube.face import Face
 from .cube.pos import Pos
 from .cube.rotation import Rotation
@@ -43,6 +46,7 @@ struct Log(
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
     Smeltable,
@@ -78,6 +82,10 @@ struct Log(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

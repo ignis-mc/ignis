@@ -3,6 +3,9 @@
 TODO(world-runtime): Carve, UseOnBlock, Instrument and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..item.armour import HelmetType
 from ..item.item import Compostable
 from ..world.block import Block
@@ -28,6 +31,7 @@ struct Pumpkin(
     Equatable,
     HelmetType,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
 ):
@@ -53,6 +57,13 @@ struct Pumpkin(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `Instrument`: a didgeridoo unless carved).
+        """
+        if not self.carved:
+            return Instrument.DIDGERIDOO
+        return Instrument.PIANO
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

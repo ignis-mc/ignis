@@ -1,8 +1,20 @@
 """`Note`, ported from Dragonfly `server/block/note.go`.
 
-TODO(world-runtime): playNote, instrument, Punch, Activate, RedstoneUpdate and
-the drops.
+The note particle carries the note block's own instrument (bass), as in
+Go's `playNote`; the sound uses the instrument of the block below.
+
+TODO(world-runtime): Punch, RedstonePowerUpdate, RedstonePowerPostUpdate
+(no redstone yet) and the drops.
 """
+
+from ..world.sound.instrument import Instrument
+from .block import Activatable, Instrumented, UseContext, is_air
+from .cube.face import Face
+from .cube.pos import Pos
+from ..world.particle.block import Note as NoteParticle
+from ..world.sound.block import Note as NoteSound
+from ..world.tx import SetOpts
+from ..world.world import World, WorldTypes
 
 from minecraft.nbt.tree import Tag, Tree
 
@@ -23,11 +35,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct Note(
+    Activatable,
     Block,
     Breakable,
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ItemHasher,
     ModelledBlock,
@@ -57,6 +71,10 @@ struct Note(
             and self.pitch == other.pitch
             and self.powered == other.powered
         )
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -91,6 +109,48 @@ struct Note(
     def fuel_info(self) -> FuelInfo:
         """Returns the fuel info (Go `FuelInfo`)."""
         return FuelInfo(15000)
+
+    def play_note[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Plays the note's sound and particle (Go `playNote`)."""
+        tx.play_sound(
+            pos.vec3(),
+            NoteSound(instrument=self.instrument_at(pos, tx), pitch=self.pitch),
+        )
+        tx.add_particle(
+            pos.vec3(),
+            NoteParticle(instrument=self.instrument(), pitch=self.pitch),
+        )
+
+    def instrument_at[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T]) -> Instrument:
+        """Returns the instrument the block below selects, or the piano (Go
+        `instrument`)."""
+        var below = tx.block(pos.side(Face.DOWN))
+        var br = tx.block_registry()
+        return T.Blocks.instrument(
+            br[].kind(below), br[].state_hash(below)
+        ).or_else(Instrument.PIANO)
+
+    def can_play[T: WorldTypes](self, pos: Pos, mut tx: World[T]) -> Bool:
+        """Reports whether the block above is air (Go `canPlay`)."""
+        return is_air(tx, pos.side(Face.UP))
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Raises the pitch by one and plays the note (Go `Activate`)."""
+        if not self.can_play(pos, tx):
+            return False
+        var n = self
+        n.pitch = (n.pitch + 1) % 25
+        n.play_note(pos, tx)
+        var opts = SetOpts()
+        opts.disable_block_updates = True
+        tx.set_block(pos, n, opts)
+        return True
 
     def encode_nbt(self, mut tag: Tree, root: Tag) raises:
         """Writes the NBT (Go `EncodeNBT`)."""

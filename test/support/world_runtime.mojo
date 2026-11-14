@@ -46,6 +46,8 @@ from ignis.world.handler import Handler
 from ignis.world.position import ChunkPos
 from ignis.world.provider import MemoryProvider
 from ignis.world.tx import SetOpts
+from ignis.world.particle import Particle
+from ignis.world.sound import Sound
 from ignis.world.viewer import Viewer
 from ignis.world.world import World, WorldTypes
 
@@ -243,6 +245,12 @@ struct RecordingViewer(Defaultable, Viewer):
 
     def view_weather(mut self, raining: Bool, thunder: Bool):
         self.events.append(String(t"weather {raining} {thunder}"))
+
+    def view_sound[S: Sound](mut self, pos: Vec3, s: S):
+        self.events.append(String(t"sound {S.SOUND_ID} {pos}"))
+
+    def view_particle[P: Particle](mut self, pos: Vec3, p: P):
+        self.events.append(String(t"particle {P.PARTICLE_ID} {pos}"))
 
 
 struct RecordingHandler(Defaultable, Handler):

@@ -3,6 +3,9 @@
 TODO(world-runtime): the `silkTouchOnlyDrop` drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -23,6 +26,7 @@ struct Glass(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     ModelledBlock,
@@ -42,6 +46,11 @@ struct Glass(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `clicksAndSticks`).
+        """
+        return Instrument.CLICKS_AND_STICKS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

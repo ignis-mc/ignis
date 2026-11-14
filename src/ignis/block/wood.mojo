@@ -3,6 +3,9 @@
 TODO(world-runtime): UseOnBlock, Strip, FlammabilityInfo and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..item.charcoal import Charcoal
 from ..item.smelting_info import Fuel, FuelInfo, SmeltInfo, Smeltable
 from ..item.stack import Stack
@@ -29,6 +32,7 @@ struct Wood(
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
     Smeltable,
@@ -62,6 +66,10 @@ struct Wood(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

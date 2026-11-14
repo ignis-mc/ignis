@@ -3,9 +3,13 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): UseOnBlock, Activate, Ignite, Splash, HasLiquidDrops,
-Model and the drops.
+TODO(world-runtime): UseOnBlock, Splash, HasLiquidDrops, Model and the drops.
 """
+
+from ..item.enchantment import FIRE_ASPECT_ID
+from ..world.sound.block import Ignite
+from .block import Activatable, UseContext
+
 
 from ..item.optional_colour import OptionalColour, optional_colours
 from ..world.block import (
@@ -39,6 +43,7 @@ from ..world.sound.block import FireExtinguish
 
 
 struct Candle(
+    Activatable,
     Block,
     Breakable,
     Equatable,
@@ -79,6 +84,28 @@ struct Candle(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Lights the candle with a fire aspect item (Go `Activate`)."""
+        if ctx.held.enchantment(FIRE_ASPECT_ID):
+            _ = self.ignite(pos, tx)
+            ctx.damage_item(1)
+            return True
+        return False
+
+    def ignite[T: WorldTypes](self, pos: Pos, mut tx: World[T]) -> Bool:
+        """Lights the candle (Go `Ignite`)."""
+        if tx.liquid(pos) or self.lit:
+            return False
+        var c = self
+        c.lit = True
+        tx.set_block(pos, c)
+        tx.play_sound(pos.vec3(), Ignite())
+        return True
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

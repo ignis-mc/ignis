@@ -3,6 +3,9 @@
 TODO(world-runtime): Instrument and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -26,6 +29,7 @@ struct SoulSand(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
     Soil,
@@ -44,6 +48,10 @@ struct SoulSand(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `Instrument`)."""
+        return Instrument.COW_BELL
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

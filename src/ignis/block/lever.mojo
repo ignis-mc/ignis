@@ -1,10 +1,29 @@
 """`Lever`, ported from Dragonfly `server/block/lever.go`.
 
-TODO(world-runtime): Activate, UseOnBlock, NeighbourUpdateTick, HasLiquidDrops,
-RedstoneSource, RedstonePower, RedstoneStrongPower and the drops.
+Ignis has no redstone yet, so a lever only switches its state and plays its
+sound.
+
+TODO(world-runtime): HasLiquidDrops, RedstoneSource, RedstonePower,
+RedstoneStrongPower and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from ..mgl64 import Vec3
+from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker
+from ..world.sound.block import PowerOff, PowerOn
+from ..world.world import World, WorldTypes
+from .block import (
+    Activatable,
+    Placement,
+    UsableOnBlock,
+    UseContext,
+    User,
+    face_solid_at,
+    first_replaceable,
+)
+from .break_info import break_block
+from .cube.axis import Axis
+from .cube.pos import Pos
+from .cube.rotation import Rotation
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -25,6 +44,7 @@ from .liquid import flowing_water_can_displace
 
 
 struct Lever(
+    Activatable,
     Block,
     Breakable,
     Equatable,
@@ -33,6 +53,8 @@ struct Lever(
     LightDiffuser,
     LiquidDisplacer,
     ModelledBlock,
+    NeighbourUpdateTicker,
+    UsableOnBlock,
 ):
     """A non-solid block that can provide switchable redstone power."""
 
@@ -124,6 +146,57 @@ struct Lever(
     def model(self) -> EmptyModel:
         """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Switches the lever on or off (Go `Activate`)."""
+        var l = self
+        l.powered = not l.powered
+        tx.set_block(pos, l)
+        if l.powered:
+            tx.play_sound(pos.vec3_centre(), PowerOn())
+        else:
+            tx.play_sound(pos.vec3_centre(), PowerOff())
+        return True
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks without the block it is attached to (Go
+        `NeighbourUpdateTick`)."""
+        if not face_solid_at(tx, pos.side(self.facing.opposite()), self.facing):
+            break_block(self, pos, tx)
+
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: User,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Attaches the lever to the clicked solid face (Go `UseOnBlock`)."""
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var p = at.value()[0]
+        var f = at.value()[1]
+        if not face_solid_at(tx, p.side(f.opposite()), f):
+            return List[Placement]()
+        var l = self
+        l.powered = False
+        l.facing = f
+        l.direction = Direction.NORTH
+        if f.axis() == Axis.Y and user.direction().face().axis() == Axis.X:
+            l.direction = Direction.WEST
+        return [Placement(p, AnyBlock(Self.BASE_HASH, l.hash()), False)]
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

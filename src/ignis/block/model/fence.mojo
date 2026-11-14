@@ -4,6 +4,7 @@ Go `world.Block`s are runtime IDs here; the neighbour's model is found through `
 """
 
 from ...world.block_model import BlockModel
+from ..connections import Connector
 from ...world.block_source import BlockSource
 from ..cube.axis import Axis
 from ..cube.bbox import BBox
@@ -13,7 +14,7 @@ from ..register import block_at, block_model_as, block_model_face_solid
 from .fence_gate import FenceGate
 
 
-struct Fence(BlockModel, ImplicitlyCopyable):
+struct Fence(BlockModel, Connector, ImplicitlyCopyable):
     """The model of a fence, which connects to the blocks around it (Go `model.Fence`).
     """
 

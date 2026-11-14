@@ -4,6 +4,9 @@ The window shows the player's own ender chest inventory (the session's);
 the world counts the viewers of the block for the lid (Go's `viewers`).
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from minecraft.nbt.tree import Tag, Tree
 
 from ..item.stack import Stack
@@ -51,6 +54,7 @@ struct EnderChest(
     Dropper,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     LightEmitter,
@@ -78,6 +82,10 @@ struct EnderChest(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

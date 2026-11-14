@@ -6,6 +6,9 @@ of the value. The experience the break info drops (Go `withXPDropRange`)
 is kept but not dropped: experience orbs are not ported.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from minecraft.nbt.tree import Tag, Tree
 
 from ..item.inventory.inventory import Inventory
@@ -60,6 +63,7 @@ struct Furnace(
     HopperExtractable,
     HopperInsertable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightEmitter,
     ModelledBlock,
@@ -92,6 +96,10 @@ struct Furnace(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash() and self.smelter == other.smelter
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bassDrum`)."""
+        return Instrument.BASS_DRUM
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
