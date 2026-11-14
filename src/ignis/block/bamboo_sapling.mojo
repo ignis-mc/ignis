@@ -16,6 +16,7 @@ from .break_info import (
 )
 from .hash import HASH_BAMBOO_SAPLING
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct BambooSapling(
@@ -24,6 +25,7 @@ struct BambooSapling(
     Equatable,
     ImplicitlyCopyable,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A sapling that grows into bamboo."""
@@ -79,3 +81,7 @@ struct BambooSapling(
     def model(self) -> EmptyModel:
         """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

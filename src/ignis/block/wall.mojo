@@ -23,6 +23,8 @@ from .model.wall import Wall as WallModel
 from .register import break_info
 from .wall_connection_type import WallConnectionType, wall_connection_types
 from .wall_type import encode_wall_block, wall_blocks
+from ..world.block import LiquidDisplacer
+from .liquid import source_water_can_displace
 
 
 struct Wall(
@@ -32,6 +34,7 @@ struct Wall(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """A block similar to fences that prevents players from jumping over it and connects to more
@@ -178,3 +181,7 @@ struct Wall(
         for v in wall_blocks():
             out.append(Wall(block=v))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

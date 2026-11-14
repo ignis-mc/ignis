@@ -20,6 +20,7 @@ from .cube.face import Face, faces
 from .fire_type import FireType, fire_types
 from .hash import HASH_TORCH
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct Torch(
@@ -30,6 +31,7 @@ struct Torch(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A non-solid blocks that emits light."""
@@ -124,3 +126,7 @@ struct Torch(
         for v in fire_types():
             out.append(Torch(type=v))
         return out^
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

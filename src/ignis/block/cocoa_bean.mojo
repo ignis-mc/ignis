@@ -20,6 +20,7 @@ from .break_info import (
 from .cube.direction import Direction, directions
 from .hash import HASH_COCOA_BEAN
 from .model.cocoa_bean import CocoaBean as CocoaBeanModel
+from .liquid import LiquidRemovable
 
 
 struct CocoaBean(
@@ -30,6 +31,7 @@ struct CocoaBean(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A crop block found in jungle biomes."""
@@ -113,3 +115,7 @@ struct CocoaBean(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

@@ -27,6 +27,9 @@ from .break_info import (
 from .cube.direction import Direction, directions
 from .hash import HASH_CHEST
 from .model.chest import Chest as ChestModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Chest(
@@ -37,6 +40,7 @@ struct Chest(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
     NBTer,
 ):
@@ -137,3 +141,7 @@ struct Chest(
         return Self(
             facing=self.facing, custom_name=get_string(tag, root, "CustomName")
         )
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

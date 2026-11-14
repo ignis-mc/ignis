@@ -22,6 +22,7 @@ from .break_info import (
 )
 from .hash import HASH_FERN
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct Fern(
@@ -32,6 +33,7 @@ struct Fern(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
     Replaceable,
 ):
@@ -97,3 +99,7 @@ struct Fern(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

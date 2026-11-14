@@ -21,6 +21,9 @@ from .break_info import (
 from .fire_type import FireType, fire_types
 from .hash import HASH_LANTERN
 from .model.lantern import Lantern as LanternModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Lantern(
@@ -31,6 +34,7 @@ struct Lantern(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """A light emitting block."""
@@ -115,3 +119,7 @@ struct Lantern(
         for f in fire_types():
             out.append(Self(type=f))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

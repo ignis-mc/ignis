@@ -21,6 +21,10 @@ from .break_info import (
 from .coral_type import CoralType, coral_types
 from .hash import HASH_CORAL
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Coral(
@@ -30,6 +34,8 @@ struct Coral(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A non-solid block that comes in 5 variants."""
@@ -110,3 +116,11 @@ struct Coral(
             for t in coral_types():
                 out.append(Self(type=t, dead=dead))
         return out^
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns False (Go `HasLiquidDrops`)."""
+        return False
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

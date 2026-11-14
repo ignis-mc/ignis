@@ -11,6 +11,11 @@ TODO(world-runtime) port them with `item.Tool`, `item.Stack` and `Tx`.
 from std.math import ceil
 
 from ..item.enchantment.efficiency import Efficiency
+from ..mgl64 import Vec3
+from ..world.particle.block import BlockBreak
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .hash import AnyBlock
 from ..item.stack import Stack
 from ..item.tool import (
     TYPE_AXE,
@@ -262,3 +267,51 @@ def break_duration_ms(
 def breaks_instantly(info: Optional[BreakInfo]) -> Bool:
     """Reports whether a block has no hardness (Go `BreaksInstantly`)."""
     return Bool(info) and info.value().hardness <= 0
+
+
+def tool_none_drops[
+    T: WorldTypes
+](rid: UInt32, mut tx: World[T]) -> List[Stack]:
+    """Returns what a block drops when broken without a tool (Go
+    `BreakInfo().Drops(item.ToolNone{}, nil)`): its `Dropper` drops, or
+    itself as an item."""
+    var br = tx.block_registry()
+    var kind = br[].kind(rid)
+    var hash = br[].state_hash(rid)
+    if case .Some(d) = T.Blocks.drops(kind, hash, ToolInfo.none(), False):
+        return d.copy()
+    var out = List[Stack]()
+    if case .Some(it) = T.Blocks.block_item(kind, hash):
+        out.append(Stack(it, 1))
+    return out^
+
+
+def drop_item[T: WorldTypes](mut tx: World[T], it: Stack, pos: Vec3):
+    """Drops a stack as an item entity (Go `dropItem`; Go picks the
+    velocity there, the world's owner picks it here)."""
+    tx.drop_item(pos, it)
+
+
+def break_block[T: WorldTypes](rid: UInt32, pos: Pos, mut tx: World[T]):
+    """Breaks a block as if without a tool and drops its drops (Go
+    `breakBlock`)."""
+    break_block_no_drops(rid, pos, tx)
+    var br = tx.block_registry()
+    if T.Blocks.break_info(br[].kind(rid), br[].state_hash(rid)):
+        for ref d in tool_none_drops(rid, tx):
+            drop_item(tx, d, pos.vec3_centre())
+
+
+def break_block_no_drops[
+    T: WorldTypes
+](rid: UInt32, pos: Pos, mut tx: World[T]):
+    """Removes a block with break particles (Go `breakBlockNoDrops`;
+    `BreakHandler` is not ported)."""
+    tx.set_block_runtime_id(pos, tx.block_registry()[].air_runtime_id())
+    var br = tx.block_registry()
+    tx.add_particle(
+        pos.vec3_centre(),
+        BlockBreak(
+            block=AnyBlock(kind=br[].kind(rid), state=br[].state_hash(rid))
+        ),
+    )

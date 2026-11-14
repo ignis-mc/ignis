@@ -24,6 +24,7 @@ from .break_info import (
 from .double_tall_grass_type import DoubleTallGrassType, double_tall_grass_types
 from .hash import HASH_DOUBLE_TALL_GRASS
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct DoubleTallGrass(
@@ -34,6 +35,7 @@ struct DoubleTallGrass(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
     Replaceable,
 ):
@@ -127,3 +129,7 @@ struct DoubleTallGrass(
         for g in double_tall_grass_types():
             out.append(Self(type=g))
         return out^
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

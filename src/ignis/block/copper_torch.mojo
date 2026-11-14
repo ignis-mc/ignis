@@ -19,6 +19,7 @@ from .break_info import (
 from .cube.face import Face, faces
 from .hash import HASH_COPPER_TORCH
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct CopperTorch(
@@ -29,6 +30,7 @@ struct CopperTorch(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A non-solid block that emits light."""
@@ -108,3 +110,7 @@ struct CopperTorch(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

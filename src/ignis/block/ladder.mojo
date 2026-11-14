@@ -23,6 +23,9 @@ from .break_info import (
 from .cube.direction import Direction, directions
 from .hash import HASH_LADDER
 from .model.ladder import Ladder as LadderModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Ladder(
@@ -33,6 +36,7 @@ struct Ladder(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """A wooden block used for climbing walls either vertically or horizontally.
@@ -107,3 +111,7 @@ struct Ladder(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

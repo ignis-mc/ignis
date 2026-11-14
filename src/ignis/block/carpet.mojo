@@ -21,6 +21,10 @@ from .break_info import (
 )
 from .hash import HASH_CARPET
 from .model.carpet import Carpet as CarpetModel
+from .liquid import LiquidRemovable
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Carpet(
@@ -30,6 +34,8 @@ struct Carpet(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A colourful decorative block that can be placed on top of any block."""
@@ -95,3 +101,11 @@ struct Carpet(
         for c in colours():
             out.append(Self(colour=c))
         return out^
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

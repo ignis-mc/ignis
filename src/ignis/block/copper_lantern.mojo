@@ -22,6 +22,9 @@ from .hash import HASH_COPPER_LANTERN
 from .model.lantern import Lantern as LanternModel
 from .oxidation_type import OxidationType, oxidation_types
 from .oxidizable import Oxidisable, copper_block_name
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct CopperLantern(
@@ -32,6 +35,7 @@ struct CopperLantern(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidDisplacer,
     ModelledBlock,
     Oxidisable,
 ):
@@ -149,3 +153,7 @@ struct CopperLantern(
             out.append(Self(oxidation=o))
             out.append(Self(oxidation=o, waxed=True))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

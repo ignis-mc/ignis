@@ -25,6 +25,9 @@ from .break_info import (
 from .cube.direction import Direction, directions
 from .hash import HASH_STRAW_BED
 from .model.bed import Bed as BedModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct StrawBed(
@@ -34,6 +37,7 @@ struct StrawBed(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     MaxCounter,
     ModelledBlock,
     NBTer,
@@ -140,3 +144,7 @@ struct StrawBed(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

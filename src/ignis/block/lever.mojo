@@ -21,6 +21,9 @@ from .cube.direction import Direction
 from .cube.face import Face, faces
 from .hash import HASH_LEVER
 from .model.empty import Empty as EmptyModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import flowing_water_can_displace
 
 
 struct Lever(
@@ -30,6 +33,7 @@ struct Lever(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """A non-solid block that can provide switchable redstone power."""
@@ -131,3 +135,7 @@ struct Lever(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds any water (Go `flowingWaterDisplacer`)."""
+        return flowing_water_can_displace(b)

@@ -35,6 +35,8 @@ from .planks import Planks
 from .register import break_info
 from .stairs_corner import StairsCorner, stairs_corners
 from .stairs_type import encode_stairs_block, stairs_blocks
+from ..world.block import LiquidDisplacer
+from .liquid import source_water_can_displace
 
 
 struct Stairs(
@@ -45,6 +47,7 @@ struct Stairs(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
     UsableOnBlock,
 ):
@@ -201,6 +204,16 @@ struct Stairs(
         for v in stairs_blocks():
             out.append(Stairs(block=v))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)
+
+    def side_closed[
+        T: WorldTypes
+    ](self, pos: Pos, side: Pos, mut tx: World[T]) -> Bool:
+        """Closed where the model's face is solid (Go `SideClosed`)."""
+        return self.model().face_solid(pos, pos.face(side), tx.source())
 
 
 def to_stairs_direction(v: Direction) -> Int32:

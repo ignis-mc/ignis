@@ -20,6 +20,9 @@ from .break_info import (
 )
 from .hash import HASH_DRAGON_EGG
 from .model.solid import Solid as SolidModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct DragonEgg(
@@ -30,6 +33,7 @@ struct DragonEgg(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """A decorative block or a "trophy item", and the rarest item in the game.
@@ -93,3 +97,7 @@ struct DragonEgg(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

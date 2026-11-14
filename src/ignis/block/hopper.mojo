@@ -25,6 +25,9 @@ from .break_info import (
 from .cube.face import Face, faces
 from .hash import HASH_HOPPER
 from .model.hopper import Hopper as HopperModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Hopper(
@@ -34,6 +37,7 @@ struct Hopper(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
     NBTer,
 ):
@@ -156,3 +160,7 @@ struct Hopper(
             custom_name=get_string(tag, root, "CustomName"),
             transfer_cooldown=Int(get_int32(tag, root, "TransferCooldown")),
         )
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

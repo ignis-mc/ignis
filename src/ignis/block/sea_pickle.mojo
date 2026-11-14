@@ -25,6 +25,10 @@ from .break_info import (
 )
 from .hash import HASH_SEA_PICKLE
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct SeaPickle(
@@ -36,6 +40,8 @@ struct SeaPickle(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidDisplacer,
+    LiquidRemovable,
     ModelledBlock,
     Smeltable,
 ):
@@ -127,3 +133,11 @@ struct SeaPickle(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

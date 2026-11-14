@@ -31,6 +31,8 @@ from .cube.direction import Direction, directions
 from .hash import HASH_WOOD_TRAPDOOR
 from .model.trapdoor import Trapdoor as TrapdoorModel
 from .wood_type import WoodType, wood_types
+from ..world.block import LiquidDisplacer
+from .liquid import source_water_can_displace
 
 
 struct WoodTrapdoor(
@@ -41,6 +43,7 @@ struct WoodTrapdoor(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
     UsableOnBlock,
 ):
@@ -182,3 +185,7 @@ struct WoodTrapdoor(
         for v in wood_types():
             out.append(WoodTrapdoor(wood=v))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

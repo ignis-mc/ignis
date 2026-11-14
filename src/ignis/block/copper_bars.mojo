@@ -23,6 +23,9 @@ from .hash import HASH_COPPER_BARS
 from .model.thin import Thin as ThinModel
 from .oxidation_type import OxidationType, oxidation_types
 from .oxidizable import Oxidisable, copper_block_name
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct CopperBars(
@@ -32,6 +35,7 @@ struct CopperBars(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
     Oxidisable,
 ):
@@ -145,3 +149,7 @@ struct CopperBars(
             out.append(Self(oxidation=o))
             out.append(Self(oxidation=o, waxed=True))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

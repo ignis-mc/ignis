@@ -26,6 +26,9 @@ from .break_info import (
 from .cube.direction import Direction, directions
 from .hash import HASH_DECORATED_POT
 from .model.decorated_pot import DecoratedPot as DecoratedPotModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct DecoratedPot(
@@ -35,6 +38,7 @@ struct DecoratedPot(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
     NBTer,
 ):
@@ -117,3 +121,7 @@ struct DecoratedPot(
         """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
         # TODO(world-runtime): the item and the decorations (sherds).
         return Self(facing=self.facing)
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

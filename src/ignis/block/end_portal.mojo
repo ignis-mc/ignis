@@ -8,6 +8,7 @@ from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .hash import HASH_END_PORTAL
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct EndPortal(
@@ -16,6 +17,7 @@ struct EndPortal(
     ImplicitlyCopyable,
     LightDiffuser,
     LightEmitter,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A portal that transports an entity to the End."""
@@ -63,3 +65,7 @@ struct EndPortal(
     def model(self) -> EmptyModel:
         """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns False (Go `HasLiquidDrops`)."""
+        return False

@@ -20,6 +20,7 @@ from .break_info import (
 from .cube.face import Face
 from .hash import HASH_PUMPKIN_SEEDS
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct PumpkinSeeds(
@@ -30,6 +31,7 @@ struct PumpkinSeeds(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A crop that grows pumpkin blocks."""
@@ -107,3 +109,7 @@ struct PumpkinSeeds(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

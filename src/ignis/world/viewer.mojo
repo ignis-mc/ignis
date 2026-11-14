@@ -13,7 +13,7 @@ world's entity set. Blocks are runtime IDs, as everywhere in Ignis.
 Not ported yet (they need unported types): `ViewEntityGameMode`,
 `ViewEntityDisplacement`, `ViewFurnaceUpdate`, `ViewBrewingUpdate`,
 `ViewEntityAction`, `ViewEntityState`, `ViewEntityAnimation`,
-`ViewParticle`, `ViewSound`, `ViewBlockAction`, `ViewEmote`, `ViewSkin`,
+`ViewBlockAction`, `ViewEmote`, `ViewSkin`,
 `ViewEntityWake`, and the block entities passed to `ViewChunk`.
 """
 
@@ -23,6 +23,8 @@ from ..mgl64 import Vec3
 from .chunk.chunk import Chunk
 from .dimension import Dimension
 from .entity import EntityHandle, EntityTypes
+from .particle import Particle
+from .sound import Sound
 from .position import ChunkPos
 
 
@@ -80,6 +82,14 @@ trait Viewer(Deinitable, Movable):
 
     def view_block_update(mut self, pos: Pos, rid: UInt32, layer: Int):
         """Views a block being set (Go `ViewBlockUpdate`)."""
+        pass
+
+    def view_sound[S: Sound](mut self, pos: Vec3, s: S):
+        """Plays a sound at a position (Go `ViewSound`)."""
+        pass
+
+    def view_particle[P: Particle](mut self, pos: Vec3, p: P):
+        """Shows a particle at a position (Go `ViewParticle`)."""
         pass
 
     def view_world_spawn(mut self, pos: Pos):

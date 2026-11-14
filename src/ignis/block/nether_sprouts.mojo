@@ -23,6 +23,7 @@ from .break_info import (
 )
 from .hash import HASH_NETHER_SPROUTS
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct NetherSprouts(
@@ -33,6 +34,7 @@ struct NetherSprouts(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
     Replaceable,
 ):
@@ -98,3 +100,7 @@ struct NetherSprouts(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns False (Go `HasLiquidDrops`)."""
+        return False

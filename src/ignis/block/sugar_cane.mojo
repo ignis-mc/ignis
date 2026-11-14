@@ -17,6 +17,7 @@ from .break_info import (
 )
 from .hash import HASH_SUGAR_CANE
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct SugarCane(
@@ -26,6 +27,7 @@ struct SugarCane(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A plant block that generates naturally near water."""
@@ -91,3 +93,7 @@ struct SugarCane(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

@@ -24,6 +24,9 @@ from .break_info import (
 from .cube.face import Face, faces
 from .hash import HASH_ITEM_FRAME
 from .model.empty import Empty as EmptyModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct ItemFrame(
@@ -33,6 +36,7 @@ struct ItemFrame(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
     NBTer,
 ):
@@ -148,3 +152,7 @@ struct ItemFrame(
         i.rotations = Int(get_uint8(tag, root, "ItemRotation"))
         # TODO(world-runtime): the item.
         return i^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

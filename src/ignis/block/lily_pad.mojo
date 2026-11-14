@@ -18,6 +18,7 @@ from .break_info import (
 )
 from .hash import HASH_LILY_PAD
 from .model.lily_pad import LilyPad as LilyPadModel
+from .liquid import LiquidRemovable
 
 
 struct LilyPad(
@@ -28,6 +29,7 @@ struct LilyPad(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A short, flat, non-solid block that can be placed on water."""
@@ -88,3 +90,7 @@ struct LilyPad(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

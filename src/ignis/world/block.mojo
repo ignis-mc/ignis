@@ -21,6 +21,7 @@ both would borrow the world twice.
 from minecraft.nbt.tree import Tag, Tree
 
 from ..block.cube.pos import Pos
+from ..block.hash import AnyBlock
 from .block_state import BlockState
 from .world import World, WorldTypes
 
@@ -120,3 +121,90 @@ trait NeighbourUpdateTicker(Block):
     ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
         """Handles a neighbouring block being updated."""
         ...
+
+
+trait Liquid(Block):
+    """A block that can be moved through and flows after placement: water
+    and lava (Go `world.Liquid`)."""
+
+    def liquid_depth(self) -> Int:
+        """Returns the depth of the liquid, 1 to 8 (Go `LiquidDepth`)."""
+        ...
+
+    def spread_decay(self) -> Int:
+        """Returns the depth lost per block spread (Go `SpreadDecay`)."""
+        ...
+
+    def with_depth(self, depth: Int, falling: Bool) -> Self:
+        """Returns the liquid with a depth and falling state (Go
+        `WithDepth`)."""
+        ...
+
+    def liquid_falling(self) -> Bool:
+        """Reports whether the liquid falls down (Go `LiquidFalling`)."""
+        ...
+
+    def blast_resistance(self) -> Float64:
+        """Returns the blast resistance (Go `BlastResistance`)."""
+        ...
+
+    def liquid_type(self) -> StaticString:
+        """Returns a name shared by liquids of the same type (Go
+        `LiquidType`)."""
+        ...
+
+    def harden[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T], flown_into_by: Optional[Pos]) -> Bool:
+        """Hardens the liquid if the blocks around call for it; reports
+        whether it did (Go `Harden`)."""
+        ...
+
+    def liquid_remove_block[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T], removed: UInt32):
+        """Called when the liquid flows into and removes a block (Go
+        `LiquidRemoveBlock`)."""
+        ...
+
+
+trait LiquidDisplacer(Block):
+    """A block that can hold a liquid on its second layer (Go
+    `world.LiquidDisplacer`)."""
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Reports whether the block can hold the liquid `b` (Go
+        `CanDisplace`)."""
+        ...
+
+    def side_closed[
+        T: WorldTypes
+    ](self, pos: Pos, side: Pos, mut tx: World[T]) -> Bool:
+        """Reports whether liquid cannot flow from `pos` towards `side` (Go
+        `SideClosed`); most blocks return False."""
+        return False
+
+
+@fieldwise_init
+struct LiquidInfo(ImplicitlyCopyable):
+    """The `Liquid` methods of a liquid of unknown type."""
+
+    var liquid_type: StaticString
+    """Go `LiquidType`."""
+    var depth: Int
+    """Go `LiquidDepth`."""
+    var falling: Bool
+    """Go `LiquidFalling`."""
+    var spread_decay: Int
+    """Go `SpreadDecay`."""
+
+    def source(self) -> Bool:
+        """Reports whether the liquid is a source block (Go `source`)."""
+        return self.depth == 8 and not self.falling
+
+
+def liquid_info[L: Liquid](l: L) -> LiquidInfo:
+    """Returns the `LiquidInfo` of a typed liquid."""
+    return LiquidInfo(
+        l.liquid_type(), l.liquid_depth(), l.liquid_falling(), l.spread_decay()
+    )

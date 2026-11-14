@@ -19,6 +19,7 @@ from .break_info import (
 from .flower_type import FlowerType, flower_types
 from .hash import HASH_FLOWER
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct Flower(
@@ -29,6 +30,7 @@ struct Flower(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A non-solid plant that occur in a variety of shapes and colours."""
@@ -98,3 +100,7 @@ struct Flower(
         for f in flower_types():
             out.append(Self(type=f))
         return out^
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

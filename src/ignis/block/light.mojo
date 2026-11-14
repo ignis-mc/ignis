@@ -14,6 +14,8 @@ from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .hash import HASH_LIGHT
 from .model.empty import Empty as EmptyModel
+from ..world.block import LiquidDisplacer
+from .liquid import flowing_water_can_displace
 
 
 struct Light(
@@ -23,6 +25,7 @@ struct Light(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidDisplacer,
     ModelledBlock,
     Replaceable,
 ):
@@ -93,3 +96,7 @@ struct Light(
         for i in range(16):
             out.append(Self(level=i))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds any water (Go `flowingWaterDisplacer`)."""
+        return flowing_water_can_displace(b)

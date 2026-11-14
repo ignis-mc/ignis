@@ -21,6 +21,9 @@ from .break_info import (
 )
 from .hash import HASH_CANDLE
 from .model.candle import Candle as CandleModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Candle(
@@ -31,6 +34,7 @@ struct Candle(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """A dyeable block that emits light when lit with a flint and steel."""
@@ -129,3 +133,7 @@ struct Candle(
         for c in optional_colours():
             out.append(Self(colour=c))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

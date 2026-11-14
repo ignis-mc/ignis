@@ -26,6 +26,9 @@ from .cube.direction import Direction, directions
 from .fire_type import FireType, fire_types
 from .hash import HASH_CAMPFIRE
 from .model.campfire import Campfire as CampfireModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Campfire(
@@ -36,6 +39,7 @@ struct Campfire(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidDisplacer,
     ModelledBlock,
     NBTer,
 ):
@@ -151,3 +155,7 @@ struct Campfire(
         """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
         # TODO(world-runtime): the cooking items.
         return self.copy()
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

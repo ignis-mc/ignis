@@ -35,6 +35,8 @@ from .hash import HASH_COPPER_TRAPDOOR
 from .model.trapdoor import Trapdoor as TrapdoorModel
 from .oxidation_type import OxidationType, oxidation_types
 from .oxidizable import Oxidisable, copper_block_name
+from ..world.block import LiquidDisplacer
+from .liquid import source_water_can_displace
 
 
 struct CopperTrapdoor(
@@ -44,6 +46,7 @@ struct CopperTrapdoor(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
     Oxidisable,
     UsableOnBlock,
@@ -206,3 +209,7 @@ struct CopperTrapdoor(
             out.append(Self(oxidation=o))
             out.append(Self(oxidation=o, waxed=True))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

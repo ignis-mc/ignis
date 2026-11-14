@@ -18,6 +18,7 @@ from .break_info import (
 from .cube.direction import Direction, directions
 from .hash import HASH_SHELF_MUSHROOM
 from .model.shelf_mushroom import ShelfMushroom as ShelfMushroomModel
+from .liquid import LiquidRemovable
 
 
 struct ShelfMushroom(
@@ -27,6 +28,7 @@ struct ShelfMushroom(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A mushroom that grows on the side of logs."""
@@ -105,3 +107,7 @@ struct ShelfMushroom(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

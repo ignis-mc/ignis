@@ -18,6 +18,7 @@ from .break_info import (
 )
 from .hash import HASH_NETHER_WART
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct NetherWart(
@@ -28,6 +29,7 @@ struct NetherWart(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A fungus found in the nether that is vital in the creation of potions."""
@@ -97,3 +99,7 @@ struct NetherWart(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

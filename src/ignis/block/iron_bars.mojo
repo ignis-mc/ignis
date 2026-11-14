@@ -21,6 +21,9 @@ from .break_info import (
 from .connections import Connections, all_connections
 from .hash import HASH_IRON_BARS
 from .model.thin import Thin as ThinModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct IronBars(
@@ -30,6 +33,7 @@ struct IronBars(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """A pane-like block made of iron."""
@@ -96,3 +100,7 @@ struct IronBars(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

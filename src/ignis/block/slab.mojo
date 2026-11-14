@@ -44,6 +44,8 @@ from .slab_type import encode_slab_block, slab_blocks
 from .stone import Stone
 from .stone_bricks import StoneBricks
 from .stone_bricks_type import StoneBricksType
+from ..world.block import LiquidDisplacer
+from .water import Water
 
 
 struct Slab(
@@ -54,6 +56,7 @@ struct Slab(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
     UsableOnBlock,
 ):
@@ -240,3 +243,15 @@ struct Slab(
         for v in slab_blocks():
             out.append(Slab(block=v))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water of depth 8 unless double (Go `CanDisplace`)."""
+        if case .Some(w) = b.get[Water]():
+            return not self.double and w.depth == 8
+        return False
+
+    def side_closed[
+        T: WorldTypes
+    ](self, pos: Pos, side: Pos, mut tx: World[T]) -> Bool:
+        """Closed below a bottom slab (Go `SideClosed`)."""
+        return not self.top and side.y() == pos.y() - 1

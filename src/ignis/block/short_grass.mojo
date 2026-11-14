@@ -22,6 +22,7 @@ from .break_info import (
 )
 from .hash import HASH_SHORT_GRASS
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct ShortGrass(
@@ -32,6 +33,7 @@ struct ShortGrass(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
     Replaceable,
 ):
@@ -100,3 +102,7 @@ struct ShortGrass(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

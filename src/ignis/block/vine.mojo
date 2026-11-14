@@ -26,6 +26,9 @@ from .break_info import (
 )
 from .hash import HASH_VINES
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
+from ..world.block import LiquidDisplacer
+from .liquid import source_water_can_displace
 
 
 struct Vines(
@@ -36,6 +39,8 @@ struct Vines(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
+    LiquidRemovable,
     ModelledBlock,
     Replaceable,
 ):
@@ -151,3 +156,11 @@ struct Vines(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns False (Go `HasLiquidDrops`)."""
+        return False
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

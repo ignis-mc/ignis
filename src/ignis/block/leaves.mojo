@@ -25,6 +25,9 @@ from .hash import HASH_LEAVES
 from .leaves_type import LeavesType, leaves_types, poplar_leaves_types
 from .model.leaves import Leaves as LeavesModel
 from .wood_type import wood_types
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Leaves(
@@ -35,6 +38,7 @@ struct Leaves(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """Blocks that grow as part of trees which mainly drop saplings and sticks.
@@ -145,3 +149,7 @@ struct Leaves(
         for t in poplar_leaves_types():
             out.append(Self(type=t, persistent=True))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

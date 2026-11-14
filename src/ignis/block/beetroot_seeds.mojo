@@ -19,6 +19,7 @@ from .break_info import (
 )
 from .hash import HASH_BEETROOT_SEEDS
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct BeetrootSeeds(
@@ -29,6 +30,7 @@ struct BeetrootSeeds(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A crop that can be harvested to craft beetroot soup or red dye."""
@@ -98,3 +100,7 @@ struct BeetrootSeeds(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

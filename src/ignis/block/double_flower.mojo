@@ -19,6 +19,7 @@ from .break_info import (
 from .double_flower_type import DoubleFlowerType, double_flower_types
 from .hash import HASH_DOUBLE_FLOWER
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct DoubleFlower(
@@ -29,6 +30,7 @@ struct DoubleFlower(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A two block high flower consisting of an upper and lower part."""
@@ -115,3 +117,7 @@ struct DoubleFlower(
         for f in double_flower_types():
             out.append(Self(type=f))
         return out^
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

@@ -28,6 +28,9 @@ from .break_info import (
 from .cube.direction import Direction, directions
 from .hash import HASH_BED
 from .model.bed import Bed as BedModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Bed(
@@ -38,6 +41,7 @@ struct Bed(
     Item,
     ItemHasher,
     LightDiffuser,
+    LiquidDisplacer,
     MaxCounter,
     ModelledBlock,
     NBTer,
@@ -171,3 +175,7 @@ struct Bed(
         var b = self.copy()
         b.colour = Colour(c)
         return b^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

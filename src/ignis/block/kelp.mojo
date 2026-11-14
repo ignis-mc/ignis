@@ -24,6 +24,9 @@ from .break_info import (
 )
 from .hash import HASH_KELP
 from .model.empty import Empty as EmptyModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Kelp(
@@ -34,6 +37,7 @@ struct Kelp(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
     Smeltable,
 ):
@@ -108,3 +112,7 @@ struct Kelp(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

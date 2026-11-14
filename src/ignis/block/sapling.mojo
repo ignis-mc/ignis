@@ -21,6 +21,7 @@ from .break_info import (
 from .hash import HASH_SAPLING
 from .model.empty import Empty as EmptyModel
 from .sapling_type import SaplingType, sapling_types
+from .liquid import LiquidRemovable
 
 
 struct Sapling(
@@ -32,6 +33,7 @@ struct Sapling(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A plant that grows into a tree."""
@@ -119,3 +121,7 @@ struct Sapling(
         for v in sapling_types():
             out.append(Sapling(type=v))
         return out^
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
