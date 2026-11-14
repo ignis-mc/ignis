@@ -1,8 +1,8 @@
 """`RedstoneTorch`, ported from Dragonfly `server/block/redstone_torch.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, HasLiquidDrops,
-RedstoneSource, RedstonePower, RedstoneStrongPower, RedstoneUpdate,
-ScheduledTick, the break handler clearing burnout and the drops.
+TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RedstoneSource,
+RedstonePower, RedstoneStrongPower, RedstoneUpdate, ScheduledTick, the break
+handler clearing burnout and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
@@ -20,6 +20,7 @@ from .break_info import (
 from .cube.face import Face, faces
 from .hash import HASH_REDSTONE_TORCH
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct RedstoneTorch(
@@ -30,6 +31,7 @@ struct RedstoneTorch(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A non-solid block that emits light and redstone power."""
@@ -118,3 +120,7 @@ struct RedstoneTorch(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

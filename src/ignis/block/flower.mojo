@@ -1,24 +1,32 @@
 """`Flower`, ported from Dragonfly `server/block/flower.go`.
 
-TODO(world-runtime): EntityInside (wither rose), NeighbourUpdateTick,
-HasLiquidDrops, UseOnBlock, BoneMeal, FlammabilityInfo and the drops.
+TODO(world-runtime): EntityInside (wither rose), UseOnBlock, BoneMeal,
+FlammabilityInfo and the drops.
 """
 
 from ..item.item import Compostable
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
 from .flower_type import FlowerType, flower_types
-from .hash import HASH_FLOWER
+from .hash import AnyBlock, HASH_FLOWER
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air
+from .dirt import supports_vegetation
 
 
 struct Flower(
@@ -29,7 +37,9 @@ struct Flower(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
 ):
     """A non-solid plant that occur in a variety of shapes and colours."""
 
@@ -98,3 +108,16 @@ struct Flower(
         for f in flower_types():
             out.append(Self(type=f))
         return out^
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks without soil below (Go `NeighbourUpdateTick`)."""
+        if not supports_vegetation(
+            AnyBlock(self), tx.block(pos.side(Face.DOWN)), tx
+        ):
+            break_block(self, pos, tx)

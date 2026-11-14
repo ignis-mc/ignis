@@ -1,9 +1,9 @@
 """`Mycelium`, ported from Dragonfly `server/block/mycelium.go`.
 
-TODO(world-runtime): SoilFor, RandomTick, Shovel and the drops.
+TODO(world-runtime): Shovel and the drops.
 """
 
-from ..world.block import Block
+from ..world.block import Block, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
@@ -14,8 +14,27 @@ from .break_info import (
     SHOVEL_EFFECTIVE,
     new_break_info,
 )
-from .hash import HASH_MYCELIUM
+from .hash import (
+    AnyBlock,
+    HASH_BAMBOO,
+    HASH_BAMBOO_SAPLING,
+    HASH_DEAD_BUSH,
+    HASH_DOUBLE_FLOWER,
+    HASH_DOUBLE_TALL_GRASS,
+    HASH_FERN,
+    HASH_FLOWER,
+    HASH_MYCELIUM,
+    HASH_NETHER_SPROUTS,
+    HASH_PINK_PETALS,
+    HASH_RED_SHRUB,
+    HASH_SHORT_GRASS,
+    HASH_SUGAR_CANE,
+)
 from .model.solid import Solid as SolidModel
+from .dirt import Soil, spread_dirt
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
 
 
 struct Mycelium(
@@ -25,6 +44,8 @@ struct Mycelium(
     ImplicitlyCopyable,
     Item,
     ModelledBlock,
+    RandomTicker,
+    Soil,
 ):
     """A spreading dirt-type block found in mushroom fields."""
 
@@ -75,3 +96,26 @@ struct Mycelium(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def soil_for(self, b: AnyBlock) -> Bool:
+        """Grows plants, sugar cane and bamboo (Go `SoilFor`)."""
+        var k = b.kind
+        return (
+            k == HASH_SHORT_GRASS
+            or k == HASH_FERN
+            or k == HASH_DOUBLE_TALL_GRASS
+            or k == HASH_FLOWER
+            or k == HASH_DOUBLE_FLOWER
+            or k == HASH_NETHER_SPROUTS
+            or k == HASH_PINK_PETALS
+            or k == HASH_SUGAR_CANE
+            or k == HASH_DEAD_BUSH
+            or k == HASH_BAMBOO_SAPLING
+            or k == HASH_BAMBOO
+            or k == HASH_RED_SHRUB
+        )
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Spreads onto dirt around it, or dies in the dark (Go `RandomTick`).
+        """
+        spread_dirt(self, pos, tx, -2)

@@ -1,10 +1,8 @@
 """`StainedGlassPane`, ported from Dragonfly
 `server/block/stained_glass_pane.go`.
 
-Go's `sourceWaterDisplacer` makes panes a `LiquidDisplacer`; that trait
-comes with liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, DeriveState, SideClosed and the
+TODO(world-runtime): NeighbourUpdateTick, DeriveState and the
 `silkTouchOnlyDrop` drops.
 """
 
@@ -23,6 +21,9 @@ from .break_info import (
 from .connections import Connections, all_connections
 from .hash import HASH_STAINED_GLASS_PANE
 from .model.thin import Thin as ThinModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct StainedGlassPane(
@@ -32,6 +33,7 @@ struct StainedGlassPane(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """A transparent block that can be used as a more efficient alternative to glass blocks.
@@ -119,3 +121,7 @@ struct StainedGlassPane(
         for v in colours():
             out.append(StainedGlassPane(colour=v))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

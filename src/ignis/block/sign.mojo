@@ -4,8 +4,8 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the `Front`, `Back` `SignText` fields (text, base colour,
-glow, owner), SideClosed, Ink, Wax, Activate, EditingFace, UseOnBlock,
-NeighbourUpdateTick, FlammabilityInfo and the drops.
+glow, owner), Ink, Wax, Activate, EditingFace, UseOnBlock, NeighbourUpdateTick,
+FlammabilityInfo and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree
@@ -34,6 +34,9 @@ from .cube.orientation import Orientation
 from .hash import HASH_SIGN
 from .model.empty import Empty as EmptyModel
 from .wood_type import WoodType, wood_types
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Sign(
@@ -44,6 +47,7 @@ struct Sign(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     MaxCounter,
     ModelledBlock,
     NBTer,
@@ -179,3 +183,7 @@ struct Sign(
         for v in wood_types():
             out.append(Sign(wood=v))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

@@ -3,9 +3,8 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the `Book item.Stack` field, Model, SideClosed,
-UseOnBlock, Activate, Punch, TurnPage, FlammabilityInfo and the drops (the
-book).
+TODO(world-runtime): the `Book item.Stack` field, Model, UseOnBlock, Activate,
+Punch, TurnPage, FlammabilityInfo and the drops (the book).
 """
 
 from minecraft.nbt.tree import Tag, Tree
@@ -26,6 +25,9 @@ from .break_info import (
 from .cube.direction import Direction, directions
 from .hash import HASH_LECTERN
 from .model.lectern import Lectern as LecternModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Lectern(
@@ -35,6 +37,7 @@ struct Lectern(
     Fuel,
     ImplicitlyCopyable,
     Item,
+    LiquidDisplacer,
     ModelledBlock,
     NBTer,
 ):
@@ -123,3 +126,7 @@ struct Lectern(
         l.page = Int(get_int32(tag, root, "page"))
         # TODO(world-runtime): the book.
         return l^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

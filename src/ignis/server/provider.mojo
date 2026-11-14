@@ -53,6 +53,12 @@ struct WorldProvider(Movable, Provider):
             return self._db.value().settings()
         return self._nop.settings()
 
+    def random_tick_speed(mut self) -> Optional[Int]:
+        """Returns the `randomtickspeed` game rule of a world on disk."""
+        if self._db:
+            return Int(self._db.value().level_data().random_tick_speed)
+        return None
+
     def save_settings(mut self, s: Settings) raises:
         """Stores the settings."""
         if self._db:

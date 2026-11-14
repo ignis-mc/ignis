@@ -1,0 +1,1249 @@
+grass	-1	speed	40
+grass	-1	place	4,-62,4	14825
+grass	-1	place	5,-62,4	14825
+grass	-1	place	6,-62,4	14825
+grass	-1	place	7,-62,4	14825
+grass	-1	place	8,-62,4	14825
+grass	-1	place	9,-62,4	14825
+grass	-1	place	10,-62,4	14825
+grass	-1	place	11,-62,4	14825
+grass	-1	place	4,-62,5	14825
+grass	-1	place	5,-62,5	14825
+grass	-1	place	6,-62,5	14825
+grass	-1	place	7,-62,5	14825
+grass	-1	place	8,-62,5	14825
+grass	-1	place	9,-62,5	14825
+grass	-1	place	10,-62,5	14825
+grass	-1	place	11,-62,5	14825
+grass	-1	place	4,-62,6	14825
+grass	-1	place	5,-62,6	14825
+grass	-1	place	6,-62,6	14825
+grass	-1	place	7,-62,6	14825
+grass	-1	place	8,-62,6	14825
+grass	-1	place	9,-62,6	14825
+grass	-1	place	10,-62,6	14825
+grass	-1	place	11,-62,6	14825
+grass	-1	place	4,-62,7	14825
+grass	-1	place	5,-62,7	14825
+grass	-1	place	6,-62,7	14825
+grass	-1	place	7,-62,7	14825
+grass	-1	place	8,-62,7	14825
+grass	-1	place	9,-62,7	14825
+grass	-1	place	10,-62,7	14825
+grass	-1	place	11,-62,7	14825
+grass	-1	place	4,-62,8	14825
+grass	-1	place	5,-62,8	14825
+grass	-1	place	6,-62,8	14825
+grass	-1	place	7,-62,8	14825
+grass	-1	place	8,-62,8	14825
+grass	-1	place	9,-62,8	14825
+grass	-1	place	10,-62,8	14825
+grass	-1	place	11,-62,8	14825
+grass	-1	place	4,-62,9	14825
+grass	-1	place	5,-62,9	14825
+grass	-1	place	6,-62,9	14825
+grass	-1	place	7,-62,9	14825
+grass	-1	place	8,-62,9	14825
+grass	-1	place	9,-62,9	14825
+grass	-1	place	10,-62,9	14825
+grass	-1	place	11,-62,9	14825
+grass	-1	place	4,-62,10	14825
+grass	-1	place	5,-62,10	14825
+grass	-1	place	6,-62,10	14825
+grass	-1	place	7,-62,10	14825
+grass	-1	place	8,-62,10	14825
+grass	-1	place	9,-62,10	14825
+grass	-1	place	10,-62,10	14825
+grass	-1	place	11,-62,10	14825
+grass	-1	place	4,-62,11	14825
+grass	-1	place	5,-62,11	14825
+grass	-1	place	6,-62,11	14825
+grass	-1	place	7,-62,11	14825
+grass	-1	place	8,-62,11	14825
+grass	-1	place	9,-62,11	14825
+grass	-1	place	10,-62,11	14825
+grass	-1	place	11,-62,11	14825
+grass	-1	place	8,-62,8	16313
+grass	-1	place	5,-62,5	10792
+grass	-1	place	10,-62,6	16313
+grass	-1	place	10,-61,6	3317
+grass	-1	place	6,-62,10	7061
+grass	10	5,-62,4	0	14825	minecraft:dirt{}
+grass	10	6,-62,4	0	14825	minecraft:dirt{}
+grass	10	7,-62,4	0	14825	minecraft:dirt{}
+grass	10	8,-62,4	0	14825	minecraft:dirt{}
+grass	10	9,-62,4	0	14825	minecraft:dirt{}
+grass	10	10,-62,4	0	14825	minecraft:dirt{}
+grass	10	11,-62,4	0	14825	minecraft:dirt{}
+grass	10	4,-62,5	0	14825	minecraft:dirt{}
+grass	10	5,-62,5	0	10792	minecraft:coarse_dirt{}
+grass	10	6,-62,5	0	14825	minecraft:dirt{}
+grass	10	7,-62,5	0	14825	minecraft:dirt{}
+grass	10	8,-62,5	0	14825	minecraft:dirt{}
+grass	10	9,-62,5	0	14825	minecraft:dirt{}
+grass	10	10,-62,5	0	14825	minecraft:dirt{}
+grass	10	11,-62,5	0	14825	minecraft:dirt{}
+grass	10	4,-62,6	0	14825	minecraft:dirt{}
+grass	10	5,-62,6	0	14825	minecraft:dirt{}
+grass	10	6,-62,6	0	14825	minecraft:dirt{}
+grass	10	7,-62,6	0	14825	minecraft:dirt{}
+grass	10	8,-62,6	0	14825	minecraft:dirt{}
+grass	10	9,-62,6	0	14825	minecraft:dirt{}
+grass	10	11,-62,6	0	14825	minecraft:dirt{}
+grass	10	4,-62,7	0	14825	minecraft:dirt{}
+grass	10	5,-62,7	0	14825	minecraft:dirt{}
+grass	10	6,-62,7	0	14825	minecraft:dirt{}
+grass	10	7,-62,7	0	14825	minecraft:dirt{}
+grass	10	8,-62,7	0	14825	minecraft:dirt{}
+grass	10	9,-62,7	0	14825	minecraft:dirt{}
+grass	10	10,-62,7	0	14825	minecraft:dirt{}
+grass	10	11,-62,7	0	14825	minecraft:dirt{}
+grass	10	4,-62,8	0	14825	minecraft:dirt{}
+grass	10	5,-62,8	0	14825	minecraft:dirt{}
+grass	10	6,-62,8	0	14825	minecraft:dirt{}
+grass	10	7,-62,8	0	14825	minecraft:dirt{}
+grass	10	9,-62,8	0	14825	minecraft:dirt{}
+grass	10	10,-62,8	0	14825	minecraft:dirt{}
+grass	10	11,-62,8	0	14825	minecraft:dirt{}
+grass	10	4,-62,9	0	14825	minecraft:dirt{}
+grass	10	5,-62,9	0	14825	minecraft:dirt{}
+grass	10	6,-62,9	0	14825	minecraft:dirt{}
+grass	10	7,-62,9	0	14825	minecraft:dirt{}
+grass	10	8,-62,9	0	14825	minecraft:dirt{}
+grass	10	9,-62,9	0	14825	minecraft:dirt{}
+grass	10	10,-62,9	0	14825	minecraft:dirt{}
+grass	10	11,-62,9	0	14825	minecraft:dirt{}
+grass	10	4,-62,10	0	14825	minecraft:dirt{}
+grass	10	5,-62,10	0	14825	minecraft:dirt{}
+grass	10	6,-62,10	0	7061	minecraft:mycelium{}
+grass	10	7,-62,10	0	14825	minecraft:dirt{}
+grass	10	8,-62,10	0	14825	minecraft:dirt{}
+grass	10	9,-62,10	0	14825	minecraft:dirt{}
+grass	10	10,-62,10	0	14825	minecraft:dirt{}
+grass	10	11,-62,10	0	14825	minecraft:dirt{}
+grass	10	4,-62,11	0	14825	minecraft:dirt{}
+grass	10	5,-62,11	0	14825	minecraft:dirt{}
+grass	10	6,-62,11	0	14825	minecraft:dirt{}
+grass	10	7,-62,11	0	14825	minecraft:dirt{}
+grass	10	8,-62,11	0	14825	minecraft:dirt{}
+grass	10	9,-62,11	0	14825	minecraft:dirt{}
+grass	10	10,-62,11	0	14825	minecraft:dirt{}
+grass	10	11,-62,11	0	14825	minecraft:dirt{}
+grass	10	10,-61,6	0	3317	minecraft:stone{}
+grass	10	entities	0	0	0
+grass	30	5,-62,4	0	14825	minecraft:dirt{}
+grass	30	6,-62,4	0	14825	minecraft:dirt{}
+grass	30	7,-62,4	0	14825	minecraft:dirt{}
+grass	30	8,-62,4	0	14825	minecraft:dirt{}
+grass	30	9,-62,4	0	14825	minecraft:dirt{}
+grass	30	10,-62,4	0	14825	minecraft:dirt{}
+grass	30	11,-62,4	0	14825	minecraft:dirt{}
+grass	30	4,-62,5	0	14825	minecraft:dirt{}
+grass	30	5,-62,5	0	10792	minecraft:coarse_dirt{}
+grass	30	6,-62,5	0	14825	minecraft:dirt{}
+grass	30	7,-62,5	0	14825	minecraft:dirt{}
+grass	30	8,-62,5	0	14825	minecraft:dirt{}
+grass	30	9,-62,5	0	14825	minecraft:dirt{}
+grass	30	10,-62,5	0	14825	minecraft:dirt{}
+grass	30	11,-62,5	0	14825	minecraft:dirt{}
+grass	30	4,-62,6	0	14825	minecraft:dirt{}
+grass	30	5,-62,6	0	14825	minecraft:dirt{}
+grass	30	6,-62,6	0	14825	minecraft:dirt{}
+grass	30	7,-62,6	0	14825	minecraft:dirt{}
+grass	30	8,-62,6	0	14825	minecraft:dirt{}
+grass	30	9,-62,6	0	14825	minecraft:dirt{}
+grass	30	11,-62,6	0	14825	minecraft:dirt{}
+grass	30	4,-62,7	0	14825	minecraft:dirt{}
+grass	30	5,-62,7	0	14825	minecraft:dirt{}
+grass	30	6,-62,7	0	14825	minecraft:dirt{}
+grass	30	7,-62,7	0	14825	minecraft:dirt{}
+grass	30	8,-62,7	0	14825	minecraft:dirt{}
+grass	30	9,-62,7	0	14825	minecraft:dirt{}
+grass	30	10,-62,7	0	14825	minecraft:dirt{}
+grass	30	11,-62,7	0	14825	minecraft:dirt{}
+grass	30	5,-62,8	0	14825	minecraft:dirt{}
+grass	30	6,-62,8	0	14825	minecraft:dirt{}
+grass	30	7,-62,8	0	14825	minecraft:dirt{}
+grass	30	10,-62,8	0	14825	minecraft:dirt{}
+grass	30	11,-62,8	0	14825	minecraft:dirt{}
+grass	30	5,-62,9	0	14825	minecraft:dirt{}
+grass	30	6,-62,9	0	14825	minecraft:dirt{}
+grass	30	7,-62,9	0	14825	minecraft:dirt{}
+grass	30	8,-62,9	0	14825	minecraft:dirt{}
+grass	30	9,-62,9	0	14825	minecraft:dirt{}
+grass	30	10,-62,9	0	14825	minecraft:dirt{}
+grass	30	11,-62,9	0	14825	minecraft:dirt{}
+grass	30	4,-62,10	0	14825	minecraft:dirt{}
+grass	30	5,-62,10	0	14825	minecraft:dirt{}
+grass	30	6,-62,10	0	7061	minecraft:mycelium{}
+grass	30	7,-62,10	0	14825	minecraft:dirt{}
+grass	30	8,-62,10	0	14825	minecraft:dirt{}
+grass	30	9,-62,10	0	14825	minecraft:dirt{}
+grass	30	10,-62,10	0	14825	minecraft:dirt{}
+grass	30	11,-62,10	0	14825	minecraft:dirt{}
+grass	30	4,-62,11	0	14825	minecraft:dirt{}
+grass	30	5,-62,11	0	14825	minecraft:dirt{}
+grass	30	6,-62,11	0	14825	minecraft:dirt{}
+grass	30	7,-62,11	0	14825	minecraft:dirt{}
+grass	30	8,-62,11	0	14825	minecraft:dirt{}
+grass	30	9,-62,11	0	14825	minecraft:dirt{}
+grass	30	10,-62,11	0	14825	minecraft:dirt{}
+grass	30	11,-62,11	0	14825	minecraft:dirt{}
+grass	30	10,-61,6	0	3317	minecraft:stone{}
+grass	30	entities	0	0	0
+grass	60	5,-62,4	0	14825	minecraft:dirt{}
+grass	60	6,-62,4	0	14825	minecraft:dirt{}
+grass	60	7,-62,4	0	14825	minecraft:dirt{}
+grass	60	8,-62,4	0	14825	minecraft:dirt{}
+grass	60	9,-62,4	0	14825	minecraft:dirt{}
+grass	60	10,-62,4	0	14825	minecraft:dirt{}
+grass	60	11,-62,4	0	14825	minecraft:dirt{}
+grass	60	4,-62,5	0	14825	minecraft:dirt{}
+grass	60	5,-62,5	0	10792	minecraft:coarse_dirt{}
+grass	60	6,-62,5	0	14825	minecraft:dirt{}
+grass	60	7,-62,5	0	14825	minecraft:dirt{}
+grass	60	8,-62,5	0	14825	minecraft:dirt{}
+grass	60	9,-62,5	0	14825	minecraft:dirt{}
+grass	60	10,-62,5	0	14825	minecraft:dirt{}
+grass	60	11,-62,5	0	14825	minecraft:dirt{}
+grass	60	4,-62,6	0	14825	minecraft:dirt{}
+grass	60	5,-62,6	0	14825	minecraft:dirt{}
+grass	60	6,-62,6	0	14825	minecraft:dirt{}
+grass	60	7,-62,6	0	14825	minecraft:dirt{}
+grass	60	8,-62,6	0	14825	minecraft:dirt{}
+grass	60	9,-62,6	0	14825	minecraft:dirt{}
+grass	60	11,-62,6	0	14825	minecraft:dirt{}
+grass	60	4,-62,7	0	14825	minecraft:dirt{}
+grass	60	5,-62,7	0	14825	minecraft:dirt{}
+grass	60	6,-62,7	0	14825	minecraft:dirt{}
+grass	60	7,-62,7	0	14825	minecraft:dirt{}
+grass	60	8,-62,7	0	14825	minecraft:dirt{}
+grass	60	9,-62,7	0	14825	minecraft:dirt{}
+grass	60	10,-62,7	0	14825	minecraft:dirt{}
+grass	60	11,-62,7	0	14825	minecraft:dirt{}
+grass	60	5,-62,8	0	14825	minecraft:dirt{}
+grass	60	6,-62,8	0	14825	minecraft:dirt{}
+grass	60	7,-62,8	0	14825	minecraft:dirt{}
+grass	60	10,-62,8	0	14825	minecraft:dirt{}
+grass	60	11,-62,8	0	14825	minecraft:dirt{}
+grass	60	5,-62,9	0	14825	minecraft:dirt{}
+grass	60	6,-62,9	0	14825	minecraft:dirt{}
+grass	60	7,-62,9	0	14825	minecraft:dirt{}
+grass	60	8,-62,9	0	14825	minecraft:dirt{}
+grass	60	9,-62,9	0	14825	minecraft:dirt{}
+grass	60	11,-62,9	0	14825	minecraft:dirt{}
+grass	60	4,-62,10	0	14825	minecraft:dirt{}
+grass	60	5,-62,10	0	14825	minecraft:dirt{}
+grass	60	6,-62,10	0	7061	minecraft:mycelium{}
+grass	60	7,-62,10	0	14825	minecraft:dirt{}
+grass	60	8,-62,10	0	14825	minecraft:dirt{}
+grass	60	9,-62,10	0	14825	minecraft:dirt{}
+grass	60	10,-62,10	0	14825	minecraft:dirt{}
+grass	60	11,-62,10	0	14825	minecraft:dirt{}
+grass	60	4,-62,11	0	14825	minecraft:dirt{}
+grass	60	5,-62,11	0	14825	minecraft:dirt{}
+grass	60	6,-62,11	0	14825	minecraft:dirt{}
+grass	60	7,-62,11	0	14825	minecraft:dirt{}
+grass	60	8,-62,11	0	14825	minecraft:dirt{}
+grass	60	9,-62,11	0	14825	minecraft:dirt{}
+grass	60	10,-62,11	0	14825	minecraft:dirt{}
+grass	60	10,-61,6	0	3317	minecraft:stone{}
+grass	60	entities	0	0	0
+crops	-1	speed	60
+crops	-1	place	4,-62,4	9368
+crops	-1	place	5,-62,4	9368
+crops	-1	place	6,-62,4	9368
+crops	-1	place	7,-62,4	9368
+crops	-1	place	8,-62,4	9368
+crops	-1	place	9,-62,4	9368
+crops	-1	place	10,-62,4	9368
+crops	-1	place	4,-62,5	9368
+crops	-1	place	5,-62,5	9368
+crops	-1	place	6,-62,5	9368
+crops	-1	place	7,-62,5	9368
+crops	-1	place	8,-62,5	9368
+crops	-1	place	9,-62,5	9368
+crops	-1	place	10,-62,5	9368
+crops	-1	place	4,-62,6	9368
+crops	-1	place	5,-62,6	9368
+crops	-1	place	6,-62,6	9368
+crops	-1	place	7,-62,6	9368
+crops	-1	place	8,-62,6	9368
+crops	-1	place	9,-62,6	9368
+crops	-1	place	10,-62,6	9368
+crops	-1	place	4,-62,7	9368
+crops	-1	place	5,-62,7	9368
+crops	-1	place	6,-62,7	9368
+crops	-1	place	7,-62,7	9368
+crops	-1	place	8,-62,7	9368
+crops	-1	place	9,-62,7	9368
+crops	-1	place	10,-62,7	9368
+crops	-1	place	4,-62,8	9368
+crops	-1	place	5,-62,8	9368
+crops	-1	place	6,-62,8	9368
+crops	-1	place	7,-62,8	9368
+crops	-1	place	8,-62,8	9368
+crops	-1	place	9,-62,8	9368
+crops	-1	place	10,-62,8	9368
+crops	-1	place	4,-62,9	9368
+crops	-1	place	5,-62,9	9368
+crops	-1	place	6,-62,9	9368
+crops	-1	place	7,-62,9	9368
+crops	-1	place	8,-62,9	9368
+crops	-1	place	9,-62,9	9368
+crops	-1	place	10,-62,9	9368
+crops	-1	place	4,-62,10	9368
+crops	-1	place	5,-62,10	9368
+crops	-1	place	6,-62,10	9368
+crops	-1	place	7,-62,10	9368
+crops	-1	place	8,-62,10	9368
+crops	-1	place	9,-62,10	9368
+crops	-1	place	10,-62,10	9368
+crops	-1	place	5,-62,5	14122
+crops	-1	place	4,-61,4	20925
+crops	-1	place	5,-61,4	20925
+crops	-1	place	6,-61,4	20925
+crops	-1	place	4,-61,5	20925
+crops	-1	place	5,-61,5	20925
+crops	-1	place	6,-61,5	20925
+crops	-1	place	4,-61,6	20925
+crops	-1	place	5,-61,6	20925
+crops	-1	place	6,-61,6	20925
+crops	-1	place	8,-61,4	16187
+crops	-1	place	9,-61,4	16187
+crops	-1	place	10,-61,4	16187
+crops	-1	place	8,-61,5	16187
+crops	-1	place	9,-61,5	16187
+crops	-1	place	10,-61,5	16187
+crops	-1	place	4,-61,8	2325
+crops	-1	place	5,-61,8	2325
+crops	-1	place	4,-61,9	2325
+crops	-1	place	5,-61,9	2325
+crops	-1	place	4,-61,10	2325
+crops	-1	place	5,-61,10	2325
+crops	-1	place	8,-61,8	13262
+crops	-1	place	9,-61,8	13262
+crops	-1	place	8,-61,9	13262
+crops	-1	place	9,-61,9	13262
+crops	-1	place	10,-61,10	12463
+crops	-1	place	6,-61,10	18216
+crops	-1	place	11,-62,9	9361
+crops	-1	place	11,-62,10	9361
+crops	-1	place	11,-62,11	9361
+crops	-1	place	11,-61,10	20925
+crops	10	4,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	5,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	6,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	7,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	8,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	9,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	10,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	4,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	5,-62,5	0	14122	minecraft:water{liquid_depth=0}
+crops	10	6,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	7,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	8,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	9,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	10,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	4,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	5,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	6,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	7,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	8,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	9,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	10,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	4,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	5,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	6,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	7,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	8,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	9,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	10,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	4,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	5,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	6,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	7,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	8,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	9,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	10,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	4,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	5,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	6,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	7,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	8,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	9,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	10,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	11,-62,9	0	9361	minecraft:farmland{moisturized_amount=0}
+crops	10	4,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	5,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	6,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	7,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	8,-62,10	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	10	9,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	10,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	10	11,-62,10	0	9361	minecraft:farmland{moisturized_amount=0}
+crops	10	11,-62,11	0	9361	minecraft:farmland{moisturized_amount=0}
+crops	10	4,-61,4	0	20925	minecraft:wheat{growth=0}
+crops	10	5,-61,4	0	20925	minecraft:wheat{growth=0}
+crops	10	6,-61,4	0	20925	minecraft:wheat{growth=0}
+crops	10	8,-61,4	0	16187	minecraft:carrots{growth=0}
+crops	10	9,-61,4	0	16187	minecraft:carrots{growth=0}
+crops	10	10,-61,4	0	16187	minecraft:carrots{growth=0}
+crops	10	4,-61,5	0	20925	minecraft:wheat{growth=0}
+crops	10	5,-61,5	0	20925	minecraft:wheat{growth=0}
+crops	10	6,-61,5	0	20925	minecraft:wheat{growth=0}
+crops	10	8,-61,5	0	16187	minecraft:carrots{growth=0}
+crops	10	9,-61,5	0	16187	minecraft:carrots{growth=0}
+crops	10	10,-61,5	0	16187	minecraft:carrots{growth=0}
+crops	10	4,-61,6	0	20925	minecraft:wheat{growth=0}
+crops	10	5,-61,6	0	20925	minecraft:wheat{growth=0}
+crops	10	6,-61,6	0	20925	minecraft:wheat{growth=0}
+crops	10	4,-61,8	0	2325	minecraft:potatoes{growth=0}
+crops	10	5,-61,8	0	2325	minecraft:potatoes{growth=0}
+crops	10	8,-61,8	0	13262	minecraft:beetroot{growth=0}
+crops	10	9,-61,8	0	13262	minecraft:beetroot{growth=0}
+crops	10	4,-61,9	0	2325	minecraft:potatoes{growth=0}
+crops	10	5,-61,9	0	2325	minecraft:potatoes{growth=0}
+crops	10	8,-61,9	0	13262	minecraft:beetroot{growth=0}
+crops	10	9,-61,9	0	13262	minecraft:beetroot{growth=0}
+crops	10	4,-61,10	0	2325	minecraft:potatoes{growth=0}
+crops	10	5,-61,10	0	2325	minecraft:potatoes{growth=0}
+crops	10	6,-61,10	0	18216	minecraft:pumpkin_stem{facing_direction=0,growth=0}
+crops	10	10,-61,10	0	12463	minecraft:melon_stem{facing_direction=0,growth=0}
+crops	10	11,-61,10	0	20925	minecraft:wheat{growth=0}
+crops	10	entities	0	0	0
+crops	30	4,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	5,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	6,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	7,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	8,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	9,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	10,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	4,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	5,-62,5	0	14122	minecraft:water{liquid_depth=0}
+crops	30	6,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	7,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	8,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	9,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	10,-62,5	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	30	4,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	5,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	6,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	7,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	8,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	9,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	10,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	4,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	5,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	6,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	7,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	8,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	9,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	10,-62,7	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	30	4,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	5,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	6,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	7,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	8,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	9,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	10,-62,8	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	30	4,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	5,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	6,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	7,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	8,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	9,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	10,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	11,-62,9	0	9361	minecraft:farmland{moisturized_amount=0}
+crops	30	4,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	5,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	6,-62,10	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	30	7,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	8,-62,10	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	30	9,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	10,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	30	11,-62,10	0	9361	minecraft:farmland{moisturized_amount=0}
+crops	30	11,-62,11	0	9361	minecraft:farmland{moisturized_amount=0}
+crops	30	4,-61,4	0	20925	minecraft:wheat{growth=0}
+crops	30	5,-61,4	0	20925	minecraft:wheat{growth=0}
+crops	30	6,-61,4	0	20925	minecraft:wheat{growth=0}
+crops	30	8,-61,4	0	16187	minecraft:carrots{growth=0}
+crops	30	9,-61,4	0	16187	minecraft:carrots{growth=0}
+crops	30	10,-61,4	0	16187	minecraft:carrots{growth=0}
+crops	30	4,-61,5	0	20925	minecraft:wheat{growth=0}
+crops	30	5,-61,5	0	20925	minecraft:wheat{growth=0}
+crops	30	6,-61,5	0	20925	minecraft:wheat{growth=0}
+crops	30	8,-61,5	0	16187	minecraft:carrots{growth=0}
+crops	30	9,-61,5	0	16187	minecraft:carrots{growth=0}
+crops	30	10,-61,5	0	16187	minecraft:carrots{growth=0}
+crops	30	4,-61,6	0	20925	minecraft:wheat{growth=0}
+crops	30	5,-61,6	0	20925	minecraft:wheat{growth=0}
+crops	30	6,-61,6	0	20925	minecraft:wheat{growth=0}
+crops	30	4,-61,8	0	2325	minecraft:potatoes{growth=0}
+crops	30	5,-61,8	0	2325	minecraft:potatoes{growth=0}
+crops	30	8,-61,8	0	13262	minecraft:beetroot{growth=0}
+crops	30	9,-61,8	0	13262	minecraft:beetroot{growth=0}
+crops	30	4,-61,9	0	2325	minecraft:potatoes{growth=0}
+crops	30	5,-61,9	0	2325	minecraft:potatoes{growth=0}
+crops	30	8,-61,9	0	13262	minecraft:beetroot{growth=0}
+crops	30	9,-61,9	0	13262	minecraft:beetroot{growth=0}
+crops	30	4,-61,10	0	2325	minecraft:potatoes{growth=0}
+crops	30	5,-61,10	0	2325	minecraft:potatoes{growth=0}
+crops	30	6,-61,10	0	18216	minecraft:pumpkin_stem{facing_direction=0,growth=0}
+crops	30	10,-61,10	0	12463	minecraft:melon_stem{facing_direction=0,growth=0}
+crops	30	11,-61,10	0	20925	minecraft:wheat{growth=0}
+crops	30	entities	0	0	0
+crops	60	4,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	5,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	6,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	7,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	8,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	9,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	10,-62,4	0	9366	minecraft:farmland{moisturized_amount=5}
+crops	60	4,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	5,-62,5	0	14122	minecraft:water{liquid_depth=0}
+crops	60	6,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	7,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	8,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	9,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	10,-62,5	0	9366	minecraft:farmland{moisturized_amount=5}
+crops	60	4,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	5,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	6,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	7,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	8,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	9,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	10,-62,6	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	60	4,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	5,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	6,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	7,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	8,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	9,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	10,-62,7	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	60	4,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	5,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	6,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	7,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	8,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	9,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	10,-62,8	0	9366	minecraft:farmland{moisturized_amount=5}
+crops	60	4,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	5,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	6,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	7,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	8,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	9,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	10,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	11,-62,9	0	9361	minecraft:farmland{moisturized_amount=0}
+crops	60	4,-62,10	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	60	5,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	6,-62,10	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	60	7,-62,10	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	60	8,-62,10	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	60	9,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	10,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	60	11,-62,10	0	9361	minecraft:farmland{moisturized_amount=0}
+crops	60	11,-62,11	0	9361	minecraft:farmland{moisturized_amount=0}
+crops	60	4,-61,4	0	20925	minecraft:wheat{growth=0}
+crops	60	5,-61,4	0	20925	minecraft:wheat{growth=0}
+crops	60	6,-61,4	0	20925	minecraft:wheat{growth=0}
+crops	60	8,-61,4	0	16187	minecraft:carrots{growth=0}
+crops	60	9,-61,4	0	16187	minecraft:carrots{growth=0}
+crops	60	10,-61,4	0	16187	minecraft:carrots{growth=0}
+crops	60	4,-61,5	0	20925	minecraft:wheat{growth=0}
+crops	60	6,-61,5	0	20926	minecraft:wheat{growth=1}
+crops	60	8,-61,5	0	16187	minecraft:carrots{growth=0}
+crops	60	9,-61,5	0	16187	minecraft:carrots{growth=0}
+crops	60	10,-61,5	0	16187	minecraft:carrots{growth=0}
+crops	60	4,-61,6	0	20926	minecraft:wheat{growth=1}
+crops	60	5,-61,6	0	20925	minecraft:wheat{growth=0}
+crops	60	6,-61,6	0	20925	minecraft:wheat{growth=0}
+crops	60	4,-61,8	0	2325	minecraft:potatoes{growth=0}
+crops	60	5,-61,8	0	2325	minecraft:potatoes{growth=0}
+crops	60	8,-61,8	0	13262	minecraft:beetroot{growth=0}
+crops	60	9,-61,8	0	13263	minecraft:beetroot{growth=1}
+crops	60	4,-61,9	0	2325	minecraft:potatoes{growth=0}
+crops	60	5,-61,9	0	2325	minecraft:potatoes{growth=0}
+crops	60	8,-61,9	0	13262	minecraft:beetroot{growth=0}
+crops	60	9,-61,9	0	13262	minecraft:beetroot{growth=0}
+crops	60	4,-61,10	0	2325	minecraft:potatoes{growth=0}
+crops	60	5,-61,10	0	2325	minecraft:potatoes{growth=0}
+crops	60	6,-61,10	0	18216	minecraft:pumpkin_stem{facing_direction=0,growth=0}
+crops	60	10,-61,10	0	12463	minecraft:melon_stem{facing_direction=0,growth=0}
+crops	60	11,-61,10	0	20925	minecraft:wheat{growth=0}
+crops	60	entities	0	1	0
+crops	100	4,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	5,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	6,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	7,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	8,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	9,-62,4	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	10,-62,4	0	9364	minecraft:farmland{moisturized_amount=3}
+crops	100	4,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	5,-62,5	0	14122	minecraft:water{liquid_depth=0}
+crops	100	6,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	7,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	8,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	9,-62,5	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	10,-62,5	0	9364	minecraft:farmland{moisturized_amount=3}
+crops	100	4,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	5,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	6,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	7,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	8,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	9,-62,6	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	10,-62,6	0	9366	minecraft:farmland{moisturized_amount=5}
+crops	100	4,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	5,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	6,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	7,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	8,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	9,-62,7	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	10,-62,7	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	100	4,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	5,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	6,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	7,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	8,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	9,-62,8	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	10,-62,8	0	9366	minecraft:farmland{moisturized_amount=5}
+crops	100	4,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	5,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	6,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	7,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	8,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	9,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	10,-62,9	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	11,-62,9	0	9361	minecraft:farmland{moisturized_amount=0}
+crops	100	4,-62,10	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	100	5,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	6,-62,10	0	9366	minecraft:farmland{moisturized_amount=5}
+crops	100	7,-62,10	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	100	8,-62,10	0	9366	minecraft:farmland{moisturized_amount=5}
+crops	100	9,-62,10	0	9368	minecraft:farmland{moisturized_amount=7}
+crops	100	10,-62,10	0	9367	minecraft:farmland{moisturized_amount=6}
+crops	100	11,-62,10	0	9361	minecraft:farmland{moisturized_amount=0}
+crops	100	11,-62,11	0	9361	minecraft:farmland{moisturized_amount=0}
+crops	100	4,-61,4	0	20925	minecraft:wheat{growth=0}
+crops	100	5,-61,4	0	20925	minecraft:wheat{growth=0}
+crops	100	6,-61,4	0	20925	minecraft:wheat{growth=0}
+crops	100	8,-61,4	0	16187	minecraft:carrots{growth=0}
+crops	100	9,-61,4	0	16187	minecraft:carrots{growth=0}
+crops	100	10,-61,4	0	16187	minecraft:carrots{growth=0}
+crops	100	4,-61,5	0	20925	minecraft:wheat{growth=0}
+crops	100	6,-61,5	0	20926	minecraft:wheat{growth=1}
+crops	100	8,-61,5	0	16187	minecraft:carrots{growth=0}
+crops	100	9,-61,5	0	16187	minecraft:carrots{growth=0}
+crops	100	10,-61,5	0	16187	minecraft:carrots{growth=0}
+crops	100	4,-61,6	0	20926	minecraft:wheat{growth=1}
+crops	100	5,-61,6	0	20925	minecraft:wheat{growth=0}
+crops	100	6,-61,6	0	20925	minecraft:wheat{growth=0}
+crops	100	4,-61,8	0	2325	minecraft:potatoes{growth=0}
+crops	100	5,-61,8	0	2325	minecraft:potatoes{growth=0}
+crops	100	8,-61,8	0	13262	minecraft:beetroot{growth=0}
+crops	100	9,-61,8	0	13263	minecraft:beetroot{growth=1}
+crops	100	4,-61,9	0	2325	minecraft:potatoes{growth=0}
+crops	100	5,-61,9	0	2325	minecraft:potatoes{growth=0}
+crops	100	8,-61,9	0	13262	minecraft:beetroot{growth=0}
+crops	100	9,-61,9	0	13262	minecraft:beetroot{growth=0}
+crops	100	4,-61,10	0	2326	minecraft:potatoes{growth=1}
+crops	100	5,-61,10	0	2325	minecraft:potatoes{growth=0}
+crops	100	6,-61,10	0	18216	minecraft:pumpkin_stem{facing_direction=0,growth=0}
+crops	100	10,-61,10	0	12463	minecraft:melon_stem{facing_direction=0,growth=0}
+crops	100	11,-61,10	0	20925	minecraft:wheat{growth=0}
+crops	100	entities	0	1	0
+plants	-1	speed	60
+plants	-1	place	4,-62,4	9807
+plants	-1	place	5,-62,4	9807
+plants	-1	place	6,-62,4	9807
+plants	-1	place	5,-62,4	14122
+plants	-1	place	4,-61,4	16839
+plants	-1	place	6,-61,4	16853
+plants	-1	place	9,-62,4	9807
+plants	-1	place	9,-61,4	19549
+plants	-1	place	4,-61,8	21915
+plants	-1	place	6,-61,8	7074
+plants	-1	place	6,-60,8	7076
+plants	-1	place	9,-62,8	14122
+plants	-1	place	9,-61,8	14122
+plants	-1	place	9,-60,8	14122
+plants	-1	place	9,-59,8	14122
+plants	-1	place	9,-58,8	14122
+plants	-1	place	9,-62,8	13538
+plants	-1	place	8,-62,7	17896
+plants	-1	place	9,-62,7	17896
+plants	-1	place	10,-62,7	17896
+plants	-1	place	8,-61,7	17896
+plants	-1	place	9,-61,7	17896
+plants	-1	place	10,-61,7	17896
+plants	-1	place	8,-60,7	17896
+plants	-1	place	9,-60,7	17896
+plants	-1	place	10,-60,7	17896
+plants	-1	place	8,-59,7	17896
+plants	-1	place	9,-59,7	17896
+plants	-1	place	10,-59,7	17896
+plants	-1	place	8,-58,7	17896
+plants	-1	place	9,-58,7	17896
+plants	-1	place	10,-58,7	17896
+plants	-1	place	8,-57,7	17896
+plants	-1	place	9,-57,7	17896
+plants	-1	place	10,-57,7	17896
+plants	-1	place	8,-62,9	17896
+plants	-1	place	9,-62,9	17896
+plants	-1	place	10,-62,9	17896
+plants	-1	place	8,-61,9	17896
+plants	-1	place	9,-61,9	17896
+plants	-1	place	10,-61,9	17896
+plants	-1	place	8,-60,9	17896
+plants	-1	place	9,-60,9	17896
+plants	-1	place	10,-60,9	17896
+plants	-1	place	8,-59,9	17896
+plants	-1	place	9,-59,9	17896
+plants	-1	place	10,-59,9	17896
+plants	-1	place	8,-58,9	17896
+plants	-1	place	9,-58,9	17896
+plants	-1	place	10,-58,9	17896
+plants	-1	place	8,-57,9	17896
+plants	-1	place	9,-57,9	17896
+plants	-1	place	10,-57,9	17896
+plants	-1	place	8,-62,8	17896
+plants	-1	place	8,-61,8	17896
+plants	-1	place	8,-60,8	17896
+plants	-1	place	8,-59,8	17896
+plants	-1	place	8,-58,8	17896
+plants	-1	place	8,-57,8	17896
+plants	-1	place	10,-62,8	17896
+plants	-1	place	10,-61,8	17896
+plants	-1	place	10,-60,8	17896
+plants	-1	place	10,-59,8	17896
+plants	-1	place	10,-58,8	17896
+plants	-1	place	10,-57,8	17896
+plants	-1	place	4,-61,11	1511
+plants	-1	place	4,-60,11	1511
+plants	-1	place	4,-59,11	1511
+plants	-1	place	4,-58,11	1511
+plants	-1	place	5,-60,11	18578
+plants	-1	place	8,-62,11	14874
+plants	-1	place	8,-61,11	22263
+plants	-1	place	11,-61,11	11714
+plants	10	4,-62,4	0	9807	minecraft:sand{}
+plants	10	5,-62,4	0	14122	minecraft:water{liquid_depth=0}
+plants	10	6,-62,4	0	9807	minecraft:sand{}
+plants	10	9,-62,4	0	9807	minecraft:sand{}
+plants	10	8,-62,7	0	17896	minecraft:glass{}
+plants	10	9,-62,7	0	17896	minecraft:glass{}
+plants	10	10,-62,7	0	17896	minecraft:glass{}
+plants	10	8,-62,8	0	17896	minecraft:glass{}
+plants	10	9,-62,8	0	13538	minecraft:kelp{kelp_age=0}
+plants	10	10,-62,8	0	17896	minecraft:glass{}
+plants	10	8,-62,9	0	17896	minecraft:glass{}
+plants	10	9,-62,9	0	17896	minecraft:glass{}
+plants	10	10,-62,9	0	17896	minecraft:glass{}
+plants	10	8,-62,11	0	14874	minecraft:soul_sand{}
+plants	10	4,-61,4	0	16839	minecraft:reeds{age=0}
+plants	10	6,-61,4	0	16853	minecraft:reeds{age=14}
+plants	10	9,-61,4	0	19549	minecraft:cactus{age=10}
+plants	10	8,-61,7	0	17896	minecraft:glass{}
+plants	10	9,-61,7	0	17896	minecraft:glass{}
+plants	10	10,-61,7	0	17896	minecraft:glass{}
+plants	10	4,-61,8	0	21915	minecraft:bamboo_sapling{age_bit=0}
+plants	10	6,-61,8	0	7074	minecraft:bamboo{age_bit=0,bamboo_leaf_size=no_leaves,bamboo_stalk_thickness=thin}
+plants	10	8,-61,8	0	17896	minecraft:glass{}
+plants	10	9,-61,8	0	14122	minecraft:water{liquid_depth=0}
+plants	10	10,-61,8	0	17896	minecraft:glass{}
+plants	10	8,-61,9	0	17896	minecraft:glass{}
+plants	10	9,-61,9	0	17896	minecraft:glass{}
+plants	10	10,-61,9	0	17896	minecraft:glass{}
+plants	10	4,-61,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	10	8,-61,11	0	22263	minecraft:nether_wart{age=0}
+plants	10	11,-61,11	0	11714	minecraft:lit_redstone_ore{}
+plants	10	8,-60,7	0	17896	minecraft:glass{}
+plants	10	9,-60,7	0	17896	minecraft:glass{}
+plants	10	10,-60,7	0	17896	minecraft:glass{}
+plants	10	6,-60,8	0	7076	minecraft:bamboo{age_bit=0,bamboo_leaf_size=small_leaves,bamboo_stalk_thickness=thin}
+plants	10	8,-60,8	0	17896	minecraft:glass{}
+plants	10	9,-60,8	0	14122	minecraft:water{liquid_depth=0}
+plants	10	10,-60,8	0	17896	minecraft:glass{}
+plants	10	8,-60,9	0	17896	minecraft:glass{}
+plants	10	9,-60,9	0	17896	minecraft:glass{}
+plants	10	10,-60,9	0	17896	minecraft:glass{}
+plants	10	4,-60,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	10	5,-60,11	0	18578	minecraft:cocoa{age=0,direction=1}
+plants	10	8,-59,7	0	17896	minecraft:glass{}
+plants	10	9,-59,7	0	17896	minecraft:glass{}
+plants	10	10,-59,7	0	17896	minecraft:glass{}
+plants	10	8,-59,8	0	17896	minecraft:glass{}
+plants	10	9,-59,8	0	14122	minecraft:water{liquid_depth=0}
+plants	10	10,-59,8	0	17896	minecraft:glass{}
+plants	10	8,-59,9	0	17896	minecraft:glass{}
+plants	10	9,-59,9	0	17896	minecraft:glass{}
+plants	10	10,-59,9	0	17896	minecraft:glass{}
+plants	10	4,-59,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	10	8,-58,7	0	17896	minecraft:glass{}
+plants	10	9,-58,7	0	17896	minecraft:glass{}
+plants	10	10,-58,7	0	17896	minecraft:glass{}
+plants	10	8,-58,8	0	17896	minecraft:glass{}
+plants	10	9,-58,8	0	14122	minecraft:water{liquid_depth=0}
+plants	10	10,-58,8	0	17896	minecraft:glass{}
+plants	10	8,-58,9	0	17896	minecraft:glass{}
+plants	10	9,-58,9	0	17896	minecraft:glass{}
+plants	10	10,-58,9	0	17896	minecraft:glass{}
+plants	10	4,-58,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	10	8,-57,7	0	17896	minecraft:glass{}
+plants	10	9,-57,7	0	17896	minecraft:glass{}
+plants	10	10,-57,7	0	17896	minecraft:glass{}
+plants	10	8,-57,8	0	17896	minecraft:glass{}
+plants	10	10,-57,8	0	17896	minecraft:glass{}
+plants	10	8,-57,9	0	17896	minecraft:glass{}
+plants	10	9,-57,9	0	17896	minecraft:glass{}
+plants	10	10,-57,9	0	17896	minecraft:glass{}
+plants	10	entities	0	0	0
+plants	30	5,-63,4	0	16313	minecraft:grass_block{}
+plants	30	4,-62,4	0	9807	minecraft:sand{}
+plants	30	5,-62,4	0	14122	minecraft:water{liquid_depth=0}
+plants	30	6,-62,4	0	9807	minecraft:sand{}
+plants	30	9,-62,4	0	9807	minecraft:sand{}
+plants	30	8,-62,7	0	17896	minecraft:glass{}
+plants	30	9,-62,7	0	17896	minecraft:glass{}
+plants	30	10,-62,7	0	17896	minecraft:glass{}
+plants	30	8,-62,8	0	17896	minecraft:glass{}
+plants	30	9,-62,8	0	13538	minecraft:kelp{kelp_age=0}
+plants	30	10,-62,8	0	17896	minecraft:glass{}
+plants	30	8,-62,9	0	17896	minecraft:glass{}
+plants	30	9,-62,9	0	17896	minecraft:glass{}
+plants	30	10,-62,9	0	17896	minecraft:glass{}
+plants	30	4,-62,11	0	14825	minecraft:dirt{}
+plants	30	8,-62,11	0	14874	minecraft:soul_sand{}
+plants	30	4,-61,4	0	16839	minecraft:reeds{age=0}
+plants	30	6,-61,4	0	16854	minecraft:reeds{age=15}
+plants	30	9,-61,4	0	19550	minecraft:cactus{age=11}
+plants	30	8,-61,7	0	17896	minecraft:glass{}
+plants	30	9,-61,7	0	17896	minecraft:glass{}
+plants	30	10,-61,7	0	17896	minecraft:glass{}
+plants	30	4,-61,8	0	21915	minecraft:bamboo_sapling{age_bit=0}
+plants	30	6,-61,8	0	7074	minecraft:bamboo{age_bit=0,bamboo_leaf_size=no_leaves,bamboo_stalk_thickness=thin}
+plants	30	8,-61,8	0	17896	minecraft:glass{}
+plants	30	9,-61,8	0	14122	minecraft:water{liquid_depth=0}
+plants	30	10,-61,8	0	17896	minecraft:glass{}
+plants	30	8,-61,9	0	17896	minecraft:glass{}
+plants	30	9,-61,9	0	17896	minecraft:glass{}
+plants	30	10,-61,9	0	17896	minecraft:glass{}
+plants	30	4,-61,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	30	8,-61,11	0	22263	minecraft:nether_wart{age=0}
+plants	30	11,-61,11	0	11714	minecraft:lit_redstone_ore{}
+plants	30	8,-60,7	0	17896	minecraft:glass{}
+plants	30	9,-60,7	0	17896	minecraft:glass{}
+plants	30	10,-60,7	0	17896	minecraft:glass{}
+plants	30	6,-60,8	0	7076	minecraft:bamboo{age_bit=0,bamboo_leaf_size=small_leaves,bamboo_stalk_thickness=thin}
+plants	30	8,-60,8	0	17896	minecraft:glass{}
+plants	30	9,-60,8	0	14122	minecraft:water{liquid_depth=0}
+plants	30	10,-60,8	0	17896	minecraft:glass{}
+plants	30	8,-60,9	0	17896	minecraft:glass{}
+plants	30	9,-60,9	0	17896	minecraft:glass{}
+plants	30	10,-60,9	0	17896	minecraft:glass{}
+plants	30	4,-60,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	30	5,-60,11	0	18578	minecraft:cocoa{age=0,direction=1}
+plants	30	8,-59,7	0	17896	minecraft:glass{}
+plants	30	9,-59,7	0	17896	minecraft:glass{}
+plants	30	10,-59,7	0	17896	minecraft:glass{}
+plants	30	8,-59,8	0	17896	minecraft:glass{}
+plants	30	9,-59,8	0	14122	minecraft:water{liquid_depth=0}
+plants	30	10,-59,8	0	17896	minecraft:glass{}
+plants	30	8,-59,9	0	17896	minecraft:glass{}
+plants	30	9,-59,9	0	17896	minecraft:glass{}
+plants	30	10,-59,9	0	17896	minecraft:glass{}
+plants	30	4,-59,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	30	8,-58,7	0	17896	minecraft:glass{}
+plants	30	9,-58,7	0	17896	minecraft:glass{}
+plants	30	10,-58,7	0	17896	minecraft:glass{}
+plants	30	8,-58,8	0	17896	minecraft:glass{}
+plants	30	9,-58,8	0	14122	minecraft:water{liquid_depth=0}
+plants	30	10,-58,8	0	17896	minecraft:glass{}
+plants	30	8,-58,9	0	17896	minecraft:glass{}
+plants	30	9,-58,9	0	17896	minecraft:glass{}
+plants	30	10,-58,9	0	17896	minecraft:glass{}
+plants	30	4,-58,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	30	8,-57,7	0	17896	minecraft:glass{}
+plants	30	9,-57,7	0	17896	minecraft:glass{}
+plants	30	10,-57,7	0	17896	minecraft:glass{}
+plants	30	8,-57,8	0	17896	minecraft:glass{}
+plants	30	10,-57,8	0	17896	minecraft:glass{}
+plants	30	8,-57,9	0	17896	minecraft:glass{}
+plants	30	9,-57,9	0	17896	minecraft:glass{}
+plants	30	10,-57,9	0	17896	minecraft:glass{}
+plants	30	entities	0	0	0
+plants	60	5,-63,4	0	16313	minecraft:grass_block{}
+plants	60	10,-63,7	0	16313	minecraft:grass_block{}
+plants	60	4,-62,4	0	9807	minecraft:sand{}
+plants	60	5,-62,4	0	14122	minecraft:water{liquid_depth=0}
+plants	60	6,-62,4	0	9807	minecraft:sand{}
+plants	60	9,-62,4	0	9807	minecraft:sand{}
+plants	60	8,-62,7	0	17896	minecraft:glass{}
+plants	60	9,-62,7	0	17896	minecraft:glass{}
+plants	60	10,-62,7	0	17896	minecraft:glass{}
+plants	60	8,-62,8	0	17896	minecraft:glass{}
+plants	60	9,-62,8	0	11907	minecraft:flowing_water{liquid_depth=8}
+plants	60	10,-62,8	0	17896	minecraft:glass{}
+plants	60	8,-62,9	0	17896	minecraft:glass{}
+plants	60	9,-62,9	0	17896	minecraft:glass{}
+plants	60	10,-62,9	0	17896	minecraft:glass{}
+plants	60	4,-62,11	0	14825	minecraft:dirt{}
+plants	60	8,-62,11	0	14874	minecraft:soul_sand{}
+plants	60	4,-61,4	0	16840	minecraft:reeds{age=1}
+plants	60	6,-61,4	0	16854	minecraft:reeds{age=15}
+plants	60	9,-61,4	0	19550	minecraft:cactus{age=11}
+plants	60	8,-61,7	0	17896	minecraft:glass{}
+plants	60	9,-61,7	0	17896	minecraft:glass{}
+plants	60	10,-61,7	0	17896	minecraft:glass{}
+plants	60	4,-61,8	0	7074	minecraft:bamboo{age_bit=0,bamboo_leaf_size=no_leaves,bamboo_stalk_thickness=thin}
+plants	60	6,-61,8	0	7074	minecraft:bamboo{age_bit=0,bamboo_leaf_size=no_leaves,bamboo_stalk_thickness=thin}
+plants	60	8,-61,8	0	17896	minecraft:glass{}
+plants	60	9,-61,8	0	14122	minecraft:water{liquid_depth=0}
+plants	60	10,-61,8	0	17896	minecraft:glass{}
+plants	60	8,-61,9	0	17896	minecraft:glass{}
+plants	60	9,-61,9	0	17896	minecraft:glass{}
+plants	60	10,-61,9	0	17896	minecraft:glass{}
+plants	60	4,-61,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	60	8,-61,11	0	22263	minecraft:nether_wart{age=0}
+plants	60	11,-61,11	0	11714	minecraft:lit_redstone_ore{}
+plants	60	8,-60,7	0	17896	minecraft:glass{}
+plants	60	9,-60,7	0	17896	minecraft:glass{}
+plants	60	10,-60,7	0	17896	minecraft:glass{}
+plants	60	4,-60,8	0	7076	minecraft:bamboo{age_bit=0,bamboo_leaf_size=small_leaves,bamboo_stalk_thickness=thin}
+plants	60	6,-60,8	0	7076	minecraft:bamboo{age_bit=0,bamboo_leaf_size=small_leaves,bamboo_stalk_thickness=thin}
+plants	60	8,-60,8	0	17896	minecraft:glass{}
+plants	60	9,-60,8	0	14122	minecraft:water{liquid_depth=0}
+plants	60	10,-60,8	0	17896	minecraft:glass{}
+plants	60	8,-60,9	0	17896	minecraft:glass{}
+plants	60	9,-60,9	0	17896	minecraft:glass{}
+plants	60	10,-60,9	0	17896	minecraft:glass{}
+plants	60	4,-60,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	60	5,-60,11	0	18578	minecraft:cocoa{age=0,direction=1}
+plants	60	8,-59,7	0	17896	minecraft:glass{}
+plants	60	9,-59,7	0	17896	minecraft:glass{}
+plants	60	10,-59,7	0	17896	minecraft:glass{}
+plants	60	8,-59,8	0	17896	minecraft:glass{}
+plants	60	9,-59,8	0	14122	minecraft:water{liquid_depth=0}
+plants	60	10,-59,8	0	17896	minecraft:glass{}
+plants	60	8,-59,9	0	17896	minecraft:glass{}
+plants	60	9,-59,9	0	17896	minecraft:glass{}
+plants	60	10,-59,9	0	17896	minecraft:glass{}
+plants	60	4,-59,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	60	8,-58,7	0	17896	minecraft:glass{}
+plants	60	9,-58,7	0	17896	minecraft:glass{}
+plants	60	10,-58,7	0	17896	minecraft:glass{}
+plants	60	8,-58,8	0	17896	minecraft:glass{}
+plants	60	9,-58,8	0	14122	minecraft:water{liquid_depth=0}
+plants	60	10,-58,8	0	17896	minecraft:glass{}
+plants	60	8,-58,9	0	17896	minecraft:glass{}
+plants	60	9,-58,9	0	17896	minecraft:glass{}
+plants	60	10,-58,9	0	17896	minecraft:glass{}
+plants	60	4,-58,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	60	8,-57,7	0	17896	minecraft:glass{}
+plants	60	9,-57,7	0	17896	minecraft:glass{}
+plants	60	10,-57,7	0	17896	minecraft:glass{}
+plants	60	8,-57,8	0	17896	minecraft:glass{}
+plants	60	10,-57,8	0	17896	minecraft:glass{}
+plants	60	8,-57,9	0	17896	minecraft:glass{}
+plants	60	9,-57,9	0	17896	minecraft:glass{}
+plants	60	10,-57,9	0	17896	minecraft:glass{}
+plants	60	entities	0	2	0
+plants	100	5,-63,4	0	16313	minecraft:grass_block{}
+plants	100	10,-63,7	0	16313	minecraft:grass_block{}
+plants	100	4,-62,4	0	9807	minecraft:sand{}
+plants	100	5,-62,4	0	14122	minecraft:water{liquid_depth=0}
+plants	100	6,-62,4	0	9807	minecraft:sand{}
+plants	100	9,-62,4	0	9807	minecraft:sand{}
+plants	100	8,-62,7	0	17896	minecraft:glass{}
+plants	100	9,-62,7	0	17896	minecraft:glass{}
+plants	100	10,-62,7	0	17896	minecraft:glass{}
+plants	100	8,-62,8	0	17896	minecraft:glass{}
+plants	100	9,-62,8	0	11907	minecraft:flowing_water{liquid_depth=8}
+plants	100	10,-62,8	0	17896	minecraft:glass{}
+plants	100	8,-62,9	0	17896	minecraft:glass{}
+plants	100	9,-62,9	0	17896	minecraft:glass{}
+plants	100	10,-62,9	0	17896	minecraft:glass{}
+plants	100	4,-62,11	0	14825	minecraft:dirt{}
+plants	100	8,-62,11	0	14874	minecraft:soul_sand{}
+plants	100	4,-61,4	0	16840	minecraft:reeds{age=1}
+plants	100	6,-61,4	0	16839	minecraft:reeds{age=0}
+plants	100	9,-61,4	0	19550	minecraft:cactus{age=11}
+plants	100	8,-61,7	0	17896	minecraft:glass{}
+plants	100	9,-61,7	0	17896	minecraft:glass{}
+plants	100	10,-61,7	0	17896	minecraft:glass{}
+plants	100	4,-61,8	0	7074	minecraft:bamboo{age_bit=0,bamboo_leaf_size=no_leaves,bamboo_stalk_thickness=thin}
+plants	100	6,-61,8	0	7074	minecraft:bamboo{age_bit=0,bamboo_leaf_size=no_leaves,bamboo_stalk_thickness=thin}
+plants	100	8,-61,8	0	17896	minecraft:glass{}
+plants	100	9,-61,8	0	14122	minecraft:water{liquid_depth=0}
+plants	100	10,-61,8	0	17896	minecraft:glass{}
+plants	100	8,-61,9	0	17896	minecraft:glass{}
+plants	100	9,-61,9	0	17896	minecraft:glass{}
+plants	100	10,-61,9	0	17896	minecraft:glass{}
+plants	100	4,-61,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	100	8,-61,11	0	22263	minecraft:nether_wart{age=0}
+plants	100	11,-61,11	0	9931	minecraft:redstone_ore{}
+plants	100	8,-60,7	0	17896	minecraft:glass{}
+plants	100	9,-60,7	0	17896	minecraft:glass{}
+plants	100	10,-60,7	0	17896	minecraft:glass{}
+plants	100	4,-60,8	0	7076	minecraft:bamboo{age_bit=0,bamboo_leaf_size=small_leaves,bamboo_stalk_thickness=thin}
+plants	100	6,-60,8	0	7076	minecraft:bamboo{age_bit=0,bamboo_leaf_size=small_leaves,bamboo_stalk_thickness=thin}
+plants	100	8,-60,8	0	17896	minecraft:glass{}
+plants	100	9,-60,8	0	14122	minecraft:water{liquid_depth=0}
+plants	100	10,-60,8	0	17896	minecraft:glass{}
+plants	100	8,-60,9	0	17896	minecraft:glass{}
+plants	100	9,-60,9	0	17896	minecraft:glass{}
+plants	100	10,-60,9	0	17896	minecraft:glass{}
+plants	100	4,-60,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	100	5,-60,11	0	18578	minecraft:cocoa{age=0,direction=1}
+plants	100	8,-59,7	0	17896	minecraft:glass{}
+plants	100	9,-59,7	0	17896	minecraft:glass{}
+plants	100	10,-59,7	0	17896	minecraft:glass{}
+plants	100	8,-59,8	0	17896	minecraft:glass{}
+plants	100	9,-59,8	0	14122	minecraft:water{liquid_depth=0}
+plants	100	10,-59,8	0	17896	minecraft:glass{}
+plants	100	8,-59,9	0	17896	minecraft:glass{}
+plants	100	9,-59,9	0	17896	minecraft:glass{}
+plants	100	10,-59,9	0	17896	minecraft:glass{}
+plants	100	4,-59,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	100	8,-58,7	0	17896	minecraft:glass{}
+plants	100	9,-58,7	0	17896	minecraft:glass{}
+plants	100	10,-58,7	0	17896	minecraft:glass{}
+plants	100	8,-58,8	0	17896	minecraft:glass{}
+plants	100	9,-58,8	0	14122	minecraft:water{liquid_depth=0}
+plants	100	10,-58,8	0	17896	minecraft:glass{}
+plants	100	8,-58,9	0	17896	minecraft:glass{}
+plants	100	9,-58,9	0	17896	minecraft:glass{}
+plants	100	10,-58,9	0	17896	minecraft:glass{}
+plants	100	4,-58,11	0	1511	minecraft:jungle_log{pillar_axis=y}
+plants	100	8,-57,7	0	17896	minecraft:glass{}
+plants	100	9,-57,7	0	17896	minecraft:glass{}
+plants	100	10,-57,7	0	17896	minecraft:glass{}
+plants	100	8,-57,8	0	17896	minecraft:glass{}
+plants	100	10,-57,8	0	17896	minecraft:glass{}
+plants	100	8,-57,9	0	17896	minecraft:glass{}
+plants	100	9,-57,9	0	17896	minecraft:glass{}
+plants	100	10,-57,9	0	17896	minecraft:glass{}
+plants	100	entities	0	2	0
+decay	-1	speed	60
+decay	-1	place	4,-61,4	1899
+decay	-1	place	4,-60,4	1899
+decay	-1	place	4,-59,4	1899
+decay	-1	place	4,-58,4	1899
+decay	-1	place	4,-57,4	1899
+decay	-1	place	5,-57,3	3597
+decay	-1	place	6,-57,3	3597
+decay	-1	place	7,-57,3	3597
+decay	-1	place	5,-57,4	3597
+decay	-1	place	6,-57,4	3597
+decay	-1	place	7,-57,4	3597
+decay	-1	place	5,-57,5	3597
+decay	-1	place	6,-57,5	3597
+decay	-1	place	7,-57,5	3597
+decay	-1	place	10,-58,10	3597
+decay	-1	place	11,-58,10	3597
+decay	-1	place	10,-58,11	3597
+decay	-1	place	11,-58,11	3597
+decay	-1	place	11,-57,10	3599
+decay	-1	place	5,-62,9	9363
+decay	-1	place	6,-62,9	9363
+decay	-1	place	7,-62,9	9363
+decay	-1	place	6,-61,9	20925
+decay	-1	place	8,-61,12	18893
+decay	-1	place	9,-61,12	9287
+decay	-1	place	5,-61,12	18893
+decay	10	5,-62,9	0	9362	minecraft:farmland{moisturized_amount=1}
+decay	10	6,-62,9	0	9363	minecraft:farmland{moisturized_amount=2}
+decay	10	7,-62,9	0	9363	minecraft:farmland{moisturized_amount=2}
+decay	10	4,-61,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	10	6,-61,9	0	20925	minecraft:wheat{growth=0}
+decay	10	5,-61,12	0	18893	minecraft:ice{}
+decay	10	8,-61,12	0	18893	minecraft:ice{}
+decay	10	9,-61,12	0	9287	minecraft:glowstone{}
+decay	10	4,-60,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	10	4,-59,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	10	4,-58,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	10	10,-58,10	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	10	11,-58,10	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	10	10,-58,11	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	10	11,-58,11	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	10	5,-57,3	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	10	6,-57,3	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	10	7,-57,3	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	10	4,-57,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	10	5,-57,4	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	10	6,-57,4	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	10	7,-57,4	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	10	5,-57,5	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	10	6,-57,5	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	10	7,-57,5	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	10	11,-57,10	0	3599	minecraft:oak_leaves{persistent_bit=true,update_bit=true}
+decay	10	entities	0	-1	0
+decay	30	5,-62,9	0	9362	minecraft:farmland{moisturized_amount=1}
+decay	30	6,-62,9	0	9363	minecraft:farmland{moisturized_amount=2}
+decay	30	7,-62,9	0	9363	minecraft:farmland{moisturized_amount=2}
+decay	30	4,-61,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	30	6,-61,9	0	20925	minecraft:wheat{growth=0}
+decay	30	5,-61,12	0	18893	minecraft:ice{}
+decay	30	8,-61,12	0	18893	minecraft:ice{}
+decay	30	9,-61,12	0	9287	minecraft:glowstone{}
+decay	30	4,-60,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	30	4,-59,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	30	4,-58,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	30	5,-57,3	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	30	6,-57,3	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	30	7,-57,3	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	30	4,-57,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	30	5,-57,4	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	30	6,-57,4	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	30	7,-57,4	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	30	5,-57,5	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	30	6,-57,5	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	30	7,-57,5	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	30	11,-57,10	0	3599	minecraft:oak_leaves{persistent_bit=true,update_bit=true}
+decay	30	entities	0	-1	0
+decay	60	5,-62,9	0	9362	minecraft:farmland{moisturized_amount=1}
+decay	60	6,-62,9	0	9363	minecraft:farmland{moisturized_amount=2}
+decay	60	7,-62,9	0	9362	minecraft:farmland{moisturized_amount=1}
+decay	60	4,-61,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	60	6,-61,9	0	20925	minecraft:wheat{growth=0}
+decay	60	5,-61,12	0	18893	minecraft:ice{}
+decay	60	8,-61,12	0	18893	minecraft:ice{}
+decay	60	9,-61,12	0	9287	minecraft:glowstone{}
+decay	60	4,-60,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	60	4,-59,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	60	4,-58,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	60	5,-57,3	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	60	6,-57,3	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	60	7,-57,3	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	60	4,-57,4	0	1899	minecraft:oak_log{pillar_axis=y}
+decay	60	5,-57,4	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	60	6,-57,4	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	60	7,-57,4	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	60	5,-57,5	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	60	6,-57,5	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	60	7,-57,5	0	3597	minecraft:oak_leaves{persistent_bit=false,update_bit=true}
+decay	60	11,-57,10	0	3599	minecraft:oak_leaves{persistent_bit=true,update_bit=true}
+decay	60	entities	0	-1	0
+copper	-1	speed	2000
+copper	-1	place	4,-61,4	11713
+copper	-1	place	5,-61,4	11713
+copper	-1	place	6,-61,4	11713
+copper	-1	place	4,-61,5	11713
+copper	-1	place	5,-61,5	11713
+copper	-1	place	6,-61,5	11713
+copper	-1	place	4,-61,6	11713
+copper	-1	place	5,-61,6	11713
+copper	-1	place	6,-61,6	11713
+copper	-1	place	5,-60,5	23505
+copper	-1	place	4,-60,4	22244
+copper	-1	place	6,-60,6	2433
+copper	-1	place	10,-61,10	11713
+copper	-1	place	10,-60,10	10525
+copper	-1	place	11,-61,10	2771
+copper	-1	place	9,-61,10	2771
+copper	-1	place	10,-61,11	2771
+copper	-1	place	10,-61,9	2771
+copper	-1	place	11,-60,11	7302
+copper	20	4,-62,4	0	14825	minecraft:dirt{}
+copper	20	5,-62,4	0	14825	minecraft:dirt{}
+copper	20	6,-62,4	0	14825	minecraft:dirt{}
+copper	20	4,-62,5	0	14825	minecraft:dirt{}
+copper	20	5,-62,5	0	14825	minecraft:dirt{}
+copper	20	6,-62,5	0	14825	minecraft:dirt{}
+copper	20	4,-62,6	0	14825	minecraft:dirt{}
+copper	20	5,-62,6	0	14825	minecraft:dirt{}
+copper	20	6,-62,6	0	14825	minecraft:dirt{}
+copper	20	10,-62,9	0	14825	minecraft:dirt{}
+copper	20	9,-62,10	0	14825	minecraft:dirt{}
+copper	20	10,-62,10	0	14825	minecraft:dirt{}
+copper	20	11,-62,10	0	14825	minecraft:dirt{}
+copper	20	10,-62,11	0	14825	minecraft:dirt{}
+copper	20	4,-61,4	0	11713	minecraft:copper_block{}
+copper	20	5,-61,4	0	11713	minecraft:copper_block{}
+copper	20	6,-61,4	0	11713	minecraft:copper_block{}
+copper	20	4,-61,5	0	11713	minecraft:copper_block{}
+copper	20	5,-61,5	0	11713	minecraft:copper_block{}
+copper	20	6,-61,5	0	11713	minecraft:copper_block{}
+copper	20	4,-61,6	0	11713	minecraft:copper_block{}
+copper	20	5,-61,6	0	11713	minecraft:copper_block{}
+copper	20	6,-61,6	0	11713	minecraft:copper_block{}
+copper	20	10,-61,9	0	2771	minecraft:exposed_copper{}
+copper	20	9,-61,10	0	2771	minecraft:exposed_copper{}
+copper	20	10,-61,10	0	11713	minecraft:copper_block{}
+copper	20	11,-61,10	0	2771	minecraft:exposed_copper{}
+copper	20	10,-61,11	0	2771	minecraft:exposed_copper{}
+copper	20	4,-60,4	0	22244	minecraft:waxed_copper{}
+copper	20	5,-60,5	0	23505	minecraft:weathered_copper{}
+copper	20	6,-60,6	0	2433	minecraft:copper_grate{}
+copper	20	10,-60,10	0	10525	minecraft:copper_bars{minecraft:connection_east=false,minecraft:connection_north=false,minecraft:connection_south=false,minecraft:connection_west=false}
+copper	20	11,-60,11	0	7302	minecraft:weathered_copper_grate{}
+copper	20	entities	0	0	0
+copper	100	4,-62,4	0	14825	minecraft:dirt{}
+copper	100	5,-62,4	0	14825	minecraft:dirt{}
+copper	100	6,-62,4	0	14825	minecraft:dirt{}
+copper	100	4,-62,5	0	14825	minecraft:dirt{}
+copper	100	5,-62,5	0	14825	minecraft:dirt{}
+copper	100	6,-62,5	0	14825	minecraft:dirt{}
+copper	100	4,-62,6	0	14825	minecraft:dirt{}
+copper	100	5,-62,6	0	14825	minecraft:dirt{}
+copper	100	6,-62,6	0	14825	minecraft:dirt{}
+copper	100	10,-62,9	0	14825	minecraft:dirt{}
+copper	100	9,-62,10	0	14825	minecraft:dirt{}
+copper	100	10,-62,10	0	14825	minecraft:dirt{}
+copper	100	11,-62,10	0	14825	minecraft:dirt{}
+copper	100	10,-62,11	0	14825	minecraft:dirt{}
+copper	100	4,-61,4	0	11713	minecraft:copper_block{}
+copper	100	5,-61,4	0	11713	minecraft:copper_block{}
+copper	100	6,-61,4	0	11713	minecraft:copper_block{}
+copper	100	4,-61,5	0	11713	minecraft:copper_block{}
+copper	100	5,-61,5	0	11713	minecraft:copper_block{}
+copper	100	6,-61,5	0	11713	minecraft:copper_block{}
+copper	100	4,-61,6	0	11713	minecraft:copper_block{}
+copper	100	5,-61,6	0	11713	minecraft:copper_block{}
+copper	100	6,-61,6	0	11713	minecraft:copper_block{}
+copper	100	10,-61,9	0	2771	minecraft:exposed_copper{}
+copper	100	9,-61,10	0	23505	minecraft:weathered_copper{}
+copper	100	10,-61,10	0	2771	minecraft:exposed_copper{}
+copper	100	11,-61,10	0	23505	minecraft:weathered_copper{}
+copper	100	10,-61,11	0	2771	minecraft:exposed_copper{}
+copper	100	4,-60,4	0	22244	minecraft:waxed_copper{}
+copper	100	5,-60,5	0	23505	minecraft:weathered_copper{}
+copper	100	6,-60,6	0	2433	minecraft:copper_grate{}
+copper	100	10,-60,10	0	18131	minecraft:exposed_copper_bars{minecraft:connection_east=false,minecraft:connection_north=false,minecraft:connection_south=false,minecraft:connection_west=false}
+copper	100	11,-60,11	0	7302	minecraft:weathered_copper_grate{}
+copper	100	entities	0	0	0
+copper	300	4,-62,4	0	14825	minecraft:dirt{}
+copper	300	5,-62,4	0	14825	minecraft:dirt{}
+copper	300	6,-62,4	0	14825	minecraft:dirt{}
+copper	300	4,-62,5	0	14825	minecraft:dirt{}
+copper	300	5,-62,5	0	14825	minecraft:dirt{}
+copper	300	6,-62,5	0	14825	minecraft:dirt{}
+copper	300	4,-62,6	0	14825	minecraft:dirt{}
+copper	300	5,-62,6	0	14825	minecraft:dirt{}
+copper	300	6,-62,6	0	14825	minecraft:dirt{}
+copper	300	10,-62,9	0	14825	minecraft:dirt{}
+copper	300	9,-62,10	0	14825	minecraft:dirt{}
+copper	300	10,-62,10	0	14825	minecraft:dirt{}
+copper	300	11,-62,10	0	14825	minecraft:dirt{}
+copper	300	10,-62,11	0	14825	minecraft:dirt{}
+copper	300	4,-61,4	0	11713	minecraft:copper_block{}
+copper	300	5,-61,4	0	11713	minecraft:copper_block{}
+copper	300	6,-61,4	0	2771	minecraft:exposed_copper{}
+copper	300	4,-61,5	0	11713	minecraft:copper_block{}
+copper	300	5,-61,5	0	11713	minecraft:copper_block{}
+copper	300	6,-61,5	0	11713	minecraft:copper_block{}
+copper	300	4,-61,6	0	11713	minecraft:copper_block{}
+copper	300	5,-61,6	0	2771	minecraft:exposed_copper{}
+copper	300	6,-61,6	0	2771	minecraft:exposed_copper{}
+copper	300	10,-61,9	0	23505	minecraft:weathered_copper{}
+copper	300	9,-61,10	0	23505	minecraft:weathered_copper{}
+copper	300	10,-61,10	0	23505	minecraft:weathered_copper{}
+copper	300	11,-61,10	0	23505	minecraft:weathered_copper{}
+copper	300	10,-61,11	0	23505	minecraft:weathered_copper{}
+copper	300	4,-60,4	0	22244	minecraft:waxed_copper{}
+copper	300	5,-60,5	0	23505	minecraft:weathered_copper{}
+copper	300	6,-60,6	0	2433	minecraft:copper_grate{}
+copper	300	10,-60,10	0	21921	minecraft:weathered_copper_bars{minecraft:connection_east=false,minecraft:connection_north=false,minecraft:connection_south=false,minecraft:connection_west=false}
+copper	300	11,-60,11	0	7302	minecraft:weathered_copper_grate{}
+copper	300	entities	0	0	0

@@ -15,6 +15,7 @@ from ..world.dimension import Dimension, NETHER
 from ..world.item import EncodedItem, Item
 from .hash import HASH_AIR
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 @fieldwise_init
@@ -24,6 +25,7 @@ struct Air(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
     Replaceable,
 ):

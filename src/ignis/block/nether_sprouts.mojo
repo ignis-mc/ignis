@@ -2,15 +2,14 @@
 
 Go's `replaceable` helper is `Replaceable`.
 
-TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
-FlammabilityInfo and the drops.
+TODO(world-runtime): UseOnBlock, BoneMeal, FlammabilityInfo and the drops.
 """
 
 from ..item.item import Compostable
 from ..item.tool import TYPE_SHEARS
-from .block import Replaceable
-from .hash import AnyBlock
-from ..world.block import Block, LightDiffuser
+from .block import Replaceable, face_solid_at, is_air
+from .hash import AnyBlock, HASH_NETHER_SPROUTS
+from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
@@ -19,10 +18,16 @@ from .break_info import (
     Breakable,
     NOTHING_EFFECTIVE,
     ToolFilter,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
-from .hash import HASH_NETHER_SPROUTS
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .dirt import supports_vegetation
 
 
 struct NetherSprouts(
@@ -33,7 +38,9 @@ struct NetherSprouts(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
     Replaceable,
 ):
     """A non-solid plant block that generates in warped forests."""
@@ -98,3 +105,16 @@ struct NetherSprouts(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns False (Go `HasLiquidDrops`)."""
+        return False
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks without soil below (Go `NeighbourUpdateTick`)."""
+        if not supports_vegetation(
+            AnyBlock(self), tx.block(pos.side(Face.DOWN)), tx
+        ):
+            break_block(self, pos, tx)

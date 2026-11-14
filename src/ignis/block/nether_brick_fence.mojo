@@ -4,8 +4,7 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, DeriveState, SideClosed, Model and
-the drops.
+TODO(world-runtime): NeighbourUpdateTick, DeriveState, Model and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
@@ -22,6 +21,9 @@ from .break_info import (
 from .connections import Connections, all_connections
 from .hash import HASH_NETHER_BRICK_FENCE
 from .model.fence import Fence as FenceModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct NetherBrickFence(
@@ -31,6 +33,7 @@ struct NetherBrickFence(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """A fence made of nether bricks."""
@@ -98,3 +101,7 @@ struct NetherBrickFence(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

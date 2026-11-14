@@ -1,26 +1,54 @@
 """`Farmland`, ported from Dragonfly `server/block/farmland.go`.
 
-TODO(world-runtime): SoilFor, NeighbourUpdateTick, RandomTick (with hydrated),
-EntityLand and the drops.
+TODO(world-runtime): EntityLand and the drops.
 """
 
-from ..world.block import Block
+from ..world.block import Block, NeighbourUpdateTicker, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    SHOVEL_EFFECTIVE,
     BreakInfo,
     Breakable,
+    SHOVEL_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
-from .hash import HASH_FARMLAND
+from .hash import (
+    AnyBlock,
+    HASH_DEAD_BUSH,
+    HASH_DOUBLE_FLOWER,
+    HASH_DOUBLE_TALL_GRASS,
+    HASH_FARMLAND,
+    HASH_FERN,
+    HASH_FLOWER,
+    HASH_NETHER_SPROUTS,
+    HASH_PINK_PETALS,
+    HASH_RED_SHRUB,
+    HASH_SAPLING,
+    HASH_SHORT_GRASS,
+)
 from .model.tilled_grass import TilledGrass as TilledGrassModel
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air
+from .dirt import Dirt, Soil
+from .water import Water
 
 
 struct Farmland(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    NeighbourUpdateTicker,
+    RandomTicker,
+    Soil,
 ):
     """A block that crops are grown on, created by using a hoe on dirt or grass.
     """
@@ -81,3 +109,57 @@ struct Farmland(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Turns into dirt under a solid face (Go `NeighbourUpdateTick`)."""
+        if face_solid_at(tx, pos.side(Face.UP), Face.DOWN):
+            tx.set_block(pos, Dirt())
+
+    def soil_for(self, b: AnyBlock) -> Bool:
+        """Grows plants and saplings (Go `SoilFor`)."""
+        var k = b.kind
+        return (
+            k == HASH_SHORT_GRASS
+            or k == HASH_FERN
+            or k == HASH_DOUBLE_TALL_GRASS
+            or k == HASH_FLOWER
+            or k == HASH_DOUBLE_FLOWER
+            or k == HASH_NETHER_SPROUTS
+            or k == HASH_PINK_PETALS
+            or k == HASH_DEAD_BUSH
+            or k == HASH_SAPLING
+            or k == HASH_RED_SHRUB
+        )
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Dries out away from water, turning into dirt without a crop
+        on it (Go `RandomTick`)."""
+        var f = self.copy()
+        if not _hydrated(pos, tx):
+            if f.hydration > 0:
+                f.hydration -= 1
+                tx.set_block(pos, f)
+            else:
+                var above = tx.block(pos.side(Face.UP))
+                var br = tx.block_registry()
+                if not T.Blocks.is_crop(
+                    br[].kind(above), br[].state_hash(above)
+                ):
+                    tx.set_block(pos, Dirt())
+        else:
+            f.hydration = 7
+            tx.set_block(pos, f)
+
+
+def _hydrated[T: WorldTypes](pos: Pos, mut tx: World[T]) -> Bool:
+    # Go `Farmland.hydrated`: water within 4 blocks, at or one above.
+    var br = tx.block_registry()
+    for y in range(0, 2):
+        for x in range(-4, 5):
+            for z in range(-4, 5):
+                var l = tx.liquid(pos.add(Pos(x, y, z)))
+                if l and br[].is_block[Water](l.value()):
+                    return True
+    return False

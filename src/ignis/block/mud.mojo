@@ -1,6 +1,6 @@
 """`Mud`, ported from Dragonfly `server/block/mud.go`.
 
-TODO(world-runtime): SoilFor and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.block import Block
@@ -14,8 +14,24 @@ from .break_info import (
     SHOVEL_EFFECTIVE,
     new_break_info,
 )
-from .hash import HASH_MUD
+from .hash import (
+    AnyBlock,
+    HASH_BAMBOO,
+    HASH_BAMBOO_SAPLING,
+    HASH_DEAD_BUSH,
+    HASH_DOUBLE_FLOWER,
+    HASH_DOUBLE_TALL_GRASS,
+    HASH_FERN,
+    HASH_FLOWER,
+    HASH_MUD,
+    HASH_NETHER_SPROUTS,
+    HASH_PINK_PETALS,
+    HASH_RED_SHRUB,
+    HASH_SAPLING,
+    HASH_SHORT_GRASS,
+)
 from .model.solid import Solid as SolidModel
+from .dirt import Soil
 
 
 struct Mud(
@@ -25,6 +41,7 @@ struct Mud(
     ImplicitlyCopyable,
     Item,
     ModelledBlock,
+    Soil,
 ):
     """A decorative block obtained by using a water bottle on a dirt block."""
 
@@ -75,3 +92,21 @@ struct Mud(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def soil_for(self, b: AnyBlock) -> Bool:
+        """Grows plants, bamboo and saplings (Go `SoilFor`)."""
+        var k = b.kind
+        return (
+            k == HASH_SHORT_GRASS
+            or k == HASH_FERN
+            or k == HASH_DOUBLE_TALL_GRASS
+            or k == HASH_FLOWER
+            or k == HASH_DOUBLE_FLOWER
+            or k == HASH_NETHER_SPROUTS
+            or k == HASH_PINK_PETALS
+            or k == HASH_DEAD_BUSH
+            or k == HASH_BAMBOO_SAPLING
+            or k == HASH_BAMBOO
+            or k == HASH_SAPLING
+            or k == HASH_RED_SHRUB
+        )

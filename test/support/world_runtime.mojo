@@ -323,9 +323,12 @@ struct VanillaWorld(WorldTypes):
     comptime Entities = VanillaEntities
 
 
-def new_vanilla_world() raises -> World[VanillaWorld]:
+def new_vanilla_world(
+    random_tick_speed: Int = 3,
+) raises -> World[VanillaWorld]:
     var br = ArcPointer(vanilla_block_registry("resources/block_states.nbt"))
     var conf = Config[VanillaWorld](flat(br[]), MemoryProvider(), br)
     conf.seed = (UInt64(1), UInt64(2))
     conf.synchronous = True
+    conf.random_tick_speed = random_tick_speed
     return conf^.new(0)

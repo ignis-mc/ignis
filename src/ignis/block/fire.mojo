@@ -16,6 +16,7 @@ from .connections import FireConnections, all_fire_connections
 from .fire_type import FireType
 from .hash import HASH_FIRE
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct Fire(
@@ -24,6 +25,7 @@ struct Fire(
     ImplicitlyCopyable,
     LightDiffuser,
     LightEmitter,
+    LiquidRemovable,
     ModelledBlock,
     Replaceable,
 ):
@@ -114,3 +116,7 @@ struct Fire(
     def replaceable_by(self, b: AnyBlock) -> Bool:
         """Any block replaces it (Go's embedded `replaceable`)."""
         return True
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns False (Go `HasLiquidDrops`)."""
+        return False

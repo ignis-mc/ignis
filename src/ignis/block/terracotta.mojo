@@ -1,6 +1,6 @@
 """`Terracotta`, ported from Dragonfly `server/block/terracotta.go`.
 
-TODO(world-runtime): SoilFor and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.block import Block
@@ -8,18 +8,25 @@ from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
-from .hash import HASH_TERRACOTTA
+from .hash import AnyBlock, HASH_DEAD_BUSH, HASH_TERRACOTTA
 from .model.solid import Solid as SolidModel
+from .dirt import Soil
 
 
 struct Terracotta(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Soil,
 ):
     """A block formed from clay, with a hardness and blast resistance comparable to stone.
     """
@@ -73,3 +80,8 @@ struct Terracotta(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def soil_for(self, b: AnyBlock) -> Bool:
+        """Grows dead bushes (Go `SoilFor`)."""
+        var k = b.kind
+        return k == HASH_DEAD_BUSH

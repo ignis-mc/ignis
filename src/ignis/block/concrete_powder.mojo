@@ -1,28 +1,40 @@
 """`ConcretePowder`, ported from Dragonfly
 `server/block/concrete_powder.go`.
 
-TODO(world-runtime): Solidifies, NeighbourUpdateTick, the falling behaviour of
-`gravityAffected` and the drops.
+TODO(world-runtime): the falling behaviour of `gravityAffected` and the drops.
 """
 
 from ..item.colour import Colour, colours
-from ..world.block import Block
+from ..world.block import Block, NeighbourUpdateTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    SHOVEL_EFFECTIVE,
     BreakInfo,
     Breakable,
+    SHOVEL_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_CONCRETE_POWDER
 from .model.solid import Solid as SolidModel
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import Solidifiable, gravity_fall
+from .water import Water
+from .concrete import Concrete
 
 
 struct ConcretePowder(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    NeighbourUpdateTicker,
+    Solidifiable,
 ):
     """A gravity affected block that comes in 16 different colours."""
 
@@ -84,3 +96,17 @@ struct ConcretePowder(
         for c in colours():
             out.append(Self(colour=c))
         return out^
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Hardens next to water, else falls (Go `NeighbourUpdateTick`)."""
+        for i in range(6):
+            if tx.block_as[Water](pos.side(Face(i))):
+                tx.set_block(pos, Concrete(colour=self.colour))
+                return
+        gravity_fall(self, pos, tx)
+
+    def solidifies[T: WorldTypes](self, pos: Pos, mut tx: World[T]) -> Bool:
+        """Stops falling in water (Go `Solidifies`)."""
+        return Bool(tx.block_as[Water](pos))

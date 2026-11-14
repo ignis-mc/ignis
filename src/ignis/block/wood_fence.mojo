@@ -3,8 +3,8 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, DeriveState, SideClosed, Model,
-FlammabilityInfo and the drops.
+TODO(world-runtime): NeighbourUpdateTick, DeriveState, Model, FlammabilityInfo
+and the drops.
 """
 
 from ..item.smelting_info import Fuel, FuelInfo
@@ -23,6 +23,9 @@ from .connections import Connections, all_connections
 from .hash import HASH_WOOD_FENCE
 from .model.fence import Fence as FenceModel
 from .wood_type import WoodType, wood_types
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct WoodFence(
@@ -33,6 +36,7 @@ struct WoodFence(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """A wooden fence that blocks the way of entities, but may be jumped over by them.
@@ -122,3 +126,7 @@ struct WoodFence(
         for v in wood_types():
             out.append(WoodFence(wood=v))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

@@ -1,11 +1,11 @@
 """`CocoaBean`, ported from Dragonfly `server/block/cocoa_bean.go`.
 
-TODO(world-runtime): BoneMeal, HasLiquidDrops, NeighbourUpdateTick, UseOnBlock,
-RandomTick, Model and the drops.
+TODO(world-runtime): BoneMeal, NeighbourUpdateTick, UseOnBlock, Model and the
+drops.
 """
 
 from ..item.item import Compostable
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -20,6 +20,10 @@ from .break_info import (
 from .cube.direction import Direction, directions
 from .hash import HASH_COCOA_BEAN
 from .model.cocoa_bean import CocoaBean as CocoaBeanModel
+from .liquid import LiquidRemovable
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
 
 
 struct CocoaBean(
@@ -30,7 +34,9 @@ struct CocoaBean(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
+    RandomTicker,
 ):
     """A crop block found in jungle biomes."""
 
@@ -113,3 +119,14 @@ struct CocoaBean(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May grow (Go `RandomTick`)."""
+        if self.age < 2 and tx.rand().int_n(5) == 0:
+            var c = self.copy()
+            c.age += 1
+            tx.set_block(pos, c)

@@ -1,13 +1,17 @@
 """`Sapling`, ported from Dragonfly `server/block/sapling.go`.
 
-TODO(world-runtime): RandomTick, BoneMeal, grow (sapling_tree.go),
-NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal, FlammabilityInfo and
-the drops.
+TODO(world-runtime): BoneMeal, grow (sapling_tree.go), UseOnBlock, BoneMeal,
+FlammabilityInfo and the drops.
 """
 
 from ..item.item import Compostable
 from ..item.smelting_info import Fuel, FuelInfo
-from ..world.block import Block, LightDiffuser
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    NeighbourUpdateTicker,
+    RandomTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -16,11 +20,19 @@ from .break_info import (
     BreakInfo,
     Breakable,
     NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
-from .hash import HASH_SAPLING
+from .hash import AnyBlock, HASH_SAPLING
 from .model.empty import Empty as EmptyModel
 from .sapling_type import SaplingType, sapling_types
+from .liquid import LiquidRemovable
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air
+from .dirt import supports_vegetation
 
 
 struct Sapling(
@@ -32,7 +44,10 @@ struct Sapling(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
+    RandomTicker,
 ):
     """A plant that grows into a tree."""
 
@@ -119,3 +134,27 @@ struct Sapling(
         for v in sapling_types():
             out.append(Sapling(type=v))
         return out^
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks without soil below (Go `NeighbourUpdateTick`)."""
+        if not supports_vegetation(
+            AnyBlock(self), tx.block(pos.side(Face.DOWN)), tx
+        ):
+            break_block(self, pos, tx)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May age, then grow into a tree, when lit (Go `RandomTick`)."""
+        if tx.light(pos) >= 8 and tx.rand().int_n(7) == 0:
+            # Go `grow`.
+            if not self.aged:
+                var s = self.copy()
+                s.aged = True
+                tx.set_block(pos, s)
+                return
+            # TODO(#tree-growth): Go `growTree` (sapling_tree.go).

@@ -1,12 +1,16 @@
 """`MelonSeeds`, ported from Dragonfly `server/block/melon_seeds.go`.
 
-TODO(world-runtime): the `crop` helpers (NeighbourUpdateTick, HasLiquidDrops,
-CalculateGrowthChance), GrowthStage, SameCrop, RandomTick, BoneMeal, UseOnBlock
-and the drops.
+TODO(world-runtime): the `crop` helpers (NeighbourUpdateTick,
+CalculateGrowthChance), BoneMeal, UseOnBlock and the drops.
 """
 
 from ..item.item import Compostable
-from ..world.block import Block, LightDiffuser
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    NeighbourUpdateTicker,
+    RandomTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -15,22 +19,37 @@ from .break_info import (
     BreakInfo,
     Breakable,
     NOTHING_EFFECTIVE,
+    break_block,
     new_break_info,
 )
 from .cube.face import Face
 from .hash import HASH_MELON_SEEDS
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .crop import Crop, calculate_growth_chance, crop_neighbour_update_tick
+from .melon import Melon
+from .farmland import Farmland
+from .dirt import Dirt
+from .grass import Grass
+from .block import is_air
+from .cube.direction import directions
 
 
 struct MelonSeeds(
     Block,
     Breakable,
     Compostable,
+    Crop,
     Equatable,
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
+    RandomTicker,
 ):
     """A crop that grows melon blocks."""
 
@@ -107,3 +126,53 @@ struct MelonSeeds(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
+
+    def growth_stage(self) -> Int:
+        """Returns the growth stage (Go `GrowthStage`)."""
+        return self.growth
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks unless on farmland, and forgets a melon that is gone
+        (Go `NeighbourUpdateTick`)."""
+        if not tx.block_as[Farmland](pos.side(Face.DOWN)):
+            break_block(self, pos, tx)
+        elif self.direction != Face.DOWN:
+            if not tx.block_as[Melon](pos.side(self.direction)):
+                var m = self.copy()
+                m.direction = Face.DOWN
+                tx.set_block(pos, m)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Grows, then grows a melon next to it (Go `RandomTick`)."""
+        if not (
+            tx.rand().float64() <= calculate_growth_chance(pos, tx)
+            and tx.light(pos) >= 8
+        ):
+            return
+        var m = self.copy()
+        if m.growth < 7:
+            m.growth += 1
+            tx.set_block(pos, m)
+            return
+        var dirs = directions()
+        for d in dirs:
+            if tx.block_as[Melon](pos.side(d.face())):
+                return
+        var direction = dirs[tx.rand().int_n(len(dirs))].face()
+        var stem_pos = pos.side(direction)
+        if is_air(tx, stem_pos):
+            var below = stem_pos.side(Face.DOWN)
+            if (
+                tx.block_as[Farmland](below)
+                or tx.block_as[Dirt](below)
+                or tx.block_as[Grass](below)
+            ):
+                m.direction = direction
+                tx.set_block(pos, m)
+                tx.set_block(stem_pos, Melon())
