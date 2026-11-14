@@ -26,6 +26,8 @@ come in the order they were first changed.
 from std.collections import Dict
 
 from minecraft.protocol.container import (
+    CONTAINER_ENCHANTING_INPUT,
+    CONTAINER_ENCHANTING_MATERIAL,
     CONTAINER_ANVIL_INPUT,
     CONTAINER_ANVIL_MATERIAL,
     CONTAINER_COMBINED_HOT_BAR_AND_INVENTORY,
@@ -81,6 +83,7 @@ from minecraft.nbt.tree import Tree
 
 from ..block.decorated_pot import DecoratedPot
 from ..block.hash import (
+    HASH_ENCHANTING_TABLE,
     HASH_ANVIL,
     HASH_CRAFTING_TABLE,
     HASH_GRINDSTONE,
@@ -96,7 +99,10 @@ from ..block.banner_pattern_type import (
 )
 from ..item.banner_pattern import BannerPattern
 from ..item.banner_pattern_type import BannerPatternType
+from ..item.book import Book
 from ..item.boots import Boots
+from ..item.lapis_lazuli import LapisLazuli
+from .enchanting import EnchantOffers
 from ..item.enchanted_book import EnchantedBook
 from ..item.enchanting import compatible_with_item
 from ..item.dye import Dye
@@ -144,6 +150,10 @@ comptime SMITHING_MATERIAL_SLOT = 0x34
 """Go `smithingMaterialSlot`."""
 comptime SMITHING_TEMPLATE_SLOT = 0x35
 """Go `smithingTemplateSlot`."""
+comptime ENCHANTING_INPUT_SLOT = 0x0E
+"""Go `enchantingInputSlot`."""
+comptime ENCHANTING_LAPIS_SLOT = 0x0F
+"""Go `enchantingLapisSlot`."""
 comptime ANVIL_INPUT_SLOT = 0x1
 """Go `anvilInputSlot`."""
 comptime ANVIL_MATERIAL_SLOT = 0x2
@@ -212,6 +222,12 @@ struct ItemStackRequestHandler(Defaultable, Movable):
     (Go `SetExperienceLevel`)."""
     var anvil_used: Bool
     """An anvil was used; the caller plays its sound and may damage it."""
+    var enchant_offers: Optional[EnchantOffers]
+    """The open enchanting table's offers for its input, set before
+    `handle`."""
+    var reset_enchant_seed: Bool
+    """An item was enchanted; the caller draws a new seed (Go
+    `ResetEnchantmentSeed`)."""
     var experience_costs: List[Int]
     """The enchantment costs of grindstone crafts (Go
     `experienceFromEnchantments` before its random part), for the caller to
@@ -234,6 +250,8 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         self.experience_level = 0
         self.spent_levels = 0
         self.anvil_used = False
+        self.enchant_offers = None
+        self.reset_enchant_seed = False
 
     def use_recipes(
         mut self, recipes: ArcPointer[Recipes], items: ArcPointer[ItemRegistry]
@@ -307,6 +325,8 @@ struct ItemStackRequestHandler(Defaultable, Movable):
                 # Go: the opened block picks a special craft first.
                 if self._window.block == HASH_SMITHING_TABLE:
                     self._smithing(a.recipe_network_id, invs)
+                elif self._window.block == HASH_ENCHANTING_TABLE:
+                    self._enchant(Int(a.recipe_network_id), invs)
                 elif self._window.block == HASH_STONECUTTER:
                     self._stonecutting(
                         a.recipe_network_id, Int(a.number_of_crafts), invs
@@ -644,6 +664,49 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         _ = nbt.put_string(c, "Material", String(mname.value()))
         _ = nbt.put_string(c, "Pattern", t.value().template.name())
         self._create_results([result.with_item_nbt(nbt^)], invs)
+
+    def _enchant(mut self, id: Int, mut invs: Inventories) raises:
+        """Go `handleEnchant`: applies one of the table's three offers for
+        its levels and lapis lazuli."""
+        if id > 2 or id < 0:
+            raise Error(t"invalid recipe network id: {id}")
+        var input = invs.ui.item(ENCHANTING_INPUT_SLOT)
+        if input.count() > 1:
+            raise Error("enchanting tables only accept one item at a time")
+        if not self.enchant_offers:
+            raise Error("can't enchant non-enchantable item")
+        ref offers = self.enchant_offers.value()
+        var cost = id + 1
+        var requirement = offers.costs[id]
+        var enchants = offers.enchants[id].copy()
+        if not self._creative:
+            var level = self.experience_level - self.spent_levels
+            if level < requirement:
+                raise Error("not enough levels to meet requirement")
+            if level < cost:
+                raise Error("not enough levels to meet cost")
+            var lapis = invs.ui.item(ENCHANTING_LAPIS_SLOT)
+            if not lapis.item_as[LapisLazuli]():
+                raise Error("lapis lazuli was not input")
+            if lapis.count() < cost:
+                raise Error("not enough lapis lazuli to meet cost")
+            self.spent_levels += cost
+            self._set(
+                _slot(CONTAINER_ENCHANTING_MATERIAL, ENCHANTING_LAPIS_SLOT),
+                lapis.grow(-cost),
+                invs,
+            )
+        self.reset_enchant_seed = True
+        self._set(
+            _slot(CONTAINER_ENCHANTING_INPUT, ENCHANTING_INPUT_SLOT),
+            Stack(),
+            invs,
+        )
+        var result = input.copy()
+        if input.item_as[Book]():
+            # Go `WithEnchantments` turns a book into an enchanted book.
+            result = result.with_item_of(Stack(EnchantedBook(), 1))
+        self._create_results([result.with_forced_enchantments(enchants)], invs)
 
     def _anvil(
         mut self, index: Int, filters: List[String], mut invs: Inventories

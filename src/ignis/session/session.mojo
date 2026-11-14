@@ -303,7 +303,16 @@ from ..block.container import (
     write_container,
 )
 from ..block.hash import HASH_CHEST
+from nethernet.os.random import random_bytes
+
 from ..block.air import Air
+from ..block.hash import HASH_ENCHANTING_TABLE
+from .enchanting import (
+    EnchantOffers,
+    available_enchantments,
+    enchant_options_packet,
+)
+from .handler_item_stack_request import ENCHANTING_INPUT_SLOT
 from ..block.anvil import Anvil
 from ..block.anvil_type import AnvilType
 from ..entity.experience_orb import spawn_experience_orbs
@@ -607,6 +616,9 @@ struct Session[C: Conn](Movable):
     var _stack_requests: ItemStackRequestHandler
     var _inv_opened: Bool
     """The client shows its inventory (Go `invOpened`)."""
+    var _enchant_seed: Int64
+    """The seed of enchanting table offers (Go `EnchantmentSeed`, kept on
+    the player and saved there; here per connection)."""
 
     def __init__(
         out self,
@@ -642,6 +654,7 @@ struct Session[C: Conn](Movable):
         self._stack_requests = ItemStackRequestHandler()
         self._stack_requests.use_recipes(conf.recipes, conf.items)
         self._inv_opened = False
+        self._enchant_seed = _random_seed()
         self._queue[].entity_ids[
             uuid_key(self.player.uuid())
         ] = SELF_ENTITY_RUNTIME_ID
@@ -868,6 +881,9 @@ struct Session[C: Conn](Movable):
             )
             self._stack_requests.spent_levels = 0
             self._stack_requests.anvil_used = False
+            self._stack_requests.reset_enchant_seed = False
+            var enchant_input = self.invs.ui.item(ENCHANTING_INPUT_SLOT)
+            self._stack_requests.enchant_offers = self._enchant_offers(w)
             var resp = self._stack_requests.handle(
                 pk.decode[ItemStackRequest](),
                 self.invs,
@@ -880,6 +896,11 @@ struct Session[C: Conn](Movable):
             self._store_window(w)
             self._spawn_grindstone_experience(w)
             self._apply_window_costs(w)
+            if self._stack_requests.reset_enchant_seed:
+                self._enchant_seed = _random_seed()
+            if self.invs.ui.item(ENCHANTING_INPUT_SLOT) != enchant_input:
+                # Go's UI slot func: a new item on the table gets offers.
+                self._send_enchant_options(w)
             # Go's inTransaction: the response already told the client.
             self._discard_inventory_changes()
             res.held_changed = (
@@ -1239,6 +1260,29 @@ struct Session[C: Conn](Movable):
                 if case .Some(inv) = read_container(at, w):
                     return inv.copy()
         return Inventory(1, self.invs.ids)
+
+    def _enchant_offers[
+        T: WorldTypes
+    ](mut self, mut w: World[T]) -> Optional[EnchantOffers]:
+        # The offers of the open enchanting table for its input item.
+        if self.invs.window.block != HASH_ENCHANTING_TABLE:
+            return None
+        if not self._queue[].opened:
+            return None
+        var pos = self._queue[].opened.value().pos
+        try:
+            var it = self.invs.ui.item(ENCHANTING_INPUT_SLOT)
+            return available_enchantments(w, pos, it, self._enchant_seed)
+        except:
+            return None
+
+    def _send_enchant_options[T: WorldTypes](mut self, mut w: World[T]):
+        """Sends the open table's offers (Go `sendEnchantmentOptions`)."""
+        var offers = self._enchant_offers(w)
+        if not offers:
+            return
+        var pk = enchant_options_packet(offers.value(), w.global_rand())
+        self.write_packet(pk)
 
     def _apply_window_costs[T: WorldTypes](mut self, mut w: World[T]):
         # Go's anvil: `SetExperienceLevel`, the sound, and a 12% chance
@@ -2264,3 +2308,16 @@ def _check_player_action(action: Int32) raises:
 
 def _bad(v: Float32) -> Bool:
     return isnan(v) or isinf(v)
+
+
+def _random_seed() -> Int64:
+    # Go `rand.Int64()` for a new enchantment seed.
+    var b: List[UInt8]
+    try:
+        b = random_bytes(8)
+    except:
+        return Int64(monotonic_ms())
+    var v = Int64(0)
+    for x in b:
+        v = (v << 8) | Int64(x)
+    return v & Int64.MAX

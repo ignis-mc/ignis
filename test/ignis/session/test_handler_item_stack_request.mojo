@@ -1,6 +1,7 @@
 from ignis.block.crafting_table import CraftingTable
 from ignis.block.banner import Banner
 from ignis.block.hash import (
+    HASH_ENCHANTING_TABLE,
     HASH_ANVIL,
     HASH_CRAFTING_TABLE,
     HASH_GRINDSTONE,
@@ -17,7 +18,10 @@ from ignis.item.banner_pattern_type import BannerPatternType
 from ignis.item.colour import Colour
 from ignis.item.diamond import Diamond
 from ignis.item.dye import Dye
+from ignis.item.book import Book
 from ignis.item.enchanted_book import EnchantedBook
+from ignis.item.lapis_lazuli import LapisLazuli
+from ignis.session.enchanting import offers_for
 from ignis.item.enchantment import (
     CURSE_OF_VANISHING_ID,
     EFFICIENCY_ID,
@@ -642,6 +646,40 @@ def test_anvil_joins_two_damaged_items() raises:
     var out = invs.ui.item(CRAFTING_RESULT)
     assert_equal(out.durability(), min(150 + max * 12 // 100, max))
     assert_equal(h.spent_levels, 2)
+
+
+def test_enchant_takes_levels_and_lapis() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_ENCHANTING_TABLE)
+    invs.ui.set_item(0x0E, Stack(Book(), 1))
+    invs.ui.set_item(0x0F, Stack(LapisLazuli(), 5))
+    var h = _anvil(30)
+    h.enchant_offers = offers_for(Stack(Book(), 1), 42, 15)
+    var want = h.enchant_offers.value().enchants[2].copy()
+    assert_equal(
+        run(h, packet(1, craft(2, 1)), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    var out = invs.ui.item(CRAFTING_RESULT)
+    # The third offer costs 3 levels and 3 lapis; a book becomes enchanted.
+    assert_true(out.item_as[EnchantedBook]())
+    assert_equal(len(out.enchantments()), len(want))
+    assert_equal(h.spent_levels, 3)
+    assert_equal(invs.ui.item(0x0F).count(), 2)
+    assert_true(h.reset_enchant_seed)
+
+
+def test_enchant_needs_the_offer_level() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_ENCHANTING_TABLE)
+    invs.ui.set_item(0x0E, Stack(Book(), 1))
+    invs.ui.set_item(0x0F, Stack(LapisLazuli(), 5))
+    var h = _anvil(2)
+    h.enchant_offers = offers_for(Stack(Book(), 1), 42, 15)
+    # The last offer needs 30 levels with 15 shelves (Go: max(base, 2x15)).
+    assert_equal(
+        run(h, packet(1, craft(2, 1)), invs)[0],
+        ITEM_STACK_RESPONSE_STATUS_ERROR,
+    )
 
 
 def main() raises:
