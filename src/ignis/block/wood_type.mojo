@@ -1,5 +1,4 @@
-"""`WoodType`, ported from Dragonfly `server/block/wood_type.go`.
-"""
+"""`WoodType`, ported from Dragonfly `server/block/wood_type.go`."""
 
 from ..internal.enum import enum_name
 from .leaves_type import LeavesType
@@ -38,38 +37,19 @@ struct WoodType(Equatable, ImplicitlyCopyable, Writable):
     """Go `PoplarWood()`."""
 
     def __init__(out self, v: Int):
-        """Creates the value with index `v` (Go `WoodType{v}`).
-
-        Args:
-            v: 0 to 12.
-        """
+        """Creates the value with index `v` (Go `WoodType{v}`)."""
         self._wood = UInt8(v)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two values.
-
-        Args:
-            other: The value to compare with.
-
-        Returns:
-            True if both are the same.
-        """
+        """Compares two values."""
         return self._wood == other._wood
 
     def uint8(self) -> UInt8:
-        """Returns the value as a byte (Go `Uint8`).
-
-        Returns:
-            0 to 12.
-        """
+        """Returns the value as a byte (Go `Uint8`)."""
         return self._wood
 
     def name(self) -> StaticString:
-        """Returns the display name (Go `Name`).
-
-        Returns:
-            The name.
-        """
+        """Returns the display name (Go `Name`)."""
         return enum_name(
             (
                 "Oak Wood,Spruce Wood,Birch Wood,Jungle Wood,Acacia Wood,"
@@ -80,11 +60,7 @@ struct WoodType(Equatable, ImplicitlyCopyable, Writable):
         )
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the value's string form (Go `String`).
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the value's string form (Go `String`)."""
         writer.write(
             enum_name(
                 (
@@ -96,19 +72,11 @@ struct WoodType(Equatable, ImplicitlyCopyable, Writable):
         )
 
     def flammable(self) -> Bool:
-        """Reports whether the wood burns (Go `Flammable`).
-
-        Returns:
-            False for crimson and warped wood.
-        """
+        """Reports whether the wood burns (Go `Flammable`)."""
         return self != WoodType.CRIMSON and self != WoodType.WARPED
 
     def leaves(self) -> Optional[LeavesType]:
-        """Returns the leaves type of trees of the wood (Go `Leaves`).
-
-        Returns:
-            The leaves type, or None for wood without leaves.
-        """
+        """Returns the leaves type of trees of the wood (Go `Leaves`)."""
         if self._wood <= 5:
             return LeavesType(Int(self._wood))
         if self == WoodType.MANGROVE:
@@ -121,11 +89,7 @@ struct WoodType(Equatable, ImplicitlyCopyable, Writable):
 
 
 def wood_types() -> List[WoodType]:
-    """Returns every wood type (Go `WoodTypes`).
-
-    Returns:
-        The values.
-    """
+    """Returns every wood type (Go `WoodTypes`)."""
     var out = List[WoodType](capacity=13)
     for i in range(13):
         out.append(WoodType(i))

@@ -13,16 +13,7 @@ def traverse_blocks[F: def(Pos) -> Bool](start: Vec3, end: Vec3, f: F):
     """Calls `f` for every block position the segment from `start` to `end`
     passes through, in order, until `f` returns False (Go
     `TraverseBlocks`). Aborts if `start` and `end` are the same point, as Go
-    panics.
-
-    Parameters:
-        F: The callback type.
-
-    Args:
-        start: The start of the ray.
-        end: The end of the ray.
-        f: Called with each position; returns whether to continue.
-    """
+    panics."""
     var dir = end.sub(start)
     if float_equal(dir.len_sqr(), 0):
         abort(

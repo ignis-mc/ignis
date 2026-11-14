@@ -27,11 +27,7 @@ struct Context(Copyable, Defaultable):
         self._cancel = False
 
     def cancelled(self) -> Bool:
-        """Reports whether a handler cancelled the event (Go `Cancelled`).
-
-        Returns:
-            True if cancelled.
-        """
+        """Reports whether a handler cancelled the event (Go `Cancelled`)."""
         return self._cancel
 
     def cancel(mut self):

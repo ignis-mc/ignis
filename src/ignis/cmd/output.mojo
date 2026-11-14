@@ -37,11 +37,7 @@ struct Message(Copyable, Defaultable, Equatable, Writable):
 
     @implicit
     def __init__(out self, var text: String):
-        """Creates a plain text message.
-
-        Args:
-            text: The text.
-        """
+        """Creates a plain text message."""
         self.text = text^
         self.translated = False
         self.translation = String()
@@ -54,27 +50,14 @@ struct Message(Copyable, Defaultable, Equatable, Writable):
         var translation: String,
         var params: List[String],
     ):
-        """Creates a translated message.
-
-        Args:
-            text: The fallback text with the parameters filled in.
-            translation: The resolved translation string.
-            params: The translation parameters.
-        """
+        """Creates a translated message."""
         self.text = text^
         self.translated = True
         self.translation = translation^
         self.params = params^
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares every field.
-
-        Args:
-            other: The other message.
-
-        Returns:
-            True if both messages are identical.
-        """
+        """Compares every field."""
         return (
             self.text == other.text
             and self.translated == other.translated
@@ -83,11 +66,7 @@ struct Message(Copyable, Defaultable, Equatable, Writable):
         )
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the text, as Go's `String()`.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the text, as Go's `String()`."""
         writer.write(self.text)
 
 
@@ -113,12 +92,6 @@ struct Translation(ImplicitlyCopyable):
 
         Go panics on a wrong number of parameters; that is a programming
         error here too and aborts in debug builds.
-
-        Args:
-            args: Exactly `params` parameters.
-
-        Returns:
-            The translated message.
         """
         var params = List[String](capacity=len(args))
         for a in args:
@@ -128,15 +101,7 @@ struct Translation(ImplicitlyCopyable):
 
 def _sprintf_v(format: StringSlice, params: List[String]) -> String:
     """Replaces each `%v` in `format` with the next parameter, as Go's
-    `fmt.Sprintf` does for the formats used here.
-
-    Args:
-        format: The format with `%v` verbs.
-        params: The values, in order.
-
-    Returns:
-        The formatted string.
-    """
+    `fmt.Sprintf` does for the formats used here."""
     var out = String()
     var bytes = format.as_bytes()
     var start = 0
@@ -228,95 +193,46 @@ struct Output(Copyable, Defaultable):
         A `Message` is added as it is, keeping its translation; any other
         value is formatted as plain text, so t-strings work:
         `o.error(t"{n} is too big")`.
-
-        Parameters:
-            W: The value type.
-
-        Args:
-            value: The error.
         """
         self._errors.append(_message(value))
 
     def errort(mut self, t: Translation, *args: String):
-        """Adds a translated error (Go `Errort`).
-
-        Args:
-            t: The translation.
-            args: Its parameters.
-        """
+        """Adds a translated error (Go `Errort`)."""
         var params = List[String](capacity=len(args))
         for a in args:
             params.append(a)
         self._errors.append(_translate(t, params^))
 
     def print[W: Writable](mut self, value: W):
-        """Adds a success message (Go `Print` and `Printf`).
-
-        Parameters:
-            W: The value type.
-
-        Args:
-            value: The message; a `Message` keeps its translation.
-        """
+        """Adds a success message (Go `Print` and `Printf`)."""
         self._messages.append(_message(value))
 
     def printt(mut self, t: Translation, *args: String):
-        """Adds a translated success message (Go `Printt`).
-
-        Args:
-            t: The translation.
-            args: Its parameters.
-        """
+        """Adds a translated success message (Go `Printt`)."""
         var params = List[String](capacity=len(args))
         for a in args:
             params.append(a)
         self._messages.append(_translate(t, params^))
 
     def errors(self) -> ref[self._errors] List[Message]:
-        """Gets the errors (Go `Errors`).
-
-        Returns:
-            Every error, in the order added.
-        """
+        """Gets the errors (Go `Errors`)."""
         return self._errors
 
     def error_count(self) -> Int:
-        """Counts the errors (Go `ErrorCount`).
-
-        Returns:
-            The number of errors.
-        """
+        """Counts the errors (Go `ErrorCount`)."""
         return len(self._errors)
 
     def messages(self) -> ref[self._messages] List[Message]:
-        """Gets the success messages (Go `Messages`).
-
-        Returns:
-            Every message, in the order added.
-        """
+        """Gets the success messages (Go `Messages`)."""
         return self._messages
 
     def message_count(self) -> Int:
-        """Counts the success messages (Go `MessageCount`).
-
-        Returns:
-            The number of messages.
-        """
+        """Counts the success messages (Go `MessageCount`)."""
         return len(self._messages)
 
 
 def _message[W: Writable](value: W) -> Message:
-    """Converts a value to a `Message`, keeping a `Message` as it is.
-
-    Parameters:
-        W: The value type.
-
-    Args:
-        value: The value.
-
-    Returns:
-        The message.
-    """
+    """Converts a value to a `Message`, keeping a `Message` as it is."""
     comptime if W == Message:
         return rebind[Message](value).copy()
     else:
@@ -324,15 +240,7 @@ def _message[W: Writable](value: W) -> Message:
 
 
 def _translate(t: Translation, var params: List[String]) -> Message:
-    """Fills in a translation from a list of parameters.
-
-    Args:
-        t: The translation.
-        params: Its parameters.
-
-    Returns:
-        The translated message.
-    """
+    """Fills in a translation from a list of parameters."""
     debug_assert(len(params) == t.params, "wrong translation arity")
     return Message(
         text=_sprintf_v(t.fallback, params),

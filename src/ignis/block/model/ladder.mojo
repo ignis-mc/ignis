@@ -1,5 +1,4 @@
-"""`Ladder`, ported from Dragonfly `server/block/model/ladder.go`.
-"""
+"""`Ladder`, ported from Dragonfly `server/block/model/ladder.go`."""
 
 from ...world.block_model import BlockModel
 from ...world.block_source import BlockSource
@@ -20,40 +19,13 @@ struct Ladder(BlockModel, ImplicitlyCopyable):
     """The direction the ladder faces."""
 
     def __init__(out self, *, facing: Direction = Direction.NORTH):
-        """Creates the model; omitted fields take Go zero values.
-
-        Args:
-            facing: The direction the ladder faces.
-        """
+        """Creates the model; omitted fields take Go zero values."""
         self.facing = facing
 
     def bbox[S: BlockSource](self, pos: Pos, src: S) -> List[BBox]:
-        """Returns the boxes of the model (Go `BBox`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            src: The blocks around it.
-
-        Returns:
-            The boxes, relative to the block.
-        """
+        """Returns the boxes of the model (Go `BBox`)."""
         return [FULL.extend_towards(self.facing.face(), -0.8125)]
 
     def face_solid[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
-        """Reports whether a face is solid (Go `FaceSolid`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the face is solid.
-        """
+        """Reports whether a face is solid (Go `FaceSolid`)."""
         return False

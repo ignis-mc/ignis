@@ -37,34 +37,17 @@ struct Water(
     def __init__(
         out self, *, still: Bool = False, depth: Int = 8, falling: Bool = False
     ):
-        """Creates the block; `depth` defaults to 8, a full block.
-
-        Args:
-            still: Whether the liquid is still, a source block that does not flow.
-            depth: The depth of the liquid, 1 to 8.
-            falling: Whether the liquid falls down.
-        """
+        """Creates the block; `depth` defaults to 8, a full block."""
         self.still = still
         self.depth = depth
         self.falling = falling
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         if self.depth < 1 or self.depth > 8:
             abort("invalid water depth, must be between 1 and 8")
         var v = Int32(8 - self.depth)
@@ -76,11 +59,7 @@ struct Water(
         return BlockState(name, Properties().with_int("liquid_depth", v))
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             (UInt64(1) if self.still else UInt64(0))
             | UInt64(self.depth) << 1
@@ -89,14 +68,7 @@ struct Water(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Water(
             still=hash & 0x1 != 0,
             depth=Int((hash >> 1) & 0xFF),
@@ -105,11 +77,7 @@ struct Water(
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for flags in [
             (True, True),
@@ -123,17 +91,9 @@ struct Water(
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go
-        `LightDiffusionLevel`).
-
-        Returns:
-            The diffusion level, 0 to 15.
-        """
+        `LightDiffusionLevel`)."""
         return 2
 
     def model(self) -> EmptyModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return EmptyModel()

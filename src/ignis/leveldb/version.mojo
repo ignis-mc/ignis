@@ -38,39 +38,21 @@ struct Version(Copyable, Movable):
             self.levels.append(List[Table]())
 
     def table_count(self) -> Int:
-        """Returns the number of tables in every level.
-
-        Returns:
-            The count.
-        """
+        """Returns the number of tables in every level."""
         var n = 0
         for l in self.levels:
             n += len(l)
         return n
 
     def level_size(self, level: Int) -> Int:
-        """Returns the total file size of a level.
-
-        Args:
-            level: The level.
-
-        Returns:
-            The size in bytes.
-        """
+        """Returns the total file size of a level."""
         var n = 0
         for t in self.levels[level]:
             n += t.size
         return n
 
     def has_table(self, num: Int) -> Bool:
-        """Reports whether a file number is a live table.
-
-        Args:
-            num: The file number.
-
-        Returns:
-            True if some level holds it.
-        """
+        """Reports whether a file number is a live table."""
         for l in self.levels:
             for t in l:
                 if t.num == num:
@@ -78,15 +60,7 @@ struct Version(Copyable, Movable):
         return False
 
     def apply(mut self, rec: SessionRecord, dir: StringSlice) raises:
-        """Applies an edit: removes deleted tables and opens added ones.
-
-        Args:
-            rec: The edit.
-            dir: The database directory, where added tables are.
-
-        Raises:
-            If an added table cannot be opened or a level is out of range.
-        """
+        """Applies an edit: removes deleted tables and opens added ones."""
         for d in rec.deleted:
             if d[0] < 0 or d[0] >= NUM_LEVELS:
                 raise Error(t"leveldb: invalid level {d[0]}")
@@ -99,15 +73,7 @@ struct Version(Copyable, Movable):
             self.add_at(a.level, open_table(dir, a))
 
     def add_at(mut self, level: Int, var t: Table) raises:
-        """Inserts an open table into a level, keeping the level's order.
-
-        Args:
-            level: The level.
-            t: The table.
-
-        Raises:
-            If the level is out of range.
-        """
+        """Inserts an open table into a level, keeping the level's order."""
         if level < 0 or level >= NUM_LEVELS:
             raise Error(t"leveldb: invalid level {level}")
         ref l = self.levels[level]
@@ -130,16 +96,7 @@ struct Version(Copyable, Movable):
         umax: Span[mut=False, UInt8, _],
     ) -> List[Int]:
         """Returns the indices of the tables of a level whose user key range
-        intersects `[umin, umax]`.
-
-        Args:
-            level: The level.
-            umin: The smallest user key.
-            umax: The largest user key.
-
-        Returns:
-            Indices into `levels[level]`.
-        """
+        intersects `[umin, umax]`."""
         var out = List[Int]()
         for i in range(len(self.levels[level])):
             if _overlaps(self.levels[level][i], umin, umax):
@@ -150,15 +107,7 @@ struct Version(Copyable, Movable):
         self, level: Int, uk: Span[mut=False, UInt8, _]
     ) -> Bool:
         """Reports whether no level deeper than `level` may hold `uk`, so a
-        deletion marker for it can be dropped.
-
-        Args:
-            level: The compaction output level.
-            uk: The user key.
-
-        Returns:
-            True if the key is absent from every deeper level.
-        """
+        deletion marker for it can be dropped."""
         for l in range(level + 1, NUM_LEVELS):
             for t in self.levels[l]:
                 if not (
@@ -170,18 +119,7 @@ struct Version(Copyable, Movable):
 
 
 def open_table(dir: StringSlice, a: AddedTable) raises -> Table:
-    """Opens the table an edit adds.
-
-    Args:
-        dir: The database directory.
-        a: The added table.
-
-    Returns:
-        The open table.
-
-    Raises:
-        If the file is missing or corrupt.
-    """
+    """Opens the table an edit adds."""
     return Table(
         a.num, a.size, table_path(dir, a.num), a.imin.copy(), a.imax.copy()
     )

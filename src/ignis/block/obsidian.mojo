@@ -40,69 +40,35 @@ struct Obsidian(
     """Whether the obsidian is crying obsidian."""
 
     def __init__(out self, *, crying: Bool = False):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            crying: Whether the obsidian is crying obsidian.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.crying = crying
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         if self.crying:
             return BlockState("minecraft:crying_obsidian")
         return BlockState("minecraft:obsidian")
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return UInt64(1) if self.crying else UInt64(0)
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Obsidian(crying=hash & 0x1 != 0)
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         return [Obsidian(crying=True), Obsidian()]
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(
             35,
             pickaxe_harvestable_from(HARVEST_LEVEL_DIAMOND),
@@ -110,19 +76,11 @@ struct Obsidian(
         ).with_blast_resistance(1200)
 
     def light_emission_level(self) -> UInt8:
-        """Returns the light the block emits (Go `LightEmissionLevel`).
-
-        Returns:
-            The light level, 0 to 15.
-        """
+        """Returns the light the block emits (Go `LightEmissionLevel`)."""
         return 10 if self.crying else 0
 
     def model(self) -> SolidModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return SolidModel()
 
     def encode_item(self) -> EncodedItem:

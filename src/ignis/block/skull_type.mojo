@@ -1,5 +1,4 @@
-"""`SkullType`, ported from Dragonfly `server/block/skull_type.go`.
-"""
+"""`SkullType`, ported from Dragonfly `server/block/skull_type.go`."""
 
 from ..internal.enum import enum_name
 
@@ -25,38 +24,19 @@ struct SkullType(Equatable, ImplicitlyCopyable, Writable):
     """Go `PiglinHead()`."""
 
     def __init__(out self, v: Int):
-        """Creates the value with index `v` (Go `SkullType{v}`).
-
-        Args:
-            v: 0 to 6.
-        """
+        """Creates the value with index `v` (Go `SkullType{v}`)."""
         self._v = UInt8(v)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two values.
-
-        Args:
-            other: The value to compare with.
-
-        Returns:
-            True if both are the same.
-        """
+        """Compares two values."""
         return self._v == other._v
 
     def uint8(self) -> UInt8:
-        """Returns the value as a byte (Go `Uint8`).
-
-        Returns:
-            0 to 6.
-        """
+        """Returns the value as a byte (Go `Uint8`)."""
         return self._v
 
     def name(self) -> StaticString:
-        """Returns the display name (Go `Name`).
-
-        Returns:
-            The name.
-        """
+        """Returns the display name (Go `Name`)."""
         return enum_name(
             (
                 "Skeleton Skull,Wither Skeleton Skull,Zombie Head,"
@@ -66,11 +46,7 @@ struct SkullType(Equatable, ImplicitlyCopyable, Writable):
         )
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the value's string form (Go `String`).
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the value's string form (Go `String`)."""
         writer.write(
             enum_name(
                 (
@@ -83,11 +59,7 @@ struct SkullType(Equatable, ImplicitlyCopyable, Writable):
 
 
 def skull_types() -> List[SkullType]:
-    """Returns every skull type (Go `SkullTypes`).
-
-    Returns:
-        The values.
-    """
+    """Returns every skull type (Go `SkullTypes`)."""
     var out = List[SkullType](capacity=7)
     for i in range(7):
         out.append(SkullType(i))

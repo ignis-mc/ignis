@@ -58,35 +58,19 @@ struct Chest(
         facing: Direction = Direction.NORTH,
         custom_name: String = String(),
     ):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            facing: The direction the chest faces.
-            custom_name: The custom name of the block, shown in its window.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.facing = facing
         self.custom_name = custom_name
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state and hold the same data.
-        """
+        """Compares two blocks."""
         return (
             self.hash() == other.hash()
             and self.custom_name == other.custom_name
         )
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         return BlockState(
             "minecraft:chest",
             Properties().with_string(
@@ -95,60 +79,33 @@ struct Chest(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return UInt64(Int(self.facing))
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Chest(facing=Direction(Int(hash & 0x3)))
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for facing in directions():
             out.append(Chest(facing=facing))
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(2.5, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go
-        `LightDiffusionLevel`).
-
-        Returns:
-            The diffusion level, 0 to 15.
-        """
+        `LightDiffusionLevel`)."""
         return 0
 
     def model(self) -> ChestModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return ChestModel()
 
     def fuel_info(self) -> FuelInfo:

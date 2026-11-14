@@ -39,14 +39,7 @@ struct JsonDoc(Movable):
     var _nodes: List[_Node]
 
     def __init__(out self, text: Span[mut=False, UInt8, _]) raises:
-        """Parses a document.
-
-        Args:
-            text: The UTF-8 JSON text.
-
-        Raises:
-            If the text is not valid JSON.
-        """
+        """Parses a document."""
         self._nodes = List[_Node]()
         var pos = _skip(text, 0)
         _ = self._value(text, pos, 0)
@@ -55,44 +48,19 @@ struct JsonDoc(Movable):
             raise Error(t"json: trailing data at offset {pos}")
 
     def root(self) -> Int:
-        """Returns the top-level value.
-
-        Returns:
-            Its node index.
-        """
+        """Returns the top-level value."""
         return 0
 
     def kind(self, i: Int) -> UInt8:
-        """Returns the kind of a value.
-
-        Args:
-            i: A node index.
-
-        Returns:
-            One of the `JSON_*` constants.
-        """
+        """Returns the kind of a value."""
         return self._nodes[i].kind
 
     def key(self, i: Int) -> String:
-        """Returns the member name of an object member.
-
-        Args:
-            i: A node index from `children` of an object.
-
-        Returns:
-            The name.
-        """
+        """Returns the member name of an object member."""
         return self._nodes[i].key
 
     def children(self, i: Int) -> List[Int]:
-        """Returns the elements of an array or the members of an object.
-
-        Args:
-            i: A node index.
-
-        Returns:
-            Node indices in document order; empty for scalars.
-        """
+        """Returns the elements of an array or the members of an object."""
         var out = List[Int](capacity=self._nodes[i].count)
         var c = self._nodes[i].first
         while c >= 0:
@@ -101,15 +69,7 @@ struct JsonDoc(Movable):
         return out^
 
     def get(self, i: Int, key: StringSlice) -> Optional[Int]:
-        """Looks up an object member.
-
-        Args:
-            i: The object's node index.
-            key: The member name.
-
-        Returns:
-            The member's node index, or None.
-        """
+        """Looks up an object member."""
         if self._nodes[i].kind != JSON_OBJECT:
             return None
         var c = self._nodes[i].first
@@ -120,33 +80,13 @@ struct JsonDoc(Movable):
         return None
 
     def as_string(self, i: Int) raises -> String:
-        """Returns a string value.
-
-        Args:
-            i: A node index.
-
-        Returns:
-            The decoded string.
-
-        Raises:
-            If the value is not a string.
-        """
+        """Returns a string value."""
         if self._nodes[i].kind != JSON_STRING:
             raise Error("json: value is not a string")
         return self._nodes[i].text
 
     def as_int(self, i: Int) raises -> Int:
-        """Returns an integer value.
-
-        Args:
-            i: A node index.
-
-        Returns:
-            The integer.
-
-        Raises:
-            If the value is not an integer number.
-        """
+        """Returns an integer value."""
         if self._nodes[i].kind != JSON_NUMBER:
             raise Error("json: value is not a number")
         return Int(self._nodes[i].text)
@@ -158,17 +98,7 @@ struct JsonDoc(Movable):
         return atof(self._nodes[i].text)
 
     def as_bool(self, i: Int) raises -> Bool:
-        """Returns a boolean value.
-
-        Args:
-            i: A node index.
-
-        Returns:
-            The boolean.
-
-        Raises:
-            If the value is not a boolean.
-        """
+        """Returns a boolean value."""
         if self._nodes[i].kind != JSON_BOOL:
             raise Error("json: value is not a boolean")
         return self._nodes[i].text == "true"

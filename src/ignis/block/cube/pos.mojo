@@ -20,88 +20,43 @@ struct Pos(Equatable, Hashable, ImplicitlyCopyable, Writable):
     var _z: Int
 
     def x(self) -> Int:
-        """Returns the X coordinate.
-
-        Returns:
-            The X coordinate.
-        """
+        """Returns the X coordinate."""
         return self._x
 
     def y(self) -> Int:
-        """Returns the Y coordinate.
-
-        Returns:
-            The Y coordinate.
-        """
+        """Returns the Y coordinate."""
         return self._y
 
     def z(self) -> Int:
-        """Returns the Z coordinate.
-
-        Returns:
-            The Z coordinate.
-        """
+        """Returns the Z coordinate."""
         return self._z
 
     def out_of_bounds(self, r: Range) -> Bool:
-        """Checks if the Y value is outside the range passed.
-
-        Args:
-            r: The range of the dimension.
-
-        Returns:
-            True if the position cannot hold a block.
-        """
+        """Checks if the Y value is outside the range passed."""
         return self._y > r.max() or self._y < r.min()
 
     def add(self, pos: Pos) -> Pos:
-        """Adds two positions.
-
-        Args:
-            pos: The position to add.
-
-        Returns:
-            The sum.
-        """
+        """Adds two positions."""
         return Pos(self._x + pos._x, self._y + pos._y, self._z + pos._z)
 
     def sub(self, pos: Pos) -> Pos:
-        """Subtracts a position.
-
-        Args:
-            pos: The position to subtract.
-
-        Returns:
-            The difference.
-        """
+        """Subtracts a position."""
         return Pos(self._x - pos._x, self._y - pos._y, self._z - pos._z)
 
     def vec3(self) -> Vec3:
-        """Returns the position as a vector (Go `Vec3`).
-
-        Returns:
-            The coordinates as floats.
-        """
+        """Returns the position as a vector (Go `Vec3`)."""
         return Vec3(Float64(self._x), Float64(self._y), Float64(self._z))
 
     def vec3_middle(self) -> Vec3:
         """Returns the position with 0.5 added on both horizontal axes (Go
-        `Vec3Middle`).
-
-        Returns:
-            The vector.
-        """
+        `Vec3Middle`)."""
         return Vec3(
             Float64(self._x) + 0.5, Float64(self._y), Float64(self._z) + 0.5
         )
 
     def vec3_centre(self) -> Vec3:
         """Returns the position with 0.5 added on all axes (Go
-        `Vec3Centre`).
-
-        Returns:
-            The vector.
-        """
+        `Vec3Centre`)."""
         return Vec3(
             Float64(self._x) + 0.5,
             Float64(self._y) + 0.5,
@@ -110,15 +65,7 @@ struct Pos(Equatable, Hashable, ImplicitlyCopyable, Writable):
 
     def neighbours(self, r: Range) -> List[Pos]:
         """Returns the positions directly around this one that are within
-        the range (Go `Neighbours`, which calls a function for each).
-
-        Args:
-            r: The range of the dimension.
-
-        Returns:
-            The neighbours in Go's order (+x, -x, +y, -y, +z, -z); none if
-            this position is out of bounds.
-        """
+        the range (Go `Neighbours`, which calls a function for each)."""
         var out = List[Pos](capacity=6)
         if self.out_of_bounds(r):
             return out^
@@ -134,15 +81,7 @@ struct Pos(Equatable, Hashable, ImplicitlyCopyable, Writable):
 
     def within(self, lo: Pos, hi: Pos) -> Bool:
         """Reports whether the position lies within a box of positions,
-        inclusive (Go `Within`).
-
-        Args:
-            lo: The minimum corner.
-            hi: The maximum corner.
-
-        Returns:
-            True if within.
-        """
+        inclusive (Go `Within`)."""
         return (
             self._x >= lo._x
             and self._x <= hi._x
@@ -153,14 +92,7 @@ struct Pos(Equatable, Hashable, ImplicitlyCopyable, Writable):
         )
 
     def side(self, face: Face) -> Pos:
-        """Returns the position next to this one on a face (Go `Side`).
-
-        Args:
-            face: The face.
-
-        Returns:
-            The neighbour; this position for an invalid face.
-        """
+        """Returns the position next to this one on a face (Go `Side`)."""
         if face == Face.UP:
             return Pos(self._x, self._y + 1, self._z)
         if face == Face.DOWN:
@@ -176,28 +108,14 @@ struct Pos(Equatable, Hashable, ImplicitlyCopyable, Writable):
         return self
 
     def face(self, other: Pos) -> Face:
-        """Returns the face of this position that `other` is on (Go `Face`).
-
-        Args:
-            other: A neighbouring position.
-
-        Returns:
-            The face; up if `other` is not a neighbour.
-        """
+        """Returns the face of this position that `other` is on (Go `Face`)."""
         if case .Some(f) = self.neighbour_face(other):
             return f
         return Face.UP
 
     def neighbour_face(self, other: Pos) -> Optional[Face]:
         """Returns the face of this position that `other` is on (Go
-        `NeighbourFace`).
-
-        Args:
-            other: A position.
-
-        Returns:
-            The face, or None if `other` is not a direct neighbour.
-        """
+        `NeighbourFace`)."""
         var d = other.sub(self)
         if d == Pos(0, 1, 0):
             return Face.UP
@@ -214,63 +132,28 @@ struct Pos(Equatable, Hashable, ImplicitlyCopyable, Writable):
         return None
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the position as `(x,y,z)`, as Go's `String` does.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the position as `(x,y,z)`, as Go's `String` does."""
         writer.write("(", self._x, ",", self._y, ",", self._z, ")")
 
 
 def pos_from_vec3(v: Vec3) -> Pos:
-    """Returns the block position a vector is in (Go `PosFromVec3`).
-
-    Args:
-        v: The vector.
-
-    Returns:
-        The position, each coordinate floored.
-    """
+    """Returns the block position a vector is in (Go `PosFromVec3`)."""
     return Pos(Int(floor(v.x())), Int(floor(v.y())), Int(floor(v.z())))
 
 
 def pos_min(p1: Pos, p2: Pos) -> Pos:
-    """Returns the per-axis minimum of two positions (Go `cube.Min`).
-
-    Args:
-        p1: The first position.
-        p2: The second position.
-
-    Returns:
-        The minimum corner.
-    """
+    """Returns the per-axis minimum of two positions (Go `cube.Min`)."""
     return Pos(min(p1.x(), p2.x()), min(p1.y(), p2.y()), min(p1.z(), p2.z()))
 
 
 def pos_max(p1: Pos, p2: Pos) -> Pos:
-    """Returns the per-axis maximum of two positions (Go `cube.Max`).
-
-    Args:
-        p1: The first position.
-        p2: The second position.
-
-    Returns:
-        The maximum corner.
-    """
+    """Returns the per-axis maximum of two positions (Go `cube.Max`)."""
     return Pos(max(p1.x(), p2.x()), max(p1.y(), p2.y()), max(p1.z(), p2.z()))
 
 
 def range_3d(p1: Pos, p2: Pos) -> List[Pos]:
     """Returns every position in the box spanned by two corners (Go
-    `Range3D`), X outermost and Z innermost.
-
-    Args:
-        p1: One corner.
-        p2: The opposite corner.
-
-    Returns:
-        The positions.
-    """
+    `Range3D`), X outermost and Z innermost."""
     var hi = pos_max(p1, p2)
     var lo = pos_min(p1, p2)
     var out = List[Pos]()

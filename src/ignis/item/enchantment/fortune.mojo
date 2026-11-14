@@ -21,61 +21,31 @@ struct Fortune(Defaultable, EnchantmentType, ImplicitlyCopyable):
     """The enchantment ID (Go `item.RegisterEnchantment(18, Fortune)`)."""
 
     def name(self) -> String:
-        """Returns the name of the enchantment (Go `Name`).
-
-        Returns:
-            `Fortune`.
-        """
+        """Returns the name of the enchantment (Go `Name`)."""
         return "Fortune"
 
     def max_level(self) -> Int:
-        """Returns the highest level of the enchantment (Go `MaxLevel`).
-
-        Returns:
-            3.
-        """
+        """Returns the highest level of the enchantment (Go `MaxLevel`)."""
         return 3
 
     def cost(self, level: Int) -> Tuple[Int, Int]:
         """Returns the range of enchanting levels that can give the
-        enchantment at a level (Go `Cost`).
-
-        Args:
-            level: The enchantment level.
-
-        Returns:
-            The minimum and maximum cost.
-        """
+        enchantment at a level (Go `Cost`)."""
         var min_cost = 15 + (level - 1) * 9
         return (min_cost, min_cost + 50 + level)
 
     def rarity(self) -> EnchantmentRarity:
-        """Returns the rarity of the enchantment (Go `Rarity`).
-
-        Returns:
-            `EnchantmentRarity.RARE`.
-        """
+        """Returns the rarity of the enchantment (Go `Rarity`)."""
         return EnchantmentRarity.RARE
 
     def compatible_with_enchantment(self, id: Int) -> Bool:
         """Reports whether the enchantment can be on an item together with
-        another (Go `CompatibleWithEnchantment`, which takes the type).
-
-        Args:
-            id: The ID of the other enchantment.
-
-        Returns:
-            True if they are compatible.
-        """
+        another (Go `CompatibleWithEnchantment`, which takes the type)."""
         return id != SILK_TOUCH_ID
 
     def compatible_items(self) -> ItemFilter:
         """Returns the items the enchantment applies to (the data of Go's
-        `CompatibleWithItem`).
-
-        Returns:
-            The filter.
-        """
+        `CompatibleWithItem`)."""
         return ItemFilter(
             tools=ToolFilter(
                 TYPE_PICKAXE,

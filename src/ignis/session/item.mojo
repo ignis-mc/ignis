@@ -20,19 +20,7 @@ from ..world.item import AnyItem, ItemRegistry, ItemRuntimeID, RegisteredItem
 def stack_from_item(
     br: BasicBlockRegistry, reg: ItemRegistry, it: Stack
 ) raises -> ItemStack:
-    """Converts a stack to its network form (Go `stackFromItem`).
-
-    Args:
-        br: The block registry, for the runtime ID of block items.
-        reg: The item registry.
-        it: The stack.
-
-    Returns:
-        The network stack; a zero stack for an empty one.
-
-    Raises:
-        If the item is not registered or its NBT cannot be encoded.
-    """
+    """Converts a stack to its network form (Go `stackFromItem`)."""
     if it.empty():
         return ItemStack()
     var item = it.item().value()
@@ -82,17 +70,6 @@ def stack_to_item(
 
     An unknown item becomes air; a block runtime ID, when set, decides the
     item: the block if its type is an item, air otherwise.
-
-    Args:
-        br: The block registry.
-        reg: The item registry.
-        it: The network stack.
-
-    Returns:
-        The stack.
-
-    Raises:
-        If the stack's NBT is malformed.
     """
     var t: Optional[RegisteredItem] = reg.item_by_runtime_id(
         it.item_type.network_id, Int16(it.item_type.metadata_value)

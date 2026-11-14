@@ -40,14 +40,7 @@ from .tuff_bricks import TuffBricks
 def encode_wall_block(block: AnyBlock) -> String:
     """Returns the name walls of the block encode with, without the `_wall`
     suffix (Go `encodeWallBlock`). Aborts for blocks that have no wall, as Go
-    panics.
-
-    Args:
-        block: The block the wall is made of.
-
-    Returns:
-        The name.
-    """
+    panics."""
     if case .Some(b) = block.get[Andesite]():
         if not b.polished:
             return "andesite"
@@ -128,11 +121,7 @@ def encode_wall_block(block: AnyBlock) -> String:
 
 
 def wall_blocks() -> List[AnyBlock]:
-    """Returns every block a wall can be made of (Go `WallBlocks`).
-
-    Returns:
-        The blocks.
-    """
+    """Returns every block a wall can be made of (Go `WallBlocks`)."""
     return [
         AnyBlock(Andesite()),
         AnyBlock(Blackstone(type=BlackstoneType.POLISHED)),

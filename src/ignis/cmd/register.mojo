@@ -10,11 +10,7 @@ from .source import Source
 
 
 struct Registry[S: Source](Copyable, Defaultable):
-    """Registered commands by name and alias (Go: the `commands` map).
-
-    Parameters:
-        S: The source type that runs the commands.
-    """
+    """Registered commands by name and alias (Go: the `commands` map)."""
 
     var _commands: Dict[String, Command[Self.S]]
 
@@ -24,24 +20,13 @@ struct Registry[S: Source](Copyable, Defaultable):
 
     def register(mut self, command: Command[Self.S]):
         """Registers a command under its name and every alias, replacing any
-        command registered under the same names (Go `Register`).
-
-        Args:
-            command: The command.
-        """
+        command registered under the same names (Go `Register`)."""
         self._commands[command.name()] = command.copy()
         for alias in command.aliases():
             self._commands[alias] = command.copy()
 
     def by_alias(self, alias: String) -> Optional[Command[Self.S]]:
-        """Looks up a command by name or alias (Go `ByAlias`).
-
-        Args:
-            alias: The name or alias, matched exactly.
-
-        Returns:
-            The command, or `None`.
-        """
+        """Looks up a command by name or alias (Go `ByAlias`)."""
         var c = self._commands.get(alias)
         if c:
             return c.take()
@@ -49,9 +34,5 @@ struct Registry[S: Source](Copyable, Defaultable):
 
     def commands(self) -> ref[self._commands] Dict[String, Command[Self.S]]:
         """Gets every command by the alias it was registered under (Go
-        `Commands`); a command appears once per alias.
-
-        Returns:
-            The commands.
-        """
+        `Commands`); a command appears once per alias."""
         return self._commands

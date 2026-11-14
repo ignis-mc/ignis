@@ -44,15 +44,7 @@ from ..cmd.source import Source
 
 def command_output(output: Output, origin: CommandOrigin) -> CommandOutput:
     """Builds the packet that shows a command's output to the player (the
-    packet Go's `Session.SendCommandOutput` writes).
-
-    Args:
-        output: The command output.
-        origin: The origin of the `CommandRequest` being answered.
-
-    Returns:
-        The packet: success messages first, then errors.
-    """
+    packet Go's `Session.SendCommandOutput` writes)."""
     var pk = CommandOutput()
     pk.command_origin = origin.copy()
     pk.output_type = COMMAND_OUTPUT_TYPE_ALL_OUTPUT
@@ -92,22 +84,7 @@ def build_available_commands[
     mut runnable: Dict[String, List[Int]],
 ) -> AvailableCommands:
     """Builds the `AvailableCommands` packet for a source (Go
-    `BuildAvailableCommands`).
-
-    Parameters:
-        S: The source type.
-
-    Args:
-        commands: The commands by alias, as `Registry.commands` returns
-            them; each command is added once, under its name.
-        src: The source; overloads it may not run are left out.
-        soft_enums: The enum types sent as dynamic (soft) enums.
-        runnable: Receives, per command name, the overloads the source may
-            run (Go's second return value).
-
-    Returns:
-        The packet.
-    """
+    `BuildAvailableCommands`)."""
     var pk = AvailableCommands()
     var enums = List[_CommandEnum]()
     var enum_indices = Dict[String, UInt32]()

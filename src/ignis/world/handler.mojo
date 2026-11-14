@@ -22,42 +22,19 @@ trait Handler(Deinitable, Movable):
         T: WorldTypes
     ](mut self, mut tx: World[T], e: EntityHandle[T.Entities]):
         """Handles an entity being added to the world (Go
-        `HandleEntitySpawn`).
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            tx: The world.
-            e: A copy of the entity.
-        """
+        `HandleEntitySpawn`)."""
         pass
 
     def handle_entity_despawn[
         T: WorldTypes
     ](mut self, mut tx: World[T], e: EntityHandle[T.Entities]):
         """Handles an entity being removed from the world (Go
-        `HandleEntityDespawn`).
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            tx: The world.
-            e: A copy of the entity.
-        """
+        `HandleEntityDespawn`)."""
         pass
 
     def handle_close[T: WorldTypes](mut self, mut tx: World[T]):
         """Handles the world closing, before chunks are saved (Go
-        `HandleClose`).
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            tx: The world.
-        """
+        `HandleClose`)."""
         pass
 
 

@@ -23,18 +23,7 @@ from .stack import Enchantment, Stack
 
 def write_nbt(s: Stack) raises -> Tree:
     """Encodes the properties of a stack to the NBT sent with it (Go
-    `WriteNBT(s, false)`).
-
-    Args:
-        s: The stack.
-
-    Returns:
-        A root compound; empty for an empty stack or one without
-        properties.
-
-    Raises:
-        If the tree cannot be built.
-    """
+    `WriteNBT(s, false)`)."""
     var tag = Tree()
     if s.empty():
         return tag^
@@ -78,19 +67,7 @@ def write_nbt(s: Stack) raises -> Tree:
 
 def read_nbt(data: Tree, s: Stack) raises -> Stack:
     """Applies the NBT received with a stack to it (Go `ReadNBT(data, &s)`).
-    Tags of the wrong type are ignored, as Go's type assertions do.
-
-    Args:
-        data: The stack's NBT; an empty tree changes nothing.
-        s: The stack, already holding its item and count.
-
-    Returns:
-        The stack with damage, name, lore, enchantments, anvil cost and the
-        unbreakable flag applied.
-
-    Raises:
-        If the tree is inconsistent.
-    """
+    Tags of the wrong type are ignored, as Go's type assertions do."""
     if data.is_empty() or data.type_of(data.root()) != TAG_COMPOUND:
         return s.copy()
     var m = data.root()

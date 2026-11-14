@@ -24,26 +24,11 @@ struct Fence(BlockModel, ImplicitlyCopyable):
     """Whether the fence is wooden; wooden and nether brick fences do not connect."""
 
     def __init__(out self, *, wood: Bool = False):
-        """Creates the model; omitted fields take Go zero values.
-
-        Args:
-            wood: Whether the fence is wooden; wooden and nether brick fences do not connect.
-        """
+        """Creates the model; omitted fields take Go zero values."""
         self.wood = wood
 
     def bbox[S: BlockSource](self, pos: Pos, src: S) -> List[BBox]:
-        """Returns the boxes of the model (Go `BBox`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            src: The blocks around it.
-
-        Returns:
-            The boxes, relative to the block.
-        """
+        """Returns the boxes of the model (Go `BBox`)."""
         var boxes = List[BBox](capacity=2)
         var connect_west = self.connects(pos, Face.WEST, src)
         var connect_east = self.connects(pos, Face.EAST, src)
@@ -79,36 +64,12 @@ struct Fence(BlockModel, ImplicitlyCopyable):
         return boxes^
 
     def face_solid[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
-        """Reports whether a face is solid (Go `FaceSolid`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the face is solid.
-        """
+        """Reports whether a face is solid (Go `FaceSolid`)."""
         return face == Face.DOWN or face == Face.UP
 
     def connects[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
         """Reports whether the fence connects to the block on a face: a fence
-        of the same kind, a solid face or a fence gate (Go `Connects`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the fence.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the fence connects.
-        """
+        of the same kind, a solid face or a fence gate (Go `Connects`)."""
         var side_pos = pos.side(face)
         var side = block_at(src, side_pos)
         if case .Some(fence) = block_model_as[Fence](side):

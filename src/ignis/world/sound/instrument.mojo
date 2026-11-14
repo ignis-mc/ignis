@@ -1,5 +1,4 @@
-"""`Instrument`, ported from Dragonfly `server/world/sound/instrument.go`.
-"""
+"""`Instrument`, ported from Dragonfly `server/world/sound/instrument.go`."""
 
 
 struct Instrument(Equatable, ImplicitlyCopyable):
@@ -41,47 +40,24 @@ struct Instrument(Equatable, ImplicitlyCopyable):
     """Go `Pling()`."""
 
     def __init__(out self, v: Int):
-        """Creates the value with index `v` (Go `Instrument{v}`).
-
-        Args:
-            v: 0 to 15.
-        """
+        """Creates the value with index `v` (Go `Instrument{v}`)."""
         self._v = UInt8(v)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two values.
-
-        Args:
-            other: The value to compare with.
-
-        Returns:
-            True if both are the same.
-        """
+        """Compares two values."""
         return self._v == other._v
 
     def uint8(self) -> UInt8:
-        """Returns the value as a byte (Go `Uint8`).
-
-        Returns:
-            0 to 15.
-        """
+        """Returns the value as a byte (Go `Uint8`)."""
         return self._v
 
     def int32(self) -> Int32:
-        """Returns the instrument as an int32 (Go `Int32`).
-
-        Returns:
-            0 to 15.
-        """
+        """Returns the instrument as an int32 (Go `Int32`)."""
         return Int32(self._v)
 
 
 def instruments() -> List[Instrument]:
-    """Returns every instrument (no Go counterpart).
-
-    Returns:
-        The values.
-    """
+    """Returns every instrument (no Go counterpart)."""
     var out = List[Instrument](capacity=16)
     for i in range(16):
         out.append(Instrument(i))

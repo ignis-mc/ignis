@@ -15,37 +15,20 @@ from .settings import Settings
 
 
 def set_raining(mut s: Settings, raining: Bool, duration_ms: Int):
-    """Turns rain on or off for a duration (Go `setRaining`).
-
-    Args:
-        s: The settings.
-        raining: Whether it rains.
-        duration_ms: How long until the rain toggles again.
-    """
+    """Turns rain on or off for a duration (Go `setRaining`)."""
     s.raining = raining
     s.rain_time = Int64(duration_ms // 50)
 
 
 def set_thunder(mut s: Settings, thundering: Bool, duration_ms: Int):
-    """Turns thunder on or off for a duration (Go `setThunder`).
-
-    Args:
-        s: The settings.
-        thundering: Whether it thunders.
-        duration_ms: How long until thunder toggles again.
-    """
+    """Turns thunder on or off for a duration (Go `setThunder`)."""
     s.thundering = thundering
     s.thunder_time = Int64(duration_ms // 50)
 
 
 def advance_weather(mut s: Settings, mut r: Rand):
     """Counts the rain and thunder timers down by a tick and toggles the
-    weather when they run out (Go `advanceWeather`).
-
-    Args:
-        s: The settings.
-        r: The world's generator.
-    """
+    weather when they run out (Go `advanceWeather`)."""
     s.rain_time -= 1
     s.thunder_time -= 1
     if s.rain_time <= 0:

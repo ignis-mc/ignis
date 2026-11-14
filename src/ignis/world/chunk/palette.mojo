@@ -15,27 +15,13 @@ def _next_size(size: UInt8) -> UInt8:
 def padded(size: UInt8) -> Bool:
     """Reports whether storages with this many bits per index are padded
     (Go `paletteSize.padded`): sizes 3, 5 and 6 leave unused bits in every
-    word and need one extra word.
-
-    Args:
-        size: The bits per index.
-
-    Returns:
-        True for 3, 5 and 6.
-    """
+    word and need one extra word."""
     return size == 3 or size == 5 or size == 6
 
 
 def palette_size_for(n: Int) -> UInt8:
     """Returns the smallest palette size that holds `n` values (Go
-    `paletteSizeFor`).
-
-    Args:
-        n: The number of distinct values.
-
-    Returns:
-        The bits per index: 0, 1, 2, 3, 4, 5, 6, 8 or 16.
-    """
+    `paletteSizeFor`)."""
     var size = UInt8(0)
     while True:
         if n <= (1 << Int(size)):
@@ -48,14 +34,7 @@ def palette_size_for(n: Int) -> UInt8:
 
 def uint32s(size: UInt8) -> Int:
     """Returns how many words a storage with this palette size needs (Go
-    `paletteSize.uint32s`).
-
-    Args:
-        size: The bits per index.
-
-    Returns:
-        The number of 32-bit words holding the 4096 indices.
-    """
+    `paletteSize.uint32s`)."""
     var count = 0
     if size != 0:
         count = 4096 // (32 // Int(size))
@@ -74,51 +53,26 @@ struct Palette(Copyable, Equatable, Sized):
     var _values: List[UInt32]
 
     def __init__(out self, size: UInt8, var values: List[UInt32]):
-        """Creates a palette (Go `newPalette`).
-
-        Args:
-            size: The bits per index of the storage it belongs to.
-            values: The values.
-        """
+        """Creates a palette (Go `newPalette`)."""
         self._last = UInt32.MAX
         self._last_index = 0
         self._size = size
         self._values = values^
 
     def __len__(self) -> Int:
-        """Returns the number of values (Go `Len`).
-
-        Returns:
-            The number of values.
-        """
+        """Returns the number of values (Go `Len`)."""
         return len(self._values)
 
     def size(self) -> UInt8:
-        """Returns the bits per index of the storage.
-
-        Returns:
-            The palette size.
-        """
+        """Returns the bits per index of the storage."""
         return self._size
 
     def values(ref self) -> ref[self._values] List[UInt32]:
-        """Returns the values.
-
-        Returns:
-            The values, in index order.
-        """
+        """Returns the values."""
         return self._values
 
     def add(mut self, v: UInt32) -> Tuple[Int16, Bool]:
-        """Appends a value without checking if it is present (Go `Add`).
-
-        Args:
-            v: The value.
-
-        Returns:
-            The index of the value, and whether the palette grew to the
-            next size.
-        """
+        """Appends a value without checking if it is present (Go `Add`)."""
         var i = Int16(len(self._values))
         self._values.append(v)
         if self._needs_resize():
@@ -127,27 +81,13 @@ struct Palette(Copyable, Equatable, Sized):
         return (i, False)
 
     def replace[F: def(UInt32) -> UInt32](mut self, f: F):
-        """Replaces every value with `f(value)` (Go `Replace`).
-
-        Parameters:
-            F: The function type.
-
-        Args:
-            f: The mapping.
-        """
+        """Replaces every value with `f(value)` (Go `Replace`)."""
         self._last = UInt32.MAX
         for i in range(len(self._values)):
             self._values[i] = f(self._values[i])
 
     def index(mut self, runtime_id: UInt32) -> Int16:
-        """Returns the index of a value, or -1 if it is absent (Go `Index`).
-
-        Args:
-            runtime_id: The value.
-
-        Returns:
-            The index, or -1.
-        """
+        """Returns the index of a value, or -1 if it is absent (Go `Index`)."""
         if runtime_id == self._last:
             return self._last_index
         for i in range(len(self._values)):
@@ -158,26 +98,12 @@ struct Palette(Copyable, Equatable, Sized):
         return -1
 
     def value(self, i: UInt16) -> UInt32:
-        """Returns the value at an index (Go `Value`).
-
-        Args:
-            i: The index.
-
-        Returns:
-            The value.
-        """
+        """Returns the value at an index (Go `Value`)."""
         return self._values[Int(i)]
 
     def _needs_resize(self) -> Bool:
         return len(self._values) > (1 << Int(self._size))
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares size and values; the lookup cache is ignored.
-
-        Args:
-            other: The palette to compare with.
-
-        Returns:
-            True if both are equal.
-        """
+        """Compares size and values; the lookup cache is ignored."""
         return self._size == other._size and self._values == other._values

@@ -48,32 +48,16 @@ struct GlazedTerracotta(
         colour: Colour = Colour.WHITE,
         facing: Direction = Direction.NORTH,
     ):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            colour: The colour of the glazed terracotta.
-            facing: The direction the top of the texture faces; `UNKNOWN_DIRECTION` encodes as 0.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.colour = colour
         self.facing = facing
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         var facing = Int32(0)
         if self.facing != UNKNOWN_DIRECTION:
             facing = Int32(2 + Int(self.facing))
@@ -85,23 +69,12 @@ struct GlazedTerracotta(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return UInt64(self.colour.uint8()) | UInt64(Int(self.facing)) << 4
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return GlazedTerracotta(
             colour=Colour(Int(hash & 0xF)),
             facing=Direction(Int((hash >> 4) & 0x7)),
@@ -109,11 +82,7 @@ struct GlazedTerracotta(
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         var dirs = directions()
         dirs.append(UNKNOWN_DIRECTION)
@@ -123,19 +92,11 @@ struct GlazedTerracotta(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(1.4, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE)
 
     def model(self) -> SolidModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return SolidModel()
 
     def encode_item(self) -> EncodedItem:

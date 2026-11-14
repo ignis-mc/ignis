@@ -18,9 +18,5 @@ struct Invisibility(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(14, Invisibility)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0xf6, 0xf6, 0xf6, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0xF6, 0xF6, 0xF6, 0xFF)

@@ -1,5 +1,4 @@
-"""`DiscType`, ported from Dragonfly `server/world/sound/disc_type.go`.
-"""
+"""`DiscType`, ported from Dragonfly `server/world/sound/disc_type.go`."""
 
 from ...internal.enum import enum_name
 
@@ -53,38 +52,19 @@ struct DiscType(Equatable, ImplicitlyCopyable, Writable):
     """Go `DiscLavaChicken()`."""
 
     def __init__(out self, v: Int):
-        """Creates the value with index `v` (Go `DiscType{v}`).
-
-        Args:
-            v: 0 to 20.
-        """
+        """Creates the value with index `v` (Go `DiscType{v}`)."""
         self._v = UInt8(v)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two values.
-
-        Args:
-            other: The value to compare with.
-
-        Returns:
-            True if both are the same.
-        """
+        """Compares two values."""
         return self._v == other._v
 
     def uint8(self) -> UInt8:
-        """Returns the value as a byte (Go `Uint8`).
-
-        Returns:
-            0 to 20.
-        """
+        """Returns the value as a byte (Go `Uint8`)."""
         return self._v
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the value's string form (Go `String`).
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the value's string form (Go `String`)."""
         writer.write(
             enum_name(
                 (
@@ -98,11 +78,7 @@ struct DiscType(Equatable, ImplicitlyCopyable, Writable):
 
     def display_name(self) -> String:
         """Returns the name shown for the disc (Go `DisplayName`, which title
-        cases the names of discs after `otherside`).
-
-        Returns:
-            The display name.
-        """
+        cases the names of discs after `otherside`)."""
         if self._v == 17:
             return "Creator (Music Box)"
         if self._v == 20:
@@ -114,11 +90,7 @@ struct DiscType(Equatable, ImplicitlyCopyable, Writable):
         return s^
 
     def author(self) -> StaticString:
-        """Returns the composer of the disc (Go `Author`).
-
-        Returns:
-            The author.
-        """
+        """Returns the composer of the disc (Go `Author`)."""
         if self._v <= 11:
             return "C418"
         if self._v == 12 or self._v == 13 or self._v == 16 or self._v == 17:
@@ -133,11 +105,7 @@ struct DiscType(Equatable, ImplicitlyCopyable, Writable):
 
 
 def music_discs() -> List[DiscType]:
-    """Returns every music disc (Go `MusicDiscs`).
-
-    Returns:
-        The values.
-    """
+    """Returns every music disc (Go `MusicDiscs`)."""
     var out = List[DiscType](capacity=21)
     for i in range(21):
         out.append(DiscType(i))

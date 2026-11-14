@@ -30,15 +30,7 @@ struct IteratorRange(Copyable, Defaultable):
         self.dimension = None
 
     def within(self, pos: ChunkPos, dim: Dimension) -> Bool:
-        """Reports whether a column is in the range (Go `within`).
-
-        Args:
-            pos: The chunk position.
-            dim: The dimension.
-
-        Returns:
-            True if the column should be yielded.
-        """
+        """Reports whether a column is in the range (Go `within`)."""
         if self.dimension and self.dimension.value() != dim:
             return False
         var zero = ChunkPos(0, 0)
@@ -65,12 +57,7 @@ struct ColumnIterator(Movable):
     var _dim: Dimension
 
     def __init__(out self, db: DB, var r: IteratorRange):
-        """Creates an iterator (Go `DB.NewColumnIterator`).
-
-        Args:
-            db: The provider.
-            r: The range of columns to yield.
-        """
+        """Creates an iterator (Go `DB.NewColumnIterator`)."""
         self._it = db.ldb().new_iterator()
         self._r = r^
         self._seen = Dict[String, Bool]()
@@ -79,18 +66,7 @@ struct ColumnIterator(Movable):
         self._dim = OVERWORLD
 
     def next(mut self, db: DB) raises -> Bool:
-        """Moves to the next column (Go `Next`).
-
-        Args:
-            db: The provider the iterator was created from.
-
-        Returns:
-            True if a column was loaded; False when exhausted.
-
-        Raises:
-            If a key names an unknown dimension or a column cannot be
-            decoded (Go stores this error for `Error`).
-        """
+        """Moves to the next column (Go `Next`)."""
         while self._it.next():
             var k = self._it.key()
             var n = len(k)
@@ -141,25 +117,13 @@ struct ColumnIterator(Movable):
         return False
 
     def column(ref self) -> ref[self._current] Optional[Column]:
-        """Returns the current column (Go `Column`).
-
-        Returns:
-            The column, or None before the first or after the last.
-        """
+        """Returns the current column (Go `Column`)."""
         return self._current
 
     def position(self) -> ChunkPos:
-        """Returns the position of the current column (Go `Position`).
-
-        Returns:
-            The chunk position.
-        """
+        """Returns the position of the current column (Go `Position`)."""
         return self._pos
 
     def dimension(self) -> Dimension:
-        """Returns the dimension of the current column (Go `Dimension`).
-
-        Returns:
-            The dimension.
-        """
+        """Returns the dimension of the current column (Go `Dimension`)."""
         return self._dim

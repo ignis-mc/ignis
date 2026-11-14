@@ -57,11 +57,7 @@ struct Column(Copyable):
     """The block updates scheduled in the chunk."""
 
     def __init__(out self, var chunk: Chunk):
-        """Creates a column holding only a chunk.
-
-        Args:
-            chunk: The chunk.
-        """
+        """Creates a column holding only a chunk."""
         self.chunk = chunk^
         self.entities = List[Entity]()
         self.block_entities = List[BlockEntity]()

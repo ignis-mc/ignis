@@ -50,15 +50,7 @@ struct Settings(Copyable, Writable):
 
 
 def default_settings(mut r: Rand) -> Settings:
-    """Returns the settings of a new world (Go `defaultSettings`).
-
-    Args:
-        r: The generator the rain and thunder times are drawn from (Go uses
-            the global generator).
-
-    Returns:
-        The settings.
-    """
+    """Returns the settings of a new world (Go `defaultSettings`)."""
     var rain = Int64(r.int_n(8400) + 600) * 20
     var thunder = Int64(r.int_n(8400) + 600) * 20
     return Settings(

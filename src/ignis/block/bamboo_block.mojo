@@ -36,32 +36,16 @@ struct BambooBlock(
     """Whether the block has been stripped."""
 
     def __init__(out self, *, axis: Axis = Axis.Y, stripped: Bool = False):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            axis: The axis the block faces.
-            stripped: Whether the block has been stripped.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.axis = axis
         self.stripped = stripped
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         var name = (
             "minecraft:stripped_bamboo_block" if self.stripped else "minecraft:bamboo_block"
         )
@@ -70,11 +54,7 @@ struct BambooBlock(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             UInt64(Int(self.axis))
             | (UInt64(1) if self.stripped else UInt64(0)) << 2
@@ -82,25 +62,14 @@ struct BambooBlock(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return BambooBlock(
             axis=Axis(Int(hash & 0x3)), stripped=(hash >> 2) & 0x1 != 0
         )
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for axis in axes():
             out.append(BambooBlock(axis=axis))
@@ -108,19 +77,11 @@ struct BambooBlock(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(2.0, ALWAYS_HARVESTABLE, AXE_EFFECTIVE)
 
     def model(self) -> SolidModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return SolidModel()
 
     def fuel_info(self) -> FuelInfo:

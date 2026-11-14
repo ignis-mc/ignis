@@ -15,9 +15,5 @@ struct Darkness(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(30, Darkness)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0x29, 0x27, 0x21, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0x29, 0x27, 0x21, 0xFF)

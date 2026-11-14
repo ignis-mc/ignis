@@ -1,5 +1,4 @@
-"""`Anvil`, ported from Dragonfly `server/block/model/anvil.go`.
-"""
+"""`Anvil`, ported from Dragonfly `server/block/model/anvil.go`."""
 
 from ...world.block_model import BlockModel
 from ...world.block_source import BlockSource
@@ -20,40 +19,13 @@ struct Anvil(BlockModel, ImplicitlyCopyable):
     """The direction the anvil faces."""
 
     def __init__(out self, *, facing: Direction = Direction.NORTH):
-        """Creates the model; omitted fields take Go zero values.
-
-        Args:
-            facing: The direction the anvil faces.
-        """
+        """Creates the model; omitted fields take Go zero values."""
         self.facing = facing
 
     def bbox[S: BlockSource](self, pos: Pos, src: S) -> List[BBox]:
-        """Returns the boxes of the model (Go `BBox`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            src: The blocks around it.
-
-        Returns:
-            The boxes, relative to the block.
-        """
+        """Returns the boxes of the model (Go `BBox`)."""
         return [FULL.stretch(self.facing.rotate_left().face().axis(), -0.125)]
 
     def face_solid[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
-        """Reports whether a face is solid (Go `FaceSolid`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the face is solid.
-        """
+        """Reports whether a face is solid (Go `FaceSolid`)."""
         return False

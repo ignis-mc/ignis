@@ -22,46 +22,23 @@ struct EnchantmentRarity(Equatable, ImplicitlyCopyable):
     """Go `item.EnchantmentRarityVeryRare`."""
 
     def __init__(out self, r: Int):
-        """Creates the rarity with an index.
-
-        Args:
-            r: 0 (common) to 3 (very rare).
-        """
+        """Creates the rarity with an index."""
         self._r = UInt8(r)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two rarities.
-
-        Args:
-            other: The rarity to compare with.
-
-        Returns:
-            True if both are the same rarity.
-        """
+        """Compares two rarities."""
         return self._r == other._r
 
     def name(self) -> StaticString:
-        """Returns the name of the rarity (Go `Name`).
-
-        Returns:
-            `Common`, `Uncommon`, `Rare` or `Very Rare`.
-        """
+        """Returns the name of the rarity (Go `Name`)."""
         return enum_name("Common,Uncommon,Rare,Very Rare", Int(self._r))
 
     def cost(self) -> Int:
-        """Returns the anvil cost multiplier of the rarity (Go `Cost`).
-
-        Returns:
-            1, 2, 4 or 8.
-        """
+        """Returns the anvil cost multiplier of the rarity (Go `Cost`)."""
         return 1 << Int(self._r)
 
     def weight(self) -> Int:
-        """Returns the weight of the rarity when enchanting (Go `Weight`).
-
-        Returns:
-            10, 5, 2 or 1.
-        """
+        """Returns the weight of the rarity when enchanting (Go `Weight`)."""
         if self._r == 0:
             return 10
         if self._r == 1:

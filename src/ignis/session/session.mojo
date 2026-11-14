@@ -266,27 +266,13 @@ struct HandleResult(Copyable, Defaultable):
 
 
 def uuid_key(id: UUID) -> String:
-    """Returns the key the session uses for an entity.
-
-    Args:
-        id: The entity's UUID.
-
-    Returns:
-        The UUID as text.
-    """
+    """Returns the key the session uses for an entity."""
     return String(id)
 
 
 def game_type_from_mode(mode: GameMode) -> Int32:
     """Returns the network game type of a game mode (Go
-    `gameTypeFromMode`): adventure is sent as survival, as Go does.
-
-    Args:
-        mode: The game mode.
-
-    Returns:
-        A `GAME_TYPE_*` value.
-    """
+    `gameTypeFromMode`): adventure is sent as survival, as Go does."""
     if mode == GAME_MODE_SPECTATOR:
         return GAME_TYPE_SPECTATOR
     if mode.allows_flying() and mode.creative_inventory():
@@ -296,17 +282,7 @@ def game_type_from_mode(mode: GameMode) -> Int32:
 
 def player_metadata(p: Player) raises -> EntityMetadata:
     """Builds the metadata of a player (Go `parseEntityMetadata` and
-    `addSpecificMetadata` for the player properties ported so far).
-
-    Args:
-        p: The player.
-
-    Returns:
-        The metadata.
-
-    Raises:
-        Never in practice; setting a flag raises only on a malformed map.
-    """
+    `addSpecificMetadata` for the player properties ported so far)."""
     var m = new_entity_metadata()
     m.set(ENTITY_DATA_KEY_WIDTH, Float32(BBOX_WIDTH))
     m.set(ENTITY_DATA_KEY_HEIGHT, Float32(BBOX_HEIGHT))
@@ -338,26 +314,12 @@ def player_metadata(p: Player) raises -> EntityMetadata:
 
 
 def vec32_to64(v: ProtocolVec3) -> Vec3:
-    """Widens a network vector (Go `vec32To64`).
-
-    Args:
-        v: The vector.
-
-    Returns:
-        The same vector in `Float64`.
-    """
+    """Widens a network vector (Go `vec32To64`)."""
     return Vec3(Float64(v.x), Float64(v.y), Float64(v.z))
 
 
 def vec64_to32(v: Vec3) -> ProtocolVec3:
-    """Narrows a vector for the network (Go `vec64To32`).
-
-    Args:
-        v: The vector.
-
-    Returns:
-        The vector in `Float32`.
-    """
+    """Narrows a vector for the network (Go `vec64To32`)."""
     return ProtocolVec3(Float32(v.x()), Float32(v.y()), Float32(v.z()))
 
 
@@ -376,11 +338,7 @@ def _block_pos(v: Vec3) -> BlockPos:
 
 struct Session[C: Conn](Movable):
     """A connected player: decodes its packets and writes what it sees (Go
-    `session.Session`).
-
-    Parameters:
-        C: The connection type.
-    """
+    `session.Session`)."""
 
     var conn: Self.C
     """The connection (Go `conn`)."""
@@ -416,14 +374,7 @@ struct Session[C: Conn](Movable):
         conf: Config,
     ):
         """Creates the session of a spawned connection (Go `Config.New`
-        followed by `SetHandle`).
-
-        Args:
-            conn: The connection, after the client spawned.
-            player: The player the session controls.
-            skin: The skin from the client data.
-            conf: The session settings.
-        """
+        followed by `SetHandle`)."""
         var r = conn.chunk_radius()
         var clamped = r > conf.max_chunk_radius
         if clamped:
@@ -477,14 +428,7 @@ struct Session[C: Conn](Movable):
     def write_packet[P: Packet](mut self, mut pk: P):
         """Queues a packet (Go `writePacket`). A failed write is kept for
         `write_error()` and later writes are dropped, as Go drops writes
-        to a closed session.
-
-        Parameters:
-            P: The packet type.
-
-        Args:
-            pk: The packet.
-        """
+        to a closed session."""
         if self._write_error:
             return
         try:
@@ -493,11 +437,7 @@ struct Session[C: Conn](Movable):
             self._write_error = String(e)
 
     def queue(self) -> ArcPointer[PacketQueue]:
-        """Returns the queue the session's world viewer writes into.
-
-        Returns:
-            A reference to the shared queue, for `SessionViewer`.
-        """
+        """Returns the queue the session's world viewer writes into."""
         return self._queue
 
     def drain_queue(mut self):
@@ -525,11 +465,7 @@ struct Session[C: Conn](Movable):
             self._write_error = String(e)
 
     def write_error(self) -> Optional[String]:
-        """Returns why writing failed, if it did.
-
-        Returns:
-            The first write error, or `None`.
-        """
+        """Returns why writing failed, if it did."""
         return self._write_error.copy()
 
     # ===------------------------------------------------------------------=== #
@@ -539,16 +475,7 @@ struct Session[C: Conn](Movable):
     def spawn[T: WorldTypes](mut self, mut w: World[T], loader: LoaderID):
         """Shows the player its world (Go `Spawn`): starts the chunk
         loader, the entity identifiers, the game mode and the player's own
-        metadata.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            w: The world the player spawns in.
-            loader: The loader the server added for the session, with a
-                `SessionViewer` over `queue()` (Go `NewLoader`).
-        """
+        metadata."""
         var pos = self.player.position()
         self._dimension = Int32(w.dimension().id)
         self._loader = loader
@@ -563,14 +490,7 @@ struct Session[C: Conn](Movable):
         self.view_entity_state(self.player.copy())
 
     def close[T: WorldTypes](mut self, mut w: World[T]):
-        """Stops loading chunks (the world part of Go `close`).
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            w: The world the session's loader is in.
-        """
+        """Stops loading chunks (the world part of Go `close`)."""
         if case .Some(id) = self._loader:
             _ = w.close_loader(id)
             self._loader = None
@@ -578,31 +498,16 @@ struct Session[C: Conn](Movable):
 
     def into_conn(deinit self) -> Self.C:
         """Ends the session and returns its connection, such as to keep
-        polling it while it closes.
-
-        Returns:
-            The connection.
-        """
+        polling it while it closes."""
         return self.conn^
 
     def loader(self) -> Optional[LoaderID]:
-        """Returns the session's chunk loader, set once the player spawned.
-
-        Returns:
-            The loader, or `None` before `spawn`.
-        """
+        """Returns the session's chunk loader, set once the player spawned."""
         return self._loader
 
     def send_chunks[T: WorldTypes](mut self, mut w: World[T]):
         """Moves the chunk loader to the player and sends up to four new
-        chunks (Go `sendChunks`, run every tick).
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            w: The world.
-        """
+        chunks (Go `sendChunks`, run every tick)."""
         if not self._loader:
             return
         var id = self._loader.value()
@@ -628,16 +533,7 @@ struct Session[C: Conn](Movable):
         offsets: List[SubChunkOffset],
         mut w: World[T],
     ):
-        """Answers a sub-chunk request (Go `ViewSubChunks`).
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            centre: The centre of the request.
-            offsets: The requested offsets from the centre.
-            w: The world.
-        """
+        """Answers a sub-chunk request (Go `ViewSubChunks`)."""
         var r = w.range()
         var br = w.block_registry()
         var pk = SubChunk()
@@ -680,22 +576,7 @@ struct Session[C: Conn](Movable):
         T: WorldTypes
     ](mut self, pk: PacketData, mut w: World[T]) raises -> HandleResult:
         """Handles one packet from the client (Go `handlePacket`). Packets
-        without a ported handler are ignored, as Go ignores unhandled IDs.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            pk: The packet.
-            w: The world the player is in.
-
-        Returns:
-            What other sessions must be shown.
-
-        Raises:
-            If the packet is malformed or invalid in its context; Go closes
-            the session then.
-        """
+        without a ported handler are ignored, as Go ignores unhandled IDs."""
         var id = pk.id()
         if id == ID_PLAYER_AUTH_INPUT:
             return self._handle_player_auth_input(pk.decode[PlayerAuthInput]())
@@ -789,11 +670,7 @@ struct Session[C: Conn](Movable):
         return self.player.move(delta_pos, delta_yaw, delta_pitch)
 
     def _handle_input_flags(mut self, pk: PlayerAuthInput) raises -> Bool:
-        """Go `handleInputFlags` for sprinting, sneaking and flying.
-
-        Returns:
-            True if the metadata viewers see changed.
-        """
+        """Go `handleInputFlags` for sprinting, sneaking and flying."""
         var changed = False
         ref flags = pk.input_data
         if flags.load(INPUT_FLAG_START_SPRINTING):
@@ -838,11 +715,7 @@ struct Session[C: Conn](Movable):
     # ===------------------------------------------------------------------=== #
 
     def send_speed(mut self, speed: Float64):
-        """Sends the movement speed attribute (Go `SendSpeed`).
-
-        Args:
-            speed: The speed, 0.1 by default.
-        """
+        """Sends the movement speed attribute (Go `SendSpeed`)."""
         var a = Attribute()
         a.name = "minecraft:movement"
         a.value = Float32(speed)
@@ -931,24 +804,14 @@ struct Session[C: Conn](Movable):
             self._write_error = String(e)
 
     def send_message(mut self, message: String):
-        """Sends a raw chat message (Go `SendMessage`).
-
-        Args:
-            message: The message.
-        """
+        """Sends a raw chat message (Go `SendMessage`)."""
         var pk = Text()
         pk.text_type = TEXT_TYPE_RAW
         pk.message = message.copy()
         self.write_packet(pk)
 
     def send_translation(mut self, key: String, var parameters: List[String]):
-        """Sends a message the client translates (Go `SendTranslation`).
-
-        Args:
-            key: The resolved translation, such as
-                `§e%multiplayer.player.joined§r`.
-            parameters: Its parameters.
-        """
+        """Sends a message the client translates (Go `SendTranslation`)."""
         var pk = Text()
         pk.text_type = TEXT_TYPE_TRANSLATION
         pk.needs_translation = True
@@ -1029,11 +892,7 @@ struct Session[C: Conn](Movable):
             self.send_available_commands(commands, src)
 
     def view_time(mut self, time: Int64):
-        """Sends the time of day (Go `ViewTime`).
-
-        Args:
-            time: The time in ticks.
-        """
+        """Sends the time of day (Go `ViewTime`)."""
         var pk = SetTime()
         pk.time = Int32(time)
         self.write_packet(pk)
@@ -1044,14 +903,7 @@ struct Session[C: Conn](Movable):
 
     def entity_runtime_id(self, p: Player) -> Optional[UInt64]:
         """Returns the runtime ID the session uses for a player (Go
-        `entityRuntimeID`).
-
-        Args:
-            p: The player.
-
-        Returns:
-            The runtime ID, or `None` if the player was never shown.
-        """
+        `entityRuntimeID`)."""
         return self._entity_runtime_ids.get(uuid_key(p.uuid()))
 
     def _runtime_id_for(mut self, p: Player) -> UInt64:
@@ -1071,12 +923,7 @@ struct Session[C: Conn](Movable):
 
     def add_to_player_list(mut self, p: Player, var skin: Skin):
         """Assigns a player a runtime ID and adds it to the player list
-        (Go `sessionList.sendSessionTo`).
-
-        Args:
-            p: The player of the other session (or this one).
-            skin: That player's join skin.
-        """
+        (Go `sessionList.sendSessionTo`)."""
         var id = self._runtime_id_for(p)
         var entry = PlayerListEntry()
         entry.action_type = PLAYER_LIST_ACTION_ADD
@@ -1092,11 +939,7 @@ struct Session[C: Conn](Movable):
 
     def remove_from_player_list(mut self, p: Player):
         """Forgets a player's runtime ID and removes it from the player
-        list (Go `sessionList.unsendSessionFrom`).
-
-        Args:
-            p: The player of the session that left.
-        """
+        list (Go `sessionList.unsendSessionFrom`)."""
         var key = uuid_key(p.uuid())
         if key in self._entity_runtime_ids:
             try:
@@ -1112,11 +955,7 @@ struct Session[C: Conn](Movable):
 
     def view_entity(mut self, p: Player):
         """Shows another player (Go `ViewEntity` for a `Controllable` that
-        is an actual player); the session's own player gets its state.
-
-        Args:
-            p: The player to show.
-        """
+        is an actual player); the session's own player gets its state."""
         var id = self._runtime_id_for(p)
         if id == SELF_ENTITY_RUNTIME_ID:
             self.view_entity_state(p)
@@ -1145,11 +984,7 @@ struct Session[C: Conn](Movable):
 
     def hide_entity(mut self, p: Player):
         """Removes another player from view (Go `HideEntity`). Players keep
-        their runtime ID until they leave the player list, as in Go.
-
-        Args:
-            p: The player to hide.
-        """
+        their runtime ID until they leave the player list, as in Go."""
         var known = self.entity_runtime_id(p)
         if not known or known.value() == SELF_ENTITY_RUNTIME_ID:
             return
@@ -1160,14 +995,7 @@ struct Session[C: Conn](Movable):
     def view_entity_movement(
         mut self, p: Player, pos: Vec3, rot: Rotation, on_ground: Bool
     ):
-        """Shows a player moving (Go `ViewEntityMovement`).
-
-        Args:
-            p: The player that moved.
-            pos: Its new position.
-            rot: Its new rotation.
-            on_ground: Whether it is on the ground.
-        """
+        """Shows a player moving (Go `ViewEntityMovement`)."""
         var known = self.entity_runtime_id(p)
         if not known:
             return
@@ -1200,12 +1028,7 @@ struct Session[C: Conn](Movable):
 
     def view_entity_teleport(mut self, p: Player, position: Vec3):
         """Teleports a player in view (Go `ViewEntityTeleport` for a
-        `Controllable`).
-
-        Args:
-            p: The player.
-            position: Where it is teleported to.
-        """
+        `Controllable`)."""
         var known = self.entity_runtime_id(p)
         if not known:
             return
@@ -1239,11 +1062,7 @@ struct Session[C: Conn](Movable):
         self.write_packet(pk)
 
     def view_entity_state(mut self, p: Player):
-        """Sends a player's metadata (Go `ViewEntityState`).
-
-        Args:
-            p: The player.
-        """
+        """Sends a player's metadata (Go `ViewEntityState`)."""
         var known = self.entity_runtime_id(p)
         if not known:
             return

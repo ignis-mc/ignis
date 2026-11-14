@@ -1,5 +1,4 @@
-"""The item sounds, ported from Dragonfly `server/world/sound/item.go`.
-"""
+"""The item sounds, ported from Dragonfly `server/world/sound/item.go`."""
 
 from ...block.hash import AnyBlock
 from ..block_registry import UNKNOWN_KIND
@@ -41,11 +40,7 @@ struct ItemUseOn(ImplicitlyCopyable, Sound):
     def __init__(
         out self, *, block: AnyBlock = AnyBlock(kind=UNKNOWN_KIND, state=0)
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            block: Block is generally the block that was created by using...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.block = block
 
 
@@ -73,11 +68,7 @@ struct BucketFill(ImplicitlyCopyable, Sound):
     def __init__(
         out self, *, liquid: AnyBlock = AnyBlock(kind=UNKNOWN_KIND, state=0)
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            liquid: Liquid is the liquid that the bucket is filled up with.
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.liquid = liquid
 
 
@@ -94,11 +85,7 @@ struct BucketEmpty(ImplicitlyCopyable, Sound):
     def __init__(
         out self, *, liquid: AnyBlock = AnyBlock(kind=UNKNOWN_KIND, state=0)
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            liquid: Liquid is the liquid that the bucket places into the world.
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.liquid = liquid
 
 
@@ -123,12 +110,7 @@ struct CrossbowLoad(ImplicitlyCopyable, Sound):
     enchantment."""
 
     def __init__(out self, *, stage: Int = 0, quick_charge: Bool = False):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            stage: Stage is the stage of the crossbow.
-            quick_charge: QuickCharge returns if the item being used has quick...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.stage = stage
         self.quick_charge = quick_charge
 
@@ -185,11 +167,7 @@ struct GoatHorn(ImplicitlyCopyable, Sound):
     """Horn is the type of the goat horn."""
 
     def __init__(out self, *, horn: Horn = Horn.PONDER):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            horn: Horn is the type of the goat horn.
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.horn = horn
 
 

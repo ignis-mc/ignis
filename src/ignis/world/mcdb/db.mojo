@@ -71,15 +71,7 @@ comptime CHUNK_VERSION: UInt8 = 42
 
 def index(pos: ChunkPos, dim: Dimension) -> List[UInt8]:
     """Returns the key prefix of a chunk (Go `index`): X and Z as
-    little-endian int32, then the dimension ID unless it is the overworld.
-
-    Args:
-        pos: The chunk position.
-        dim: The dimension.
-
-    Returns:
-        8 or 12 bytes.
-    """
+    little-endian int32, then the dimension ID unless it is the overworld."""
     var b = List[UInt8](capacity=13)
     _put_u32(b, UInt32(pos.x()))
     _put_u32(b, UInt32(pos.z()))
@@ -112,14 +104,7 @@ def _get_u64(b: Span[UInt8, _], o: Int) -> UInt64:
 
 
 def entity_index(id: Int64) -> List[UInt8]:
-    """Returns the key of an entity's data (Go `entityIndex`).
-
-    Args:
-        id: The entity's unique ID.
-
-    Returns:
-        `actorprefix` followed by the ID as a little-endian int64.
-    """
+    """Returns the key of an entity's data (Go `entityIndex`)."""
     var k = List[UInt8](KEY_ENTITY.as_bytes())
     _put_u64(k, UInt64(id))
     return k^
@@ -154,17 +139,7 @@ struct DB(Movable, Provider):
         blocks: ArcPointer[BasicBlockRegistry],
     ) raises:
         """Opens or creates a world (Go `Config.Open`); prefer
-        `Config.open`.
-
-        Args:
-            dir: The world directory.
-            opts: The LevelDB options.
-            blocks: The finalized block registry.
-
-        Raises:
-            If `level.dat` is unsupported or unreadable, or the database
-            cannot be opened.
-        """
+        `Config.open`."""
         var d = String(dir)
         make_dir_all(join(d, "db"))
         var ldat = Data()
@@ -194,36 +169,17 @@ struct DB(Movable, Provider):
     def open(
         dir: StringSlice, blocks: ArcPointer[BasicBlockRegistry]
     ) raises -> DB:
-        """Opens or creates a world with default options (Go `Open`).
-
-        Args:
-            dir: The world directory.
-            blocks: The finalized block registry.
-
-        Returns:
-            The provider.
-
-        Raises:
-            If the world cannot be opened.
-        """
+        """Opens or creates a world with default options (Go `Open`)."""
         from .conf import Config
 
         return Config(blocks).open(dir)
 
     def ldb(ref self) -> ref[self._ldb] LevelDB:
-        """Returns the underlying LevelDB.
-
-        Returns:
-            A reference to it.
-        """
+        """Returns the underlying LevelDB."""
         return self._ldb
 
     def level_data(ref self) -> ref[self._ldat] Data:
-        """Returns the `level.dat` fields that `close` will write.
-
-        Returns:
-            A reference to them.
-        """
+        """Returns the `level.dat` fields that `close` will write."""
         return self._ldat
 
     # ===------------------------------------------------------------------=== #
@@ -231,23 +187,12 @@ struct DB(Movable, Provider):
     # ===------------------------------------------------------------------=== #
 
     def settings(mut self) -> Optional[Settings]:
-        """Returns the settings read from `level.dat` (Go `Settings`).
-
-        Returns:
-            The settings; always present.
-        """
+        """Returns the settings read from `level.dat` (Go `Settings`)."""
         return self._set.copy()
 
     def save_settings(mut self, s: Settings) raises:
         """Stores settings in the `level.dat` written by `close` (Go
-        `SaveSettings`).
-
-        Args:
-            s: The settings.
-
-        Raises:
-            Never; the trait allows it.
-        """
+        `SaveSettings`)."""
         self._ldat.put_settings(s)
         self._set = s.copy()
 
@@ -279,17 +224,7 @@ struct DB(Movable, Provider):
         return (st^, server_id^)
 
     def load_player_spawn_position(mut self, id: UUID) raises -> Optional[Pos]:
-        """Loads a player's spawn position (Go `LoadPlayerSpawnPosition`).
-
-        Args:
-            id: The player's UUID.
-
-        Returns:
-            The position, or None if the player has no data.
-
-        Raises:
-            If the data exists but is invalid or lacks the spawn fields.
-        """
+        """Loads a player's spawn position (Go `LoadPlayerSpawnPosition`)."""
         var r = self._load_player_data(id)
         if not r:
             return None
@@ -309,15 +244,7 @@ struct DB(Movable, Provider):
         )
 
     def save_player_spawn_position(mut self, id: UUID, pos: Pos) raises:
-        """Saves a player's spawn position (Go `SavePlayerSpawnPosition`).
-
-        Args:
-            id: The player's UUID.
-            pos: The position.
-
-        Raises:
-            If existing player data is invalid or the write fails.
-        """
+        """Saves a player's spawn position (Go `SavePlayerSpawnPosition`)."""
         var uid = String(id)
         var server = Tree()
         var k = String("player_server_", uid)
@@ -345,35 +272,13 @@ struct DB(Movable, Provider):
     def load_column(
         mut self, pos: ChunkPos, dim: Dimension
     ) raises -> Optional[Column]:
-        """Loads a column (Go `LoadColumn`).
-
-        Args:
-            pos: The chunk position.
-            dim: The dimension.
-
-        Returns:
-            The column, or None if the chunk was never stored.
-
-        Raises:
-            If the stored data cannot be decoded.
-        """
+        """Loads a column (Go `LoadColumn`)."""
         return self.read_column(pos, dim)
 
     def read_column(
         self, pos: ChunkPos, dim: Dimension
     ) raises -> Optional[Column]:
-        """Loads a column without needing mutable access (`load_column`).
-
-        Args:
-            pos: The chunk position.
-            dim: The dimension.
-
-        Returns:
-            The column, or None if the chunk was never stored.
-
-        Raises:
-            If the stored data cannot be decoded.
-        """
+        """Loads a column without needing mutable access (`load_column`)."""
         try:
             return self._column(pos, dim)
         except e:
@@ -519,16 +424,7 @@ struct DB(Movable, Provider):
     def store_column(
         mut self, pos: ChunkPos, dim: Dimension, var col: Column
     ) raises:
-        """Stores a column in one atomic batch (Go `StoreColumn`).
-
-        Args:
-            pos: The chunk position.
-            dim: The dimension.
-            col: The column.
-
-        Raises:
-            If the column cannot be encoded or written.
-        """
+        """Stores a column in one atomic batch (Go `StoreColumn`)."""
         try:
             self._store_column(pos, dim, col)
         except e:
@@ -648,11 +544,7 @@ struct DB(Movable, Provider):
     def close(mut self) raises:
         """Writes `level.dat` and `levelname.txt` and syncs the database
         (Go `Close`). The provider stays usable; dropping it closes the
-        files.
-
-        Raises:
-            If a file cannot be written.
-        """
+        files."""
         self._ldat.last_played = Int64(unix_time_s())
         var l = LevelDat()
         l.marshal(self._ldat)

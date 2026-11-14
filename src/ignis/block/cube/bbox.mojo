@@ -33,83 +33,35 @@ struct BBox(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         z1: Float64,
     ) -> BBox:
         """Creates a box from two corners, swapping coordinates so that it is
-        well-formed (Go `Box`).
-
-        Args:
-            x0: The first X coordinate.
-            y0: The first Y coordinate.
-            z0: The first Z coordinate.
-            x1: The second X coordinate.
-            y1: The second Y coordinate.
-            z1: The second Z coordinate.
-
-        Returns:
-            The box.
-        """
+        well-formed (Go `Box`)."""
         return BBox(
             Vec3(min(x0, x1), min(y0, y1), min(z0, z1)),
             Vec3(max(x0, x1), max(y0, y1), max(z0, z1)),
         )
 
     def min(self) -> Vec3:
-        """Returns the minimum corner (Go `Min`).
-
-        Returns:
-            The corner.
-        """
+        """Returns the minimum corner (Go `Min`)."""
         return self._min
 
     def max(self) -> Vec3:
-        """Returns the maximum corner (Go `Max`).
-
-        Returns:
-            The corner.
-        """
+        """Returns the maximum corner (Go `Max`)."""
         return self._max
 
     def grow(self, x: Float64) -> BBox:
-        """Grows the box by `x` in every direction (Go `Grow`).
-
-        Args:
-            x: The amount.
-
-        Returns:
-            The grown box.
-        """
+        """Grows the box by `x` in every direction (Go `Grow`)."""
         return self.grow_vec3(Vec3(x, x, x))
 
     def grow_vec3(self, v: Vec3) -> BBox:
-        """Grows the box per axis (Go `GrowVec3`).
-
-        Args:
-            v: The amount per axis.
-
-        Returns:
-            The grown box.
-        """
+        """Grows the box per axis (Go `GrowVec3`)."""
         return BBox(self._min.sub(v), self._max.add(v))
 
     def translate(self, v: Vec3) -> BBox:
-        """Moves the box (Go `Translate`).
-
-        Args:
-            v: The offset.
-
-        Returns:
-            The moved box.
-        """
+        """Moves the box (Go `Translate`)."""
         return BBox(self._min.add(v), self._max.add(v))
 
     def vec3_within(self, v: Vec3) -> Bool:
         """Reports whether a point lies strictly inside the box (Go
-        `Vec3Within`).
-
-        Args:
-            v: The point.
-
-        Returns:
-            True if inside.
-        """
+        `Vec3Within`)."""
         if v.x() <= self._min.x() or v.x() >= self._max.x():
             return False
         if v.z() <= self._min.z() or v.z() >= self._max.z():
@@ -117,39 +69,20 @@ struct BBox(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         return v.y() > self._min.y() and v.y() < self._max.y()
 
     def width(self) -> Float64:
-        """Returns the size on the X axis (Go `Width`).
-
-        Returns:
-            `max.x - min.x`.
-        """
+        """Returns the size on the X axis (Go `Width`)."""
         return self._max.x() - self._min.x()
 
     def length(self) -> Float64:
-        """Returns the size on the Z axis (Go `Length`).
-
-        Returns:
-            `max.z - min.z`.
-        """
+        """Returns the size on the Z axis (Go `Length`)."""
         return self._max.z() - self._min.z()
 
     def height(self) -> Float64:
-        """Returns the size on the Y axis (Go `Height`).
-
-        Returns:
-            `max.y - min.y`.
-        """
+        """Returns the size on the Y axis (Go `Height`)."""
         return self._max.y() - self._min.y()
 
     def extend(self, v: Vec3) -> BBox:
         """Extends the box by a vector: negative elements move the minimum,
-        positive ones the maximum (Go `Extend`).
-
-        Args:
-            v: The vector.
-
-        Returns:
-            The extended box.
-        """
+        positive ones the maximum (Go `Extend`)."""
         var lo = self._min
         var hi = self._max
         for i in range(3):
@@ -160,15 +93,7 @@ struct BBox(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         return BBox(lo, hi)
 
     def extend_towards(self, f: Face, x: Float64) -> BBox:
-        """Extends the box by `x` on one face (Go `ExtendTowards`).
-
-        Args:
-            f: The face to move outwards.
-            x: The amount; negative values shrink the box.
-
-        Returns:
-            The extended box.
-        """
+        """Extends the box by `x` on one face (Go `ExtendTowards`)."""
         var lo = self._min
         var hi = self._max
         if f == Face.DOWN:
@@ -186,15 +111,7 @@ struct BBox(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         return BBox(lo, hi)
 
     def stretch(self, a: Axis, x: Float64) -> BBox:
-        """Extends the box by `x` on both sides of an axis (Go `Stretch`).
-
-        Args:
-            a: The axis.
-            x: The amount; negative values shrink the box.
-
-        Returns:
-            The stretched box.
-        """
+        """Extends the box by `x` on both sides of an axis (Go `Stretch`)."""
         var i = 0
         if a == Axis.Y:
             i = 1
@@ -208,15 +125,7 @@ struct BBox(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         )
 
     def translate_towards(self, f: Face, x: Float64) -> BBox:
-        """Moves the box by `x` towards a face (Go `TranslateTowards`).
-
-        Args:
-            f: The face.
-            x: The distance.
-
-        Returns:
-            The moved box; unchanged for an invalid face.
-        """
+        """Moves the box by `x` towards a face (Go `TranslateTowards`)."""
         if f == Face.DOWN:
             return self.translate(Vec3(0, -x, 0))
         if f == Face.UP:
@@ -233,14 +142,7 @@ struct BBox(Defaultable, Equatable, ImplicitlyCopyable, Writable):
 
     def intersects_with(self, other: BBox) -> Bool:
         """Reports whether two boxes overlap by more than 1e-5 on every axis
-        (Go `IntersectsWith`).
-
-        Args:
-            other: The other box.
-
-        Returns:
-            True if they intersect.
-        """
+        (Go `IntersectsWith`)."""
         return self._intersects_with(other, 1e-5)
 
     def _intersects_with(self, other: BBox, epsilon: Float64) -> Bool:
@@ -260,57 +162,28 @@ struct BBox(Defaultable, Equatable, ImplicitlyCopyable, Writable):
 
     def vec3_within_yz(self, v: Vec3) -> Bool:
         """Reports whether a point is within the box's Y and Z bounds,
-        inclusive (Go `Vec3WithinYZ`).
-
-        Args:
-            v: The point.
-
-        Returns:
-            True if within.
-        """
+        inclusive (Go `Vec3WithinYZ`)."""
         if v.z() < self._min.z() or v.z() > self._max.z():
             return False
         return v.y() >= self._min.y() and v.y() <= self._max.y()
 
     def vec3_within_xz(self, v: Vec3) -> Bool:
         """Reports whether a point is within the box's X and Z bounds,
-        inclusive (Go `Vec3WithinXZ`).
-
-        Args:
-            v: The point.
-
-        Returns:
-            True if within.
-        """
+        inclusive (Go `Vec3WithinXZ`)."""
         if v.x() < self._min.x() or v.x() > self._max.x():
             return False
         return v.z() >= self._min.z() and v.z() <= self._max.z()
 
     def vec3_within_xy(self, v: Vec3) -> Bool:
         """Reports whether a point is within the box's X and Y bounds,
-        inclusive (Go `Vec3WithinXY`).
-
-        Args:
-            v: The point.
-
-        Returns:
-            True if within.
-        """
+        inclusive (Go `Vec3WithinXY`)."""
         if v.x() < self._min.x() or v.x() > self._max.x():
             return False
         return v.y() >= self._min.y() and v.y() <= self._max.y()
 
     def x_offset(self, nearby: BBox, delta_x: Float64) -> Float64:
         """Clips a movement on the X axis so that this box does not move into
-        `nearby` (Go `XOffset`).
-
-        Args:
-            nearby: The box to collide with.
-            delta_x: The movement.
-
-        Returns:
-            The clipped movement.
-        """
+        `nearby` (Go `XOffset`)."""
         if (
             self._max.y() <= nearby._min.y()
             or self._min.y() >= nearby._max.y()
@@ -327,15 +200,7 @@ struct BBox(Defaultable, Equatable, ImplicitlyCopyable, Writable):
 
     def y_offset(self, nearby: BBox, delta_y: Float64) -> Float64:
         """Clips a movement on the Y axis so that this box does not move into
-        `nearby` (Go `YOffset`).
-
-        Args:
-            nearby: The box to collide with.
-            delta_y: The movement.
-
-        Returns:
-            The clipped movement.
-        """
+        `nearby` (Go `YOffset`)."""
         if (
             self._max.x() <= nearby._min.x()
             or self._min.x() >= nearby._max.x()
@@ -352,15 +217,7 @@ struct BBox(Defaultable, Equatable, ImplicitlyCopyable, Writable):
 
     def z_offset(self, nearby: BBox, delta_z: Float64) -> Float64:
         """Clips a movement on the Z axis so that this box does not move into
-        `nearby` (Go `ZOffset`).
-
-        Args:
-            nearby: The box to collide with.
-            delta_z: The movement.
-
-        Returns:
-            The clipped movement.
-        """
+        `nearby` (Go `ZOffset`)."""
         if (
             self._max.x() <= nearby._min.x()
             or self._min.x() >= nearby._max.x()
@@ -376,11 +233,7 @@ struct BBox(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         return d
 
     def corners(self) -> List[Vec3]:
-        """Returns the eight corners of the box (Go `Corners`).
-
-        Returns:
-            The corners in Go's order.
-        """
+        """Returns the eight corners of the box (Go `Corners`)."""
         var lo = self._min
         var hi = self._max
         return [
@@ -395,44 +248,21 @@ struct BBox(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         ]
 
     def mul(self, val: Float64) -> BBox:
-        """Scales both corners (Go `Mul`).
-
-        Args:
-            val: The factor.
-
-        Returns:
-            The scaled box.
-        """
+        """Scales both corners (Go `Mul`)."""
         return BBox(self._min.mul(val), self._max.mul(val))
 
     def volume(self) -> Float64:
-        """Returns the volume of the box (Go `Volume`).
-
-        Returns:
-            Width times height times length.
-        """
+        """Returns the volume of the box (Go `Volume`)."""
         return self.height() * self.length() * self.width()
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the box as `{min max}`.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the box as `{min max}`."""
         writer.write("{", self._min, " ", self._max, "}")
 
 
 def any_intersections(boxes: List[BBox], search: BBox) -> Bool:
     """Reports whether any box overlaps `search` at all (Go
-    `AnyIntersections`, with no epsilon).
-
-    Args:
-        boxes: The boxes.
-        search: The box to look for.
-
-    Returns:
-        True if one of the boxes intersects it.
-    """
+    `AnyIntersections`, with no epsilon)."""
     for b in boxes:
         if b._intersects_with(search, 0):
             return True

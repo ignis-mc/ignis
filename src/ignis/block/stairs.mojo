@@ -64,12 +64,6 @@ struct Stairs(
         corner: StairsCorner = StairsCorner.NONE,
     ):
         """Creates the block; `block` is required, the other fields default to Go zero values.
-
-        Args:
-            block: The block the stairs are made of.
-            upside_down: Whether the full side of the stairs is at the top.
-            facing: The direction the full side of the stairs faces.
-            corner: The corner the stairs form with the stairs around them.
         """
         self.block = block
         self.upside_down = upside_down
@@ -77,22 +71,11 @@ struct Stairs(
         self.corner = corner
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         return BlockState(
             String(t"minecraft:{encode_stairs_block(self.block)}_stairs"),
             Properties()
@@ -102,11 +85,7 @@ struct Stairs(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             hash_block(self.block)
             | (UInt64(1) if self.upside_down else UInt64(0)) << 32
@@ -116,14 +95,7 @@ struct Stairs(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Stairs(
             block=unhash_block(hash & 0xFFFFFFFF),
             upside_down=(hash >> 32) & 0x1 != 0,
@@ -133,11 +105,7 @@ struct Stairs(
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for i in range(4):
             for upside_down in [True, False]:
@@ -154,11 +122,7 @@ struct Stairs(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         var info = break_info(self.block.kind, self.block.state).value()
         return new_break_info(
             info.hardness, info.harvestable, info.effective
@@ -166,19 +130,11 @@ struct Stairs(
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go
-        `LightDiffusionLevel`).
-
-        Returns:
-            The diffusion level, 0 to 15.
-        """
+        `LightDiffusionLevel`)."""
         return 0
 
     def model(self) -> StairModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return StairModel(
             facing=self.facing,
             upside_down=self.upside_down,
@@ -213,12 +169,5 @@ struct Stairs(
 
 def to_stairs_direction(v: Direction) -> Int32:
     """Converts a direction to the `weirdo_direction` property (Go
-    `toStairsDirection`).
-
-    Args:
-        v: The direction the full side faces.
-
-    Returns:
-        `3 - v`.
-    """
+    `toStairsDirection`)."""
     return Int32(3 - Int(v))

@@ -45,17 +45,7 @@ struct LevelDat(Movable):
 
     @staticmethod
     def read(b: Span[UInt8, _]) raises -> LevelDat:
-        """Parses a `level.dat` (Go `Read`).
-
-        Args:
-            b: The file contents.
-
-        Returns:
-            The `level.dat`.
-
-        Raises:
-            If the header is short or the payload shorter than it says.
-        """
+        """Parses a `level.dat` (Go `Read`)."""
         if len(b) < 8:
             raise Error("level.dat: read header: unexpected end of data")
         var n = _i32(b, 4)
@@ -68,58 +58,26 @@ struct LevelDat(Movable):
 
     @staticmethod
     def read_file(path: StringSlice) raises -> LevelDat:
-        """Reads a `level.dat` from disk (Go `ReadFile`).
-
-        Args:
-            path: The file path.
-
-        Returns:
-            The `level.dat`.
-
-        Raises:
-            If the file cannot be read or parsed.
-        """
+        """Reads a `level.dat` from disk (Go `ReadFile`)."""
         var b = read_file(path)
         return LevelDat.read(Span(b))
 
     def ver(self) -> Int:
-        """Returns the storage version (Go `Ver`).
-
-        Returns:
-            The version, 0 for the empty value.
-        """
+        """Returns the storage version (Go `Ver`)."""
         return Int(self.storage_version)
 
     def unmarshal(self) raises -> Data:
-        """Decodes the payload (Go `Unmarshal` into `Data`).
-
-        Returns:
-            The data.
-
-        Raises:
-            If the NBT is malformed or a field has the wrong type.
-        """
+        """Decodes the payload (Go `Unmarshal` into `Data`)."""
         return Data.unmarshal(decode(Span(self.data), LITTLE_ENDIAN))
 
     def marshal(mut self, d: Data) raises:
         """Encodes data as the payload and sets the current storage version
-        (Go `Marshal`).
-
-        Args:
-            d: The data.
-
-        Raises:
-            If a value cannot be encoded.
-        """
+        (Go `Marshal`)."""
         self.data = encode(d.marshal(), LITTLE_ENDIAN)
         self.storage_version = VERSION
 
     def bytes(self) -> List[UInt8]:
-        """Returns the header followed by the payload (Go `Write`).
-
-        Returns:
-            The file contents.
-        """
+        """Returns the header followed by the payload (Go `Write`)."""
         var out = List[UInt8](capacity=8 + len(self.data))
         _put_i32(out, self.storage_version)
         _put_i32(out, Int32(len(self.data)))
@@ -127,12 +85,5 @@ struct LevelDat(Movable):
         return out^
 
     def write_file(self, path: StringSlice) raises:
-        """Writes the `level.dat` to disk, replacing it (Go `WriteFile`).
-
-        Args:
-            path: The file path.
-
-        Raises:
-            If the file cannot be written.
-        """
+        """Writes the `level.dat` to disk, replacing it (Go `WriteFile`)."""
         write_file(path, Span(self.bytes()), sync=True)

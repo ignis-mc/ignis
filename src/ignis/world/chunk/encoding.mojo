@@ -28,12 +28,7 @@ comptime _PRE_FLATTENING_VERSION: Int32 = 17694723
 
 
 def put_varint32(mut buf: List[UInt8], x: Int32):
-    """Appends a zigzag varint32 (gophertunnel `protocol.WriteVarint32`).
-
-    Args:
-        buf: The destination.
-        x: The value.
-    """
+    """Appends a zigzag varint32 (gophertunnel `protocol.WriteVarint32`)."""
     var u = (UInt32(x) << 1) ^ UInt32(x >> 31)
     while u >= 0x80:
         buf.append(UInt8(u & 0x7F) | 0x80)
@@ -42,18 +37,7 @@ def put_varint32(mut buf: List[UInt8], x: Int32):
 
 
 def read_varint32(data: Span[UInt8, _], mut pos: Int) raises -> Int32:
-    """Reads a zigzag varint32 (gophertunnel `protocol.Varint32`).
-
-    Args:
-        data: The input.
-        pos: The offset to read at; advanced past the value.
-
-    Returns:
-        The value.
-
-    Raises:
-        If the input ends early or the varint is longer than 5 bytes.
-    """
+    """Reads a zigzag varint32 (gophertunnel `protocol.Varint32`)."""
     var u = UInt32(0)
     for i in range(5):
         if pos >= len(data):
@@ -71,40 +55,19 @@ trait Encoding:
 
     @staticmethod
     def network() -> UInt8:
-        """Returns the low bit of each storage header: 1 for network.
-
-        Returns:
-            0 or 1.
-        """
+        """Returns the low bit of each storage header: 1 for network."""
         ...
 
     @staticmethod
     def encode_palette(mut buf: List[UInt8], p: Palette):
-        """Appends a palette.
-
-        Args:
-            buf: The destination.
-            p: The palette.
-        """
+        """Appends a palette."""
         ...
 
     @staticmethod
     def decode_palette(
         data: Span[UInt8, _], mut pos: Int, block_size: UInt8
     ) raises -> Palette:
-        """Reads a palette.
-
-        Args:
-            data: The input.
-            pos: The offset to read at; advanced past the palette.
-            block_size: The bits per index of the storage.
-
-        Returns:
-            The palette.
-
-        Raises:
-            If the input is malformed.
-        """
+        """Reads a palette."""
         ...
 
 
@@ -115,22 +78,13 @@ struct NetworkEncoding(Encoding, ImplicitlyCopyable):
 
     @staticmethod
     def network() -> UInt8:
-        """Returns 1, the network flag of storage headers.
-
-        Returns:
-            1.
-        """
+        """Returns 1, the network flag of storage headers."""
         return 1
 
     @staticmethod
     def encode_palette(mut buf: List[UInt8], p: Palette):
         """Appends the palette length (unless 0 bits per index) and each
-        value as varint32s.
-
-        Args:
-            buf: The destination.
-            p: The palette.
-        """
+        value as varint32s."""
         if p._size != 0:
             put_varint32(buf, Int32(len(p)))
         for v in p._values:
@@ -140,19 +94,7 @@ struct NetworkEncoding(Encoding, ImplicitlyCopyable):
     def decode_palette(
         data: Span[UInt8, _], mut pos: Int, block_size: UInt8
     ) raises -> Palette:
-        """Reads a palette written by `encode_palette`.
-
-        Args:
-            data: The input.
-            pos: The offset to read at; advanced past the palette.
-            block_size: The bits per index of the storage.
-
-        Returns:
-            The palette.
-
-        Raises:
-            If the input ends early or the count is not positive.
-        """
+        """Reads a palette written by `encode_palette`."""
         var count = Int32(1)
         if block_size != 0:
             count = read_varint32(data, pos)
@@ -170,20 +112,7 @@ def encode_disk_block_state[
     R: BlockRegistry
 ](br: R, v: UInt32, mut t: Tree, root: Tag) raises:
     """Writes the state of a runtime ID into a compound as `name`, `states`
-    and `version` (Go `BlockPaletteEncoding.EncodeBlockState`).
-
-    Parameters:
-        R: The registry type.
-
-    Args:
-        br: The registry.
-        v: The runtime ID.
-        t: The tree to write into.
-        root: The compound to fill.
-
-    Raises:
-        If the tree rejects a value.
-    """
+    and `version` (Go `BlockPaletteEncoding.EncodeBlockState`)."""
     var name = String()
     var props = Properties()
     if case .Some(s) = br.runtime_id_to_state(v):
@@ -221,26 +150,7 @@ def decode_disk_block_state[
     """Reads a stored block state and returns its runtime ID (Go
     `BlockPaletteEncoding.DecodeBlockState`): pre-1.13 entries (`val`) are
     mapped through `legacy_states.nbt`, newer ones upgraded by the schemas,
-    and properties the state lacks are filled from the block's default.
-
-    Parameters:
-        R: The registry type.
-
-    Args:
-        br: The registry.
-        up: The upgrade data.
-        t: The tree holding the entry.
-        m: The `{name, states, version}` compound.
-        legacy: Set to True if the entry is older than
-            `CURRENT_BLOCK_VERSION` or properties were added to it; derived
-            properties may then hold defaults (Go's `legacy` flag).
-
-    Returns:
-        The runtime ID.
-
-    Raises:
-        If the entry is malformed or names an unknown state.
-    """
+    and properties the state lacks are filled from the block's default."""
     var name = String()
     if case .Some(n) = t.get(m, "name"):
         if t.type_of(n) == TAG_STRING:

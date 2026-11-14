@@ -46,38 +46,19 @@ struct Colour(Equatable, ImplicitlyCopyable, Writable):
     """Go `item.ColourBlack()`."""
 
     def __init__(out self, c: Int):
-        """Creates a colour from its value (Go `Colour{c}`).
-
-        Args:
-            c: 0 to 15.
-        """
+        """Creates a colour from its value (Go `Colour{c}`)."""
         self._c = UInt8(c)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two colours.
-
-        Args:
-            other: The colour to compare with.
-
-        Returns:
-            True if both are the same colour.
-        """
+        """Compares two colours."""
         return self._c == other._c
 
     def uint8(self) -> UInt8:
-        """Returns the colour as a byte (Go `Uint8`).
-
-        Returns:
-            0 to 15.
-        """
+        """Returns the colour as a byte (Go `Uint8`)."""
         return self._c
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the colour's name, such as `light_blue` (Go `String`).
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the colour's name, such as `light_blue` (Go `String`)."""
         writer.write(
             enum_name(
                 (
@@ -105,22 +86,14 @@ struct Colour(Equatable, ImplicitlyCopyable, Writable):
 
     def silver_string(self) -> String:
         """Returns the name, with `silver` for light grey (Go
-        `SilverString`).
-
-        Returns:
-            The name.
-        """
+        `SilverString`)."""
         if self._c == 8:
             return "silver"
         return String(self)
 
 
 def colours() -> List[Colour]:
-    """Returns all 16 colours in order (Go `item.Colours`).
-
-    Returns:
-        The colours.
-    """
+    """Returns all 16 colours in order (Go `item.Colours`)."""
     var out = List[Colour](capacity=16)
     for i in range(16):
         out.append(Colour(i))

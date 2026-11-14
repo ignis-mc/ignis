@@ -26,14 +26,7 @@ def make_internal_key(
     seq: UInt64,
     kt: UInt8,
 ):
-    """Appends an internal key (Go `makeInternalKey`).
-
-    Args:
-        out: The destination.
-        ukey: The user key.
-        seq: The sequence number, at most `KEY_MAX_SEQ`.
-        kt: `KEY_TYPE_DEL` or `KEY_TYPE_VAL`.
-    """
+    """Appends an internal key (Go `makeInternalKey`)."""
     out.extend(ukey)
     put_u64(out, (seq << 8) | UInt64(kt))
 
@@ -41,93 +34,41 @@ def make_internal_key(
 def internal_key(
     ukey: Span[mut=False, UInt8, _], seq: UInt64, kt: UInt8
 ) -> List[UInt8]:
-    """Builds an internal key.
-
-    Args:
-        ukey: The user key.
-        seq: The sequence number.
-        kt: The key type.
-
-    Returns:
-        The internal key.
-    """
+    """Builds an internal key."""
     var out = List[UInt8](capacity=len(ukey) + 8)
     make_internal_key(out, ukey, seq, kt)
     return out^
 
 
 def ukey(ikey: Span[mut=False, UInt8, _]) -> Span[UInt8, ikey.origin]:
-    """Returns the user key part of an internal key.
-
-    Args:
-        ikey: The internal key, at least 8 bytes.
-
-    Returns:
-        A view of the user key.
-    """
+    """Returns the user key part of an internal key."""
     return ikey[: len(ikey) - 8]
 
 
 def key_num(ikey: Span[mut=False, UInt8, _]) -> UInt64:
-    """Returns the packed `seq << 8 | type` of an internal key.
-
-    Args:
-        ikey: The internal key, at least 8 bytes.
-
-    Returns:
-        The packed number.
-    """
+    """Returns the packed `seq << 8 | type` of an internal key."""
     return get_u64(ikey, len(ikey) - 8)
 
 
 def key_seq(ikey: Span[mut=False, UInt8, _]) -> UInt64:
-    """Returns the sequence number of an internal key.
-
-    Args:
-        ikey: The internal key.
-
-    Returns:
-        The sequence number.
-    """
+    """Returns the sequence number of an internal key."""
     return key_num(ikey) >> 8
 
 
 def key_type(ikey: Span[mut=False, UInt8, _]) -> UInt8:
-    """Returns the type byte of an internal key.
-
-    Args:
-        ikey: The internal key.
-
-    Returns:
-        `KEY_TYPE_DEL` or `KEY_TYPE_VAL` (other values mean corruption).
-    """
+    """Returns the type byte of an internal key."""
     return ikey[len(ikey) - 8]
 
 
 def valid_internal_key(ikey: Span[mut=False, UInt8, _]) -> Bool:
-    """Reports whether bytes form a well-formed internal key.
-
-    Args:
-        ikey: The bytes.
-
-    Returns:
-        True if at least 8 bytes long with a known type.
-    """
+    """Reports whether bytes form a well-formed internal key."""
     return len(ikey) >= 8 and key_type(ikey) <= KEY_TYPE_VAL
 
 
 def compare_internal(
     a: Span[mut=False, UInt8, _], b: Span[mut=False, UInt8, _]
 ) -> Int:
-    """Compares internal keys (Go `iComparer.Compare`).
-
-    Args:
-        a: The first key.
-        b: The second key.
-
-    Returns:
-        -1, 0 or 1.
-    """
+    """Compares internal keys (Go `iComparer.Compare`)."""
     var x = compare_bytes(ukey(a), ukey(b))
     if x != 0:
         return x
@@ -144,15 +85,7 @@ def separator(
     a: Span[mut=False, UInt8, _], b: Span[mut=False, UInt8, _]
 ) -> Optional[List[UInt8]]:
     """A short internal key in `[a, b)` (Go `iComparer.Separator` over
-    `bytesComparer.Separator`), or None to use `a` itself.
-
-    Args:
-        a: The last key of a block.
-        b: The first key of the next block.
-
-    Returns:
-        The separator, or None.
-    """
+    `bytesComparer.Separator`), or None to use `a` itself."""
     var ua = ukey(a)
     var ub = ukey(b)
     var n = min(len(ua), len(ub))
@@ -173,14 +106,7 @@ def separator(
 
 def successor(b: Span[mut=False, UInt8, _]) -> Optional[List[UInt8]]:
     """A short internal key not less than `b` (Go `iComparer.Successor`), or
-    None to use `b` itself.
-
-    Args:
-        b: The last key of a table.
-
-    Returns:
-        The successor, or None.
-    """
+    None to use `b` itself."""
     var ub = ukey(b)
     for i in range(len(ub)):
         if ub[i] != 0xFF:

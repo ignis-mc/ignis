@@ -55,15 +55,7 @@ from .wool import Wool
 
 def encode_slab_block(block: AnyBlock, double: Bool) -> Tuple[String, String]:
     """Returns the name and suffix a slab of the block encodes with (Go
-    `encodeSlabBlock`). Aborts for blocks that have no slab, as Go panics.
-
-    Args:
-        block: The block the slab is made of.
-        double: Whether the slab is a double slab.
-
-    Returns:
-        The name and the suffix, which together give the slab's name.
-    """
+    `encodeSlabBlock`). Aborts for blocks that have no slab, as Go panics."""
     var suffix = String("_double_slab") if double else String("_slab")
     if case .Some(b) = block.get[Andesite]():
         return ("polished_andesite" if b.polished else "andesite", suffix)
@@ -174,11 +166,7 @@ def encode_slab_block(block: AnyBlock, double: Bool) -> Tuple[String, String]:
 
 
 def slab_blocks() -> List[AnyBlock]:
-    """Returns every block a slab can be made of (Go `SlabBlocks`).
-
-    Returns:
-        The blocks.
-    """
+    """Returns every block a slab can be made of (Go `SlabBlocks`)."""
     var b: List[AnyBlock] = [
         AnyBlock(Andesite(polished=True)),
         AnyBlock(Andesite()),

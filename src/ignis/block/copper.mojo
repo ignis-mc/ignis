@@ -52,34 +52,17 @@ struct Copper(
         oxidation: OxidationType = OxidationType.UNOXIDISED,
         waxed: Bool = False,
     ):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            type: The type of copper of the block.
-            oxidation: The level of oxidation of the block.
-            waxed: Whether the block is waxed, which stops it from oxidising.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.type = type
         self.oxidation = oxidation
         self.waxed = waxed
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         if (
             self.type == CopperType.NORMAL
             and self.oxidation == OxidationType.UNOXIDISED
@@ -96,11 +79,7 @@ struct Copper(
         return BlockState("minecraft:" + name)
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             UInt64(self.type.uint8())
             | UInt64(self.oxidation.uint8()) << 2
@@ -109,14 +88,7 @@ struct Copper(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Copper(
             type=CopperType(Int(hash & 0x3)),
             oxidation=OxidationType(Int((hash >> 2) & 0x3)),
@@ -125,11 +97,7 @@ struct Copper(
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for waxed in [True, False]:
             for t in copper_types():
@@ -138,51 +106,28 @@ struct Copper(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(
             3, pickaxe_harvestable_from(HARVEST_LEVEL_STONE), PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
 
     def can_oxidate(self) -> Bool:
-        """Reports whether the block can still oxidise (Go `CanOxidate`).
-
-        Returns:
-            True unless the block is waxed.
-        """
+        """Reports whether the block can still oxidise (Go `CanOxidate`)."""
         return not self.waxed
 
     def oxidation_level(self) -> OxidationType:
-        """Returns the oxidation level (Go `OxidationLevel`).
-
-        Returns:
-            The oxidation level.
-        """
+        """Returns the oxidation level (Go `OxidationLevel`)."""
         return self.oxidation
 
     def with_oxidation_level(self, o: OxidationType) -> Self:
         """Returns the block with another oxidation level (Go
-        `WithOxidationLevel`).
-
-        Args:
-            o: The new oxidation level.
-
-        Returns:
-            The updated block.
-        """
+        `WithOxidationLevel`)."""
         var b = self
         b.oxidation = o
         return b
 
     def model(self) -> SolidModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return SolidModel()
 
     def encode_item(self) -> EncodedItem:

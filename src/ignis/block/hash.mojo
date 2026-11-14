@@ -480,82 +480,36 @@ struct AnyBlock(Equatable, ImplicitlyCopyable, Writable):
     """The block's `hash()`."""
 
     def __init__[T: Block](out self, b: T):
-        """Wraps a typed block.
-
-        Parameters:
-            T: The block type.
-
-        Args:
-            b: The block.
-        """
+        """Wraps a typed block."""
         self.kind = T.BASE_HASH
         self.state = b.hash()
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are the same block in the same state.
-        """
+        """Compares two blocks."""
         return self.kind == other.kind and self.state == other.state
 
     def is_a[T: Block](self) -> Bool:
-        """Reports whether the block is a `T` (Go `_, ok := b.(T)`).
-
-        Parameters:
-            T: The block type.
-
-        Returns:
-            True if the block has type `T`.
-        """
+        """Reports whether the block is a `T` (Go `_, ok := b.(T)`)."""
         return self.kind == T.BASE_HASH
 
     def get[T: Block](self) -> Optional[T]:
-        """Returns the block as a `T` (Go `b, ok := b.(T)`).
-
-        Parameters:
-            T: The block type.
-
-        Returns:
-            The block, or None if it has another type.
-        """
+        """Returns the block as a `T` (Go `b, ok := b.(T)`)."""
         if self.kind != T.BASE_HASH:
             return None
         return T.from_hash(self.state)
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the block as `kind:state`.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the block as `kind:state`."""
         writer.write(self.kind, ":", self.state)
 
 
 def hash_block(b: AnyBlock) -> UInt64:
     """Packs a block's type and state into 32 bits (Go `hashBlock`). The
-    wrapped blocks of slabs, stairs and walls all fit in 16 bits each.
-
-    Args:
-        b: The block.
-
-    Returns:
-        `kind | state << 16`.
-    """
+    wrapped blocks of slabs, stairs and walls all fit in 16 bits each."""
     debug_assert(b.kind <= 0xFFFF and b.state <= 0xFFFF, "hash too large")
     return b.kind | (b.state << 16)
 
 
 def unhash_block(h: UInt64) -> AnyBlock:
-    """Unpacks a block packed with `hash_block`.
-
-    Args:
-        h: The packed value; only the low 32 bits are read.
-
-    Returns:
-        The block.
-    """
+    """Unpacks a block packed with `hash_block`."""
     return AnyBlock(kind=h & 0xFFFF, state=(h >> 16) & 0xFFFF)

@@ -1,5 +1,4 @@
-"""`LeavesType`, ported from Dragonfly `server/block/leaves_type.go`.
-"""
+"""`LeavesType`, ported from Dragonfly `server/block/leaves_type.go`."""
 
 from ..internal.enum import enum_name
 from .sapling_type import SaplingType
@@ -41,38 +40,19 @@ struct LeavesType(Equatable, ImplicitlyCopyable, Writable):
     """Go `YellowPoplarLeaves()`."""
 
     def __init__(out self, v: Int):
-        """Creates the value with index `v` (Go `LeavesType{v}`).
-
-        Args:
-            v: 0 to 13.
-        """
+        """Creates the value with index `v` (Go `LeavesType{v}`)."""
         self._t = UInt8(v)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two values.
-
-        Args:
-            other: The value to compare with.
-
-        Returns:
-            True if both are the same.
-        """
+        """Compares two values."""
         return self._t == other._t
 
     def uint8(self) -> UInt8:
-        """Returns the value as a byte (Go `Uint8`).
-
-        Returns:
-            0 to 13.
-        """
+        """Returns the value as a byte (Go `Uint8`)."""
         return self._t
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the value's string form (Go `String`).
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the value's string form (Go `String`)."""
         writer.write(
             enum_name(
                 (
@@ -87,11 +67,7 @@ struct LeavesType(Equatable, ImplicitlyCopyable, Writable):
         )
 
     def sapling(self) -> Optional[SaplingType]:
-        """Returns the sapling the leaves drop (Go `Sapling`).
-
-        Returns:
-            The sapling type, or None for mangrove and azalea leaves.
-        """
+        """Returns the sapling the leaves drop (Go `Sapling`)."""
         if self._t <= 5:
             return SaplingType(Int(self._t))
         if self == LeavesType.CHERRY:
@@ -103,11 +79,7 @@ struct LeavesType(Equatable, ImplicitlyCopyable, Writable):
         return None
 
     def wood(self) -> Optional[WoodType]:
-        """Returns the wood type of trees with the leaves (Go `Wood`).
-
-        Returns:
-            The wood type, or None for azalea leaves.
-        """
+        """Returns the wood type of trees with the leaves (Go `Wood`)."""
         if self._t <= 5:
             return WoodType(Int(self._t))
         if self == LeavesType.MANGROVE:
@@ -122,11 +94,7 @@ struct LeavesType(Equatable, ImplicitlyCopyable, Writable):
 
 
 def leaves_types() -> List[LeavesType]:
-    """Returns every leaves type (Go `LeavesTypes`).
-
-    Returns:
-        The values.
-    """
+    """Returns every leaves type (Go `LeavesTypes`)."""
     var out = List[LeavesType](capacity=14)
     for i in range(14):
         out.append(LeavesType(i))
@@ -134,11 +102,7 @@ def leaves_types() -> List[LeavesType]:
 
 
 def poplar_leaves_types() -> List[LeavesType]:
-    """Returns the poplar leaves types (Go `PoplarLeavesTypes`).
-
-    Returns:
-        Orange, red and yellow poplar leaves.
-    """
+    """Returns the poplar leaves types (Go `PoplarLeavesTypes`)."""
     return [
         LeavesType.ORANGE_POPLAR,
         LeavesType.RED_POPLAR,
@@ -148,11 +112,7 @@ def poplar_leaves_types() -> List[LeavesType]:
 
 def wood_leaves_types() -> List[LeavesType]:
     """Returns the leaves types that belong to a wood type (Go
-    `WoodLeavesTypes`).
-
-    Returns:
-        Every leaves type except the azalea ones.
-    """
+    `WoodLeavesTypes`)."""
     var out = List[LeavesType]()
     for t in leaves_types():
         if t.wood():
