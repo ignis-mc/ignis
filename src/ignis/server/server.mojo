@@ -87,6 +87,9 @@ from ..block.cube.rotation import Rotation
 from ..player.playerdb.json import Data as PlayerData
 from ..player.playerdb.leveldb import Provider as PlayerProvider
 from ..world.provider import uuid_key
+from ..cmd.register import Registry
+from .builtin import register_builtin_commands
+from .command import CommandSource, execute_command
 from .provider import WorldProvider
 
 from ..block.bedrock import Bedrock
@@ -112,7 +115,7 @@ from ..world.biome.register import vanilla_biome_registry
 from ..world.block_registry import BasicBlockRegistry
 from ..world.conf import Config as WorldConfig
 from ..world.dimension import OVERWORLD
-from ..world.game_mode import GAME_MODE_SPECTATOR
+from ..world.game_mode import GAME_MODE_SPECTATOR, GameMode
 from ..world.generator.flat import Flat
 from ..world.handler import NopHandler
 from ..world.world import TICK_MS, World, WorldTypes
@@ -285,6 +288,21 @@ struct ServerWorld(WorldTypes):
     """Every ported entity type."""
 
 
+def strip_formatting(s: String) -> String:
+    """Removes `§x` colour and format codes, for the console."""
+    var b = s.as_bytes()
+    var out = List[UInt8](capacity=len(b))
+    var i = 0
+    while i < len(b):
+        # `§` is C2 A7 in UTF-8; the code character follows.
+        if i + 2 < len(b) and b[i] == 0xC2 and b[i + 1] == 0xA7:
+            i += 3
+            continue
+        out.append(b[i])
+        i += 1
+    return String(from_utf8_lossy=Span(out))
+
+
 def termination_signals() raises -> SignalFD:
     """Blocks SIGINT and SIGTERM in every thread, re-executing the program
     once to do so (`signal.block_in_every_thread`), and returns the
@@ -345,6 +363,9 @@ struct Server(Movable):
     """The world every player joins."""
     var sessions: List[Session[NetConn]]
     """The sessions of spawned players."""
+    var commands: Registry[CommandSource]
+    """The commands players and the console run (Go's global `cmd`
+    registry); the built-in ones are registered at start."""
     var _items: List[ItemEntry]
     var _biomes: List[UInt8]
     var _custom_blocks: List[BlockEntry]
@@ -358,6 +379,7 @@ struct Server(Movable):
     var _console: Optional[LineReader]
     var _close_requested: Bool
     var _closed: Bool
+    var _ticks: Int
 
     def __init__(out self, var conf: Config) raises:
         """Loads the world data and starts listening (Go `Config.New` and
@@ -386,6 +408,8 @@ struct Server(Movable):
         self.listener = listener^
         self.world = world^
         self.sessions = List[Session[NetConn]]()
+        self.commands = Registry[CommandSource]()
+        register_builtin_commands(self.commands)
         self._items = items^
         self._biomes = biomes^
         self._custom_blocks = blocks^
@@ -399,6 +423,7 @@ struct Server(Movable):
         self._console = None
         self._close_requested = False
         self._closed = False
+        self._ticks = 0
 
     def addr(mut self) raises -> SocketAddr:
         """Returns the address the listener is bound to.
@@ -520,10 +545,69 @@ struct Server(Movable):
             s.flush()
         self._remove_closed_sessions()
 
+    # ===------------------------------------------------------------------=== #
+    # Commands
+    # ===------------------------------------------------------------------=== #
+
     def execute_console_command(mut self, line: String):
-        """Runs a line typed on the console; commands come with the command
-        framework."""
-        _ = line
+        """Runs a line typed on the console and prints its output."""
+        if line.strip().byte_length() == 0:
+            return
+        var src = CommandSource(console_at=self._spawn_position())
+        execute_command(self, src, line)
+        if case .Some(ref o) = src.output:
+            for m in o.messages():
+                print(strip_formatting(String(m)))
+            for e in o.errors():
+                print(strip_formatting(String(e)))
+
+    def execute_player_command(mut self, i: Int, line: String):
+        """Runs a command line as a player and shows them the output (Go
+        `Player.ExecuteCommand`)."""
+        var src = CommandSource(self.sessions[i].player)
+        var id = self.sessions[i].player.uuid()
+        print(t"{src.name} issued command: {line}")
+        execute_command(self, src, line)
+        if case .Some(ref o) = src.output:
+            if case .Some(j) = self.session_index(id):
+                self.sessions[j].send_command_output(o)
+
+    def session_index(self, id: UUID) -> Optional[Int]:
+        """Returns the index in `sessions` of the player with a UUID."""
+        for i in range(len(self.sessions)):
+            if self.sessions[i].player.uuid() == id:
+                return i
+        return None
+
+    def set_player_game_mode(mut self, i: Int, mode: GameMode):
+        """Changes a player's game mode and shows it (Go `SetGameMode`)."""
+        self.sessions[i].player.set_game_mode(mode)
+        self.sessions[i].send_game_mode()
+        var p = self.sessions[i].player.copy()
+        for j in range(len(self.sessions)):
+            if j != i:
+                self.sessions[j].view_entity_game_mode(p)
+
+    def teleport_player(mut self, i: Int, pos: Vec3):
+        """Teleports a player and shows it to everyone, the player included
+        (Go `Player.Teleport`)."""
+        self.sessions[i].player.teleport(pos)
+        var p = self.sessions[i].player.copy()
+        for j in range(len(self.sessions)):
+            self.sessions[j].view_entity_teleport(p, pos)
+
+    def broadcast(mut self, message: String):
+        """Sends a message to every player and the log (Go `chat.Global`)."""
+        print(message)
+        for i in range(len(self.sessions)):
+            self.sessions[i].send_message(message)
+
+    def max_player_count(self) -> Int:
+        """Returns the player limit; without one, one more than are online,
+        as Dragonfly's status provider shows."""
+        if self.conf.max_players > 0:
+            return self.conf.max_players
+        return len(self.sessions) + 1
 
     # ===------------------------------------------------------------------=== #
     # Saving and closing
@@ -804,6 +888,9 @@ struct Server(Movable):
             SessionViewer(self.sessions[n].queue()),
         )
         self.sessions[n].spawn(self.world, loader)
+        self.sessions[n].send_available_commands(
+            self.commands.commands(), CommandSource(self.sessions[n].player)
+        )
         # World.AddEntity: viewers see the new player and it sees them.
         for j in range(n):
             self.sessions[j].view_entity(me)
@@ -863,13 +950,24 @@ struct Server(Movable):
             for _i in range(len(self.sessions)):
                 ref s = self.sessions[_i]
                 s.send_message(line)
+        if case .Some(line) = res.command:
+            self.execute_player_command(i, line)
 
     def _tick(mut self):
         """Runs the per-tick session work (each session's `background`
         loop in Go); the world ticks on its own deadline."""
-        for _i in range(len(self.sessions)):
-            ref s = self.sessions[_i]
-            s.send_chunks(self.world)
+        self._ticks += 1
+        for i in range(len(self.sessions)):
+            self.sessions[i].send_chunks(self.world)
+            # Go `background`: enums every second, commands every 5 seconds.
+            if self._ticks % 20 == 0 or self._ticks % 100 == 0:
+                var src = CommandSource(self.sessions[i].player)
+                if self._ticks % 20 == 0:
+                    self.sessions[i].resend_enums(self.commands.commands(), src)
+                if self._ticks % 100 == 0:
+                    _ = self.sessions[i].resend_commands(
+                        self.commands.commands(), src
+                    )
 
     def _remove_closed_sessions(mut self):
         """Removes sessions whose connection closed (Go `Session.close`

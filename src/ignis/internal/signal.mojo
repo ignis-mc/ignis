@@ -21,7 +21,8 @@ comptime _SYS_READ = 0 if _X86 else 63
 comptime _SYS_CLOSE = 3 if _X86 else 57
 comptime _SYS_RT_SIGPROCMASK = 14 if _X86 else 135
 comptime _SYS_GETPID = 39 if _X86 else 172
-comptime _SYS_KILL = 62 if _X86 else 129
+comptime _SYS_GETTID = 186 if _X86 else 178
+comptime _SYS_TGKILL = 234 if _X86 else 131
 comptime _SYS_SIGNALFD4 = 289 if _X86 else 74
 comptime _SYS_RT_SIGACTION = 13 if _X86 else 134
 comptime _SYS_EXECVE = 59 if _X86 else 221
@@ -222,8 +223,11 @@ def _pointers(mut strings: List[UInt8]) -> List[Int]:
 
 
 def raise_signal(sig: Int) raises:
-    """Sends a signal to the current process (`kill(getpid(), sig)`)."""
+    """Sends a signal to the calling thread (`tgkill`), for tests: a
+    process-directed `kill` may go to a runtime thread that does not block
+    it."""
     var pid = syscall6(_SYS_GETPID, 0, 0, 0, 0, 0, 0)
-    var rc = syscall6(_SYS_KILL, pid, sig, 0, 0, 0, 0)
+    var tid = syscall6(_SYS_GETTID, 0, 0, 0, 0, 0, 0)
+    var rc = syscall6(_SYS_TGKILL, pid, tid, sig, 0, 0, 0)
     if rc < 0:
-        raise Error(t"kill: errno {-rc}")
+        raise Error(t"tgkill: errno {-rc}")

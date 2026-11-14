@@ -29,7 +29,7 @@ Y, Go substitutes the feet position and then subtracts the eye height,
 moving the player 1.62 blocks down; Ignis substitutes the eye position.
 """
 
-from std.collections import Dict
+from std.collections import Dict, Set
 from std.memory import ArcPointer
 from std.math import isinf, isnan
 
@@ -58,7 +58,10 @@ from minecraft.protocol.attribute import Attribute
 from minecraft.protocol.block_pos import BlockPos
 from minecraft.protocol.math import Vec3 as ProtocolVec3
 from minecraft.protocol.block_pos import SubChunkPos as ProtocolSubChunkPos
-from minecraft.protocol.command import COMMAND_PERMISSION_LEVEL_ANY
+from minecraft.protocol.command import (
+    COMMAND_PERMISSION_LEVEL_ANY,
+    CommandOrigin,
+)
 from minecraft.protocol.entity_metadata import (
     ENTITY_DATA_FLAG_ALWAYS_SHOW_NAME,
     ENTITY_DATA_FLAG_BREATHING,
@@ -94,7 +97,16 @@ from minecraft.protocol.packet.biome_definition_list import (
     BiomeDefinitionList,
 )
 from minecraft.protocol.packet.chunk_radius_updated import ChunkRadiusUpdated
+from minecraft.protocol.packet.command_request import CommandRequest
+from minecraft.protocol.packet.update_player_game_type import (
+    UpdatePlayerGameType,
+)
+from minecraft.protocol.packet.update_soft_enum import (
+    SOFT_ENUM_ACTION_SET,
+    UpdateSoftEnum,
+)
 from minecraft.protocol.packet.id import (
+    ID_COMMAND_REQUEST,
     ID_PLAYER_AUTH_INPUT,
     ID_REQUEST_CHUNK_RADIUS,
     ID_SUB_CHUNK_REQUEST,
@@ -160,6 +172,9 @@ from minecraft.protocol.sub_chunk import (
 from minecraft.protocol.uuid import UUID
 
 from ..block.cube.rotation import Rotation
+from ..cmd.command import Command, ParamKind
+from ..cmd.output import Output
+from ..cmd.source import Source
 from ..mgl64 import Vec3, float_equal
 from ..player.player import BBOX_HEIGHT, BBOX_WIDTH, EYE_HEIGHT, Player
 from ..world.biome import BiomeRegistry
@@ -169,6 +184,7 @@ from ..world.loader import LoaderID
 from ..world.position import ChunkPos, SubChunkPos
 from ..world.world import World, WorldTypes
 from .chunk import sub_chunk_entry, sub_chunk_index
+from .command import build_available_commands, command_output
 from .conn import Conn
 from .viewer import PacketQueue
 
@@ -226,12 +242,15 @@ struct HandleResult(Copyable, Defaultable):
     `ViewEntityState` to viewers)."""
     var chat: Optional[String]
     """A chat line to send to every player (Go `chat.Global`)."""
+    var command: Optional[String]
+    """A command line to run as the player (Go `ExecuteCommand`)."""
 
     def __init__(out self):
         """Creates a result in which nothing changed."""
         self.moved = False
         self.state_changed = False
         self.chat = None
+        self.command = None
 
 
 def uuid_key(id: UUID) -> String:
@@ -372,6 +391,10 @@ struct Session[C: Conn](Movable):
     var _last_chunk_pos: ChunkPos
     var _dimension: Int32
     var _write_error: Optional[String]
+    var _command_origin: CommandOrigin
+    var _runnables: Dict[String, List[Int]]
+    var _enum_values: Dict[String, List[String]]
+    var _soft_enums: Set[String]
 
     def __init__(
         out self,
@@ -408,6 +431,10 @@ struct Session[C: Conn](Movable):
         self._last_chunk_pos = ChunkPos(0, 0)
         self._dimension = 0
         self._write_error = None
+        self._command_origin = CommandOrigin()
+        self._runnables = Dict[String, List[Int]]()
+        self._enum_values = Dict[String, List[String]]()
+        self._soft_enums = Set[String]()
         self._entity_runtime_ids[
             uuid_key(self.player.uuid())
         ] = SELF_ENTITY_RUNTIME_ID
@@ -653,6 +680,18 @@ struct Session[C: Conn](Movable):
             return self._handle_player_auth_input(pk.decode[PlayerAuthInput]())
         if id == ID_TEXT:
             return self._handle_text(pk.decode[Text]())
+        if id == ID_COMMAND_REQUEST:
+            # Go `CommandRequestHandler`: the origin is kept for the output.
+            var req = pk.decode[CommandRequest]()
+            if req.internal:
+                raise Error(
+                    "command request packet must never have the internal"
+                    " field set to true"
+                )
+            self._command_origin = req.command_origin.copy()
+            var res = HandleResult()
+            res.command = req.command_line
+            return res^
         if id == ID_SUB_CHUNK_REQUEST:
             var req = pk.decode[SubChunkRequest]()
             if req.dimension != Int32(w.dimension().id):
@@ -896,6 +935,78 @@ struct Session[C: Conn](Movable):
         pk.parameters = parameters^
         self.write_packet(pk)
 
+    # ===------------------------------------------------------------------=== #
+    # Commands (Go command.go)
+    # ===------------------------------------------------------------------=== #
+
+    def send_command_output(mut self, o: Output):
+        """Shows a command's output, answering the last `CommandRequest` (Go
+        `SendCommandOutput`)."""
+        var pk = command_output(o, self._command_origin)
+        self.write_packet(pk)
+
+    def send_available_commands[
+        S: Source
+    ](mut self, commands: Dict[String, Command[S]], src: S):
+        """Sends the commands the player may run and records them and their
+        enum values for the resend checks (Go `sendAvailableCommands` and
+        `enums`)."""
+        var runnable = Dict[String, List[Int]]()
+        var pk = build_available_commands(
+            commands, src, self._soft_enums, runnable
+        )
+        self.write_packet(pk)
+        self._runnables = runnable^
+        self._enum_values = _enum_values(commands, src)
+
+    def resend_commands[
+        S: Source
+    ](mut self, commands: Dict[String, Command[S]], src: S) -> Bool:
+        """Resends the commands if the overloads the player may run changed
+        (Go `resendCommands`); returns whether they were resent."""
+        var now = Dict[String, List[Int]]()
+        for ref e in commands.items():
+            if e.value.name() != e.key:
+                continue
+            var run = e.value.runnables(src)
+            if len(run) > 0:
+                now[e.key] = run^
+        var changed = len(now) != len(self._runnables)
+        if not changed:
+            for ref e in now.items():
+                var before = self._runnables.get(e.key)
+                if not before or before.value() != e.value:
+                    changed = True
+                    break
+        if changed:
+            self.send_available_commands(commands, src)
+        return changed
+
+    def resend_enums[
+        S: Source
+    ](mut self, commands: Dict[String, Command[S]], src: S):
+        """Resends enums whose options changed: soft enums with
+        `UpdateSoftEnum`, others by making them soft and resending the
+        commands (Go `resendEnums`)."""
+        var now = _enum_values(commands, src)
+        var resend = False
+        for ref e in now.items():
+            var before = self._enum_values.get(e.key)
+            if before and before.value() == e.value:
+                continue
+            self._enum_values[e.key] = e.value.copy()
+            if e.key in self._soft_enums:
+                var pk = UpdateSoftEnum()
+                pk.enum_type = e.key
+                pk.options = e.value.copy()
+                pk.action_type = SOFT_ENUM_ACTION_SET
+                self.write_packet(pk)
+            else:
+                self._soft_enums.add(e.key)
+                resend = True
+        if resend:
+            self.send_available_commands(commands, src)
+
     def view_time(mut self, time: Int64):
         """Sends the time of day (Go `ViewTime`).
 
@@ -1096,6 +1207,16 @@ struct Session[C: Conn](Movable):
         pk.teleport_data = data^
         self.write_packet(pk)
 
+    def view_entity_game_mode(mut self, p: Player):
+        """Shows another player's game mode (Go `ViewEntityGameMode`)."""
+        var known = self.entity_runtime_id(p)
+        if not known:
+            return
+        var pk = UpdatePlayerGameType()
+        pk.game_type = game_type_from_mode(p.game_mode())
+        pk.player_unique_id = Int64(known.value())
+        self.write_packet(pk)
+
     def view_entity_state(mut self, p: Player):
         """Sends a player's metadata (Go `ViewEntityState`).
 
@@ -1112,6 +1233,21 @@ struct Session[C: Conn](Movable):
         except:
             pass
         self.write_packet(pk)
+
+
+def _enum_values[
+    S: Source
+](commands: Dict[String, Command[S]], src: S) -> Dict[String, List[String]]:
+    # Go `Session.enums`: the options of every enum the source can use.
+    var out = Dict[String, List[String]]()
+    for ref e in commands.items():
+        if e.value.name() != e.key:
+            continue
+        for params in e.value.params(src):
+            for ref info in params:
+                if info.kind == ParamKind.ENUM:
+                    out[info.type_name] = info.options.copy()
+    return out^
 
 
 def _bad(v: Float32) -> Bool:

@@ -1,5 +1,6 @@
 """The world viewer of a session: the `world.Viewer` methods of Dragonfly's
-`session.Session` (`ViewChunk` in `chunk.go`, `ViewTime` in `world.go`).
+`session.Session` (`ViewChunk` in `chunk.go`, `ViewTime` and
+`ViewTimeCycle` in `world.go`).
 
 The world owns its loaders' viewers (`docs/architecture.md`), so the session
 cannot be its own viewer as in Go. Its `SessionViewer` shares a
@@ -10,6 +11,8 @@ with its own packets.
 
 from std.memory import ArcPointer
 
+from minecraft.protocol.game_rule import GameRule, GameRuleValue
+from minecraft.protocol.packet.game_rules_changed import GameRulesChanged
 from minecraft.protocol.packet.packet import Packet, encode_packet
 from minecraft.protocol.packet.set_time import SetTime
 
@@ -83,4 +86,16 @@ struct SessionViewer(Viewer):
         """
         var pk = SetTime()
         pk.time = Int32(t)
+        self.queue[].push(pk)
+
+    def view_time_cycle(mut self, do_day_light_cycle: Bool):
+        """Starts or stops the client's day cycle (Go `ViewTimeCycle`)."""
+        var pk = GameRulesChanged()
+        pk.game_rules.append(
+            GameRule(
+                "dodaylightcycle",
+                False,
+                GameRuleValue(do_day_light_cycle),
+            )
+        )
         self.queue[].push(pk)

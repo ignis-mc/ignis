@@ -319,6 +319,31 @@ Implemented in `ignis.server` (Go `server.go`, `conf.go`) and
 - `config.toml` keeps Dragonfly's tables and keys (`[Network] Address`,
   `[Server] Name`, ...), read by a TOML subset parser
   (`ignis.internal.toml`).
+- **Worlds and players on disk**: `[World] SaveData`/`Folder` open the
+  world with `world.mcdb` (`server.provider.WorldProvider`, which is either
+  the `mcdb.DB` or nothing), `[Players] SaveData`/`Folder` open
+  `player.playerdb` (Dragonfly's JSON in LevelDB). The server saves the
+  world, `level.dat` and the online players every `save_interval_ms`
+  (the world's own auto save is off), a player's data when they leave, and
+  everything in `Server.close`.
+- **Shutdown**: SIGINT and SIGTERM arrive through a `signalfd`
+  (`internal.signal`) the loop polls; `run` then calls `close`. The Mojo
+  runtime starts worker threads before `main`, and a process-directed
+  signal goes to any thread that does not block it, so `main` calls
+  `termination_signals()` first: it blocks the signals and re-executes
+  `/proc/self/exe` once, and the runtime's threads inherit the mask. Run
+  the server as a built binary (`pixi run serve` builds it), not with
+  `mojo run`.
+- **Commands**: `server.command.CommandSource` is the server's one
+  `cmd.Source` (a player or the console) and `ServerTx` its `Tx`, a pointer
+  to the server valid while a command runs (Go's `*world.Tx`).
+  `CommandRequest` makes `handle_packet` return the line, and the server
+  runs it with `execute_command` (Go `Player.ExecuteCommand`) and answers
+  with `CommandOutput`. Sessions get `AvailableCommands` on spawn and the
+  server runs Go's `resendEnums` every second and `resendCommands` every
+  five. Lines on stdin run as the console (`internal.stdin.LineReader`).
+  `server.builtin` registers `/gamemode`, `/tp`, `/time`, `/list` and
+  `/say`.
 
 ## World data
 
