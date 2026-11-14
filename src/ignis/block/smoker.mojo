@@ -1,19 +1,21 @@
 """`Smoker`, ported from Dragonfly `server/block/smoker.go`.
 
 TODO(world-runtime): the `*smelter` (smelter.go: inventory, fuel, progress,
-Experience and the XP the break info drops), NewFurnace, Tick, EncodeNBT,
-DecodeNBT, Activate, UseOnBlock, the break handler dropping the inventory,
-EncodeItem and the drops.
+Experience, the XP the break info drops), NewFurnace, Tick, Activate,
+UseOnBlock, the break handler dropping the inventory and the drops.
 """
 
-from ..world.block import Block, LightEmitter
+from minecraft.nbt.tree import Tag, Tree
+
+from ..world.block import Block, LightEmitter, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    PICKAXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
     new_break_info,
 )
 from .cube.direction import Direction, directions
@@ -22,7 +24,14 @@ from .model.solid import Solid as SolidModel
 
 
 struct Smoker(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    LightEmitter,
+    ModelledBlock,
+    NBTer,
 ):
     """A type of furnace that cooks food items, similar to a furnace, but twice as fast.
     """
@@ -135,3 +144,26 @@ struct Smoker(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:smoker", 0)
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the NBT (Go `EncodeNBT`)."""
+        # The smelter is not ported: Go writes a new smoker's (idle, empty).
+        _ = tag.put_short(root, "BurnTime", 0)
+        _ = tag.put_short(root, "CookTime", 0)
+        _ = tag.put_short(root, "BurnDuration", 0)
+        _ = tag.put_short(root, "StoredXPInt", 0)
+        _ = tag.put_list(root, "Items")
+        _ = tag.put_string(root, "id", "Smoker")
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Decodes the NBT (Go `DecodeNBT`); the smelter is not ported."""
+        return self
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

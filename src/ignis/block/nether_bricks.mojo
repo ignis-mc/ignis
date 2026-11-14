@@ -1,16 +1,19 @@
 """`NetherBricks`, ported from Dragonfly `server/block/nether_bricks.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the `oneOf` drops.
+TODO(world-runtime): the `oneOf` drops.
 """
 
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .hash import HASH_NETHER_BRICKS
@@ -19,7 +22,13 @@ from .nether_bricks_type import NetherBricksType, nether_bricks_types
 
 
 struct NetherBricks(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
 ):
     """A block made from four nether bricks."""
 
@@ -107,3 +116,23 @@ struct NetherBricks(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.type}"), 0)
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        if self.type == NetherBricksType.NORMAL:
+            return SmeltInfo(
+                Stack(NetherBricks(type=NetherBricksType.CRACKED), 1), 0.1
+            )
+        return SmeltInfo()
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in nether_bricks_types():
+            out.append(NetherBricks(type=v))
+        return out^

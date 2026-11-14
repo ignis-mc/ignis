@@ -1,16 +1,17 @@
 """`Prismarine`, ported from Dragonfly `server/block/prismarine.go`.
 
-TODO(world-runtime): EncodeItem and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .hash import HASH_PRISMARINE
@@ -19,7 +20,12 @@ from .prismarine_type import PrismarineType, prismarine_types
 
 
 struct Prismarine(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A type of stone that appears underwater in ruins and ocean monuments."""
 
@@ -107,3 +113,15 @@ struct Prismarine(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.type}"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in prismarine_types():
+            out.append(Prismarine(type=v))
+        return out^

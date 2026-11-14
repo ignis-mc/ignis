@@ -1,11 +1,12 @@
 """`SmithingTable`, ported from Dragonfly `server/block/smithing_table.go`.
 
-TODO(world-runtime): Activate, FuelInfo, EncodeItem and the drops.
+TODO(world-runtime): Activate and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -18,7 +19,12 @@ from .model.solid import Solid as SolidModel
 
 
 struct SmithingTable(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A block used to upgrade diamond gear to netherite."""
 
@@ -94,3 +100,12 @@ struct SmithingTable(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:smithing_table", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

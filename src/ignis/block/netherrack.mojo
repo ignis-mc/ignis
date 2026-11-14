@@ -1,16 +1,20 @@
 """`Netherrack`, ported from Dragonfly `server/block/netherrack.go`.
 
-TODO(world-runtime): SoilFor, EncodeItem, SmeltInfo and the `oneOf` drops.
+TODO(world-runtime): SoilFor and the `oneOf` drops.
 """
 
+from ..item.nether_brick import NetherBrick
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .hash import HASH_NETHERRACK
@@ -18,7 +22,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct Netherrack(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
 ):
     """A block found commonly in the nether."""
 
@@ -94,3 +104,16 @@ struct Netherrack(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:netherrack", 0)
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(NetherBrick(), 1), 0.1)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

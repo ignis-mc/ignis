@@ -4,21 +4,21 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): Model, NeighbourUpdateTick, UseOnBlock, ConnectionType,
-WithConnectionType, calculateConnections, calculatePost, EncodeItem and the
-drops.
+WithConnectionType, calculateConnections, calculatePost and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
-from .hash import HASH_WALL, AnyBlock, hash_block, unhash_block
+from .hash import AnyBlock, HASH_WALL, hash_block, unhash_block
 from .model.wall import Wall as WallModel
 from .register import break_info
 from .wall_connection_type import WallConnectionType, wall_connection_types
@@ -30,6 +30,7 @@ struct Wall(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -209,3 +210,17 @@ struct Wall(
             west_connection=self.west_connection.height(),
             post=self.post,
         )
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(
+            String(t"minecraft:{encode_wall_block(self.block)}_wall"), 0
+        )
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in wall_blocks():
+            out.append(Wall(block=v))
+        return out^

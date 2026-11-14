@@ -1,17 +1,20 @@
 """`PolishedBlackstoneBrick`, ported from Dragonfly
 `server/block/polished_blackstone_brick.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the `oneOf` drops.
+TODO(world-runtime): the `oneOf` drops.
 """
 
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .hash import HASH_POLISHED_BLACKSTONE_BRICK
@@ -19,7 +22,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct PolishedBlackstoneBrick(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
 ):
     """A brick variant of polished blackstone."""
 
@@ -109,3 +118,25 @@ struct PolishedBlackstoneBrick(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.cracked:
+            return EncodedItem(
+                "minecraft:cracked_polished_blackstone_bricks", 0
+            )
+        return EncodedItem("minecraft:polished_blackstone_bricks", 0)
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        if self.cracked:
+            return SmeltInfo()
+        return SmeltInfo(Stack(PolishedBlackstoneBrick(cracked=True), 1), 0.1)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [
+            PolishedBlackstoneBrick(cracked=True),
+            PolishedBlackstoneBrick(),
+        ]

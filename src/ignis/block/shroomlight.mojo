@@ -1,16 +1,18 @@
 """`Shroomlight`, ported from Dragonfly `server/block/shroomlight.go`.
 
-TODO(world-runtime): CompostChance, EncodeItem and the drops.
+TODO(world-runtime): the drops.
 """
 
+from ..item.item import Compostable
 from ..world.block import Block, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    HOE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    HOE_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_SHROOMLIGHT
@@ -18,7 +20,14 @@ from .model.solid import Solid as SolidModel
 
 
 struct Shroomlight(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+    Block,
+    Breakable,
+    Compostable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A light emitting block that generates in huge fungi."""
 
@@ -102,3 +111,16 @@ struct Shroomlight(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:shroomlight", 0)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.65
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

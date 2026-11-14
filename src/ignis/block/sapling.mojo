@@ -1,18 +1,21 @@
 """`Sapling`, ported from Dragonfly `server/block/sapling.go`.
 
 TODO(world-runtime): RandomTick, BoneMeal, grow (sapling_tree.go),
-NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal, CompostChance,
-FlammabilityInfo, EncodeItem and the drops.
+NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal, FlammabilityInfo and
+the drops.
 """
 
+from ..item.item import Compostable
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_SAPLING
@@ -23,8 +26,11 @@ from .sapling_type import SaplingType, sapling_types
 struct Sapling(
     Block,
     Breakable,
+    Compostable,
     Equatable,
+    Fuel,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -136,3 +142,23 @@ struct Sapling(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.type}"), 0)
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`)."""
+        return FuelInfo(5000)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.3
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in sapling_types():
+            out.append(Sapling(type=v))
+        return out^

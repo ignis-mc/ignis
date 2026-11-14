@@ -1,24 +1,35 @@
 """`Sponge`, ported from Dragonfly `server/block/sponge.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, absorbWater,
-SmeltInfo, EncodeItem and the drops.
+TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, absorbWater and the
+drops.
 """
 
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_SPONGE
 from .model.solid import Solid as SolidModel
 
 
-struct Sponge(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Sponge(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
+):
     """A block that can be used to remove water around itself when placed."""
 
     comptime BASE_HASH: UInt64 = HASH_SPONGE
@@ -102,3 +113,20 @@ struct Sponge(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.wet:
+            return EncodedItem("minecraft:wet_sponge", 0)
+        return EncodedItem("minecraft:sponge", 0)
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        if self.wet:
+            return SmeltInfo(Stack(Sponge(), 1), 0.15)
+        return SmeltInfo()
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Sponge(wet=True), Sponge()]

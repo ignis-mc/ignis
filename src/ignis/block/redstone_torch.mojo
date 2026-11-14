@@ -2,18 +2,19 @@
 
 TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, HasLiquidDrops,
 RedstoneSource, RedstonePower, RedstoneStrongPower, RedstoneUpdate,
-ScheduledTick, the break handler clearing burnout, EncodeItem and the drops.
+ScheduledTick, the break handler clearing burnout and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .block import UNKNOWN_FACE
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .cube.face import Face, faces
@@ -26,6 +27,7 @@ struct RedstoneTorch(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
@@ -154,3 +156,12 @@ struct RedstoneTorch(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:redstone_torch", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

@@ -122,16 +122,24 @@ def _line(
     else:
         f.append("-")
 
-    if case .Some(slot) = VanillaItems.armour_slot(k, h):
+    var slot_ = VanillaItems.armour_slot(k, h)
+    var def_ = VanillaItems.defence_points(k, h)
+    var tough = VanillaItems.toughness(k, h)
+    var kb = VanillaItems.knock_back_resistance(k, h)
+    if not slot_:
+        # Carved pumpkins and skulls are block helmets.
+        slot_ = VanillaBlockItems.armour_slot(k, h)
+        def_ = VanillaBlockItems.defence_points(k, h)
+        tough = VanillaBlockItems.toughness(k, h)
+        kb = VanillaBlockItems.knock_back_resistance(k, h)
+    if case .Some(slot) = slot_:
         var s = String("?")
         if slot >= 0:
             s = String("hclb"[byte=slot])
-        var def_ = VanillaItems.defence_points(k, h).value()
-        var tough = VanillaItems.toughness(k, h).value()
-        var kb = VanillaItems.knock_back_resistance(k, h).value()
         f.append(
             String(
-                t"{s},{_float_hex(def_)},{_float_hex(tough)},{_float_hex(kb)}"
+                t"{s},{_float_hex(def_.value())},{_float_hex(tough.value())},"
+                t"{_float_hex(kb.value())}"
             )
         )
     else:

@@ -1,24 +1,32 @@
 """`Wool`, ported from Dragonfly `server/block/wool.go`.
 
-TODO(world-runtime): Instrument, FlammabilityInfo, EncodeItem and the drops.
+TODO(world-runtime): Instrument, FlammabilityInfo and the drops.
 """
 
 from ..item.colour import Colour, colours
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    SHEARS_EFFECTIVE,
     BreakInfo,
     Breakable,
+    SHEARS_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_WOOL
 from .model.solid import Solid as SolidModel
 
 
-struct Wool(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Wool(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+):
     """A colourful block that can be obtained by killing or shearing sheep, or crafted using
     four string."""
 
@@ -104,3 +112,15 @@ struct Wool(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.colour}_wool"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in colours():
+            out.append(Wool(colour=v))
+        return out^
