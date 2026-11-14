@@ -257,7 +257,6 @@ def break_block(mut srv: Server, i: Int, pos: Pos):
         resend_block(srv, i, pos)
         return
     var kind = br[].kind(rid)
-    var hash = br[].state_hash(rid)
     var info = VanillaBlocks.break_info_at(kind, pos, srv.world)
     var creative = p.game_mode().creative_inventory()
     if not info and not creative:

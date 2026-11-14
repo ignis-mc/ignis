@@ -100,6 +100,7 @@ from minecraft.protocol.packet.text import Text
 from minecraft.protocol.packet.update_attributes import UpdateAttributes
 from nethernet.os.time import monotonic_ms
 
+from ignis.block.register import VanillaBlocks
 from ignis.entity.arrow import Arrow
 from ignis.entity.item import ItemBehaviour
 from ignis.item.golden_apple import GoldenApple
@@ -399,7 +400,7 @@ def prepare_apple(folder: String) raises:
     var w = open_world(conf, 0)
     var items = vanilla_item_registry(conf.vanilla_items_path)
     var s = Stack(GoldenApple(), 3)
-    var nbt = write_disk_nbt(w.block_registry()[], items, s)
+    var nbt = write_disk_nbt[VanillaBlocks](w.block_registry()[], items, s)
     var o = EntitySpawnOpts()
     o.position = Vec3d(0.5, -60, 0.5)
     _ = w.add_entity(

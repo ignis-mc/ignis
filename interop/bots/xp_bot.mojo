@@ -1,12 +1,13 @@
 """A bot that spends experience levels, for `scripts/e2e.sh`. Prints
 `PASS <check>` lines and fails on the first check that does not hold.
 
-    xp_bot.mojo prepare WORLD_DIR PLAYERS_DIR
+    xp_bot.mojo prepare WORLD_DIR PLAYERS_DIR [UUID NAME]
         writes a flat world with an enchanting table, an anvil, a brewing
         stand holding a water bottle and blaze powder, a cake and a beacon
         on a one-layer iron pyramid giving Speed, and the data of the bot's
         player: survival, 30 levels, 10 hunger, a book, lapis lazuli,
-        shears and nether wart.
+        shears and nether wart. UUID and NAME give that player data to
+        another player, such as a vanilla client.
     xp_bot.mojo run ADDRESS
         joins as that player: the beacon gives it Speed, eating the cake
         restores 2 hunger, enchanting the book takes 1 level and a lapis,
@@ -132,7 +133,9 @@ def _pos(p: Tuple[Int, Int, Int]) -> Pos:
     return Pos(p[0], p[1], p[2])
 
 
-def prepare(world: String, players: String) raises:
+def prepare(
+    world: String, players: String, uuid: String, name: String
+) raises:
     var conf = Config()
     conf.world_folder = world
     # Containers need the item registry to save their items.
@@ -159,8 +162,8 @@ def prepare(world: String, players: String) raises:
         raise Error(t"FAIL saving the world: {w.last_error.value()}")
 
     var d = Data()
-    d.uuid = _UUID
-    d.username = "Enchanter"
+    d.uuid = uuid
+    d.username = name
     d.position = Vec3d(0.5, -60, 0.5)
     d.game_mode = 0
     d.experience = LEVEL_30
@@ -174,7 +177,7 @@ def prepare(world: String, players: String) raises:
     for i in range(len(stacks)):
         d.items.append(Slot(encode_item(br[], items[], stacks[i]), i))
     var db = PlayerProvider(players)
-    db.save(UUID.parse(_UUID), d)
+    db.save(UUID.parse(uuid), d)
     print("PREPARED", world, players)
 
 
@@ -534,7 +537,12 @@ def main() raises:
         raise Error("usage: xp_bot prepare WORLD PLAYERS | run ADDRESS")
     var mode = String(args[1])
     if mode == "prepare":
-        prepare(String(args[2]), String(args[3]))
+        var uuid = String(_UUID)
+        var name = String("Enchanter")
+        if len(args) >= 6:
+            uuid = String(args[4])
+            name = String(args[5])
+        prepare(String(args[2]), String(args[3]), uuid, name)
     elif mode == "run":
         run(String(args[2]))
     else:
