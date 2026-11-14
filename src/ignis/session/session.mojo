@@ -653,6 +653,15 @@ struct Session[C: Conn](Movable):
         self.view_entity_state(self.player.copy())
         self.send_inventories()
 
+    def close_windows[T: WorldTypes](mut self, mut w: World[T]):
+        """Puts the UI items back into the inventory, dropping what does not
+        fit, and closes the open block window (the start of Go `close`)."""
+        for it in self.invs.ui.clear():
+            var n = self.invs.inv.add_item(it.copy())
+            if n < it.count():
+                w.drop_item(self.player.position(), it.grow(-n))
+        self.close_container(w, True)
+
     def close[T: WorldTypes](mut self, mut w: World[T]):
         """Stops loading chunks (the world part of Go `close`)."""
         if case .Some(id) = self._loader:

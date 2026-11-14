@@ -696,6 +696,7 @@ struct Server(Movable):
         self._close_requested = True
         print("server closing")
         while len(self.sessions) > 0:
+            self.sessions[0].close_windows(self.world)
             self._save_player(0)
             var gone = self.sessions.pop(0)
             gone.close(self.world)
@@ -1215,6 +1216,7 @@ struct Server(Movable):
             var reason = s.conn.conn.close_reason()
             if s.write_error():
                 reason = s.write_error().value()
+            self.sessions[i].close_windows(self.world)
             self._save_player(i)
             var gone = self.sessions.pop(i)
             gone.close(self.world)
