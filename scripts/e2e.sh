@@ -9,7 +9,11 @@
 #      after a restart the world time,
 #      the player's position, rotation and game mode are back; SIGTERM
 #      stops it again.
-#   4. A copy of the world.mcdb fixture (test/data/mcdb/dragonfly-world)
+#   4. interop/bots/interact_bot.mojo: survival breaking with the crack
+#      speed of the block's break time, the drop, picking it up and placing
+#      it back; creative breaking at once without a drop; adventure mode
+#      refused.
+#   5. A copy of the world.mcdb fixture (test/data/mcdb/dragonfly-world)
 #      loads: spawn, game mode and time come from its level.dat and the
 #      spawn column's sub-chunks come from its database.
 #
@@ -24,6 +28,7 @@ mkdir -p build
 mojo build --fp-mode contract=off "${inc[@]}" cmd/ignis/main.mojo -o build/ignis
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/two_bots.mojo -o build/two_bots
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/persist_bot.mojo -o build/persist_bot
+mojo build --fp-mode contract=off "${inc[@]}" interop/bots/interact_bot.mojo -o build/interact_bot
 
 dir="$(mktemp -d)"
 pid=""
@@ -110,6 +115,11 @@ if [[ $status -eq 0 ]]; then
     grep -q 'mode 1$' <<<"$out" || { echo "FAIL game mode not kept"; exit 1; }
     echo "PASS keeps its game mode"
     bot command "$addr" "Teleported Persist to 1.5" /tp 1.5 -60 1.5
+    # The flat world's grass is at y = -61; by hand it breaks in 900 ms,
+    # 18 ticks: crack data 65535 / 18.
+    ./build/interact_bot survival "$addr" 4 -61 4 3640 2>&1 | grep -v '^dial'
+    ./build/interact_bot creative "$addr" 6 -61 4 2>&1 | grep -v '^dial'
+    ./build/interact_bot adventure "$addr" 2 -61 6 2>&1 | grep -v '^dial'
     stop TERM server2.log
 
     cp -r test/data/mcdb/dragonfly-world "$dir/fixture"

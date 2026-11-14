@@ -7,6 +7,9 @@ hold.
         crack animation with CRACK_DATA (Go's 65535 / break ticks), remove
         the block when the client predicts the break, drop it as an item,
         let the bot pick it up, and place it back with UseItem.
+    interact_bot.mojo adventure ADDRESS X Y Z
+        switches to adventure with /gamemode and tries to break the block:
+        the server refuses and sends the block back.
     interact_bot.mojo creative ADDRESS X Y Z
         switches to creative with /gamemode and breaks the block at X Y Z:
         it goes at once, without cracking and without a drop.
@@ -275,6 +278,29 @@ def creative(address: String, target: BlockPos) raises:
     print("DONE")
 
 
+def adventure(address: String, target: BlockPos) raises:
+    var bot = Bot(address, "Visitor")
+    bot.pump(1500, target)
+    var req = CommandRequest()
+    req.command_line = "/gamemode adventure"
+    bot.conn.write_packet(req)
+    bot.pump(1000, target)
+    bot.reset()
+    var here = bot.eye
+    bot.input(
+        [
+            action(PLAYER_ACTION_START_BREAK, target),
+            action(PLAYER_ACTION_PREDICT_DESTROY_BLOCK, target),
+        ],
+        here,
+    )
+    bot.idle(1500, target)
+    check(not bot.destroyed, "adventure mode cannot break blocks")
+    check(bot.updated, "the server sends the block back")
+    bot.conn.close()
+    print("DONE")
+
+
 def main() raises:
     var args = argv()
     var mode = String(args[1])
@@ -284,5 +310,7 @@ def main() raises:
         survival(address, target, Int32(Int(args[6])))
     elif mode == "creative":
         creative(address, target)
+    elif mode == "adventure":
+        adventure(address, target)
     else:
         raise Error(t"unknown mode {mode}")

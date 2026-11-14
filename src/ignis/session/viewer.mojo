@@ -42,6 +42,7 @@ from minecraft.protocol.packet.set_time import SetTime
 from ..block.cube.pos import Pos
 from ..block.cube.rotation import Rotation
 from ..entity.item import ItemBehaviour
+from ..item.nbt import read_disk_nbt
 from ..entity.register import VanillaEntities
 from ..mgl64 import Vec3
 from ..world.block_registry import BasicBlockRegistry
@@ -185,8 +186,14 @@ struct SessionViewer(Viewer):
             var pk = AddItemActor()
             pk.entity_unique_id = Int64(id)
             pk.entity_runtime_id = id
+            var stack = item.item.copy()
+            if not item.resolved():
+                # Loaded from disk: only the NBT is known.
+                stack = read_disk_nbt(
+                    self.queue[].items[], item.item_nbt, item.item_nbt.root()
+                )
             pk.item = instance_from_item(
-                self.queue[].blocks[], self.queue[].items[], item.item
+                self.queue[].blocks[], self.queue[].items[], stack
             )
             pk.position = _vec32(h.data.pos)
             pk.velocity = _vec32(h.data.vel)
