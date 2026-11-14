@@ -136,6 +136,26 @@ trait TickerEntity(EntityType):
         ...
 
 
+trait DamageableEntity(EntityType):
+    """An entity that projectiles, explosions and the like can hurt (Go
+    `entity.DamageableEntity`: a `Living` entity or a behaviour with
+    `Hurt`). Hurting entities comes with living entities."""
+
+    pass
+
+
+trait ExplodableEntity(EntityType):
+    """An entity an explosion affects (Go `block.ExplodableEntity` through
+    the entity's behaviour)."""
+
+    def explode(
+        mut self, mut data: EntityData, src: Vec3, impact: Float64
+    ) -> Bool:
+        """Applies an explosion at `src` with an impact of 0 to 1; returns
+        True if the entity is destroyed (Go `Explode`)."""
+        ...
+
+
 trait EntityTypes:
     """The entity types a world knows, with dispatch of their behaviours.
     `EntitySet` is the implementation; a world names its set in
@@ -162,6 +182,19 @@ trait EntityTypes:
     @staticmethod
     def ticks(s: Self.State) -> Bool:
         """Reports whether an entity is a `TickerEntity`."""
+        ...
+
+    @staticmethod
+    def damageable(s: Self.State) -> Bool:
+        """Reports whether an entity is a `DamageableEntity`."""
+        ...
+
+    @staticmethod
+    def explode(
+        mut s: Self.State, mut data: EntityData, src: Vec3, impact: Float64
+    ) -> Bool:
+        """Applies an explosion to an `ExplodableEntity`; returns True if it
+        is destroyed."""
         ...
 
     @staticmethod
@@ -236,6 +269,29 @@ struct EntitySet[*Ts: EntityType](EntityTypes):
             if s.isa[E]():
                 return s[E].bbox(data)
         return BBox()
+
+    @staticmethod
+    def explode(
+        mut s: Self.State, mut data: EntityData, src: Vec3, impact: Float64
+    ) -> Bool:
+        """Applies an explosion to an `ExplodableEntity`; returns True if it
+        is destroyed."""
+        comptime for i in range(len(Self.Ts)):
+            comptime E = Self.Ts[i]
+            comptime if conforms_to(E, ExplodableEntity):
+                if s.isa[E]():
+                    return _explode[E](s[E], data, src, impact)
+        return False
+
+    @staticmethod
+    def damageable(s: Self.State) -> Bool:
+        """Reports whether an entity is a `DamageableEntity`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime E = Self.Ts[i]
+            comptime if conforms_to(E, DamageableEntity):
+                if s.isa[E]():
+                    return True
+        return False
 
     @staticmethod
     def ticks(s: Self.State) -> Bool:
@@ -477,3 +533,9 @@ def _read_short(t: Tree, tag: Tag, key: StringSpan) raises -> Int16:
         if t.type_of(v) == TAG_SHORT:
             return t.as_short(v)
     return 0
+
+
+def _explode[
+    E: ExplodableEntity
+](mut e: E, mut data: EntityData, src: Vec3, impact: Float64) -> Bool:
+    return e.explode(data, src, impact)

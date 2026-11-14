@@ -55,9 +55,11 @@ from .block_registry import BasicBlockRegistry
 from .block_set import BlockTypes
 from .block_source import BlockSource
 from .chunk.chunk import Chunk
-from .chunk.column import Column as ChunkColumn
-from .chunk.column import Entity as ChunkEntity
-from .chunk.column import ScheduledBlockUpdate
+from .chunk.column import (
+    Column as ChunkColumn,
+    Entity as ChunkEntity,
+    ScheduledBlockUpdate,
+)
 from .chunk.light import relight
 from .chunk.light_area import ChunkPointer, LightArea, chunk_pointer
 from .difficulty import Difficulty
@@ -785,6 +787,31 @@ struct World[T: WorldTypes](Movable):
             h.handle_crop_trample(self, ctx, pos)
             self._handler = h^
 
+    def handle_explosion(
+        mut self,
+        mut ctx: Context,
+        src: Vec3,
+        size: Float64,
+        mut entities: List[UUID],
+        mut blocks: List[Pos],
+        mut item_drop_chance: Float64,
+        mut spawn_fire: Bool,
+    ):
+        """Calls the handler's `handle_explosion`."""
+        if self._handler:
+            var h = self._handler.take()
+            h.handle_explosion(
+                self,
+                ctx,
+                src,
+                size,
+                entities,
+                blocks,
+                item_drop_chance,
+                spawn_fire,
+            )
+            self._handler = h^
+
     def play_sound[S: Sound](mut self, pos: Vec3, s: S):
         """Plays a sound to the viewers of a position (Go `Tx.PlaySound`;
         the `HandleSound` event is not ported)."""
@@ -1039,6 +1066,14 @@ struct World[T: WorldTypes](Movable):
             return UUID(Span(bytes))
         except:
             return UUID()
+
+    def explode_entity(mut self, id: UUID, src: Vec3, impact: Float64):
+        """Applies an explosion at `src` to an entity (Go
+        `ExplodableEntity.Explode`), removing it if it is destroyed."""
+        if case .Some(i) = self._ent_index.get(uuid_key(id)):
+            ref h = self._ents[i].handle
+            if Self.T.Entities.explode(h.state, h.data, src, impact):
+                _ = self.remove_entity(id)
 
     def has_entity(self, id: UUID) -> Bool:
         """Reports whether an entity is in the world."""
