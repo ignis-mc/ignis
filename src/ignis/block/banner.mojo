@@ -218,7 +218,8 @@ struct Banner(
     def encode_nbt(self, mut tag: Tree, root: Tag) raises:
         """Writes the block entity NBT (Go `EncodeNBT`)."""
         _ = tag.put_string(root, "id", "Banner")
-        var patterns = tag.put_list(root, "Patterns", TAG_COMPOUND)
+        # Go `make([]any, 0, n)`: an empty list has elements of TAG_End.
+        var patterns = tag.put_list(root, "Patterns")
         for p in self.patterns:
             p.encode_nbt(tag, tag.append_compound(patterns))
         _ = tag.put_int(root, "Type", Int32(1) if self.illager else Int32(0))

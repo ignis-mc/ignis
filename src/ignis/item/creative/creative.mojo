@@ -169,11 +169,9 @@ def _stack_from_entry(
     var meta = Int16(0)
     if tree.has(e, "meta"):
         meta = tree.get_short(e, "meta")
-    var block = False
     var found: Optional[RegisteredItem]
     var props = tree.get(e, "block_properties")
     if props and len(tree.children(props.value())) > 0:
-        block = True
         var rid = br.block_by_name(name, _properties(tree, props.value()))
         if not rid:
             return None
@@ -192,7 +190,7 @@ def _stack_from_entry(
         data = _sub_tree(tree, n)
     var st = Stack(found.value(), 1)
     var item_nbt: Optional[Tree]
-    if block:
+    if it.block:
         item_nbt = VanillaBlockItems.item_nbt(it.kind, it.hash, data)
     else:
         item_nbt = VanillaItems.item_nbt(it.kind, it.hash, data)

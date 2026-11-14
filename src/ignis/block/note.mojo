@@ -10,7 +10,7 @@ from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
-from ..world.item import EncodedItem, Item
+from ..world.item import EncodedItem, Item, ItemHasher
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -29,6 +29,7 @@ struct Note(
     Fuel,
     ImplicitlyCopyable,
     Item,
+    ItemHasher,
     ModelledBlock,
     NBTer,
 ):
@@ -145,6 +146,16 @@ struct Note(
         if case .Some(t) = tag.get(root, "powered"):
             n.powered = tag.as_byte(t) != 0
         return n
+
+    def item_hash(self) -> UInt64:
+        """Returns the item hash: the pitch, which Go keeps in the block
+        entity (Go registers the item with pitch 24)."""
+        return UInt64(self.pitch) & 0xFF
+
+    @staticmethod
+    def from_item_hash(hash: UInt64) -> Self:
+        """Rebuilds the item from its `item_hash`."""
+        return Note(pitch=Int(hash & 0xFF))
 
     @staticmethod
     def all_items() -> List[Self]:

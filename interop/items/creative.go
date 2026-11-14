@@ -80,6 +80,16 @@ func sortedValue(v any) any {
 		}
 		return out
 	}
+	// Typed slices of maps ([]map[string]any): a non-empty one becomes a
+	// list of structs; an empty one keeps its type, which decides the list's
+	// element type (TAG_Compound).
+	if rv := reflect.ValueOf(v); rv.Kind() == reflect.Slice && rv.Type().Elem().Kind() == reflect.Map && rv.Len() > 0 {
+		out := make([]any, rv.Len())
+		for i := range out {
+			out[i] = sortedValue(rv.Index(i).Interface())
+		}
+		return out
+	}
 	return v
 }
 
