@@ -2,25 +2,37 @@
 `server/player/playerdb/json.go` (`jsonData`, `toJson`, `fromJson`).
 
 The JSON has Go's field names, so a database written by Dragonfly loads
-here and the other way round. Ignis has no inventories, effects or health
-yet: those fields keep the values that were loaded (or Dragonfly's defaults
-for a new player), and the inventories and effects are written as `null`,
-which Dragonfly reads as empty.
+here and the other way round. Inventory items are kept as their encoded
+NBT (Go's `[]byte`, base64 in JSON); `playerdb.inventory` converts them to
+and from stacks. Ignis has no effects or health yet: those fields keep the
+values that were loaded (or Dragonfly's defaults for a new player), and
+effects are written as `null`, which Dragonfly reads as empty.
 """
 
 from std.math import isfinite
 
+from nethernet.crypto.base64 import base64_decode, base64_encode
 from nethernet.json import json_quote
 
 from ...block.cube.rotation import Rotation
-from ...internal.json import JSON_NUMBER, JsonDoc
+from ...internal.json import JSON_ARRAY, JSON_NUMBER, JSON_STRING, JsonDoc
 from ...mgl64 import Vec3
 from ...world.game_mode import GameMode, game_mode_by_id
 from ..player import Player
 
 
+@fieldwise_init
+struct Slot(Copyable):
+    """One stored inventory slot (Go `jsonSlot`)."""
+
+    var item: List[UInt8]
+    """The item as little-endian NBT (Go `Item`)."""
+    var slot: Int
+    """The slot index (Go `Slot`)."""
+
+
 struct Data(Copyable, Defaultable):
-    """The stored data of a player (Go `jsonData`, inventories aside)."""
+    """The stored data of a player (Go `jsonData`)."""
 
     var uuid: String
     """Go `UUID`."""
@@ -64,6 +76,22 @@ struct Data(Copyable, Defaultable):
     """Go `FallDistance`."""
     var dimension: Int32
     """Go `Dimension`."""
+    var items: List[Slot]
+    """Go `Inventory.Items`: the non-empty main inventory slots."""
+    var boots: List[UInt8]
+    """Go `Inventory.Boots`; empty for none."""
+    var leggings: List[UInt8]
+    """Go `Inventory.Leggings`."""
+    var chestplate: List[UInt8]
+    """Go `Inventory.Chestplate`."""
+    var helmet: List[UInt8]
+    """Go `Inventory.Helmet`."""
+    var off_hand: List[UInt8]
+    """Go `Inventory.OffHand`."""
+    var main_hand_slot: UInt32
+    """Go `Inventory.MainHandSlot`."""
+    var ender_chest: List[Slot]
+    """Go `EnderChestInventory`."""
 
     def __init__(out self):
         """Creates the data of a new player with Dragonfly's defaults."""
@@ -88,6 +116,14 @@ struct Data(Copyable, Defaultable):
         self.fire_ticks = 0
         self.fall_distance = 0
         self.dimension = 0
+        self.items = List[Slot]()
+        self.boots = List[UInt8]()
+        self.leggings = List[UInt8]()
+        self.chestplate = List[UInt8]()
+        self.helmet = List[UInt8]()
+        self.off_hand = List[UInt8]()
+        self.main_hand_slot = 0
+        self.ender_chest = List[Slot]()
 
     def put_player(mut self, p: Player, dimension: Int):
         """Updates the fields Ignis tracks from a player (Go `toJson` over
@@ -130,12 +166,15 @@ struct Data(Copyable, Defaultable):
         s += String(t',"AirSupply":{self.air_supply}')
         s += String(t',"MaxAirSupply":{self.max_air_supply}')
         s += String(t',"GameMode":{self.game_mode}')
-        s += (
-            ',"Inventory":{"Items":null,"Boots":null,"Leggings":null,'
-            + '"Chestplate":null,"Helmet":null,"OffHand":null,'
-            + '"MainHandSlot":0}'
-        )
-        s += ',"EnderChestInventory":null,"Effects":null'
+        s += ',"Inventory":{"Items":' + _slots(self.items)
+        s += ',"Boots":' + _bytes(self.boots)
+        s += ',"Leggings":' + _bytes(self.leggings)
+        s += ',"Chestplate":' + _bytes(self.chestplate)
+        s += ',"Helmet":' + _bytes(self.helmet)
+        s += ',"OffHand":' + _bytes(self.off_hand)
+        s += String(t',"MainHandSlot":{self.main_hand_slot}}}')
+        s += ',"EnderChestInventory":' + _slots(self.ender_chest)
+        s += ',"Effects":null'
         s += String(t',"FireTicks":{self.fire_ticks}')
         s += String(t',"FallDistance":{_f(self.fall_distance)}')
         s += String(t',"Dimension":{self.dimension}')
@@ -181,6 +220,15 @@ struct Data(Copyable, Defaultable):
         d.fire_ticks = Int64(_get_i(doc, r, "FireTicks"))
         d.fall_distance = _get_f(doc, r, "FallDistance")
         d.dimension = Int32(_get_i(doc, r, "Dimension"))
+        if case .Some(inv) = doc.get(r, "Inventory"):
+            d.items = _get_slots(doc, inv, "Items")
+            d.boots = _get_bytes(doc, inv, "Boots")
+            d.leggings = _get_bytes(doc, inv, "Leggings")
+            d.chestplate = _get_bytes(doc, inv, "Chestplate")
+            d.helmet = _get_bytes(doc, inv, "Helmet")
+            d.off_hand = _get_bytes(doc, inv, "OffHand")
+            d.main_hand_slot = UInt32(_get_i(doc, inv, "MainHandSlot"))
+        d.ender_chest = _get_slots(doc, r, "EnderChestInventory")
         return d^
 
 
@@ -189,6 +237,41 @@ def _f(v: Float64) -> String:
     if not isfinite(v):
         return "0"
     return String(v)
+
+
+def _bytes(b: List[UInt8]) -> String:
+    # Go's json.Marshal of a []byte: base64, null when nil.
+    if len(b) == 0:
+        return "null"
+    return '"' + base64_encode(Span(b)) + '"'
+
+
+def _slots(slots: List[Slot]) -> String:
+    var s = String("[")
+    for i in range(len(slots)):
+        if i > 0:
+            s += ","
+        s += '{"Item":' + _bytes(slots[i].item)
+        s += String(t',"Slot":{slots[i].slot}}}')
+    return s + "]"
+
+
+def _get_bytes(doc: JsonDoc, obj: Int, key: StringSlice) raises -> List[UInt8]:
+    if case .Some(i) = doc.get(obj, key):
+        if doc.kind(i) == JSON_STRING:
+            return base64_decode(doc.as_string(i))
+    return List[UInt8]()
+
+
+def _get_slots(doc: JsonDoc, obj: Int, key: StringSlice) raises -> List[Slot]:
+    var out = List[Slot]()
+    if case .Some(arr) = doc.get(obj, key):
+        if doc.kind(arr) == JSON_ARRAY:
+            for e in doc.children(arr):
+                out.append(
+                    Slot(_get_bytes(doc, e, "Item"), _get_i(doc, e, "Slot"))
+                )
+    return out^
 
 
 def _vec(v: Vec3) -> String:
