@@ -28,12 +28,14 @@ from ..world.chunk.encode import CURRENT_BLOCK_VERSION
 from ..world.entity import (
     EntityData,
     EntityMovement,
+    ExplodableEntity,
     NetworkEncodedEntity,
     TickerEntity,
 )
 from ..world.sound.block import AnvilLand
 from ..world.world import World, WorldTypes
 from .movement import MovementComputer
+from ..mgl64 import Vec3
 
 comptime FALLING_BLOCK_GRAVITY = 0.04
 """Go `fallingBlockConf.Gravity`."""
@@ -41,7 +43,12 @@ comptime FALLING_BLOCK_DRAG = 0.02
 """Go `fallingBlockConf.Drag`."""
 
 
-struct FallingBlock(Copyable, NetworkEncodedEntity, TickerEntity):
+struct FallingBlock(
+    Copyable,
+    ExplodableEntity,
+    NetworkEncodedEntity,
+    TickerEntity,
+):
     """A block falling as an entity (Go `FallingBlockType` with a
     `FallingBlockBehaviour`)."""
 
@@ -185,6 +192,13 @@ struct FallingBlock(Copyable, NetworkEncodedEntity, TickerEntity):
             self.block.kind, self.block.state
         ):
             tx.drop_item(bpos.vec3_middle(), Stack(it, 1))
+
+    def explode(
+        mut self, mut data: EntityData, src: Vec3, impact: Float64
+    ) -> Bool:
+        """Is pushed away (Go `PassiveBehaviour.Explode`)."""
+        data.vel = data.vel.add(data.pos.sub(src).normalize().mul(impact))
+        return False
 
 
 def _break_anvil(a: Anvil) -> AnyBlock:

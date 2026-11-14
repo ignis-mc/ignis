@@ -14,16 +14,20 @@ from .break_info import (
     ALWAYS_HARVESTABLE,
     BreakInfo,
     Breakable,
+    Dropper,
     NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_GLASS
 from .model.solid import Solid as SolidModel
+from ..item.stack import Stack
+from ..item.tool import ToolInfo
 
 
 struct Glass(
     Block,
     Breakable,
+    Dropper,
     Equatable,
     ImplicitlyCopyable,
     Instrumented,
@@ -91,3 +95,9 @@ struct Glass(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def drops(self, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+        """Drops itself only with silk touch (Go `silkTouchOnlyDrop`)."""
+        if silk_touch:
+            return [Stack(self, 1)]
+        return []

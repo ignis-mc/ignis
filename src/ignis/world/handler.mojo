@@ -6,12 +6,16 @@ Go's `NopHandler`. Handler methods receive the world as `tx`; the world
 takes its handler out while calling it, so a handler can use the world
 freely but cannot reach itself through it.
 
-Blocks are passed as `AnyBlock`s (Go passes `world.Block` values). The
-sound, portal, explosion and redstone events come with those systems.
+Blocks are passed as `AnyBlock`s (Go passes `world.Block` values) and
+entities as UUIDs. The sound, portal and redstone events come with those
+systems.
 """
 
 from ..block.cube.pos import Pos
 from ..block.hash import AnyBlock
+from minecraft.protocol.uuid import UUID
+
+from ..mgl64 import Vec3
 from .entity import EntityHandle
 from .tx import Context
 from .world import World, WorldTypes
@@ -87,6 +91,24 @@ trait Handler(Deinitable, Movable):
         T: WorldTypes
     ](mut self, mut tx: World[T], mut ctx: Context, pos: Pos):
         """Handles an entity trampling a crop (Go `HandleCropTrample`)."""
+        pass
+
+    def handle_explosion[
+        T: WorldTypes
+    ](
+        mut self,
+        mut tx: World[T],
+        mut ctx: Context,
+        src: Vec3,
+        size: Float64,
+        mut entities: List[UUID],
+        mut blocks: List[Pos],
+        mut item_drop_chance: Float64,
+        mut spawn_fire: Bool,
+    ):
+        """Handles an explosion at `src`; the affected entities and blocks,
+        the item drop chance and whether it spawns fire may be changed (Go
+        `HandleExplosion`)."""
         pass
 
     def handle_entity_spawn[

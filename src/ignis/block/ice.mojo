@@ -12,6 +12,7 @@ from .break_info import (
     ALWAYS_HARVESTABLE,
     BreakInfo,
     Breakable,
+    Dropper,
     PICKAXE_EFFECTIVE,
     new_break_info,
 )
@@ -21,11 +22,14 @@ from ..world.world import World, WorldTypes
 from .cube.pos import Pos
 from .cube.face import Face
 from .water import Water
+from ..item.stack import Stack
+from ..item.tool import ToolInfo
 
 
 struct Ice(
     Block,
     Breakable,
+    Dropper,
     Equatable,
     ImplicitlyCopyable,
     Item,
@@ -100,3 +104,9 @@ struct Ice(
                     return
                 tx.set_block(pos, Water(still=True, depth=8))
                 return
+
+    def drops(self, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+        """Drops itself only with silk touch (Go `silkTouchOnlyDrop`)."""
+        if silk_touch:
+            return [Stack(self, 1)]
+        return []

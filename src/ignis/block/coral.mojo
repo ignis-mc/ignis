@@ -20,6 +20,7 @@ from .break_info import (
     ALWAYS_HARVESTABLE,
     BreakInfo,
     Breakable,
+    Dropper,
     NOTHING_EFFECTIVE,
     break_block,
     new_break_info,
@@ -33,11 +34,14 @@ from .cube.pos import Pos
 from .cube.face import Face
 from .water import Water
 from .block import face_solid_at
+from ..item.stack import Stack
+from ..item.tool import ToolInfo
 
 
 struct Coral(
     Block,
     Breakable,
+    Dropper,
     Equatable,
     ImplicitlyCopyable,
     Instrumented,
@@ -164,3 +168,9 @@ struct Coral(
         elif self.dead:
             return
         tx.schedule_block_update(pos, self, 2500)
+
+    def drops(self, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+        """Drops itself only with silk touch (Go `silkTouchOnlyDrop`)."""
+        if silk_touch:
+            return [Stack(self, 1)]
+        return []

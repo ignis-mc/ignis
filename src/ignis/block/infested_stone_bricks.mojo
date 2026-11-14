@@ -12,20 +12,24 @@ from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    Dropper,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .hash import HASH_INFESTED_STONE_BRICKS
 from .model.solid import Solid as SolidModel
 from .stone_bricks_type import StoneBricksType, stone_bricks_types
+from ..item.stack import Stack
+from ..item.tool import ToolInfo
 
 
 struct InfestedStoneBricks(
     Block,
     Breakable,
+    Dropper,
     Equatable,
     ImplicitlyCopyable,
     Instrumented,
@@ -96,3 +100,9 @@ struct InfestedStoneBricks(
         for t in stone_bricks_types():
             out.append(Self(type=t))
         return out^
+
+    def drops(self, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+        """Drops itself only with silk touch (Go `silkTouchOnlyDrop`)."""
+        if silk_touch:
+            return [Stack(self, 1)]
+        return []

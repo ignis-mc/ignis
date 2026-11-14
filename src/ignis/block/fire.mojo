@@ -7,16 +7,20 @@ RandomTick, NeighbourUpdateTick, EntityInside, FireDamageSource, Start and
 the fire spread helpers.
 """
 
-from .block import Replaceable
-from .hash import AnyBlock
+from .block import Replaceable, face_solid_at
+from .hash import AnyBlock, HASH_FIRE
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .connections import FireConnections, all_fire_connections
 from .fire_type import FireType
-from .hash import HASH_FIRE
 from .model.empty import Empty as EmptyModel
 from .liquid import LiquidRemovable
+from ..world.world import World, WorldTypes
+from .cube.face import Face
+from .cube.pos import Pos
+from .fern import Fern
+from .short_grass import ShortGrass
 
 
 struct Fire(
@@ -120,3 +124,65 @@ struct Fire(
     def has_liquid_drops(self) -> Bool:
         """Returns False (Go `HasLiquidDrops`)."""
         return False
+
+
+def flammable_block[T: WorldTypes](mut tx: World[T], pos: Pos) -> Bool:
+    """Reports whether the block at `pos` can catch fire (Go
+    `flammableBlock`)."""
+    var rid = tx.block(pos)
+    var br = tx.block_registry()
+    if case .Some(f) = T.Blocks.flammability(
+        br[].kind(rid), br[].state_hash(rid)
+    ):
+        return f.encouragement > 0
+    return False
+
+
+def neighbours_flammable[T: WorldTypes](mut tx: World[T], pos: Pos) -> Bool:
+    """Reports whether a block next to `pos` can catch fire (Go
+    `neighboursFlammable`)."""
+    for i in range(6):
+        if flammable_block(tx, pos.side(Face(i))):
+            return True
+    return False
+
+
+def fire_connections[
+    T: WorldTypes
+](f: Fire, pos: Pos, mut tx: World[T]) -> FireConnections:
+    """Returns the sides fire at `pos` attaches to (Go `connections`)."""
+    if f.type == FireType.SOUL:
+        return FireConnections()
+    # Fire on a full top face or on a flammable block burns on the ground.
+    var below = pos.side(Face.DOWN)
+    if flammable_block(tx, below) or face_solid_at(tx, below, Face.UP):
+        return FireConnections()
+    return FireConnections(
+        flammable_block(tx, pos.side(Face.NORTH)),
+        flammable_block(tx, pos.side(Face.EAST)),
+        flammable_block(tx, pos.side(Face.SOUTH)),
+        flammable_block(tx, pos.side(Face.WEST)),
+        flammable_block(tx, pos.side(Face.UP)),
+    )
+
+
+def start_fire[T: WorldTypes](mut tx: World[T], pos: Pos):
+    """Sets fire to air, short grass or a fern at `pos` if it has a solid
+    block under it or something flammable next to it (Go `Fire.Start`;
+    nether portals are not ported). Go asks the block below about its face
+    at `pos`; this asks it about its own position."""
+    var b = tx.block(pos)
+    var br = tx.block_registry()
+    if not (
+        b == br[].air_runtime_id()
+        or br[].is_block[ShortGrass](b)
+        or br[].is_block[Fern](b)
+    ):
+        return
+    if face_solid_at(tx, pos.side(Face.DOWN), Face.UP) or neighbours_flammable(
+        tx, pos
+    ):
+        var f = Fire()
+        f.connections = fire_connections(f, pos, tx)
+        tx.set_block(pos, f)
+        tx.schedule_block_update(pos, f, (30 + tx.global_rand().int_n(10)) * 50)
