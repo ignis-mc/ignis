@@ -453,3 +453,35 @@ packets); the package docstring of `ignis.cmd` has the full mapping.
 - The registry is a `Registry[S]` value owned by the server, not a global.
 - `AvailableCommands` visits commands sorted by name (Dragonfly's map order
   is random) and is byte-exact against Dragonfly for that order.
+
+## Player UI
+
+Implemented in `ignis.player.form`, `chat`, `scoreboard`, `bossbar`,
+`title`, `dialogue` and `skin` (Go `server/player/...`), `ignis.text`
+(gophertunnel `minecraft/text`), `ignis.session.ui` and `session.skin`
+(the packets of Go's `session/text.go`, `player.go`, `session_list.go`)
+and `ignis.server.ui` (the form and dialogue state of the session
+handlers).
+
+- **Forms and dialogues are structs, as in Go**: a submittable's element
+  fields are read with `std.reflection` at compile time (`_`-prefixed
+  fields are Go's unexported ones), so a wrong field type is a compile
+  error. `submit[S: Submitter](mut self, mut submitter: S, mut tx: S.Tx)`
+  replaces Go's `Submit(submitter, *world.Tx)`.
+- **`form.Form[S]` and `dialogue.AnyDialogue[S]` replace Go's interface
+  values**: they own a form of any type in a heap box with function
+  pointers generated for it. `S` is the server's `ServerSubmitter` (the
+  player's UUID and the server; `Tx = ServerTx`).
+- **The server keeps open forms and dialogues** (`Server.ui`); a session
+  numbers forms (`send_form_json`) and reports `ModalFormResponse` and
+  `NPCRequest` in `HandleResult`. `server.ui.send_form(srv, uuid, form)` is
+  Go's `Player.SendForm`; `send_dialogue` opens a dialogue on a player.
+- **JSON is Go's**: `ignis.internal.gojson` writes what `encoding/json`
+  writes (sorted map keys, HTML escaping, Go floats); form, dialogue and
+  model-config JSON match Dragonfly byte for byte.
+- `text.colourf(format, args)` takes string arguments (Mojo has no `any`
+  varargs) and tokenizes like `golang.org/x/net/html`.
+- The chat (`chat.Chat`) records subscriber UUIDs and delivers through a
+  `Delivery` the caller provides; there is no `chat.Global`.
+- `/ui` (`server.ui_demo`) shows each part; `interop/ui` holds the Go
+  vectors and `interop/bots/ui_bot.mojo` the end-to-end check.
