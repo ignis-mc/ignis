@@ -21,9 +21,23 @@ from .cube.direction import Direction, directions
 from .grindstone_attachment import GrindstoneAttachment, grindstone_attachments
 from .hash import HASH_GRINDSTONE
 from .model.grindstone import Grindstone as GrindstoneModel
+from .block import (
+    Activatable,
+    Placement,
+    UsableOnBlock,
+    UseContext,
+    User,
+    first_replaceable,
+)
+from ..world.world import World, WorldTypes
+from .cube.face import Face
+from .cube.pos import Pos
+from ..mgl64 import Vec3
+from .hash import AnyBlock
 
 
 struct Grindstone(
+    Activatable,
     Block,
     Breakable,
     Equatable,
@@ -31,6 +45,7 @@ struct Grindstone(
     Item,
     LightDiffuser,
     ModelledBlock,
+    UsableOnBlock,
 ):
     """A block that repairs items and tools as well as removing enchantments from them.
     """
@@ -108,6 +123,42 @@ struct Grindstone(
         if self.attach == GrindstoneAttachment.WALL:
             axis = self.facing.face().axis()
         return GrindstoneModel(axis=axis)
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens the block's window (Go `Activate`)."""
+        ctx.open_container = True
+        return True
+
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: User,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places the grindstone standing, hanging or on a wall by the clicked face (Go `UseOnBlock`).
+        """
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var b = self.copy()
+        var f = at.value()[1]
+        b.facing = user.direction().opposite()
+        if f == Face.DOWN:
+            b.attach = GrindstoneAttachment.HANGING
+        elif f != Face.UP:
+            b.attach = GrindstoneAttachment.WALL
+            b.facing = f.direction()
+        return [Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()))]
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

@@ -114,6 +114,7 @@ from ..block.register import vanilla_block_registry
 from ..block.register import VanillaBlocks
 from ..entity.register import VanillaEntities
 from ..item.creative.creative import load_creative_items
+from ..item.recipe.register import Recipes
 from ..item.recipe.vanilla import load_vanilla_recipes
 from ..item.register import vanilla_item_registry
 from ..mgl64 import Vec3
@@ -206,10 +207,11 @@ def data_driven_block_entries(path: String) raises -> List[BlockEntry]:
 
 def item_packets(
     br: BasicBlockRegistry, vanilla_items_path: String
-) raises -> Tuple[List[UInt8], List[UInt8], List[UInt8], List[Stack]]:
+) raises -> Tuple[List[UInt8], List[UInt8], List[UInt8], List[Stack], Recipes]:
     """Encodes the `CreativeContent`, `CraftingData` and `TrimData` packets
     every session gets on join, and returns the creative items in network
-    ID order (ID n is entry n - 1). Go builds the packets per session, with
+    ID order (ID n is entry n - 1) and the recipes (recipe n is entry
+    n - 1). Go builds the packets per session, with
     new random recipe IDs each time; Ignis builds them once, so the recipe
     IDs are random per server start."""
     var reg = vanilla_item_registry(vanilla_items_path)
@@ -227,6 +229,7 @@ def item_packets(
         encode_packet(crafting_pk),
         encode_packet(trim_pk),
         stacks^,
+        recipes^,
     )
 
 
@@ -397,6 +400,8 @@ struct Server(Movable):
     var _items: List[ItemEntry]
     var item_registry: ArcPointer[ItemRegistry]
     """The registered items, shared with the sessions."""
+    var recipes: ArcPointer[Recipes]
+    """The crafting recipes sessions craft with (Go `recipe.Recipes`)."""
     var creative_items: ArcPointer[List[Stack]]
     """The creative inventory (Go `creative.Items`), in network ID
     order."""
@@ -448,6 +453,7 @@ struct Server(Movable):
         self._items = items^
         self.item_registry = item_reg^
         self.creative_items = ArcPointer(item_pks[3].copy())
+        self.recipes = ArcPointer(item_pks[4].copy())
         self._biomes = biomes^
         self._creative = item_pks[0].copy()
         self._crafting = item_pks[1].copy()
@@ -901,6 +907,7 @@ struct Server(Movable):
         sc.items = self.item_registry
         sc.creative_items = self.creative_items
         sc.stack_ids = self.world.stack_ids()
+        sc.recipes = self.recipes
         sc.creative_content = self._creative.copy()
         sc.crafting_data = self._crafting.copy()
         sc.trim_data = self._trim.copy()

@@ -24,9 +24,17 @@ from .model.solid import Solid as SolidModel
 from ..world.block import LiquidDisplacer
 from .hash import AnyBlock
 from .liquid import source_water_can_displace
+from .block import (
+    Activatable,
+    UseContext,
+)
+from ..world.world import World, WorldTypes
+from .cube.face import Face
+from .cube.pos import Pos
 
 
 struct Beacon(
+    Activatable,
     Block,
     Breakable,
     Equatable,
@@ -92,6 +100,15 @@ struct Beacon(
     def model(self) -> SolidModel:
         """Returns the model of the block (Go `Model`)."""
         return SolidModel()
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens the block's window (Go `Activate`)."""
+        ctx.open_container = True
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

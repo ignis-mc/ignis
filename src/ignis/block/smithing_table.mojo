@@ -16,9 +16,17 @@ from .break_info import (
 )
 from .hash import HASH_SMITHING_TABLE
 from .model.solid import Solid as SolidModel
+from .block import (
+    Activatable,
+    UseContext,
+)
+from ..world.world import World, WorldTypes
+from .cube.face import Face
+from .cube.pos import Pos
 
 
 struct SmithingTable(
+    Activatable,
     Block,
     Breakable,
     Equatable,
@@ -66,6 +74,15 @@ struct SmithingTable(
     def model(self) -> SolidModel:
         """Returns the model of the block (Go `Model`)."""
         return SolidModel()
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens the block's window (Go `Activate`)."""
+        ctx.open_container = True
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

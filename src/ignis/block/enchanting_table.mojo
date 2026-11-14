@@ -23,9 +23,17 @@ from .model.enchanting_table import EnchantingTable as EnchantingTableModel
 from ..world.block import LiquidDisplacer
 from .hash import AnyBlock
 from .liquid import source_water_can_displace
+from .block import (
+    Activatable,
+    UseContext,
+)
+from ..world.world import World, WorldTypes
+from .cube.face import Face
+from .cube.pos import Pos
 
 
 struct EnchantingTable(
+    Activatable,
     Block,
     Breakable,
     Equatable,
@@ -89,6 +97,15 @@ struct EnchantingTable(
     def model(self) -> EnchantingTableModel:
         """Returns the model of the block (Go `Model`)."""
         return EnchantingTableModel()
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens the block's window (Go `Activate`)."""
+        ctx.open_container = True
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

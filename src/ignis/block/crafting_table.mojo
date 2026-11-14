@@ -17,10 +17,24 @@ from .break_info import (
 )
 from .hash import HASH_CRAFTING_TABLE
 from .model.solid import Solid as SolidModel
+from .block import (
+    Activatable,
+    UseContext,
+)
+from ..world.world import World, WorldTypes
+from .cube.face import Face
+from .cube.pos import Pos
 
 
 struct CraftingTable(
-    Block, Breakable, Equatable, Fuel, ImplicitlyCopyable, Item, ModelledBlock
+    Activatable,
+    Block,
+    Breakable,
+    Equatable,
+    Fuel,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A utility block that allows the player to craft a variety of blocks and items.
     """
@@ -67,6 +81,15 @@ struct CraftingTable(
     def fuel_info(self) -> FuelInfo:
         """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
         return FuelInfo(15000)
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens the block's window (Go `Activate`)."""
+        ctx.open_container = True
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

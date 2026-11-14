@@ -264,6 +264,7 @@ from .inventory import (
 )
 from .item import stack_to_item
 from ..item.inventory.inventory import Inventory, StackIDs
+from ..item.recipe.register import Recipes
 from ..item.stack import Stack
 from ..world.block_registry import BasicBlockRegistry
 from ..world.item import ItemRegistry
@@ -317,6 +318,8 @@ struct Config(Copyable, Defaultable):
     """The creative inventory, in network ID order (Go `creative.Items`)."""
     var stack_ids: ArcPointer[StackIDs]
     """The stack network ID source, shared with the world's containers."""
+    var recipes: ArcPointer[Recipes]
+    """The crafting recipes, numbered from 1 as `CraftingData` sends them."""
 
     var creative_content: List[UInt8]
     """The encoded `CreativeContent` packet sent next (Go
@@ -339,6 +342,7 @@ struct Config(Copyable, Defaultable):
         self.items = ArcPointer(ItemRegistry())
         self.creative_items = ArcPointer(List[Stack]())
         self.stack_ids = ArcPointer(StackIDs())
+        self.recipes = ArcPointer(Recipes())
 
         self.creative_content = List[UInt8]()
         self.crafting_data = List[UInt8]()
@@ -555,6 +559,7 @@ struct Session[C: Conn](Movable):
         self._soft_enums = Set[String]()
         self.invs = Inventories(conf.stack_ids)
         self._stack_requests = ItemStackRequestHandler()
+        self._stack_requests.use_recipes(conf.recipes, conf.items)
         self._inv_opened = False
         self._queue[].entity_ids[
             uuid_key(self.player.uuid())
