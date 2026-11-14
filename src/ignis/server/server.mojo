@@ -92,6 +92,11 @@ from .builtin import register_builtin_commands
 from .command import CommandSource, execute_command
 from .provider import WorldProvider
 from ..item.register import vanilla_item_registry
+from ..item.nbt import read_disk_nbt, write_disk_nbt
+from ..entity.item import DEFAULT_PICKUP_DELAY_TICKS, ItemBehaviour
+from ..world.entity import EntityHandle, EntitySpawnOpts
+from ..block.cube.bbox import BBox
+from minecraft.nbt.tree import Tree
 from ..item.stack import Stack
 from ..player.playerdb.inventory import load_inventories, put_inventories
 from ..world.item import ItemRegistry
@@ -103,7 +108,7 @@ from ..block.register import vanilla_block_registry
 from ..block.register import VanillaBlocks
 from ..entity.register import VanillaEntities
 from ..mgl64 import Vec3
-from ..player.player import EYE_HEIGHT, Player
+from ..player.player import BBOX_HEIGHT, BBOX_WIDTH, EYE_HEIGHT, Player
 from ..session.conn import NetConn
 from ..session.session import Config as SessionConfig
 from ..session.session import (
@@ -1001,15 +1006,161 @@ struct Server(Movable):
                 self.sessions[j].view_entity_items(p, main, off)
 
     def drop_item(mut self, i: Int, s: Stack):
-        """Drops a stack from a player's eyes (Go `Player.Drop`)."""
-        # TODO(item entities): spawn the stack as an item entity.
-        _ = i
-        _ = s
+        """Drops a stack from a player (Go `Player.Drop`): 1.4 blocks above
+        its feet, thrown where it looks, collectable after two seconds."""
+        ref p = self.sessions[i].player
+        var pos = p.position().add(Vec3(0, 1.4, 0))
+        var vel = p.rotation().vec3().mul(0.4)
+        self.spawn_item(pos, vel, s, 40)
+
+    def spawn_item(
+        mut self,
+        pos: Vec3,
+        vel: Vec3,
+        s: Stack,
+        pickup_delay_ticks: Int = DEFAULT_PICKUP_DELAY_TICKS,
+    ):
+        """Adds an item entity holding a stack (Go `entity.NewItem` and
+        `NewItemPickupDelay` with `Tx.AddEntity`)."""
+        if s.empty():
+            return
+        var nbt: Tree
+        try:
+            nbt = write_disk_nbt(
+                self.world.block_registry()[], self.item_registry[], s
+            )
+        except e:
+            print("spawn item:", e)
+            return
+        var opts = EntitySpawnOpts()
+        opts.position = pos
+        opts.velocity = vel
+        var h = EntityHandle[VanillaEntities](
+            opts,
+            VanillaEntities.wrap(ItemBehaviour(s, nbt^, pickup_delay_ticks)),
+        )
+        _ = self.world.add_entity(h^)
+
+    def _tick_items(mut self):
+        """Lets players pick up items and merges items lying together (Go
+        `ItemBehaviour.checkNearby`, `collect` and `merge`)."""
+        var done = List[UUID]()
+        for id in self.world.entities():
+            if id in done:
+                continue
+            var found = self.world.entity(id)
+            if not found:
+                continue
+            ref h = found.value()
+            if not h.state.isa[ItemBehaviour]():
+                continue
+            ref b = h.state[ItemBehaviour]
+            if not b.can_pick_up():
+                continue
+            var stack = self._item_stack(b)
+            if stack.empty():
+                continue
+            var pos = h.data.pos
+            var box = b.bbox(h.data)
+            var grown = box.grow_vec3(Vec3(1, 0.5, 1)).translate(pos)
+            if self._collect(id, stack, pos, grown):
+                done.append(id)
+                continue
+            for other in self.world.entities_within(box.translate(pos).grow(2)):
+                if other == id or other in done:
+                    continue
+                if self._merge(id, h, stack, other, grown):
+                    done.append(id)
+                    done.append(other)
+                    break
+
+    def _item_stack(self, b: ItemBehaviour) -> Stack:
+        """The stack of an item entity; a loaded one only has its NBT."""
+        if b.resolved():
+            return b.item.copy()
+        return read_disk_nbt(
+            self.item_registry[], b.item_nbt, b.item_nbt.root()
+        )
+
+    def _collect(
+        mut self, id: UUID, stack: Stack, pos: Vec3, grown: BBox
+    ) -> Bool:
+        """Go `collect` by the first player touching the item that has
+        room (Go `Player.Collect`)."""
+        for j in range(len(self.sessions)):
+            ref p = self.sessions[j].player
+            if not p.game_mode().allows_interaction():
+                continue
+            var pbox = BBox.box(
+                -BBOX_WIDTH / 2,
+                0,
+                -BBOX_WIDTH / 2,
+                BBOX_WIDTH / 2,
+                BBOX_HEIGHT,
+                BBOX_WIDTH / 2,
+            ).translate(p.position())
+            if not pbox.intersects_with(grown):
+                continue
+            var added = 0
+            var off = self.sessions[j].invs.off_hand_item()
+            if not off.empty() and off.comparable(stack):
+                added = self.sessions[j].invs.off_hand.add_item(stack.copy())
+            if added != stack.count():
+                added += self.sessions[j].invs.inv.add_item(stack.grow(-added))
+            if added == 0:
+                continue
+            var collector = self.sessions[j].player.copy()
+            for k in range(len(self.sessions)):
+                self.sessions[k].view_take_item(id, collector)
+            _ = self.world.remove_entity(id)
+            if added != stack.count():
+                self.spawn_item(pos, Vec3(), stack.grow(-added), 0)
+            return True
+        return False
+
+    def _merge(
+        mut self,
+        id: UUID,
+        h: EntityHandle[VanillaEntities],
+        stack: Stack,
+        other_id: UUID,
+        grown: BBox,
+    ) -> Bool:
+        """Go `merge`: two comparable items that are not full become one."""
+        var found = self.world.entity(other_id)
+        if not found:
+            return False
+        ref o = found.value()
+        if not o.state.isa[ItemBehaviour]():
+            return False
+        var obox = o.state[ItemBehaviour].bbox(o.data).translate(o.data.pos)
+        if not obox.intersects_with(grown):
+            return False
+        var other = self._item_stack(o.state[ItemBehaviour])
+        if (
+            other.empty()
+            or other.count() == other.max_count()
+            or stack.count() == stack.max_count()
+            or not stack.comparable(other)
+        ):
+            return False
+        var r = other.add_stack(stack)
+        var opos = o.data.pos
+        var ovel = o.data.vel
+        var pos = h.data.pos
+        var vel = h.data.vel
+        _ = self.world.remove_entity(id)
+        _ = self.world.remove_entity(other_id)
+        self.spawn_item(opos, ovel, r[0])
+        if not r[1].empty():
+            self.spawn_item(pos, vel, r[1])
+        return True
 
     def _tick(mut self):
         """Runs the per-tick session work (each session's `background`
         loop in Go); the world ticks on its own deadline."""
         self._ticks += 1
+        self._tick_items()
         for i in range(len(self.sessions)):
             self.sessions[i].send_chunks(self.world)
             if self.sessions[i].send_inventory_changes():

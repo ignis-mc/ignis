@@ -100,6 +100,7 @@ from minecraft.protocol.packet.chunk_radius_updated import ChunkRadiusUpdated
 from minecraft.protocol.packet.command_request import CommandRequest
 from minecraft.protocol.packet.item_stack_request import ItemStackRequest
 from minecraft.protocol.packet.mob_equipment import MobEquipment
+from minecraft.protocol.packet.take_item_actor import TakeItemActor
 from minecraft.protocol.inventory import WINDOW_ID_INVENTORY, WINDOW_ID_OFF_HAND
 from minecraft.protocol.packet.update_player_game_type import (
     UpdatePlayerGameType,
@@ -422,8 +423,6 @@ struct Session[C: Conn](Movable):
     var _conf: Config
     var _loader: Optional[LoaderID]
     var _queue: ArcPointer[PacketQueue]
-    var _current_entity_runtime_id: UInt64
-    var _entity_runtime_ids: Dict[String, UInt64]
     var _teleport_pos: Optional[Vec3]
     var _moving: Bool
     var _last_chunk_pos: ChunkPos
@@ -464,9 +463,7 @@ struct Session[C: Conn](Movable):
         self.max_chunk_radius = Int32(conf.max_chunk_radius)
         self._conf = conf.copy()
         self._loader = None
-        self._queue = ArcPointer(PacketQueue())
-        self._current_entity_runtime_id = 1
-        self._entity_runtime_ids = Dict[String, UInt64]()
+        self._queue = ArcPointer(PacketQueue(conf.blocks, conf.items))
         self._teleport_pos = None
         self._moving = False
         self._last_chunk_pos = ChunkPos(0, 0)
@@ -478,7 +475,7 @@ struct Session[C: Conn](Movable):
         self._soft_enums = Set[String]()
         self.invs = Inventories()
         self._stack_requests = ItemStackRequestHandler()
-        self._entity_runtime_ids[
+        self._queue[].entity_ids[
             uuid_key(self.player.uuid())
         ] = SELF_ENTITY_RUNTIME_ID
         if len(conf.biome_definitions) > 0:
@@ -1233,16 +1230,14 @@ struct Session[C: Conn](Movable):
         Returns:
             The runtime ID, or `None` if the player was never shown.
         """
-        return self._entity_runtime_ids.get(uuid_key(p.uuid()))
+        return self._queue[].entity_ids.get(uuid_key(p.uuid()))
 
     def _runtime_id_for(mut self, p: Player) -> UInt64:
         var key = uuid_key(p.uuid())
-        var known = self._entity_runtime_ids.get(key)
+        var known = self._queue[].entity_ids.get(key)
         if case .Some(id) = known:
             return id
-        self._current_entity_runtime_id += 1
-        var id = self._current_entity_runtime_id
-        self._entity_runtime_ids[key] = id
+        var id = self._queue[].new_entity_id(key)
         return id
 
     def send_session_to_self(mut self):
@@ -1279,9 +1274,9 @@ struct Session[C: Conn](Movable):
             p: The player of the session that left.
         """
         var key = uuid_key(p.uuid())
-        if key in self._entity_runtime_ids:
+        if key in self._queue[].entity_ids:
             try:
-                _ = self._entity_runtime_ids.pop(key)
+                _ = self._queue[].entity_ids.pop(key)
             except:
                 pass
         var entry = PlayerListEntry()
@@ -1410,6 +1405,18 @@ struct Session[C: Conn](Movable):
         var data = TeleportData()
         data.teleport_cause = TELEPORT_CAUSE_UNKNOWN
         pk.teleport_data = data^
+        self.write_packet(pk)
+
+    def view_take_item(mut self, item: UUID, taker: Player):
+        """Shows a player picking up an item entity (Go `ViewEntityAction`
+        with `PickedUpAction`)."""
+        var item_id = self._queue[].entity_ids.get(uuid_key(item))
+        var taker_id = self.entity_runtime_id(taker)
+        if not item_id or not taker_id:
+            return
+        var pk = TakeItemActor()
+        pk.item_entity_runtime_id = item_id.value()
+        pk.taker_entity_runtime_id = taker_id.value()
         self.write_packet(pk)
 
     def view_entity_game_mode(mut self, p: Player):

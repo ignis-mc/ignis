@@ -15,6 +15,7 @@ from ignis.block.dirt import Dirt
 from ignis.block.grass import Grass
 from ignis.block.stone import Stone
 from ignis.entity.text import Text
+from ignis.entity.register import VanillaEntities
 from ignis.mgl64 import Vec3
 from ignis.world.biome.plains import Plains
 from ignis.world.block import (
@@ -288,4 +289,23 @@ def new_world(synchronous: Bool = False) raises -> World[TestWorld]:
     var conf = Config[TestWorld](flat(br[]), MemoryProvider(), br)
     conf.seed = (UInt64(1), UInt64(2))
     conf.synchronous = synchronous
+    return conf^.new(0)
+
+
+struct ItemWorld(WorldTypes):
+    """`TestWorld` with the vanilla entity set, for item entities."""
+
+    comptime Generator = Flat
+    comptime Provider = MemoryProvider
+    comptime Viewer = RecordingViewer
+    comptime Handler = RecordingHandler
+    comptime Blocks = TestBlocks
+    comptime Entities = VanillaEntities
+
+
+def new_item_world() raises -> World[ItemWorld]:
+    var br = test_registry()
+    var conf = Config[ItemWorld](flat(br[]), MemoryProvider(), br)
+    conf.seed = (UInt64(1), UInt64(2))
+    conf.synchronous = True
     return conf^.new(0)
