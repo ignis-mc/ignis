@@ -68,16 +68,7 @@ struct Player(Copyable):
         game_mode: GameMode = GAME_MODE_SURVIVAL,
         rot: Rotation = Rotation(),
     ):
-        """Creates a player (Go `Config.Apply` with a fresh `Data`).
-
-        Args:
-            name: The display name; also the initial name tag.
-            xuid: The XUID, empty for an unauthenticated player.
-            uuid: The UUID.
-            pos: The position of the feet.
-            game_mode: The game mode.
-            rot: The rotation.
-        """
+        """Creates a player (Go `Config.Apply` with a fresh `Data`)."""
         self._name = name.copy()
         self._xuid = xuid.copy()
         self._uuid = uuid
@@ -99,110 +90,58 @@ struct Player(Copyable):
         self.last_break_duration_ms = 0
 
     def name(self) -> String:
-        """Returns the display name (Go `Name`).
-
-        Returns:
-            The name.
-        """
+        """Returns the display name (Go `Name`)."""
         return self._name.copy()
 
     def xuid(self) -> String:
-        """Returns the XUID (Go `XUID`).
-
-        Returns:
-            The XUID, empty if the player is not signed in to Xbox Live.
-        """
+        """Returns the XUID (Go `XUID`)."""
         return self._xuid.copy()
 
     def uuid(self) -> UUID:
-        """Returns the UUID (Go `UUID`).
-
-        Returns:
-            The UUID.
-        """
+        """Returns the UUID (Go `UUID`)."""
         return self._uuid
 
     def name_tag(self) -> String:
-        """Returns the name tag shown above the player (Go `NameTag`).
-
-        Returns:
-            The name tag.
-        """
+        """Returns the name tag shown above the player (Go `NameTag`)."""
         return self._name_tag.copy()
 
     def set_name_tag(mut self, name: String):
         """Changes the name tag (Go `SetNameTag`); the caller shows the new
-        state to viewers.
-
-        Args:
-            name: The new name tag.
-        """
+        state to viewers."""
         self._name_tag = name.copy()
 
     def locale(self) -> String:
-        """Returns the language code (Go `Locale`).
-
-        Returns:
-            The locale, such as `en_US`.
-        """
+        """Returns the language code (Go `Locale`)."""
         return self._locale.copy()
 
     def set_locale(mut self, locale: String):
-        """Sets the language code from the client data.
-
-        Args:
-            locale: The locale.
-        """
+        """Sets the language code from the client data."""
         self._locale = locale.copy()
 
     def position(self) -> Vec3:
-        """Returns the position of the feet (Go `Position`).
-
-        Returns:
-            The position.
-        """
+        """Returns the position of the feet (Go `Position`)."""
         return self._pos
 
     def rotation(self) -> Rotation:
-        """Returns the rotation (Go `Rotation`).
-
-        Returns:
-            The yaw and pitch.
-        """
+        """Returns the rotation (Go `Rotation`)."""
         return self._rot
 
     def on_ground(self) -> Bool:
-        """Reports whether the player stands on the ground (Go `OnGround`).
-
-        Returns:
-            True after a movement the client reported as grounded.
-        """
+        """Reports whether the player stands on the ground (Go `OnGround`)."""
         return self._on_ground
 
     def game_mode(self) -> GameMode:
-        """Returns the game mode (Go `GameMode`).
-
-        Returns:
-            The game mode.
-        """
+        """Returns the game mode (Go `GameMode`)."""
         return self._game_mode
 
     def set_game_mode(mut self, mode: GameMode):
-        """Changes the game mode (Go `SetGameMode`); the session sends it.
-
-        Args:
-            mode: The new game mode.
-        """
+        """Changes the game mode (Go `SetGameMode`); the session sends it."""
         self._game_mode = mode
         if not mode.allows_flying():
             self._flying = False
 
     def flying(self) -> Bool:
-        """Reports whether the player is flying (Go `Flying`).
-
-        Returns:
-            True while flying.
-        """
+        """Reports whether the player is flying (Go `Flying`)."""
         return self._flying
 
     def start_flying(mut self):
@@ -214,69 +153,35 @@ struct Player(Copyable):
         self._flying = False
 
     def sneaking(self) -> Bool:
-        """Reports whether the player is sneaking (Go `Sneaking`).
-
-        Returns:
-            True while sneaking.
-        """
+        """Reports whether the player is sneaking (Go `Sneaking`)."""
         return self._sneaking
 
     def set_sneaking(mut self, sneaking: Bool):
-        """Starts or stops sneaking (Go `StartSneaking` / `StopSneaking`).
-
-        Args:
-            sneaking: Whether the player sneaks.
-        """
+        """Starts or stops sneaking (Go `StartSneaking` / `StopSneaking`)."""
         self._sneaking = sneaking
 
     def sprinting(self) -> Bool:
-        """Reports whether the player is sprinting (Go `Sprinting`).
-
-        Returns:
-            True while sprinting.
-        """
+        """Reports whether the player is sprinting (Go `Sprinting`)."""
         return self._sprinting
 
     def set_sprinting(mut self, sprinting: Bool):
         """Starts or stops sprinting (Go `StartSprinting` /
-        `StopSprinting`).
-
-        Args:
-            sprinting: Whether the player sprints.
-        """
+        `StopSprinting`)."""
         self._sprinting = sprinting
 
     def flight_speed(self) -> Float64:
-        """Returns the flight speed (Go `FlightSpeed`).
-
-        Returns:
-            The horizontal flight speed.
-        """
+        """Returns the flight speed (Go `FlightSpeed`)."""
         return self._flight_speed
 
     def vertical_flight_speed(self) -> Float64:
-        """Returns the vertical flight speed (Go `VerticalFlightSpeed`).
-
-        Returns:
-            The vertical flight speed.
-        """
+        """Returns the vertical flight speed (Go `VerticalFlightSpeed`)."""
         return self._vertical_flight_speed
 
     def move(
         mut self, delta_pos: Vec3, delta_yaw: Float64, delta_pitch: Float64
     ) -> Bool:
         """Moves and rotates the player (Go `Move`, without the handler,
-        block collisions and fall damage, which are not ported yet).
-
-        Args:
-            delta_pos: The change in position.
-            delta_yaw: The change in yaw.
-            delta_pitch: The change in pitch.
-
-        Returns:
-            True if the player moved or turned, so viewers must be shown
-            the new position (Go calls `ViewEntityMovement` here).
-        """
+        block collisions and fall damage, which are not ported yet)."""
         if (
             approx_equal(delta_pos, Vec3())
             and float_equal(delta_yaw, 0)
@@ -308,12 +213,5 @@ struct Player(Copyable):
 
     def chat(self, message: String) -> String:
         """Formats a chat message from the player (Go `Chat`, which writes
-        it to `chat.Global`).
-
-        Args:
-            message: The message the player typed.
-
-        Returns:
-            `<name> message`, the line every chat subscriber receives.
-        """
+        it to `chat.Global`)."""
         return String(t"<{self._name}> {message}")

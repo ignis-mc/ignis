@@ -108,37 +108,16 @@ struct ItemFilter(Equatable, ImplicitlyCopyable):
     def __init__(
         out self, *, kinds: UInt16 = 0, tools: ToolFilter = ToolFilter()
     ):
-        """Creates a filter.
-
-        Args:
-            kinds: `ITEM_*` bits.
-            tools: The tool types that match.
-        """
+        """Creates a filter."""
         self.kinds = kinds
         self.tools = tools
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two filters.
-
-        Args:
-            other: The filter to compare with.
-
-        Returns:
-            True if both accept the same items.
-        """
+        """Compares two filters."""
         return self.kinds == other.kinds and self.tools == other.tools
 
     def matches(self, kinds: UInt16, tool_type: Optional[Int]) -> Bool:
-        """Reports whether an item matches.
-
-        Args:
-            kinds: The `ITEM_*` bits of the item.
-            tool_type: The item's tool type number (`item.ToolType.t`) if
-                it is an `item.Tool`.
-
-        Returns:
-            True if the enchantment applies to the item.
-        """
+        """Reports whether an item matches."""
         if self.kinds & kinds != 0:
             return True
         if case .Some(t) = tool_type:
@@ -162,60 +141,30 @@ trait EnchantmentType(Copyable, Defaultable, Deinitable):
     """The ID the enchantment is registered with (Go `EnchantmentID`)."""
 
     def name(self) -> String:
-        """Returns the name of the enchantment (Go `Name`).
-
-        Returns:
-            The name.
-        """
+        """Returns the name of the enchantment (Go `Name`)."""
         ...
 
     def max_level(self) -> Int:
-        """Returns the highest level of the enchantment (Go `MaxLevel`).
-
-        Returns:
-            The maximum level.
-        """
+        """Returns the highest level of the enchantment (Go `MaxLevel`)."""
         ...
 
     def cost(self, level: Int) -> Tuple[Int, Int]:
         """Returns the range of enchanting levels that can give the
-        enchantment at a level (Go `Cost`).
-
-        Args:
-            level: The enchantment level.
-
-        Returns:
-            The minimum and maximum cost.
-        """
+        enchantment at a level (Go `Cost`)."""
         ...
 
     def rarity(self) -> EnchantmentRarity:
-        """Returns the rarity of the enchantment (Go `Rarity`).
-
-        Returns:
-            The rarity.
-        """
+        """Returns the rarity of the enchantment (Go `Rarity`)."""
         ...
 
     def compatible_with_enchantment(self, id: Int) -> Bool:
         """Reports whether the enchantment can be on an item together with
-        another (Go `CompatibleWithEnchantment`).
-
-        Args:
-            id: The ID of the other enchantment.
-
-        Returns:
-            True if they are compatible.
-        """
+        another (Go `CompatibleWithEnchantment`)."""
         ...
 
     def compatible_items(self) -> ItemFilter:
         """Returns the items the enchantment applies to (the data of Go's
-        `CompatibleWithItem`).
-
-        Returns:
-            The filter.
-        """
+        `CompatibleWithItem`)."""
         ...
 
 
@@ -225,35 +174,17 @@ trait AffectedDamageSource(DamageSource):
 
     def affected_by_enchantment(self, id: Int) -> Bool:
         """Reports whether an enchantment reduces the damage (Go
-        `AffectedByEnchantment`, which takes the type).
-
-        Args:
-            id: The ID of the enchantment.
-
-        Returns:
-            True if the enchantment applies.
-        """
+        `AffectedByEnchantment`, which takes the type)."""
         ...
 
 
 struct EnchantmentSet[*Ts: EnchantmentType]:
     """A compile-time list of enchantment types with lookups by ID (Go's
-    `enchantmentsMap` with `EnchantmentByID`).
-
-    Parameters:
-        Ts: The enchantment types, each with a distinct `ID`.
-    """
+    `enchantmentsMap` with `EnchantmentByID`)."""
 
     @staticmethod
     def contains(id: Int) -> Bool:
-        """Reports whether an enchantment with the ID is in the set.
-
-        Args:
-            id: The enchantment ID.
-
-        Returns:
-            True if one of `Ts` has that ID.
-        """
+        """Reports whether an enchantment with the ID is in the set."""
         comptime for i in range(len(Self.Ts)):
             if id == Self.Ts[i].ID:
                 return True
@@ -261,11 +192,7 @@ struct EnchantmentSet[*Ts: EnchantmentType]:
 
     @staticmethod
     def ids() -> List[Int]:
-        """Returns the IDs of the enchantments in the set.
-
-        Returns:
-            The IDs, in the order of `Ts`.
-        """
+        """Returns the IDs of the enchantments in the set."""
         var out = List[Int]()
         comptime for i in range(len(Self.Ts)):
             out.append(Self.Ts[i].ID)
@@ -273,14 +200,7 @@ struct EnchantmentSet[*Ts: EnchantmentType]:
 
     @staticmethod
     def name(id: Int) -> Optional[String]:
-        """Returns the name of the enchantment with an ID.
-
-        Args:
-            id: The enchantment ID.
-
-        Returns:
-            The name, or None for an unknown ID.
-        """
+        """Returns the name of the enchantment with an ID."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             if id == T.ID:
@@ -289,14 +209,7 @@ struct EnchantmentSet[*Ts: EnchantmentType]:
 
     @staticmethod
     def max_level(id: Int) -> Optional[Int]:
-        """Returns the highest level of the enchantment with an ID.
-
-        Args:
-            id: The enchantment ID.
-
-        Returns:
-            The level, or None for an unknown ID.
-        """
+        """Returns the highest level of the enchantment with an ID."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             if id == T.ID:
@@ -306,15 +219,7 @@ struct EnchantmentSet[*Ts: EnchantmentType]:
     @staticmethod
     def compatible(a: Int, b: Int) -> Bool:
         """Reports whether enchantment `a` accepts enchantment `b` on the
-        same item (Go `a.CompatibleWithEnchantment(b)`).
-
-        Args:
-            a: The ID of the first enchantment.
-            b: The ID of the second.
-
-        Returns:
-            True if compatible; False if `a` is unknown.
-        """
+        same item (Go `a.CompatibleWithEnchantment(b)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             if a == T.ID:

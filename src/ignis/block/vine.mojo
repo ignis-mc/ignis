@@ -63,36 +63,18 @@ struct Vines(
         south_direction: Bool = False,
         west_direction: Bool = False,
     ):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            north_direction: Whether the vines are attached towards north.
-            east_direction: Whether the vines are attached towards east.
-            south_direction: Whether the vines are attached towards south.
-            west_direction: Whether the vines are attached towards west.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.north_direction = north_direction
         self.east_direction = east_direction
         self.south_direction = south_direction
         self.west_direction = west_direction
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         var bits = (
             Int32(self.south_direction)
             | Int32(self.west_direction) << 1
@@ -104,11 +86,7 @@ struct Vines(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             (UInt64(1) if self.north_direction else UInt64(0))
             | (UInt64(1) if self.east_direction else UInt64(0)) << 1
@@ -118,14 +96,7 @@ struct Vines(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Vines(
             north_direction=hash & 0x1 != 0,
             east_direction=(hash >> 1) & 0x1 != 0,
@@ -135,11 +106,7 @@ struct Vines(
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for north_direction in [False, True]:
             for east_direction in [False, True]:
@@ -156,28 +123,16 @@ struct Vines(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(0.2, ToolFilter(TYPE_SHEARS), AXE_EFFECTIVE)
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go
-        `LightDiffusionLevel`).
-
-        Returns:
-            The diffusion level, 0 to 15.
-        """
+        `LightDiffusionLevel`)."""
         return 0
 
     def model(self) -> EmptyModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
 
     def replaceable_by(self, b: AnyBlock) -> Bool:

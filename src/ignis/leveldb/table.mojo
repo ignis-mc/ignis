@@ -49,28 +49,13 @@ struct BlockHandle(Equatable, ImplicitlyCopyable, Writable):
     """The length of the block, without the trailer."""
 
     def encode(self, mut out: List[UInt8]):
-        """Appends the handle as two varints.
-
-        Args:
-            out: The destination.
-        """
+        """Appends the handle as two varints."""
         put_uvarint(out, UInt64(self.offset))
         put_uvarint(out, UInt64(self.length))
 
     @staticmethod
     def decode(data: Span[mut=False, UInt8, _], mut pos: Int) raises -> Self:
-        """Reads a handle.
-
-        Args:
-            data: The input.
-            pos: The offset; advanced past the handle.
-
-        Returns:
-            The handle.
-
-        Raises:
-            If the varints are malformed.
-        """
+        """Reads a handle."""
         var o = read_varint_int(data, pos)
         var n = read_varint_int(data, pos)
         return Self(o, n)
@@ -90,11 +75,7 @@ struct BlockBuilder(Movable):
     var _restarts: List[UInt32]
 
     def __init__(out self, restart_interval: Int):
-        """Creates an empty block builder.
-
-        Args:
-            restart_interval: Entries between restart points.
-        """
+        """Creates an empty block builder."""
         self.restart_interval = restart_interval
         self.buf = List[UInt8]()
         self.n_entries = 0
@@ -106,12 +87,7 @@ struct BlockBuilder(Movable):
         key: Span[mut=False, UInt8, _],
         value: Span[mut=False, UInt8, _],
     ):
-        """Appends an entry; keys must be appended in order.
-
-        Args:
-            key: The key.
-            value: The value.
-        """
+        """Appends an entry; keys must be appended in order."""
         var shared = 0
         if self.n_entries % self.restart_interval == 0:
             self._restarts.append(UInt32(len(self.buf)))
@@ -142,11 +118,7 @@ struct BlockBuilder(Movable):
         self._restarts.clear()
 
     def bytes_len(self) -> Int:
-        """Returns the size the block would have if finished now.
-
-        Returns:
-            The size in bytes.
-        """
+        """Returns the size the block would have if finished now."""
         var r = max(len(self._restarts), 1)
         return len(self.buf) + 4 * r + 4
 
@@ -173,14 +145,7 @@ struct TableWriter(Movable):
         compression: UInt8,
         filter_bits_per_key: Int,
     ):
-        """Creates a table writer.
-
-        Args:
-            block_size: The target uncompressed data block size.
-            restart_interval: Entries between restart points in data blocks.
-            compression: The block compression type.
-            filter_bits_per_key: Bloom filter bits per key; 0 for no filter.
-        """
+        """Creates a table writer."""
         self._out = List[UInt8]()
         self._data = BlockBuilder(restart_interval)
         self._index = BlockBuilder(1)
@@ -198,35 +163,19 @@ struct TableWriter(Movable):
         self._last_key = List[UInt8]()
 
     def entries(self) -> Int:
-        """Returns the number of entries appended.
-
-        Returns:
-            The entry count.
-        """
+        """Returns the number of entries appended."""
         return self._n_entries
 
     def bytes_len(self) -> Int:
-        """Returns the bytes of blocks written so far (Go `BytesLen`).
-
-        Returns:
-            The size in bytes.
-        """
+        """Returns the bytes of blocks written so far (Go `BytesLen`)."""
         return len(self._out)
 
     def first_key(self) -> List[UInt8]:
-        """Returns the first internal key appended.
-
-        Returns:
-            The key.
-        """
+        """Returns the first internal key appended."""
         return self._first_key.copy()
 
     def last_key(self) -> List[UInt8]:
-        """Returns the last internal key appended.
-
-        Returns:
-            The key.
-        """
+        """Returns the last internal key appended."""
         return self._last_key.copy()
 
     def _write_block(
@@ -276,15 +225,7 @@ struct TableWriter(Movable):
         key: Span[mut=False, UInt8, _],
         value: Span[mut=False, UInt8, _],
     ) raises:
-        """Appends an entry (Go `Writer.Append`).
-
-        Args:
-            key: The internal key, greater than the previous one.
-            value: The value.
-
-        Raises:
-            If keys are out of order.
-        """
+        """Appends an entry (Go `Writer.Append`)."""
         if (
             self._n_entries > 0
             and compare_internal(Span(self._last_key), key) >= 0
@@ -303,14 +244,7 @@ struct TableWriter(Movable):
 
     def finish(mut self) raises -> List[UInt8]:
         """Writes the last data block, the filter, metaindex and index
-        blocks and the footer (Go `Writer.Close`).
-
-        Returns:
-            The table file contents.
-
-        Raises:
-            If compression fails.
-        """
+        blocks and the footer (Go `Writer.Close`)."""
         if self._data.n_entries > 0 or self._n_entries == 0:
             self._finish_block()
         var empty = List[UInt8]()
@@ -359,16 +293,7 @@ struct BlockIter(Movable):
     var _internal: Bool
 
     def __init__(out self, var data: List[UInt8], internal: Bool) raises:
-        """Parses a decompressed block.
-
-        Args:
-            data: The block, without trailer.
-            internal: True if keys are internal keys (data and index
-                blocks), False for bytewise keys (the metaindex).
-
-        Raises:
-            If the restart array is malformed.
-        """
+        """Parses a decompressed block."""
         if len(data) < 4:
             raise Error("leveldb/table: block too short")
         var n = Int(get_u32(Span(data), len(data) - 4))
@@ -385,27 +310,15 @@ struct BlockIter(Movable):
         self._internal = internal
 
     def valid(self) -> Bool:
-        """Reports whether the iterator is at an entry.
-
-        Returns:
-            True if `key` and `value` are meaningful.
-        """
+        """Reports whether the iterator is at an entry."""
         return self._valid
 
     def key(self) -> Span[UInt8, origin_of(self._key)]:
-        """Returns the current key.
-
-        Returns:
-            A view of the key.
-        """
+        """Returns the current key."""
         return Span(self._key)
 
     def value(self) -> Span[UInt8, origin_of(self._data)]:
-        """Returns the current value.
-
-        Returns:
-            A view of the value.
-        """
+        """Returns the current value."""
         return Span(self._data)[
             self._value_pos : self._value_pos + self._value_len
         ]
@@ -435,36 +348,21 @@ struct BlockIter(Movable):
         self._valid = True
 
     def first(mut self) raises:
-        """Moves to the first entry.
-
-        Raises:
-            If a block cannot be read or is corrupt.
-        """
+        """Moves to the first entry."""
         self._key.clear()
         self._valid = False
         self._next = 0
         self.next()
 
     def next(mut self) raises:
-        """Moves to the next entry; becomes invalid past the last.
-
-        Raises:
-            If a block cannot be read or is corrupt.
-        """
+        """Moves to the next entry; becomes invalid past the last."""
         if self._next >= self._restarts_off:
             self._valid = False
             return
         self._decode_at(self._next)
 
     def seek(mut self, target: Span[mut=False, UInt8, _]) raises:
-        """Moves to the first entry whose key is not less than `target`.
-
-        Args:
-            target: The key.
-
-        Raises:
-            If a block cannot be read or is corrupt.
-        """
+        """Moves to the first entry whose key is not less than `target`."""
         # Binary search for the last restart point with a key < target.
         var lo = 0
         var hi = self._n_restarts - 1
@@ -486,17 +384,7 @@ struct BlockIter(Movable):
 def read_footer(
     data: Span[mut=False, UInt8, _]
 ) raises -> Tuple[BlockHandle, BlockHandle]:
-    """Parses a table footer.
-
-    Args:
-        data: The last `FOOTER_LEN` bytes of a table.
-
-    Returns:
-        The metaindex and index block handles.
-
-    Raises:
-        If the magic is wrong.
-    """
+    """Parses a table footer."""
     if len(data) != FOOTER_LEN:
         raise Error("leveldb/table: invalid footer length")
     var magic = UInt64(0)
@@ -513,20 +401,7 @@ def read_footer(
 def check_block(
     stored: Span[mut=False, UInt8, _], bh: BlockHandle, verify: Bool
 ) raises -> List[UInt8]:
-    """Checks a stored block's trailer and decompresses it.
-
-    Args:
-        stored: The block followed by its trailer.
-        bh: The handle the block was read with.
-        verify: Whether to verify the checksum.
-
-    Returns:
-        The raw block.
-
-    Raises:
-        If the block is short, its checksum mismatches or it does not
-        decompress.
-    """
+    """Checks a stored block's trailer and decompresses it."""
     if len(stored) != bh.length + BLOCK_TRAILER_LEN:
         raise Error("leveldb/table: truncated block")
     if verify:
@@ -564,19 +439,7 @@ struct Table(Copyable, Movable):
         var imin: List[UInt8],
         var imax: List[UInt8],
     ) raises:
-        """Opens a table and loads its index and filter.
-
-        Args:
-            num: The file number.
-            size: The file size recorded in the manifest.
-            path: The file path.
-            imin: The smallest internal key, from the manifest.
-            imax: The largest internal key, from the manifest.
-
-        Raises:
-            If the file cannot be read or its footer, index or metaindex is
-            corrupt.
-        """
+        """Opens a table and loads its index and filter."""
         var f = open_read(path)
         var actual = f.size()
         if actual < FOOTER_LEN:
@@ -620,34 +483,16 @@ struct Table(Copyable, Movable):
         self._filter = filter^
 
     def blocks(self) -> Int:
-        """Returns the number of data blocks.
-
-        Returns:
-            The block count.
-        """
+        """Returns the number of data blocks."""
         return len(self._index_handles)
 
     def block_handle(self, i: Int) -> BlockHandle:
-        """Returns the handle of data block `i`.
-
-        Args:
-            i: The block index.
-
-        Returns:
-            The handle.
-        """
+        """Returns the handle of data block `i`."""
         return self._index_handles[i]
 
     def find_block(self, ikey: Span[mut=False, UInt8, _]) -> Int:
         """Returns the first data block whose index key is not less than
-        `ikey`, which is the only block that can hold it.
-
-        Args:
-            ikey: The internal key.
-
-        Returns:
-            The block index, or `blocks()` if every key is smaller.
-        """
+        `ikey`, which is the only block that can hold it."""
         var lo = 0
         var hi = len(self._index_keys)
         while lo < hi:
@@ -659,34 +504,14 @@ struct Table(Copyable, Movable):
         return lo
 
     def read_block(self, i: Int) raises -> BlockIter:
-        """Reads and decodes data block `i`.
-
-        Args:
-            i: The block index.
-
-        Returns:
-            An iterator over the block, not positioned.
-
-        Raises:
-            If the block cannot be read or is corrupt.
-        """
+        """Reads and decodes data block `i`."""
         var f = open_read(self.path)
         return BlockIter(_read_block(f, self._index_handles[i], True), True)
 
     def get(
         self, ikey: Span[mut=False, UInt8, _]
     ) raises -> Optional[Tuple[List[UInt8], List[UInt8]]]:
-        """Finds the first entry not less than `ikey` with the same user key.
-
-        Args:
-            ikey: A seek key (user key with the maximum sequence number).
-
-        Returns:
-            The entry's internal key and value, or None.
-
-        Raises:
-            If a block is corrupt.
-        """
+        """Finds the first entry not less than `ikey` with the same user key."""
         var i = self.find_block(ikey)
         if i >= len(self._index_handles):
             return None

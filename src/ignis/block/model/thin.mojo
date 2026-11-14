@@ -22,18 +22,7 @@ struct Thin(BlockModel, ImplicitlyCopyable):
     """The model ID of `Thin`."""
 
     def bbox[S: BlockSource](self, pos: Pos, src: S) -> List[BBox]:
-        """Returns the boxes of the model (Go `BBox`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            src: The blocks around it.
-
-        Returns:
-            The boxes, relative to the block.
-        """
+        """Returns the boxes of the model (Go `BBox`)."""
         var boxes = List[BBox](capacity=2)
         var connect_west = self.connects(pos, Face.WEST, src)
         var connect_east = self.connects(pos, Face.EAST, src)
@@ -66,36 +55,12 @@ struct Thin(BlockModel, ImplicitlyCopyable):
         return boxes^
 
     def face_solid[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
-        """Reports whether a face is solid (Go `FaceSolid`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the face is solid.
-        """
+        """Reports whether a face is solid (Go `FaceSolid`)."""
         return face == Face.DOWN
 
     def connects[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
         """Reports whether the block connects to the block on a face: another
-        thin block, a wall or a solid face (Go `Connects`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the block connects.
-        """
+        thin block, a wall or a solid face (Go `Connects`)."""
         var side_pos = pos.side(face)
         var side = block_at(src, side_pos)
         return (

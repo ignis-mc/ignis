@@ -15,23 +15,12 @@ struct Weakness(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(18, Weakness)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0x48, 0x4d, 0x48, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0x48, 0x4D, 0x48, 0xFF)
 
     def multiplier(self, lvl: Int) -> Float64:
         """Returns the multiplier of the effect at a level (Go
-        `Multiplier`).
-
-        Args:
-            lvl: The effect level.
-
-        Returns:
-            `0.2 * lvl`, at most 1.
-        """
+        `Multiplier`)."""
         var v = 0.2 * Float64(lvl)
         if v > 1:
             v = 1

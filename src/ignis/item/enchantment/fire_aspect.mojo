@@ -20,70 +20,33 @@ struct FireAspect(Defaultable, EnchantmentType, ImplicitlyCopyable):
     """The enchantment ID (Go `item.RegisterEnchantment(13, FireAspect)`)."""
 
     def name(self) -> String:
-        """Returns the name of the enchantment (Go `Name`).
-
-        Returns:
-            `Fire Aspect`.
-        """
+        """Returns the name of the enchantment (Go `Name`)."""
         return "Fire Aspect"
 
     def max_level(self) -> Int:
-        """Returns the highest level of the enchantment (Go `MaxLevel`).
-
-        Returns:
-            2.
-        """
+        """Returns the highest level of the enchantment (Go `MaxLevel`)."""
         return 2
 
     def cost(self, level: Int) -> Tuple[Int, Int]:
         """Returns the range of enchanting levels that can give the
-        enchantment at a level (Go `Cost`).
-
-        Args:
-            level: The enchantment level.
-
-        Returns:
-            The minimum and maximum cost.
-        """
+        enchantment at a level (Go `Cost`)."""
         var min_cost = 10 + (level - 1) * 20
         return (min_cost, min_cost + 50)
 
     def rarity(self) -> EnchantmentRarity:
-        """Returns the rarity of the enchantment (Go `Rarity`).
-
-        Returns:
-            `EnchantmentRarity.RARE`.
-        """
+        """Returns the rarity of the enchantment (Go `Rarity`)."""
         return EnchantmentRarity.RARE
 
     def compatible_with_enchantment(self, id: Int) -> Bool:
         """Reports whether the enchantment can be on an item together with
-        another (Go `CompatibleWithEnchantment`, which takes the type).
-
-        Args:
-            id: The ID of the other enchantment.
-
-        Returns:
-            True if they are compatible.
-        """
+        another (Go `CompatibleWithEnchantment`, which takes the type)."""
         return True
 
     def compatible_items(self) -> ItemFilter:
         """Returns the items the enchantment applies to (the data of Go's
-        `CompatibleWithItem`).
-
-        Returns:
-            The filter.
-        """
+        `CompatibleWithItem`)."""
         return ItemFilter(tools=ToolFilter(TYPE_SWORD))
 
     def duration(self, level: Int) -> Int:
-        """Returns how long a hit sets the target on fire (Go `Duration`).
-
-        Args:
-            level: The enchantment level.
-
-        Returns:
-            `4 * level` seconds, in nanoseconds.
-        """
+        """Returns how long a hit sets the target on fire (Go `Duration`)."""
         return 4 * level * 1_000_000_000

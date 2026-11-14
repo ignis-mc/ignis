@@ -17,64 +17,33 @@ trait Conn(Deinitable, Movable):
 
     def identity_data(self) -> IdentityData:
         """Returns the identity the client logged in with (Go
-        `IdentityData`).
-
-        Returns:
-            The UUID, XUID and display name.
-        """
+        `IdentityData`)."""
         ...
 
     def client_data(self) -> ClientData:
-        """Returns the client data, such as the skin (Go `ClientData`).
-
-        Returns:
-            The client data.
-        """
+        """Returns the client data, such as the skin (Go `ClientData`)."""
         ...
 
     def client_cache_enabled(self) -> Bool:
         """Reports whether the client has the blob cache enabled (Go
-        `ClientCacheEnabled`).
-
-        Returns:
-            True if the client asked for the cache.
-        """
+        `ClientCacheEnabled`)."""
         ...
 
     def chunk_radius(self) -> Int:
         """Returns the chunk radius the client requested (Go
-        `ChunkRadius`).
-
-        Returns:
-            The radius in chunks.
-        """
+        `ChunkRadius`)."""
         ...
 
     def latency_ms(self) -> Int:
-        """Returns the latency of the connection (Go `Latency`).
-
-        Returns:
-            Half the round trip time in milliseconds.
-        """
+        """Returns the latency of the connection (Go `Latency`)."""
         ...
 
     def write(mut self, var packet: List[UInt8]) raises:
-        """Queues one encoded packet, header included (Go `WritePacket`).
-
-        Args:
-            packet: The header and payload.
-
-        Raises:
-            If the connection is closed.
-        """
+        """Queues one encoded packet, header included (Go `WritePacket`)."""
         ...
 
     def flush(mut self) raises:
-        """Sends every queued packet (Go `Flush`).
-
-        Raises:
-            If the connection is closed.
-        """
+        """Sends every queued packet (Go `Flush`)."""
         ...
 
 
@@ -85,77 +54,38 @@ struct NetConn(Conn):
     """The wrapped connection; the server polls it directly."""
 
     def __init__(out self, var conn: MinecraftConn):
-        """Wraps a spawned connection.
-
-        Args:
-            conn: The connection, after `start_game` and `spawned()`.
-        """
+        """Wraps a spawned connection."""
         self.conn = conn^
 
     def identity_data(self) -> IdentityData:
-        """Returns the identity the client logged in with.
-
-        Returns:
-            The identity data.
-        """
+        """Returns the identity the client logged in with."""
         return self.conn.identity_data.copy()
 
     def client_data(self) -> ClientData:
-        """Returns the client data.
-
-        Returns:
-            The client data.
-        """
+        """Returns the client data."""
         return self.conn.client_data.copy()
 
     def client_cache_enabled(self) -> Bool:
-        """Reports whether the client has the blob cache enabled.
-
-        Returns:
-            The client's setting.
-        """
+        """Reports whether the client has the blob cache enabled."""
         return self.conn.client_cache_enabled()
 
     def chunk_radius(self) -> Int:
-        """Returns the chunk radius the client requested.
-
-        Returns:
-            The radius in chunks.
-        """
+        """Returns the chunk radius the client requested."""
         return self.conn.chunk_radius()
 
     def latency_ms(self) -> Int:
-        """Returns the latency of the connection.
-
-        Returns:
-            The latency in milliseconds.
-        """
+        """Returns the latency of the connection."""
         return self.conn.latency_ms()
 
     def write(mut self, var packet: List[UInt8]) raises:
-        """Queues one encoded packet.
-
-        Args:
-            packet: The header and payload.
-
-        Raises:
-            If the connection is closed.
-        """
+        """Queues one encoded packet."""
         self.conn.write(packet^)
 
     def flush(mut self) raises:
-        """Sends every queued packet.
-
-        Raises:
-            If the connection is closed.
-        """
+        """Sends every queued packet."""
         self.conn.flush()
 
     def into_inner(deinit self) -> MinecraftConn:
         """Unwraps the connection, such as to keep polling it while it
-        closes.
-
-        Returns:
-            The wrapped connection.
-        """
+        closes."""
         return self.conn^

@@ -37,21 +37,11 @@ trait Parameter(Defaultable, Deinitable, Movable):
         As in Go, the parser consumes one more argument after `parse`
         returns, so read the last argument with `line.next()` without
         removing it (and remove any earlier ones with `line.remove_next()`).
-
-        Args:
-            line: The rest of the command line.
-
-        Raises:
-            Message: The error to show, such as `line.usage_error()`.
         """
         ...
 
     def type(self) -> String:
-        """Gets the type name shown in the usage and to the client.
-
-        Returns:
-            The type name.
-        """
+        """Gets the type name shown in the usage and to the client."""
         ...
 
 
@@ -83,33 +73,15 @@ trait Enum(Defaultable, Deinitable, Movable):
 
     def type(self) -> String:
         """Gets the enum's type name. It identifies the enum to the client,
-        so different enums need different names.
-
-        Returns:
-            The type name.
-        """
+        so different enums need different names."""
         ...
 
     def options[S: Source](self, src: S) -> List[String]:
-        """Lists the options, which may depend on the source.
-
-        Parameters:
-            S: The source type.
-
-        Args:
-            src: The source the options are for.
-
-        Returns:
-            The options.
-        """
+        """Lists the options, which may depend on the source."""
         ...
 
     def set_option(mut self, var option: String):
-        """Stores the chosen option, spelled as `options` lists it.
-
-        Args:
-            option: The option.
-        """
+        """Stores the chosen option, spelled as `options` lists it."""
         ...
 
 
@@ -135,22 +107,11 @@ struct Varargs(Copyable, Defaultable, Equatable, Writable):
         self.value = String()
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares the text.
-
-        Args:
-            other: The other value.
-
-        Returns:
-            True if the texts are equal.
-        """
+        """Compares the text."""
         return self.value == other.value
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the text.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the text."""
         writer.write(self.value)
 
 
@@ -161,11 +122,7 @@ trait _OptionalT(Defaultable, Deinitable, Movable):
     """The wrapped parameter type."""
 
     def _with(mut self, var value: Self.Inner):
-        """Stores a parsed value and marks the parameter as set.
-
-        Args:
-            value: The value.
-        """
+        """Stores a parsed value and marks the parameter as set."""
         ...
 
 
@@ -177,9 +134,6 @@ struct Optional[T: Copyable & Defaultable & Deinitable](
     Optional parameters must come after every required one. Inside the
     package, refer to the standard library's `Optional` by its full path;
     users write `cmd.Optional[T]` after `from ignis import cmd`.
-
-    Parameters:
-        T: The parameter type.
     """
 
     comptime Inner = Self.T
@@ -194,51 +148,28 @@ struct Optional[T: Copyable & Defaultable & Deinitable](
         self._set = False
 
     def __init__(out self, var value: Self.T):
-        """Creates a set parameter.
-
-        Args:
-            value: The value.
-        """
+        """Creates a set parameter."""
         self._val = value^
         self._set = True
 
     def load(self) -> _StdOptional[Self.T]:
-        """Gets the value if the source filled it in (Go `Load`).
-
-        Returns:
-            The value, or `None`.
-        """
+        """Gets the value if the source filled it in (Go `Load`)."""
         if self._set:
             return self._val.copy()
         return None
 
     def load_or(self, var default: Self.T) -> Self.T:
         """Gets the value, or `default` if it was not filled in (Go
-        `LoadOr`).
-
-        Args:
-            default: The fallback.
-
-        Returns:
-            The value or the fallback.
-        """
+        `LoadOr`)."""
         if self._set:
             return self._val.copy()
         return default^
 
     def is_set(self) -> Bool:
-        """Reports whether the source filled in the parameter.
-
-        Returns:
-            True if it was given.
-        """
+        """Reports whether the source filled in the parameter."""
         return self._set
 
     def _with(mut self, var value: Self.T):
-        """Stores a parsed value and marks the parameter as set.
-
-        Args:
-            value: The value.
-        """
+        """Stores a parsed value and marks the parameter as set."""
         self._val = value^
         self._set = True

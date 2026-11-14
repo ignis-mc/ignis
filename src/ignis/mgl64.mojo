@@ -23,38 +23,19 @@ struct Vec3(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         self._z = 0
 
     def x(self) -> Float64:
-        """Returns the first element (Go `v[0]`).
-
-        Returns:
-            The X value.
-        """
+        """Returns the first element (Go `v[0]`)."""
         return self._x
 
     def y(self) -> Float64:
-        """Returns the second element (Go `v[1]`).
-
-        Returns:
-            The Y value.
-        """
+        """Returns the second element (Go `v[1]`)."""
         return self._y
 
     def z(self) -> Float64:
-        """Returns the third element (Go `v[2]`).
-
-        Returns:
-            The Z value.
-        """
+        """Returns the third element (Go `v[2]`)."""
         return self._z
 
     def __getitem__(self, i: Int) -> Float64:
-        """Returns an element by index (Go `v[i]`).
-
-        Args:
-            i: 0, 1 or 2.
-
-        Returns:
-            The element.
-        """
+        """Returns an element by index (Go `v[i]`)."""
         if i == 0:
             return self._x
         if i == 1:
@@ -63,15 +44,7 @@ struct Vec3(Defaultable, Equatable, ImplicitlyCopyable, Writable):
 
     def with_elem(self, i: Int, v: Float64) -> Self:
         """Returns the vector with one element replaced (Go `v[i] = x` on a
-        copy).
-
-        Args:
-            i: 0, 1 or 2.
-            v: The new value.
-
-        Returns:
-            The updated vector.
-        """
+        copy)."""
         if i == 0:
             return Self(v, self._y, self._z)
         if i == 1:
@@ -79,80 +52,36 @@ struct Vec3(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         return Self(self._x, self._y, v)
 
     def add(self, o: Self) -> Self:
-        """Adds two vectors (Go `Add`).
-
-        Args:
-            o: The vector to add.
-
-        Returns:
-            The sum.
-        """
+        """Adds two vectors (Go `Add`)."""
         return Self(self._x + o._x, self._y + o._y, self._z + o._z)
 
     def sub(self, o: Self) -> Self:
-        """Subtracts a vector (Go `Sub`).
-
-        Args:
-            o: The vector to subtract.
-
-        Returns:
-            The difference.
-        """
+        """Subtracts a vector (Go `Sub`)."""
         return Self(self._x - o._x, self._y - o._y, self._z - o._z)
 
     def mul(self, c: Float64) -> Self:
-        """Scales the vector (Go `Mul`).
-
-        Args:
-            c: The factor.
-
-        Returns:
-            The scaled vector.
-        """
+        """Scales the vector (Go `Mul`)."""
         return Self(self._x * c, self._y * c, self._z * c)
 
     def len(self) -> Float64:
-        """Returns the length of the vector (Go `Len`).
-
-        Returns:
-            The Euclidean length.
-        """
+        """Returns the length of the vector (Go `Len`)."""
         return sqrt(self._x * self._x + self._y * self._y + self._z * self._z)
 
     def len_sqr(self) -> Float64:
-        """Returns the squared length of the vector (Go `LenSqr`).
-
-        Returns:
-            `x*x + y*y + z*z`.
-        """
+        """Returns the squared length of the vector (Go `LenSqr`)."""
         return self._x * self._x + self._y * self._y + self._z * self._z
 
     def normalize(self) -> Self:
-        """Scales the vector to length 1 (Go `Normalize`).
-
-        Returns:
-            The vector times `1 / len`.
-        """
+        """Scales the vector to length 1 (Go `Normalize`)."""
         var l = 1.0 / self.len()
         return Self(self._x * l, self._y * l, self._z * l)
 
     def dot(self, o: Self) -> Float64:
-        """Returns the dot product (Go `Dot`).
-
-        Args:
-            o: The other vector.
-
-        Returns:
-            The dot product.
-        """
+        """Returns the dot product (Go `Dot`)."""
         return self._x * o._x + self._y * o._y + self._z * o._z
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the vector as `[x y z]`, as Go prints it.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the vector as `[x y z]`, as Go prints it."""
         writer.write("[", self._x, " ", self._y, " ", self._z, "]")
 
 
@@ -164,16 +93,7 @@ comptime MIN_NORMAL: Float64 = 1.1754943508222875e-38
 
 def float_equal_threshold(a: Float64, b: Float64, epsilon: Float64) -> Bool:
     """Compares two floats relative to their size (Go
-    `FloatEqualThreshold`).
-
-    Args:
-        a: The first value.
-        b: The second value.
-        epsilon: The relative tolerance.
-
-    Returns:
-        True if the values are approximately equal.
-    """
+    `FloatEqualThreshold`)."""
     if a == b:
         return True
     var diff = abs(a - b)
@@ -183,41 +103,18 @@ def float_equal_threshold(a: Float64, b: Float64, epsilon: Float64) -> Bool:
 
 
 def float_equal(a: Float64, b: Float64) -> Bool:
-    """Compares two floats with `EPSILON` (Go `FloatEqual`).
-
-    Args:
-        a: The first value.
-        b: The second value.
-
-    Returns:
-        True if the values are approximately equal.
-    """
+    """Compares two floats with `EPSILON` (Go `FloatEqual`)."""
     return float_equal_threshold(a, b, EPSILON)
 
 
 def deg_to_rad(angle: Float64) -> Float64:
-    """Converts degrees to radians (Go `DegToRad`).
-
-    Args:
-        angle: The angle in degrees.
-
-    Returns:
-        The angle in radians.
-    """
+    """Converts degrees to radians (Go `DegToRad`)."""
     return angle * pi / 180
 
 
 def approx_equal(a: Vec3, b: Vec3) -> Bool:
     """Compares vectors element-wise with `float_equal` (Go
-    `Vec3.ApproxEqual`).
-
-    Args:
-        a: The first vector.
-        b: The second vector.
-
-    Returns:
-        True if every element is approximately equal.
-    """
+    `Vec3.ApproxEqual`)."""
     return (
         float_equal(a.x(), b.x())
         and float_equal(a.y(), b.y())

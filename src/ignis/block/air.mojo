@@ -35,95 +35,49 @@ struct Air(
     """The model type (Go `Model`)."""
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            `minecraft:air` without properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         return BlockState("minecraft:air")
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            0: air has no state.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return 0
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            Air.
-        """
+        """Rebuilds the block from its state hash."""
         return Air()
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `RegisterBlock(Air{})`).
-
-        Returns:
-            Air.
-        """
+        """Returns the registered values (Go `RegisterBlock(Air{})`)."""
         return [Air()]
 
     def encode_item(self) -> EncodedItem:
-        """Encodes the block as an item (Go `EncodeItem`).
-
-        Returns:
-            `minecraft:air`, metadata 0.
-        """
+        """Encodes the block as an item (Go `EncodeItem`)."""
         return EncodedItem("minecraft:air", 0)
 
     @staticmethod
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `RegisterItem` calls
-        in `register.go`).
-
-        Returns:
-            Air.
-        """
+        in `register.go`)."""
         return [Air()]
 
     def light_diffusion_level(self) -> UInt8:
-        """Air lets all light through (Go `transparent`).
-
-        Returns:
-            0.
-        """
+        """Air lets all light through (Go `transparent`)."""
         return 0
 
     def has_liquid_drops(self) -> Bool:
         """Reports whether the block drops as an item when liquid flows into
-        it.
-
-        Returns:
-            False.
-        """
+        it."""
         return False
 
     def portal_interior(self, target: Dimension) -> Bool:
         """Reports whether air may fill a portal frame for the target
-        dimension before activation.
-
-        Args:
-            target: The dimension the portal leads to.
-
-        Returns:
-            True for Nether portals.
-        """
+        dimension before activation."""
         return target == NETHER
 
     def model(self) -> EmptyModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
 
     def replaceable_by(self, b: AnyBlock) -> Bool:

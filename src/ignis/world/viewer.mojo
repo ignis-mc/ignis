@@ -30,147 +30,64 @@ trait Viewer(Deinitable, Movable):
     """Something that views a part of a world (Go `Viewer`)."""
 
     def view_entity[E: EntityTypes](mut self, e: EntityHandle[E]):
-        """Starts viewing an entity that came into range (Go `ViewEntity`).
-
-        Parameters:
-            E: The world's entity set.
-
-        Args:
-            e: The entity.
-        """
+        """Starts viewing an entity that came into range (Go `ViewEntity`)."""
         pass
 
     def hide_entity[E: EntityTypes](mut self, e: EntityHandle[E]):
         """Stops viewing an entity that left range or the world (Go
-        `HideEntity`).
-
-        Parameters:
-            E: The world's entity set.
-
-        Args:
-            e: The entity.
-        """
+        `HideEntity`)."""
         pass
 
     def view_entity_movement[
         E: EntityTypes
     ](mut self, e: EntityHandle[E], pos: Vec3, rot: Rotation, on_ground: Bool,):
         """Views an entity moving to a new position and rotation (Go
-        `ViewEntityMovement`).
-
-        Parameters:
-            E: The world's entity set.
-
-        Args:
-            e: The entity.
-            pos: The new position.
-            rot: The new rotation.
-            on_ground: Whether the entity is on the ground.
-        """
+        `ViewEntityMovement`)."""
         pass
 
     def view_entity_velocity[
         E: EntityTypes
     ](mut self, e: EntityHandle[E], vel: Vec3):
-        """Views the velocity of an entity (Go `ViewEntityVelocity`).
-
-        Parameters:
-            E: The world's entity set.
-
-        Args:
-            e: The entity.
-            vel: The velocity.
-        """
+        """Views the velocity of an entity (Go `ViewEntityVelocity`)."""
         pass
 
     def view_entity_teleport[
         E: EntityTypes
     ](mut self, e: EntityHandle[E], pos: Vec3):
-        """Views an entity teleporting (Go `ViewEntityTeleport`).
-
-        Parameters:
-            E: The world's entity set.
-
-        Args:
-            e: The entity.
-            pos: The target position.
-        """
+        """Views an entity teleporting (Go `ViewEntityTeleport`)."""
         pass
 
     def view_entity_items[E: EntityTypes](mut self, e: EntityHandle[E]):
-        """Views the items an entity holds (Go `ViewEntityItems`).
-
-        Parameters:
-            E: The world's entity set.
-
-        Args:
-            e: The entity.
-        """
+        """Views the items an entity holds (Go `ViewEntityItems`)."""
         pass
 
     def view_entity_armour[E: EntityTypes](mut self, e: EntityHandle[E]):
-        """Views the armour an entity wears (Go `ViewEntityArmour`).
-
-        Parameters:
-            E: The world's entity set.
-
-        Args:
-            e: The entity.
-        """
+        """Views the armour an entity wears (Go `ViewEntityArmour`)."""
         pass
 
     def view_chunk(mut self, pos: ChunkPos, dim: Dimension, c: Chunk):
-        """Views a chunk the loader loaded (Go `ViewChunk`).
-
-        Args:
-            pos: The chunk's position.
-            dim: The world's dimension.
-            c: The chunk.
-        """
+        """Views a chunk the loader loaded (Go `ViewChunk`)."""
         pass
 
     def view_time(mut self, t: Int):
         """Views the time of day (Go `ViewTime`); called when it changes and
-        every second.
-
-        Args:
-            t: The time.
-        """
+        every second."""
         pass
 
     def view_time_cycle(mut self, do_day_light_cycle: Bool):
-        """Views whether time advances (Go `ViewTimeCycle`).
-
-        Args:
-            do_day_light_cycle: Whether it does.
-        """
+        """Views whether time advances (Go `ViewTimeCycle`)."""
         pass
 
     def view_block_update(mut self, pos: Pos, rid: UInt32, layer: Int):
-        """Views a block being set (Go `ViewBlockUpdate`).
-
-        Args:
-            pos: The position.
-            rid: The runtime ID of the new block.
-            layer: The layer: 0, or 1 for liquids inside blocks.
-        """
+        """Views a block being set (Go `ViewBlockUpdate`)."""
         pass
 
     def view_world_spawn(mut self, pos: Pos):
-        """Views the world's spawn position (Go `ViewWorldSpawn`).
-
-        Args:
-            pos: The spawn position.
-        """
+        """Views the world's spawn position (Go `ViewWorldSpawn`)."""
         pass
 
     def view_weather(mut self, raining: Bool, thunder: Bool):
-        """Views the weather (Go `ViewWeather`).
-
-        Args:
-            raining: Whether it rains.
-            thunder: Whether it thunders.
-        """
+        """Views the weather (Go `ViewWeather`)."""
         pass
 
 

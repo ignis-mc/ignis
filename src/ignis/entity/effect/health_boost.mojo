@@ -17,9 +17,5 @@ struct HealthBoost(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(21, HealthBoost)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0xf8, 0x7d, 0x23, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0xF8, 0x7D, 0x23, 0xFF)

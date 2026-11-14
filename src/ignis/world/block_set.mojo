@@ -50,26 +50,12 @@ trait BlockTypes:
 
     @staticmethod
     def register_all(mut br: BasicBlockRegistry) raises:
-        """Registers every state of every type.
-
-        Args:
-            br: An unfinalized registry holding the vanilla states.
-
-        Raises:
-            If a state is not in the registry or is registered twice.
-        """
+        """Registers every state of every type."""
         ...
 
     @staticmethod
     def contains(kind: UInt64) -> Bool:
-        """Reports whether a type with the base hash passed is in the set.
-
-        Args:
-            kind: A base hash.
-
-        Returns:
-            True if a type has that base hash.
-        """
+        """Reports whether a type with the base hash passed is in the set."""
         ...
 
     @staticmethod
@@ -77,20 +63,7 @@ trait BlockTypes:
         T: WorldTypes
     ](kind: UInt64, hash: UInt64, pos: Pos, mut tx: World[T]) -> Bool:
         """Calls `ScheduledTicker.scheduled_tick` of the block, if its type
-        has it.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            kind: The block's type base hash.
-            hash: The block's state hash.
-            pos: The position of the block.
-            tx: The world.
-
-        Returns:
-            True if the type is a `ScheduledTicker`.
-        """
+        has it."""
         ...
 
     @staticmethod
@@ -104,21 +77,7 @@ trait BlockTypes:
         mut tx: World[T],
     ) -> Bool:
         """Calls `NeighbourUpdateTicker.neighbour_update_tick` of the
-        block, if its type has it.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            kind: The block's type base hash.
-            hash: The block's state hash.
-            pos: The position of the block.
-            changed_neighbour: The position of the block that changed.
-            tx: The world.
-
-        Returns:
-            True if the type is a `NeighbourUpdateTicker`.
-        """
+        block, if its type has it."""
         ...
 
     @staticmethod
@@ -126,20 +85,7 @@ trait BlockTypes:
         T: WorldTypes
     ](kind: UInt64, hash: UInt64, pos: Pos, mut tx: World[T]) -> Bool:
         """Calls `RandomTicker.random_tick` of the block, if its type has
-        it.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            kind: The block's type base hash.
-            hash: The block's state hash.
-            pos: The position of the block.
-            tx: The world.
-
-        Returns:
-            True if the type is a `RandomTicker`.
-        """
+        it."""
         ...
 
     @staticmethod
@@ -147,21 +93,7 @@ trait BlockTypes:
         S: BlockSource
     ](kind: UInt64, hash: UInt64, pos: Pos, face: Face, src: S) -> Bool:
         """Reports whether a face of a block's model is solid (Go
-        `b.Model().FaceSolid(pos, face, src)`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            kind: The block's type base hash.
-            hash: The block's state hash.
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the face is solid; always for types without a model.
-        """
+        `b.Model().FaceSolid(pos, face, src)`)."""
         ...
 
     @staticmethod
@@ -212,48 +144,21 @@ trait BlockTypes:
 
     @staticmethod
     def block_item(kind: UInt64, hash: UInt64) -> Optional[RegisteredItem]:
-        """Returns a block as an item, if its type is an item.
-
-        Args:
-            kind: The block type's base hash.
-            hash: The block's state hash.
-
-        Returns:
-            The item and its stack info, or None.
-        """
+        """Returns a block as an item, if its type is an item."""
         ...
 
     @staticmethod
     def encode_block_item(kind: UInt64, hash: UInt64) -> Optional[EncodedItem]:
-        """Encodes a block as an item.
-
-        Args:
-            kind: The block type's base hash.
-            hash: The block's state hash.
-
-        Returns:
-            The item name and metadata, or None if the type is not an item.
-        """
+        """Encodes a block as an item."""
         ...
 
 
 struct BlockSet[*Ts: Block](BlockTypes):
-    """Static dispatch over the block types `Ts`.
-
-    Parameters:
-        Ts: The block types, each with a distinct `BASE_HASH`.
-    """
+    """Static dispatch over the block types `Ts`."""
 
     @staticmethod
     def register_all(mut br: BasicBlockRegistry) raises:
-        """Registers every state of every type (Go `block/register.go`).
-
-        Args:
-            br: An unfinalized registry holding the vanilla states.
-
-        Raises:
-            If a state is not in the registry or is registered twice.
-        """
+        """Registers every state of every type (Go `block/register.go`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             for b in T.all_states():
@@ -261,14 +166,7 @@ struct BlockSet[*Ts: Block](BlockTypes):
 
     @staticmethod
     def contains(kind: UInt64) -> Bool:
-        """Reports whether a type with the base hash passed is in the set.
-
-        Args:
-            kind: A base hash, as `BasicBlockRegistry.kind` returns.
-
-        Returns:
-            True if one of `Ts` has that `BASE_HASH`.
-        """
+        """Reports whether a type with the base hash passed is in the set."""
         comptime for i in range(len(Self.Ts)):
             if kind == Self.Ts[i].BASE_HASH:
                 return True
@@ -279,21 +177,7 @@ struct BlockSet[*Ts: Block](BlockTypes):
         S: BlockSource
     ](kind: UInt64, hash: UInt64, pos: Pos, face: Face, src: S) -> Bool:
         """Reports whether a face of a block's model is solid (Go
-        `b.Model().FaceSolid(pos, face, src)`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            kind: The block's type base hash.
-            hash: The block's state hash.
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the face is solid; always for types without a model.
-        """
+        `b.Model().FaceSolid(pos, face, src)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime B = Self.Ts[i]
             comptime if conforms_to(B, ModelledBlock):
@@ -370,15 +254,7 @@ struct BlockSet[*Ts: Block](BlockTypes):
     @staticmethod
     def block_item(kind: UInt64, hash: UInt64) -> Optional[RegisteredItem]:
         """Returns a block as an item, if its type is an item (Go
-        `b.(world.Item)`), whether or not the value is registered as one.
-
-        Args:
-            kind: The block type's base hash.
-            hash: The block's state hash.
-
-        Returns:
-            The item and its stack info, or None.
-        """
+        `b.(world.Item)`), whether or not the value is registered as one."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Item):
@@ -388,15 +264,7 @@ struct BlockSet[*Ts: Block](BlockTypes):
 
     @staticmethod
     def encode_block_item(kind: UInt64, hash: UInt64) -> Optional[EncodedItem]:
-        """Encodes a block as an item (Go `b.(world.Item).EncodeItem()`).
-
-        Args:
-            kind: The block type's base hash.
-            hash: The block's state hash.
-
-        Returns:
-            The item name and metadata, or None if the type is not an item.
-        """
+        """Encodes a block as an item (Go `b.(world.Item).EncodeItem()`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Item):
@@ -409,20 +277,7 @@ struct BlockSet[*Ts: Block](BlockTypes):
         T: WorldTypes
     ](kind: UInt64, hash: UInt64, pos: Pos, mut tx: World[T]) -> Bool:
         """Calls `ScheduledTicker.scheduled_tick` of the block, if its type
-        has it.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            kind: The block's type base hash.
-            hash: The block's state hash.
-            pos: The position of the block.
-            tx: The world.
-
-        Returns:
-            True if the type is a `ScheduledTicker`.
-        """
+        has it."""
         comptime for i in range(len(Self.Ts)):
             comptime B = Self.Ts[i]
             comptime if conforms_to(B, ScheduledTicker):
@@ -442,21 +297,7 @@ struct BlockSet[*Ts: Block](BlockTypes):
         mut tx: World[T],
     ) -> Bool:
         """Calls `NeighbourUpdateTicker.neighbour_update_tick` of the
-        block, if its type has it.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            kind: The block's type base hash.
-            hash: The block's state hash.
-            pos: The position of the block.
-            changed_neighbour: The position of the block that changed.
-            tx: The world.
-
-        Returns:
-            True if the type is a `NeighbourUpdateTicker`.
-        """
+        block, if its type has it."""
         comptime for i in range(len(Self.Ts)):
             comptime B = Self.Ts[i]
             comptime if conforms_to(B, NeighbourUpdateTicker):
@@ -472,20 +313,7 @@ struct BlockSet[*Ts: Block](BlockTypes):
         T: WorldTypes
     ](kind: UInt64, hash: UInt64, pos: Pos, mut tx: World[T]) -> Bool:
         """Calls `RandomTicker.random_tick` of the block, if its type has
-        it.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            kind: The block's type base hash.
-            hash: The block's state hash.
-            pos: The position of the block.
-            tx: The world.
-
-        Returns:
-            True if the type is a `RandomTicker`.
-        """
+        it."""
         comptime for i in range(len(Self.Ts)):
             comptime B = Self.Ts[i]
             comptime if conforms_to(B, RandomTicker):
@@ -497,15 +325,7 @@ struct BlockSet[*Ts: Block](BlockTypes):
     @staticmethod
     def encode(kind: UInt64, hash: UInt64) -> Optional[BlockState]:
         """Encodes a block of any type in the set (Go `b.EncodeBlock()` on a
-        `world.Block`).
-
-        Args:
-            kind: The `BASE_HASH` of the block's type.
-            hash: The block's state hash.
-
-        Returns:
-            The state, or None if no type in the set has that base hash.
-        """
+        `world.Block`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             if kind == T.BASE_HASH:

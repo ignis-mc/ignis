@@ -11,17 +11,7 @@ from ..cube.pos import Pos
 
 def random_offset(pos: Pos, mn: Float32, mx: Float32, steps: Int) -> Vec3:
     """Returns the horizontal offset the client gives the model of a block
-    at a position, such as bamboo (Go `randomOffset`).
-
-    Args:
-        pos: The position of the block.
-        mn: The minimum offset.
-        mx: The maximum offset.
-        steps: The number of distinct offsets.
-
-    Returns:
-        The offset, with Y always 0.
-    """
+    at a position, such as bamboo (Go `randomOffset`)."""
     var seed = _offset_seed(Int32(pos.x()), Int32(pos.z()))
     var s0 = mix_stafford13(seed)
     var s1 = mix_stafford13(seed + 0x9E3779B97F4A7C15)

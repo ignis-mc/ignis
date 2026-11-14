@@ -472,17 +472,7 @@ def vanilla_block_registry(
     path: String = BLOCK_STATES_PATH,
 ) raises -> BasicBlockRegistry:
     """Builds the finalized vanilla registry (Go `DefaultBlockRegistry`
-    after `Finalize`).
-
-    Args:
-        path: The path of `block_states.nbt`.
-
-    Returns:
-        The registry.
-
-    Raises:
-        If the file cannot be read or a block does not match a state.
-    """
+    after `Finalize`)."""
     var br = BasicBlockRegistry.load(path)
     VanillaBlocks.register_all(br)
     br.finalize()
@@ -491,15 +481,7 @@ def vanilla_block_registry(
 
 def break_info(kind: UInt64, hash: UInt64) -> Optional[BreakInfo]:
     """Returns the break info of a block of any vanilla type (Go
-    `b.(Breakable).BreakInfo()`).
-
-    Args:
-        kind: The `BASE_HASH` of the block's type.
-        hash: The block's state hash.
-
-    Returns:
-        The break info, or None if the type is unknown or not `Breakable`.
-    """
+    `b.(Breakable).BreakInfo()`)."""
     comptime for i in range(len(VanillaBlocks.Ts)):
         comptime T = VanillaBlocks.Ts[i]
         comptime if conforms_to(T, Breakable):
@@ -514,35 +496,14 @@ def _break_info[T: Breakable](b: T) -> BreakInfo:
 
 def block_at[S: BlockSource](src: S, pos: Pos) -> AnyBlock:
     """Returns the type and state of the block at a position (Go
-    `src.Block(pos)`).
-
-    Parameters:
-        S: The block source type.
-
-    Args:
-        src: The blocks.
-        pos: The position.
-
-    Returns:
-        The block; its kind is `UNKNOWN_KIND` for states without a type.
-    """
+    `src.Block(pos)`)."""
     var rid = src.block(pos)
     return AnyBlock(kind=src.kind(rid), state=src.state_hash(rid))
 
 
 def block_model_as[M: BlockModel](b: AnyBlock) -> Optional[M]:
     """Returns the model of a block if it has type `M` (Go
-    `b.Model().(M)`).
-
-    Parameters:
-        M: The model type.
-
-    Args:
-        b: The block.
-
-    Returns:
-        The model, or None if the block's model has another type.
-    """
+    `b.Model().(M)`)."""
     comptime for i in range(len(VanillaBlocks.Ts)):
         comptime T = VanillaBlocks.Ts[i]
         comptime if conforms_to(T, ModelledBlock):
@@ -555,19 +516,7 @@ def block_model_as[M: BlockModel](b: AnyBlock) -> Optional[M]:
 def block_model_bbox[
     S: BlockSource
 ](b: AnyBlock, pos: Pos, src: S) -> List[BBox]:
-    """Returns the boxes of a block's model (Go `b.Model().BBox(pos, src)`).
-
-    Parameters:
-        S: The block source type.
-
-    Args:
-        b: The block.
-        pos: The position of the block.
-        src: The blocks around it.
-
-    Returns:
-        The boxes; a full cube for blocks without a type.
-    """
+    """Returns the boxes of a block's model (Go `b.Model().BBox(pos, src)`)."""
     comptime for i in range(len(VanillaBlocks.Ts)):
         comptime T = VanillaBlocks.Ts[i]
         comptime if conforms_to(T, ModelledBlock):
@@ -580,20 +529,7 @@ def block_model_face_solid[
     S: BlockSource
 ](b: AnyBlock, pos: Pos, face: Face, src: S) -> Bool:
     """Reports whether a face of a block's model is solid (Go
-    `b.Model().FaceSolid(pos, face, src)`).
-
-    Parameters:
-        S: The block source type.
-
-    Args:
-        b: The block.
-        pos: The position of the block.
-        face: The face.
-        src: The blocks around it.
-
-    Returns:
-        True if the face is solid; always for blocks without a type.
-    """
+    `b.Model().FaceSolid(pos, face, src)`)."""
     comptime for i in range(len(VanillaBlocks.Ts)):
         comptime T = VanillaBlocks.Ts[i]
         comptime if conforms_to(T, ModelledBlock):

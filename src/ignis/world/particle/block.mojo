@@ -22,11 +22,7 @@ struct Flame(ImplicitlyCopyable, Particle):
     """Colour is the colour of the Flame particle."""
 
     def __init__(out self, *, colour: RGBA = RGBA()):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            colour: Colour is the colour of the Flame particle.
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.colour = colour
 
 
@@ -42,11 +38,7 @@ struct Dust(ImplicitlyCopyable, Particle):
     """Colour is the colour of the Dust particle."""
 
     def __init__(out self, *, colour: RGBA = RGBA()):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            colour: Colour is the colour of the Dust particle.
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.colour = colour
 
 
@@ -65,11 +57,7 @@ struct BlockBreak(ImplicitlyCopyable, Particle):
     def __init__(
         out self, *, block: AnyBlock = AnyBlock(kind=UNKNOWN_KIND, state=0)
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            block: Block is the block of which particles should be shown....
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.block = block
 
 
@@ -94,12 +82,7 @@ struct PunchBlock(ImplicitlyCopyable, Particle):
         block: AnyBlock = AnyBlock(kind=UNKNOWN_KIND, state=0),
         face: Face = Face.DOWN,
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            block: Block is the block of which particles should be shown....
-            face: Face is the face of the block that was punched. It is...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.block = block
         self.face = face
 
@@ -125,11 +108,7 @@ struct BoneMeal(ImplicitlyCopyable, Particle):
     burst is used for significant growth."""
 
     def __init__(out self, *, area: Bool = False):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            area: Area specifies whether the particle effect should be for...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.area = area
 
 
@@ -148,12 +127,7 @@ struct Note(ImplicitlyCopyable, Particle):
     def __init__(
         out self, *, instrument: Instrument = Instrument.PIANO, pitch: Int = 0
     ):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            instrument: Instrument is the instrument of the note block.
-            pitch: Pitch is the pitch of the note.
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.instrument = instrument
         self.pitch = pitch
 
@@ -170,11 +144,7 @@ struct DragonEggTeleport(ImplicitlyCopyable, Particle):
     original position to the new position."""
 
     def __init__(out self, *, diff: Pos = Pos(0, 0, 0)):
-        """Creates the value; omitted fields take Go zero values.
-
-        Args:
-            diff: Diff is a Position with the values being the difference...
-        """
+        """Creates the value; omitted fields take Go zero values."""
         self.diff = diff
 
 

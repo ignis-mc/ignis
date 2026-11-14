@@ -1,5 +1,4 @@
-"""`Stair`, ported from Dragonfly `server/block/model/stair.go`.
-"""
+"""`Stair`, ported from Dragonfly `server/block/model/stair.go`."""
 
 from ...mgl64 import Vec3
 from ...world.block_model import BlockModel
@@ -36,15 +35,7 @@ struct Stair(BlockModel, ImplicitlyCopyable):
         inner: Bool = False,
         left: Bool = False,
     ):
-        """Creates the model; omitted fields take Go zero values.
-
-        Args:
-            facing: The direction the full side faces.
-            upside_down: Whether the stairs are upside down.
-            corner: Whether the stairs form a corner.
-            inner: Whether the corner is an inner corner.
-            left: Whether the corner turns left.
-        """
+        """Creates the model; omitted fields take Go zero values."""
         self.facing = facing
         self.upside_down = upside_down
         self.corner = corner
@@ -52,18 +43,7 @@ struct Stair(BlockModel, ImplicitlyCopyable):
         self.left = left
 
     def bbox[S: BlockSource](self, pos: Pos, src: S) -> List[BBox]:
-        """Returns the boxes of the model (Go `BBox`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            src: The blocks around it.
-
-        Returns:
-            The boxes, relative to the block.
-        """
+        """Returns the boxes of the model (Go `BBox`)."""
         var b: List[BBox] = [BBox.box(0, 0, 0, 1, 0.5, 1)]
         if self.upside_down:
             b[0] = BBox.box(0, 0.5, 0, 1, 1, 1)
@@ -89,19 +69,7 @@ struct Stair(BlockModel, ImplicitlyCopyable):
         return b^
 
     def face_solid[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
-        """Reports whether a face is solid (Go `FaceSolid`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the face is solid.
-        """
+        """Reports whether a face is solid (Go `FaceSolid`)."""
         if (face == Face.UP and self.upside_down) or (
             face == Face.DOWN and not self.upside_down
         ):

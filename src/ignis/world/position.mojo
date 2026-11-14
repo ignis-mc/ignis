@@ -18,27 +18,15 @@ struct ChunkPos(Equatable, Hashable, ImplicitlyCopyable, Writable):
     var _z: Int32
 
     def x(self) -> Int32:
-        """Returns the X coordinate.
-
-        Returns:
-            The X coordinate in chunks.
-        """
+        """Returns the X coordinate."""
         return self._x
 
     def z(self) -> Int32:
-        """Returns the Z coordinate.
-
-        Returns:
-            The Z coordinate in chunks.
-        """
+        """Returns the Z coordinate."""
         return self._z
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the position as `(x, z)`.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the position as `(x, z)`."""
         writer.write("(", self._x, ", ", self._z, ")")
 
 
@@ -51,59 +39,29 @@ struct SubChunkPos(Equatable, Hashable, ImplicitlyCopyable, Writable):
     var _z: Int32
 
     def x(self) -> Int32:
-        """Returns the X coordinate.
-
-        Returns:
-            The X coordinate in sub-chunks.
-        """
+        """Returns the X coordinate."""
         return self._x
 
     def y(self) -> Int32:
-        """Returns the Y coordinate.
-
-        Returns:
-            The Y coordinate in sub-chunks.
-        """
+        """Returns the Y coordinate."""
         return self._y
 
     def z(self) -> Int32:
-        """Returns the Z coordinate.
-
-        Returns:
-            The Z coordinate in sub-chunks.
-        """
+        """Returns the Z coordinate."""
         return self._z
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the position as `(x, y, z)`.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the position as `(x, y, z)`."""
         writer.write("(", self._x, ", ", self._y, ", ", self._z, ")")
 
 
 def chunk_pos_from_vec3(v: Vec3) -> ChunkPos:
-    """Returns the chunk a vector is in (Go `chunkPosFromVec3`).
-
-    Args:
-        v: The vector.
-
-    Returns:
-        The chunk position.
-    """
+    """Returns the chunk a vector is in (Go `chunkPosFromVec3`)."""
     return ChunkPos(
         Int32(Int(floor(v.x()))) >> 4, Int32(Int(floor(v.z()))) >> 4
     )
 
 
 def chunk_pos_from_block_pos(p: Pos) -> ChunkPos:
-    """Returns the chunk a block is in (Go `chunkPosFromBlockPos`).
-
-    Args:
-        p: The block position.
-
-    Returns:
-        The chunk position.
-    """
+    """Returns the chunk a block is in (Go `chunkPosFromBlockPos`)."""
     return ChunkPos(Int32(p.x() >> 4), Int32(p.z() >> 4))

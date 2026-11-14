@@ -12,14 +12,7 @@ comptime _PRIME32: UInt32 = 16777619
 
 
 def fnv1_64(data: Span[UInt8, _]) -> UInt64:
-    """Returns the 64-bit FNV-1 hash of `data` (`fnv1.HashBytes64`).
-
-    Args:
-        data: The bytes to hash.
-
-    Returns:
-        The hash.
-    """
+    """Returns the 64-bit FNV-1 hash of `data` (`fnv1.HashBytes64`)."""
     var h = _OFFSET64
     for b in data:
         h = (h * _PRIME64) ^ UInt64(b)
@@ -27,14 +20,7 @@ def fnv1_64(data: Span[UInt8, _]) -> UInt64:
 
 
 def fnv1a_32(data: Span[UInt8, _]) -> UInt32:
-    """Returns the 32-bit FNV-1a hash of `data` (`fnv1a.HashBytes32`).
-
-    Args:
-        data: The bytes to hash.
-
-    Returns:
-        The hash.
-    """
+    """Returns the 32-bit FNV-1a hash of `data` (`fnv1a.HashBytes32`)."""
     var h = _OFFSET32
     for b in data:
         h = (h ^ UInt32(b)) * _PRIME32
@@ -42,14 +28,7 @@ def fnv1a_32(data: Span[UInt8, _]) -> UInt32:
 
 
 def fnv1a_64(data: Span[UInt8, _]) -> UInt64:
-    """Returns the 64-bit FNV-1a hash of `data` (`fnv1a.HashBytes64`).
-
-    Args:
-        data: The bytes to hash.
-
-    Returns:
-        The hash.
-    """
+    """Returns the 64-bit FNV-1a hash of `data` (`fnv1a.HashBytes64`)."""
     var h = _OFFSET64
     for b in data:
         h = (h ^ UInt64(b)) * _PRIME64

@@ -39,12 +39,7 @@ struct Upgrades(Movable):
         var legacy: Dict[String, BlockState],
         var blocks: BlockUpgrader,
     ):
-        """Creates the upgrades from loaded parts.
-
-        Args:
-            legacy: Legacy mappings keyed by `name + "\\x00" + meta`.
-            blocks: The block state upgrader.
-        """
+        """Creates the upgrades from loaded parts."""
         self._legacy = legacy^
         self.blocks = blocks^
 
@@ -54,18 +49,7 @@ struct Upgrades(Movable):
         schema_dir: StringSlice = SCHEMA_DIR,
     ) raises -> Self:
         """Loads `legacy_states.nbt` (Go `init` of `conversion.go`) and the
-        upgrade schemas.
-
-        Args:
-            legacy_path: The path of `legacy_states.nbt`.
-            schema_dir: The directory of the upgrade schemas.
-
-        Returns:
-            The upgrades.
-
-        Raises:
-            If a file cannot be read or parsed.
-        """
+        upgrade schemas."""
         var data = read_file(legacy_path)
         var legacy = Dict[String, BlockState]()
         var pos = 0
@@ -98,11 +82,7 @@ struct Upgrades(Movable):
         return Self(legacy^, BlockUpgrader.load(schema_dir))
 
     def legacy_count(self) -> Int:
-        """Returns the number of legacy mappings.
-
-        Returns:
-            The count.
-        """
+        """Returns the number of legacy mappings."""
         return len(self._legacy)
 
     def upgrade_legacy_entry(
@@ -110,15 +90,7 @@ struct Upgrades(Movable):
     ) -> Optional[BlockState]:
         """Maps a pre-1.13 `name` and `meta` to a state (Go
         `upgradeLegacyEntry`), trying meta 0 when the exact meta is
-        unknown.
-
-        Args:
-            name: The legacy block name.
-            meta: The legacy metadata value.
-
-        Returns:
-            The state, or None.
-        """
+        unknown."""
         if case .Some(s) = self._legacy.get(_legacy_key(name, meta)):
             return s.copy()
         return self._legacy.get(_legacy_key(name, 0))

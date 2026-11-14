@@ -33,26 +33,14 @@ comptime LoaderID = UInt64
 
 def chunk_distance(a: ChunkPos, b: ChunkPos) -> Int32:
     """Returns the rounded distance between two chunk positions (Go
-    `chunkDistance`).
-
-    Args:
-        a: The first position.
-        b: The second position.
-
-    Returns:
-        The Euclidean distance rounded half away from zero.
-    """
+    `chunkDistance`)."""
     var dx = Float64(a.x()) - Float64(b.x())
     var dz = Float64(a.z()) - Float64(b.z())
     return Int32(Int(floor(sqrt(dx * dx + dz * dz) + 0.5)))
 
 
 struct Loader[V: Viewer](Movable):
-    """The state of one loader (Go `Loader`).
-
-    Parameters:
-        V: The viewer type.
-    """
+    """The state of one loader (Go `Loader`)."""
 
     var r: Int
     """The chunk radius."""
@@ -66,12 +54,7 @@ struct Loader[V: Viewer](Movable):
     """Chunks the viewer is viewing."""
 
     def __init__(out self, r: Int, var viewer: Self.V):
-        """Creates a loader at chunk (0, 0) with an empty queue.
-
-        Args:
-            r: The chunk radius.
-            viewer: The viewer.
-        """
+        """Creates a loader at chunk (0, 0) with an empty queue."""
         self.r = r
         self.viewer = viewer^
         self.pos = ChunkPos(0, 0)
@@ -79,32 +62,17 @@ struct Loader[V: Viewer](Movable):
         self.loaded = Set[ChunkPos]()
 
     def into_viewer(deinit self) -> Self.V:
-        """Consumes the loader, giving its viewer back.
-
-        Returns:
-            The viewer.
-        """
+        """Consumes the loader, giving its viewer back."""
         return self.viewer^
 
     def within_load_radius(self, pos: ChunkPos) -> Bool:
         """Reports whether a chunk is within the loader's radius (Go
-        `withinLoadRadius`).
-
-        Args:
-            pos: The chunk position.
-
-        Returns:
-            True if within the radius.
-        """
+        `withinLoadRadius`)."""
         return chunk_distance(pos, self.pos) <= Int32(self.r)
 
     def queue_load(mut self, pos: ChunkPos):
         """Queues a chunk again unless it is loaded, queued or out of range
-        (Go `queueLoad`).
-
-        Args:
-            pos: The chunk position.
-        """
+        (Go `queueLoad`)."""
         if not self.within_load_radius(pos) or pos in self.loaded:
             return
         for q in self.load_queue:

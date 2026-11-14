@@ -49,11 +49,7 @@ struct Batch(Copyable, Defaultable, Movable, Sized):
         self._internal_len = 0
 
     def __len__(self) -> Int:
-        """Returns the number of records.
-
-        Returns:
-            The record count.
-        """
+        """Returns the number of records."""
         return self._len
 
     def _append(
@@ -76,20 +72,11 @@ struct Batch(Copyable, Defaultable, Movable, Sized):
         key: Span[mut=False, UInt8, _],
         value: Span[mut=False, UInt8, _],
     ):
-        """Appends a put of `key` to `value` (Go `Batch.Put`).
-
-        Args:
-            key: The key.
-            value: The value.
-        """
+        """Appends a put of `key` to `value` (Go `Batch.Put`)."""
         self._append(KEY_TYPE_VAL, key, value)
 
     def delete(mut self, key: Span[mut=False, UInt8, _]):
-        """Appends a delete of `key` (Go `Batch.Delete`).
-
-        Args:
-            key: The key.
-        """
+        """Appends a delete of `key` (Go `Batch.Delete`)."""
         var empty = List[UInt8]()
         self._append(KEY_TYPE_DEL, key, Span(empty))
 
@@ -101,28 +88,15 @@ struct Batch(Copyable, Defaultable, Movable, Sized):
 
     def internal_len(self) -> Int:
         """Returns the memtable size the batch adds: keys, values and 8 bytes
-        per record.
-
-        Returns:
-            The size in bytes.
-        """
+        per record."""
         return self._internal_len
 
     def data(self) -> Span[UInt8, origin_of(self._data)]:
-        """Returns the encoded records, without the header.
-
-        Returns:
-            A view of the records.
-        """
+        """Returns the encoded records, without the header."""
         return Span(self._data)
 
     def encode_record(self, seq: UInt64, mut out: List[UInt8]):
-        """Appends the journal record: header with `seq` and the records.
-
-        Args:
-            seq: The sequence number of the first record.
-            out: The destination.
-        """
+        """Appends the journal record: header with `seq` and the records."""
         put_u64(out, seq)
         put_u32(out, UInt32(self._len))
         out.extend(Span(self._data))
@@ -131,34 +105,14 @@ struct Batch(Copyable, Defaultable, Movable, Sized):
 def decode_batch_header(
     data: Span[mut=False, UInt8, _]
 ) raises -> Tuple[UInt64, Int]:
-    """Reads a batch header (Go `decodeBatchHeader`).
-
-    Args:
-        data: The journal record.
-
-    Returns:
-        The sequence number and the record count.
-
-    Raises:
-        If the record is shorter than the header.
-    """
+    """Reads a batch header (Go `decodeBatchHeader`)."""
     if len(data) < BATCH_HEADER_LEN:
         raise Error("leveldb: batch corrupted: too short")
     return (get_u64(data, 0), Int(get_u32(data, 8)))
 
 
 def decode_batch(data: Span[mut=False, UInt8, _]) raises -> List[BatchRecord]:
-    """Splits batch records (without the header) (Go `decodeBatch`).
-
-    Args:
-        data: The records.
-
-    Returns:
-        The records in order.
-
-    Raises:
-        If a record is malformed.
-    """
+    """Splits batch records (without the header) (Go `decodeBatch`)."""
     var out = List[BatchRecord]()
     var o = 0
     while o < len(data):

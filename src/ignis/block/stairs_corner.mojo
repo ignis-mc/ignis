@@ -1,5 +1,4 @@
-"""`StairsCorner`, ported from Dragonfly `server/block/stairs_corner.go`.
-"""
+"""`StairsCorner`, ported from Dragonfly `server/block/stairs_corner.go`."""
 
 from ..internal.enum import enum_name
 
@@ -22,38 +21,19 @@ struct StairsCorner(Equatable, ImplicitlyCopyable, Writable):
     """Go `OuterRightStairsCorner()`."""
 
     def __init__(out self, v: Int):
-        """Creates the value with index `v` (Go `StairsCorner{v}`).
-
-        Args:
-            v: 0 to 4.
-        """
+        """Creates the value with index `v` (Go `StairsCorner{v}`)."""
         self._v = UInt8(v)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two values.
-
-        Args:
-            other: The value to compare with.
-
-        Returns:
-            True if both are the same.
-        """
+        """Compares two values."""
         return self._v == other._v
 
     def uint8(self) -> UInt8:
-        """Returns the value as a byte (Go `Uint8`).
-
-        Returns:
-            0 to 4.
-        """
+        """Returns the value as a byte (Go `Uint8`)."""
         return self._v
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the value's string form (Go `String`).
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the value's string form (Go `String`)."""
         writer.write(
             enum_name(
                 "none,inner_left,inner_right,outer_left,outer_right",
@@ -62,28 +42,16 @@ struct StairsCorner(Equatable, ImplicitlyCopyable, Writable):
         )
 
     def inner(self) -> Bool:
-        """Reports whether the corner is an inner corner (Go `Inner`).
-
-        Returns:
-            True for the inner corners.
-        """
+        """Reports whether the corner is an inner corner (Go `Inner`)."""
         return self._v == 1 or self._v == 2
 
     def left(self) -> Bool:
-        """Reports whether the corner is a left corner (Go `Left`).
-
-        Returns:
-            True for the left corners.
-        """
+        """Reports whether the corner is a left corner (Go `Left`)."""
         return self._v == 1 or self._v == 3
 
 
 def stairs_corners() -> List[StairsCorner]:
-    """Returns every corner (Go `StairsCorners`).
-
-    Returns:
-        The values.
-    """
+    """Returns every corner (Go `StairsCorners`)."""
     var out = List[StairsCorner](capacity=5)
     for i in range(5):
         out.append(StairsCorner(i))

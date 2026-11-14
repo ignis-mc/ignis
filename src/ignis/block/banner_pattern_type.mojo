@@ -96,38 +96,19 @@ struct BannerPatternType(Equatable, ImplicitlyCopyable, Writable):
     """Go `GusterBannerPattern()`."""
 
     def __init__(out self, v: Int):
-        """Creates the value with index `v` (Go `BannerPatternType{v}`).
-
-        Args:
-            v: 0 to 41.
-        """
+        """Creates the value with index `v` (Go `BannerPatternType{v}`)."""
         self._v = UInt8(v)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two values.
-
-        Args:
-            other: The value to compare with.
-
-        Returns:
-            True if both are the same.
-        """
+        """Compares two values."""
         return self._v == other._v
 
     def uint8(self) -> UInt8:
-        """Returns the value as a byte (Go `Uint8`).
-
-        Returns:
-            0 to 41.
-        """
+        """Returns the value as a byte (Go `Uint8`)."""
         return self._v
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the value's string form (Go `String`).
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the value's string form (Go `String`)."""
         writer.write(
             enum_name(
                 (
@@ -149,11 +130,7 @@ struct BannerPatternType(Equatable, ImplicitlyCopyable, Writable):
 
 
 def banner_pattern_types() -> List[BannerPatternType]:
-    """Returns every banner pattern (Go `BannerPatternTypes`).
-
-    Returns:
-        The values.
-    """
+    """Returns every banner pattern (Go `BannerPatternTypes`)."""
     var out = List[BannerPatternType](capacity=42)
     for i in range(42):
         out.append(BannerPatternType(i))
@@ -169,14 +146,7 @@ comptime _BANNER_PATTERN_IDS = (
 
 
 def banner_pattern_by_id(id: StringSlice) -> Optional[BannerPatternType]:
-    """Looks up a pattern by its NBT ID (Go `BannerPatternByID`).
-
-    Args:
-        id: The ID, such as `bo`.
-
-    Returns:
-        The pattern, or None for an unknown ID.
-    """
+    """Looks up a pattern by its NBT ID (Go `BannerPatternByID`)."""
     for i in range(42):
         if enum_name(_BANNER_PATTERN_IDS, i) == id:
             return BannerPatternType(i)
@@ -184,12 +154,5 @@ def banner_pattern_by_id(id: StringSlice) -> Optional[BannerPatternType]:
 
 
 def banner_pattern_id(pattern: BannerPatternType) -> StaticString:
-    """Returns the NBT ID of a pattern (Go `bannerPatternID`).
-
-    Args:
-        pattern: The pattern.
-
-    Returns:
-        The ID.
-    """
+    """Returns the NBT ID of a pattern (Go `bannerPatternID`)."""
     return enum_name(_BANNER_PATTERN_IDS, Int(pattern.uint8()))

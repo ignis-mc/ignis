@@ -724,17 +724,7 @@ def vanilla_item_registry(
     path: String = VANILLA_ITEMS_PATH,
 ) raises -> ItemRegistry:
     """Builds the vanilla item registry: the runtime IDs of
-    `vanilla_items.nbt` with every item and block item registered.
-
-    Args:
-        path: The path of `vanilla_items.nbt`.
-
-    Returns:
-        The registry.
-
-    Raises:
-        If the file cannot be read or an item has no runtime ID.
-    """
+    `vanilla_items.nbt` with every item and block item registered."""
     var reg = ItemRegistry.load(path)
     VanillaBlockItems.register_all(reg)
     VanillaItems.register_all(reg)

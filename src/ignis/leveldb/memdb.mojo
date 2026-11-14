@@ -28,11 +28,7 @@ struct MemDB(Copyable, Movable, Sized):
     var _rnd: UInt64
 
     def __init__(out self, capacity: Int = 0):
-        """Creates an empty memtable.
-
-        Args:
-            capacity: The arena capacity to reserve, in bytes.
-        """
+        """Creates an empty memtable."""
         self._kv = List[UInt8](capacity=capacity)
         self._nodes = List[Int](capacity=4 + _MAX_HEIGHT)
         for _ in range(4):
@@ -47,19 +43,11 @@ struct MemDB(Copyable, Movable, Sized):
         self._rnd = 0xDEADBEEF
 
     def __len__(self) -> Int:
-        """Returns the number of entries.
-
-        Returns:
-            The entry count.
-        """
+        """Returns the number of entries."""
         return self._n
 
     def size(self) -> Int:
-        """Returns the bytes of keys and values held (Go `DB.Size`).
-
-        Returns:
-            The size in bytes.
-        """
+        """Returns the bytes of keys and values held (Go `DB.Size`)."""
         return self._kv_size
 
     def _rand_height(mut self) -> Int:
@@ -76,26 +64,12 @@ struct MemDB(Copyable, Movable, Sized):
         return h
 
     def key_at(self, node: Int) -> Span[UInt8, origin_of(self._kv)]:
-        """Returns the internal key of a node.
-
-        Args:
-            node: A node index from `find_ge` or `next`.
-
-        Returns:
-            A view of the key.
-        """
+        """Returns the internal key of a node."""
         var o = self._nodes[node + _N_KV]
         return Span(self._kv)[o : o + self._nodes[node + _N_KEY]]
 
     def value_at(self, node: Int) -> Span[UInt8, origin_of(self._kv)]:
-        """Returns the value of a node.
-
-        Args:
-            node: A node index.
-
-        Returns:
-            A view of the value.
-        """
+        """Returns the value of a node."""
         var o = self._nodes[node + _N_KV] + self._nodes[node + _N_KEY]
         return Span(self._kv)[o : o + self._nodes[node + _N_VAL]]
 
@@ -116,14 +90,7 @@ struct MemDB(Copyable, Movable, Sized):
                 h -= 1
 
     def find_ge(self, key: Span[mut=False, UInt8, _]) -> Int:
-        """Finds the first node whose key is not less than `key`.
-
-        Args:
-            key: An internal key.
-
-        Returns:
-            The node index, or 0 if there is none.
-        """
+        """Finds the first node whose key is not less than `key`."""
         var node = 0
         var h = self._max_height - 1
         while True:
@@ -139,22 +106,11 @@ struct MemDB(Copyable, Movable, Sized):
                 h -= 1
 
     def first(self) -> Int:
-        """Returns the first node.
-
-        Returns:
-            The node index, or 0 if empty.
-        """
+        """Returns the first node."""
         return self._nodes[_N_NEXT]
 
     def next(self, node: Int) -> Int:
-        """Returns the node after `node`.
-
-        Args:
-            node: A node index.
-
-        Returns:
-            The next node index, or 0 at the end.
-        """
+        """Returns the node after `node`."""
         return self._nodes[node + _N_NEXT]
 
     def put(
@@ -163,12 +119,7 @@ struct MemDB(Copyable, Movable, Sized):
         value: Span[mut=False, UInt8, _],
     ):
         """Inserts an entry, replacing the value of an identical key (Go
-        `DB.Put`).
-
-        Args:
-            key: The internal key.
-            value: The value.
-        """
+        `DB.Put`)."""
         var found = self._find_ge(key)
         if found[1]:
             var node = found[0]

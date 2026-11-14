@@ -1,5 +1,4 @@
-"""`Grindstone`, ported from Dragonfly `server/block/model/grindstone.go`.
-"""
+"""`Grindstone`, ported from Dragonfly `server/block/model/grindstone.go`."""
 
 from ...world.block_model import BlockModel
 from ...world.block_source import BlockSource
@@ -19,26 +18,11 @@ struct Grindstone(BlockModel, ImplicitlyCopyable):
     """The axis the grindstone's wheel turns around."""
 
     def __init__(out self, *, axis: Axis = Axis.Y):
-        """Creates the model; omitted fields take Go zero values.
-
-        Args:
-            axis: The axis the grindstone's wheel turns around.
-        """
+        """Creates the model; omitted fields take Go zero values."""
         self.axis = axis
 
     def bbox[S: BlockSource](self, pos: Pos, src: S) -> List[BBox]:
-        """Returns the boxes of the model (Go `BBox`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            src: The blocks around it.
-
-        Returns:
-            The boxes, relative to the block.
-        """
+        """Returns the boxes of the model (Go `BBox`)."""
         return [
             BBox.box(0.125, 0.125, 0.125, 0.825, 0.825, 0.825).stretch(
                 self.axis, 0.125
@@ -46,17 +30,5 @@ struct Grindstone(BlockModel, ImplicitlyCopyable):
         ]
 
     def face_solid[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
-        """Reports whether a face is solid (Go `FaceSolid`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the face is solid.
-        """
+        """Reports whether a face is solid (Go `FaceSolid`)."""
         return False

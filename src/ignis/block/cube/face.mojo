@@ -23,47 +23,23 @@ struct Face(Equatable, ImplicitlyCopyable, Intable, Writable):
     """Go `cube.FaceEast`."""
 
     def __init__(out self, v: Int):
-        """Creates a face from its value (Go `cube.Face(v)`).
-
-        Args:
-            v: 0 to 5.
-        """
+        """Creates a face from its value (Go `cube.Face(v)`)."""
         self._v = UInt8(v)
 
     def __int__(self) -> Int:
-        """Returns the value of the face (Go `int(f)`).
-
-        Returns:
-            0 to 5.
-        """
+        """Returns the value of the face (Go `int(f)`)."""
         return Int(self._v)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two faces.
-
-        Args:
-            other: The face to compare with.
-
-        Returns:
-            True if both are the same face.
-        """
+        """Compares two faces."""
         return self._v == other._v
 
     def direction(self) -> Direction:
-        """Returns the direction of a horizontal face.
-
-        Returns:
-            The direction; meaningless for up and down.
-        """
+        """Returns the direction of a horizontal face."""
         return Direction(Int(self._v) - 2)
 
     def opposite(self) -> Face:
-        """Returns the opposite face.
-
-        Returns:
-            The face on the other side of the block; up for down and for
-            values outside the six faces (Go's `default` case).
-        """
+        """Returns the opposite face."""
         if self == Face.UP:
             return Face.DOWN
         if self == Face.NORTH:
@@ -77,12 +53,7 @@ struct Face(Equatable, ImplicitlyCopyable, Intable, Writable):
         return Face.UP
 
     def axis(self) -> Axis:
-        """Returns the axis the face is on.
-
-        Returns:
-            `Axis.X` for east and west, `Axis.Z` for north and south,
-            `Axis.Y` otherwise.
-        """
+        """Returns the axis the face is on."""
         if self == Face.EAST or self == Face.WEST:
             return Axis.X
         if self == Face.NORTH or self == Face.SOUTH:
@@ -90,11 +61,7 @@ struct Face(Equatable, ImplicitlyCopyable, Intable, Writable):
         return Axis.Y
 
     def rotate_right(self) -> Face:
-        """Rotates a horizontal face 90 degrees clockwise.
-
-        Returns:
-            The rotated face; up and down are returned unchanged.
-        """
+        """Rotates a horizontal face 90 degrees clockwise."""
         if self == Face.NORTH:
             return Face.EAST
         if self == Face.EAST:
@@ -106,11 +73,7 @@ struct Face(Equatable, ImplicitlyCopyable, Intable, Writable):
         return self
 
     def rotate_left(self) -> Face:
-        """Rotates a horizontal face 90 degrees counter-clockwise.
-
-        Returns:
-            The rotated face; up and down are returned unchanged.
-        """
+        """Rotates a horizontal face 90 degrees counter-clockwise."""
         if self == Face.NORTH:
             return Face.WEST
         if self == Face.EAST:
@@ -123,11 +86,7 @@ struct Face(Equatable, ImplicitlyCopyable, Intable, Writable):
 
     def write_to(self, mut writer: Some[Writer]):
         """Writes the face as `down`, `up`, `north`, `south`, `west` or
-        `east` (Go `String`).
-
-        Args:
-            writer: The destination.
-        """
+        `east` (Go `String`)."""
         if self == Face.DOWN:
             writer.write("down")
         elif self == Face.UP:
@@ -144,19 +103,11 @@ struct Face(Equatable, ImplicitlyCopyable, Intable, Writable):
 
 def faces() -> List[Face]:
     """Returns all faces: down, up, north, east, south, west (Go
-    `cube.Faces`).
-
-    Returns:
-        The faces.
-    """
+    `cube.Faces`)."""
     return [Face.DOWN, Face.UP, Face.NORTH, Face.EAST, Face.SOUTH, Face.WEST]
 
 
 def horizontal_faces() -> List[Face]:
     """Returns the horizontal faces: north, east, south, west (Go
-    `cube.HorizontalFaces`).
-
-    Returns:
-        The faces.
-    """
+    `cube.HorizontalFaces`)."""
     return [Face.NORTH, Face.EAST, Face.SOUTH, Face.WEST]

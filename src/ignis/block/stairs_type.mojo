@@ -57,14 +57,7 @@ from .wool import Wool
 def encode_stairs_block(block: AnyBlock) -> String:
     """Returns the name stairs of the block encode with, without the
     `_stairs` suffix (Go `encodeStairsBlock`). Aborts for blocks that have no
-    stairs, as Go panics.
-
-    Args:
-        block: The block the stairs are made of.
-
-    Returns:
-        The name.
-    """
+    stairs, as Go panics."""
     if case .Some(b) = block.get[Andesite]():
         return "polished_andesite" if b.polished else "andesite"
     if case .Some(b) = block.get[Blackstone]():
@@ -170,11 +163,7 @@ def encode_stairs_block(block: AnyBlock) -> String:
 
 
 def stairs_blocks() -> List[AnyBlock]:
-    """Returns every block stairs can be made of (Go `StairsBlocks`).
-
-    Returns:
-        The blocks.
-    """
+    """Returns every block stairs can be made of (Go `StairsBlocks`)."""
     var b: List[AnyBlock] = [
         AnyBlock(Andesite(polished=True)),
         AnyBlock(Andesite()),

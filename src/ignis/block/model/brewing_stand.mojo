@@ -18,18 +18,7 @@ struct BrewingStand(BlockModel, ImplicitlyCopyable):
     """The model ID of `BrewingStand`."""
 
     def bbox[S: BlockSource](self, pos: Pos, src: S) -> List[BBox]:
-        """Returns the boxes of the model (Go `BBox`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            src: The blocks around it.
-
-        Returns:
-            The boxes, relative to the block.
-        """
+        """Returns the boxes of the model (Go `BBox`)."""
         return [
             FULL.extend_towards(Face.UP, -0.875),
             FULL.stretch(Axis.X, -0.4375)
@@ -38,17 +27,5 @@ struct BrewingStand(BlockModel, ImplicitlyCopyable):
         ]
 
     def face_solid[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
-        """Reports whether a face is solid (Go `FaceSolid`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the face is solid.
-        """
+        """Reports whether a face is solid (Go `FaceSolid`)."""
         return False

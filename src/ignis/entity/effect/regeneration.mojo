@@ -19,11 +19,7 @@ struct Regeneration(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(10, Regeneration)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0xcd, 0x5c, 0xab, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0xCD, 0x5C, 0xAB, 0xFF)
 
 

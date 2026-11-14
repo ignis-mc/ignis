@@ -19,23 +19,11 @@ trait Generator(Deinitable, Movable):
     """Generates chunks the world's provider does not have."""
 
     def generate_chunk(self, pos: ChunkPos, mut chunk: Chunk):
-        """Sets the blocks of a newly created chunk.
-
-        Args:
-            pos: The position of the chunk.
-            chunk: The empty chunk to fill.
-        """
+        """Sets the blocks of a newly created chunk."""
         ...
 
     def default_spawn(self, dim: Dimension) -> Pos:
-        """Returns the default spawn position for worlds using the generator.
-
-        Args:
-            dim: The dimension of the world.
-
-        Returns:
-            The spawn position.
-        """
+        """Returns the default spawn position for worlds using the generator."""
         ...
 
 
@@ -44,21 +32,9 @@ struct NopGenerator(Generator, ImplicitlyCopyable):
     """Generates empty chunks (a void world); the default generator."""
 
     def generate_chunk(self, pos: ChunkPos, mut chunk: Chunk):
-        """Leaves the chunk empty.
-
-        Args:
-            pos: The position of the chunk.
-            chunk: The chunk.
-        """
+        """Leaves the chunk empty."""
         pass
 
     def default_spawn(self, dim: Dimension) -> Pos:
-        """Returns the origin.
-
-        Args:
-            dim: The dimension of the world.
-
-        Returns:
-            (0, 0, 0).
-        """
+        """Returns the origin."""
         return Pos(0, 0, 0)

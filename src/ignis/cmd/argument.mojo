@@ -61,24 +61,14 @@ struct Line(Copyable, Defaultable):
         var seen: List[String],
         var usage: String,
     ):
-        """Creates a line.
-
-        Args:
-            args: The arguments still to parse.
-            seen: The words already parsed, starting with `/name`.
-            usage: The command usage, for `usage_error`.
-        """
+        """Creates a line."""
         self._args = args^
         self._seen = seen^
         self._usage = usage^
 
     def syntax_error(self) -> Message:
         """Builds the syntax error pointing at the next argument (Go
-        `SyntaxError`).
-
-        Returns:
-            The translated error.
-        """
+        `SyntaxError`)."""
         if len(self._args) == 0:
             return MESSAGE_SYNTAX.f(_join(self._seen, 0), "", "")
         var next = _join(self._args, 1)
@@ -87,32 +77,17 @@ struct Line(Copyable, Defaultable):
         return MESSAGE_SYNTAX.f(_join(self._seen, 0) + " ", self._args[0], next)
 
     def usage_error(self) -> Message:
-        """Builds the usage error (Go `UsageError`).
-
-        Returns:
-            The translated error.
-        """
+        """Builds the usage error (Go `UsageError`)."""
         return MESSAGE_USAGE.f(self._usage)
 
     def next(self) -> Optional[String]:
-        """Gets the next argument without consuming it (Go `Next`).
-
-        Returns:
-            The argument, or `None` if there are none left.
-        """
+        """Gets the next argument without consuming it (Go `Next`)."""
         if len(self._args) == 0:
             return None
         return self._args[0]
 
     def next_n(self, n: Int) -> Optional[List[String]]:
-        """Gets the next `n` arguments without consuming them (Go `NextN`).
-
-        Args:
-            n: How many arguments.
-
-        Returns:
-            The arguments, or `None` if fewer than `n` are left.
-        """
+        """Gets the next `n` arguments without consuming them (Go `NextN`)."""
         if len(self._args) < n:
             return None
         return List[String](Span(self._args)[:n])
@@ -123,11 +98,7 @@ struct Line(Copyable, Defaultable):
 
     def remove_n(mut self, n: Int):
         """Consumes the next `n` arguments (Go `RemoveN`). If fewer are
-        left, all of them are dropped without being marked as seen.
-
-        Args:
-            n: How many arguments.
-        """
+        left, all of them are dropped without being marked as seen."""
         if len(self._args) < n:
             self._args = List[String]()
             return
@@ -136,34 +107,18 @@ struct Line(Copyable, Defaultable):
         self._args = List[String](Span(self._args)[n:])
 
     def leftover(mut self) -> List[String]:
-        """Takes every remaining argument (Go `Leftover`).
-
-        Returns:
-            The arguments; the line is empty afterwards.
-        """
+        """Takes every remaining argument (Go `Leftover`)."""
         var v = self._args^
         self._args = List[String]()
         return v^
 
     def len(self) -> Int:
-        """Counts the remaining arguments (Go `Len`).
-
-        Returns:
-            The count.
-        """
+        """Counts the remaining arguments (Go `Len`)."""
         return len(self._args)
 
 
 def _join(parts: List[String], start: Int) -> String:
-    """Joins `parts[start:]` with spaces (Go `strings.Join(_, " ")`).
-
-    Args:
-        parts: The strings.
-        start: The first index to include.
-
-    Returns:
-        The joined string.
-    """
+    """Joins `parts[start:]` with spaces (Go `strings.Join(_, " ")`)."""
     var out = String()
     for i in range(start, len(parts)):
         if i > start:
@@ -186,11 +141,7 @@ struct _LineReader:
         self.pos = 0
 
     def read_line(mut self, mut line: List[UInt8]) -> Bool:
-        """Reads the next line into `line`.
-
-        Returns:
-            True at end of input with nothing read (Go `io.EOF`).
-        """
+        """Reads the next line into `line`."""
         line = List[UInt8]()
         var start = self.pos
         var end = start
@@ -240,13 +191,6 @@ def split_args(args: String) -> Optional[List[String]]:
     arguments), `"..."` quotes an argument that may contain spaces and
     newlines, `""` inside quotes is a quote, and only the first line of
     unquoted text is read.
-
-    Args:
-        args: The arguments after the command name.
-
-    Returns:
-        The arguments, or `None` if there is no record (only newlines),
-        which Go reports as an error.
     """
     comptime QUOTE = UInt8(ord('"'))
     comptime COMMA = UInt8(ord(" "))
@@ -326,15 +270,7 @@ def _lower(c: UInt8) -> UInt8:
 
 def parse_uint(s: String, bits: Int) -> Optional[UInt64]:
     """Parses a decimal unsigned integer like Go's
-    `strconv.ParseUint(s, 10, bits)`: digits only, no sign, no underscores.
-
-    Args:
-        s: The text.
-        bits: The bit size, 8 to 64.
-
-    Returns:
-        The value, or `None` on a syntax or range error.
-    """
+    `strconv.ParseUint(s, 10, bits)`: digits only, no sign, no underscores."""
     var b = s.as_bytes()
     if len(b) == 0:
         return None
@@ -357,15 +293,7 @@ def parse_uint(s: String, bits: Int) -> Optional[UInt64]:
 
 def parse_int(s: String, bits: Int) -> Optional[Int64]:
     """Parses a decimal signed integer like Go's
-    `strconv.ParseInt(s, 10, bits)`: an optional `+` or `-`, then digits.
-
-    Args:
-        s: The text.
-        bits: The bit size, 8 to 64.
-
-    Returns:
-        The value, or `None` on a syntax or range error.
-    """
+    `strconv.ParseInt(s, 10, bits)`: an optional `+` or `-`, then digits."""
     var b = s.as_bytes()
     if len(b) == 0:
         return None
@@ -391,14 +319,7 @@ def parse_int(s: String, bits: Int) -> Optional[Int64]:
 
 
 def parse_bool(s: String) -> Optional[Bool]:
-    """Parses a boolean like Go's `strconv.ParseBool`.
-
-    Args:
-        s: The text: `1 t T TRUE true True` or `0 f F FALSE false False`.
-
-    Returns:
-        The value, or `None`.
-    """
+    """Parses a boolean like Go's `strconv.ParseBool`."""
     if (
         s == "1"
         or s == "t"
@@ -444,14 +365,6 @@ def parse_float(s: String, bits: Int) -> Optional[Float64]:
     Accepts decimal and hexadecimal (`0x1p-2`) forms with underscores
     between digits, `inf`, `infinity` and `nan` in any case. A value that
     overflows the bit size is an error, as in Go; underflow gives zero.
-
-    Args:
-        s: The text.
-        bits: 32 or 64.
-
-    Returns:
-        The value (already rounded to `Float32` when `bits` is 32), or
-        `None` on a syntax or range error.
     """
     var b = s.as_bytes()
     if len(b) == 0:
@@ -849,23 +762,7 @@ def _random_index(n: Int) -> Int:
 def parse_targets[
     S: Source
 ](mut line: Line, src: S, tx: S.Tx) raises Message -> List[Target]:
-    """Parses a target selector or player name (Go `parser.parseTargets`).
-
-    Parameters:
-        S: The source type.
-
-    Args:
-        line: The line; the selector is its next argument (not consumed).
-        src: The source, for `@s` and `@p`.
-        tx: The entities to select from.
-
-    Returns:
-        The selected targets, possibly none.
-
-    Raises:
-        Message: A usage error, `No targets matched selector` for a
-            selector without a world, or `That player cannot be found`.
-    """
+    """Parses a target selector or player name (Go `parser.parseTargets`)."""
     var first = _next_or_usage(line)
     var b = first.as_bytes()
     var selector = len(b) > 0 and b[0] == UInt8(ord("@"))
@@ -941,27 +838,7 @@ def _parse_argument[
     src: S,
     tx: S.Tx,
 ) raises Message -> Bool:
-    """Parses the next argument into `v` (Go `parser.parseArgument`).
-
-    Parameters:
-        T: The field type.
-        S: The source type.
-
-    Args:
-        line: The line; the argument is consumed on success.
-        v: The field.
-        optional: Whether the parameter may be left out.
-        name: The parameter name (for subcommands).
-        src: The source.
-        tx: The entities target selectors choose from.
-
-    Returns:
-        True if a value was parsed, False if an optional parameter was left
-        out.
-
-    Raises:
-        Message: The parse error.
-    """
+    """Parses the next argument into `v` (Go `parser.parseArgument`)."""
     comptime assert _is_supported[
         T
     ](), "unsupported command parameter type; see ignis.cmd.parameter"

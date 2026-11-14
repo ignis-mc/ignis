@@ -20,54 +20,27 @@ struct Direction(Equatable, ImplicitlyCopyable, Intable, Writable):
     """Go `cube.East`."""
 
     def __init__(out self, v: Int):
-        """Creates a direction from its value (Go `cube.Direction(v)`).
-
-        Args:
-            v: 0 to 3.
-        """
+        """Creates a direction from its value (Go `cube.Direction(v)`)."""
         self._v = UInt8(v)
 
     def __int__(self) -> Int:
-        """Returns the value of the direction (Go `int(d)`).
-
-        Returns:
-            0 to 3.
-        """
+        """Returns the value of the direction (Go `int(d)`)."""
         return Int(self._v)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two directions.
-
-        Args:
-            other: The direction to compare with.
-
-        Returns:
-            True if both are the same direction.
-        """
+        """Compares two directions."""
         return self._v == other._v
 
     def face(self) -> Face:
-        """Returns the face that corresponds with the direction.
-
-        Returns:
-            The horizontal face.
-        """
+        """Returns the face that corresponds with the direction."""
         return Face(Int(self._v) + 2)
 
     def opposite(self) -> Direction:
-        """Returns the opposite direction.
-
-        Returns:
-            The direction pointing the other way.
-        """
+        """Returns the opposite direction."""
         return Direction(Int(self._v ^ 1))
 
     def rotate_right(self) -> Direction:
-        """Rotates the direction 90 degrees clockwise.
-
-        Returns:
-            The rotated direction.
-        """
+        """Rotates the direction 90 degrees clockwise."""
         if self == Direction.NORTH:
             return Direction.EAST
         if self == Direction.EAST:
@@ -77,11 +50,7 @@ struct Direction(Equatable, ImplicitlyCopyable, Intable, Writable):
         return Direction.NORTH
 
     def rotate_left(self) -> Direction:
-        """Rotates the direction 90 degrees counter-clockwise.
-
-        Returns:
-            The rotated direction.
-        """
+        """Rotates the direction 90 degrees counter-clockwise."""
         if self == Direction.NORTH:
             return Direction.WEST
         if self == Direction.EAST:
@@ -92,11 +61,7 @@ struct Direction(Equatable, ImplicitlyCopyable, Intable, Writable):
 
     def write_to(self, mut writer: Some[Writer]):
         """Writes the direction as `north`, `south`, `west` or `east` (Go
-        `String`).
-
-        Args:
-            writer: The destination.
-        """
+        `String`)."""
         if self == Direction.NORTH:
             writer.write("north")
         elif self == Direction.SOUTH:
@@ -109,9 +74,5 @@ struct Direction(Equatable, ImplicitlyCopyable, Intable, Writable):
 
 def directions() -> List[Direction]:
     """Returns the four directions in Go's order: north, east, south, west
-    (Go `cube.Directions`).
-
-    Returns:
-        The directions.
-    """
+    (Go `cube.Directions`)."""
     return [Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST]

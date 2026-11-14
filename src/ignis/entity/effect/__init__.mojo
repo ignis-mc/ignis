@@ -24,11 +24,7 @@ trait EffectType(Copyable, Defaultable, Deinitable):
     """The ID the effect is registered with (Go `effect.ID`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            The colour.
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         ...
 
 
@@ -67,20 +63,7 @@ struct Effect(Equatable, ImplicitlyCopyable):
         infinite: Bool,
     ):
         """Creates an effect; use `new_instant`, `new` and the other
-        constructors.
-
-        Parameters:
-            T: The effect type.
-
-        Args:
-            t: The effect type.
-            lasting: Whether `T` is a `LastingType`.
-            lvl: The level.
-            d: The duration in nanoseconds.
-            potency: The potency of an instant effect.
-            ambient: Whether the effect comes from an ambient source.
-            infinite: Whether the effect lasts forever.
-        """
+        constructors."""
         self._t = T.ID
         self._lasting = lasting
         self._colour = t.rgba()
@@ -93,14 +76,7 @@ struct Effect(Equatable, ImplicitlyCopyable):
         self._tick = 0
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two effects field by field (Go `==`).
-
-        Args:
-            other: The effect to compare with.
-
-        Returns:
-            True if both are equal.
-        """
+        """Compares two effects field by field (Go `==`)."""
         return (
             self._t == other._t
             and self._d == other._d
@@ -114,99 +90,55 @@ struct Effect(Equatable, ImplicitlyCopyable):
 
     def without_particles(self) -> Self:
         """Returns the effect with its particles hidden (Go
-        `WithoutParticles`).
-
-        Returns:
-            The updated effect.
-        """
+        `WithoutParticles`)."""
         var e = self
         e._particles_hidden = True
         return e
 
     def particles_hidden(self) -> Bool:
         """Reports whether the effect's particles are hidden (Go
-        `ParticlesHidden`).
-
-        Returns:
-            True if hidden.
-        """
+        `ParticlesHidden`)."""
         return self._particles_hidden
 
     def level(self) -> Int:
-        """Returns the level of the effect (Go `Level`).
-
-        Returns:
-            The level.
-        """
+        """Returns the level of the effect (Go `Level`)."""
         return self._lvl
 
     def duration(self) -> Int:
-        """Returns the remaining duration (Go `Duration`).
-
-        Returns:
-            Nanoseconds; 0 for instant and infinite effects.
-        """
+        """Returns the remaining duration (Go `Duration`)."""
         return self._d
 
     def ambient(self) -> Bool:
         """Reports whether the effect comes from an ambient source such as a
-        beacon (Go `Ambient`).
-
-        Returns:
-            True if ambient.
-        """
+        beacon (Go `Ambient`)."""
         return self._ambient
 
     def infinite(self) -> Bool:
-        """Reports whether the effect lasts forever (Go `Infinite`).
-
-        Returns:
-            True if infinite.
-        """
+        """Reports whether the effect lasts forever (Go `Infinite`)."""
         return self._infinite
 
     def potency(self) -> Float64:
         """Returns the potency of an instant effect (Go `potency`, read by
-        the instant effects' `Apply`).
-
-        Returns:
-            The potency; 1 by default.
-        """
+        the instant effects' `Apply`)."""
         return self._potency
 
     def type_id(self) -> Int:
         """Returns the ID of the effect's type (Go `Type`, which returns the
-        type itself).
-
-        Returns:
-            The registered effect ID.
-        """
+        type itself)."""
         return self._t
 
     def lasting(self) -> Bool:
         """Reports whether the effect's type is a `LastingType` (Go
-        `e.Type().(LastingType)`).
-
-        Returns:
-            True for lasting effects.
-        """
+        `e.Type().(LastingType)`)."""
         return self._lasting
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's type (Go `e.Type().RGBA()`).
-
-        Returns:
-            The colour.
-        """
+        """Returns the colour of the effect's type (Go `e.Type().RGBA()`)."""
         return self._colour
 
     def tick_duration(self) -> Self:
         """Returns the effect one tick later: lasting effects lose 1/20 of a
-        second unless infinite, and count the tick (Go `TickDuration`).
-
-        Returns:
-            The updated effect.
-        """
+        second unless infinite, and count the tick (Go `TickDuration`)."""
         var e = self
         if e._lasting:
             if not e._infinite:
@@ -215,27 +147,12 @@ struct Effect(Equatable, ImplicitlyCopyable):
         return e
 
     def tick(self) -> Int:
-        """Returns how many ticks the effect has been active (Go `Tick`).
-
-        Returns:
-            The tick count.
-        """
+        """Returns how many ticks the effect has been active (Go `Tick`)."""
         return self._tick
 
 
 def new_instant[T: EffectType](t: T, lvl: Int) -> Effect:
-    """Creates an instant effect with potency 1 (Go `NewInstant`).
-
-    Parameters:
-        T: The effect type.
-
-    Args:
-        t: The effect type.
-        lvl: The level.
-
-    Returns:
-        The effect.
-    """
+    """Creates an instant effect with potency 1 (Go `NewInstant`)."""
     return new_instant_with_potency(t, lvl, 1)
 
 
@@ -243,84 +160,29 @@ def new_instant_with_potency[
     T: EffectType
 ](t: T, lvl: Int, potency: Float64) -> Effect:
     """Creates an instant effect with a potency (Go
-    `NewInstantWithPotency`).
-
-    Parameters:
-        T: The effect type.
-
-    Args:
-        t: The effect type.
-        lvl: The level.
-        potency: The potency, scaling the effect.
-
-    Returns:
-        The effect.
-    """
+    `NewInstantWithPotency`)."""
     return Effect(t, False, lvl, 0, potency, False, False)
 
 
 def new[T: LastingType](t: T, lvl: Int, d: Int) -> Effect:
-    """Creates a lasting effect (Go `New`).
-
-    Parameters:
-        T: The effect type.
-
-    Args:
-        t: The effect type.
-        lvl: The level.
-        d: The duration in nanoseconds.
-
-    Returns:
-        The effect.
-    """
+    """Creates a lasting effect (Go `New`)."""
     return Effect(t, True, lvl, d, 0, False, False)
 
 
 def new_ambient[T: LastingType](t: T, lvl: Int, d: Int) -> Effect:
     """Creates a lasting effect from an ambient source such as a beacon
-    (Go `NewAmbient`).
-
-    Parameters:
-        T: The effect type.
-
-    Args:
-        t: The effect type.
-        lvl: The level.
-        d: The duration in nanoseconds.
-
-    Returns:
-        The effect.
-    """
+    (Go `NewAmbient`)."""
     return Effect(t, True, lvl, d, 0, True, False)
 
 
 def new_infinite[T: LastingType](t: T, lvl: Int) -> Effect:
-    """Creates a lasting effect without an end (Go `NewInfinite`).
-
-    Parameters:
-        T: The effect type.
-
-    Args:
-        t: The effect type.
-        lvl: The level.
-
-    Returns:
-        The effect.
-    """
+    """Creates a lasting effect without an end (Go `NewInfinite`)."""
     return Effect(t, True, lvl, 0, 0, False, True)
 
 
 def resulting_colour(effects: List[Effect]) -> Tuple[RGBA, Bool]:
     """Returns the colour of the particles of a set of effects: the average
-    of the visible effects' colours (Go `ResultingColour`).
-
-    Args:
-        effects: The effects.
-
-    Returns:
-        The colour, or the default potion colour if no effect is visible,
-        and whether all visible effects are ambient.
-    """
+    of the visible effects' colours (Go `ResultingColour`)."""
     var r = 0
     var g = 0
     var b = 0
@@ -348,23 +210,12 @@ def resulting_colour(effects: List[Effect]) -> Tuple[RGBA, Bool]:
 
 struct EffectSet[*Ts: EffectType]:
     """A compile-time list of effect types (no Go counterpart: it replaces
-    Go's `effects` map).
-
-    Parameters:
-        Ts: The effect types, each with a distinct `ID`.
-    """
+    Go's `effects` map)."""
 
     @staticmethod
     def contains(id: Int) -> Bool:
         """Reports whether an effect with the ID is in the set (Go
-        `ByID`'s `ok`).
-
-        Args:
-            id: The effect ID.
-
-        Returns:
-            True if one of `Ts` has that ID.
-        """
+        `ByID`'s `ok`)."""
         comptime for i in range(len(Self.Ts)):
             if id == Self.Ts[i].ID:
                 return True
@@ -372,11 +223,7 @@ struct EffectSet[*Ts: EffectType]:
 
     @staticmethod
     def ids() -> List[Int]:
-        """Returns the IDs of the effects in the set.
-
-        Returns:
-            The IDs, in the order of `Ts`.
-        """
+        """Returns the IDs of the effects in the set."""
         var out = List[Int]()
         comptime for i in range(len(Self.Ts)):
             out.append(Self.Ts[i].ID)
@@ -384,14 +231,7 @@ struct EffectSet[*Ts: EffectType]:
 
     @staticmethod
     def rgba(id: Int) -> Optional[RGBA]:
-        """Returns the colour of the effect with an ID.
-
-        Args:
-            id: The effect ID.
-
-        Returns:
-            The colour, or None for an unknown ID.
-        """
+        """Returns the colour of the effect with an ID."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             if id == T.ID:
@@ -400,14 +240,7 @@ struct EffectSet[*Ts: EffectType]:
 
     @staticmethod
     def lasting(id: Int) -> Optional[Bool]:
-        """Reports whether the effect with an ID is lasting.
-
-        Args:
-            id: The effect ID.
-
-        Returns:
-            True for lasting effects, or None for an unknown ID.
-        """
+        """Reports whether the effect with an ID is lasting."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             if id == T.ID:

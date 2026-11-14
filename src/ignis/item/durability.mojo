@@ -27,11 +27,7 @@ trait Durable:
     """An item that has durability and may break (Go `Durable`)."""
 
     def durability_info(self) -> DurabilityInfo:
-        """Returns the item's durability info.
-
-        Returns:
-            The info.
-        """
+        """Returns the item's durability info."""
         ...
 
 
@@ -40,12 +36,5 @@ trait Repairable(Durable):
     `Repairable`)."""
 
     def repairable_by(self, i: Stack) -> Bool:
-        """Reports whether the stack passed repairs the item.
-
-        Args:
-            i: The stack offered as repair material.
-
-        Returns:
-            True if it repairs the item.
-        """
+        """Reports whether the stack passed repairs the item."""
         ...

@@ -9,11 +9,7 @@ comptime VERSION: Int32 = 10
 
 def minimum_compatible_client_version() -> List[Int32]:
     """Returns the game version as numbers with two zeros appended (Go
-    `minimumCompatibleClientVersion`): `1.26.60` gives `[1, 26, 60, 0, 0]`.
-
-    Returns:
-        The version numbers.
-    """
+    `minimumCompatibleClientVersion`): `1.26.60` gives `[1, 26, 60, 0, 0]`."""
     var out = List[Int32]()
     for part in String(CURRENT_VERSION).split("."):
         try:

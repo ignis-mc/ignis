@@ -75,15 +75,7 @@ struct CopperTrapdoor(
         open: Bool = False,
         top: Bool = False,
     ):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            oxidation: The level of oxidation of the block.
-            waxed: Whether the block is waxed, which stops it from oxidising.
-            facing: The direction the trapdoor faces.
-            open: Whether the trapdoor is open.
-            top: Whether the trapdoor is in the top half of the block.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.oxidation = oxidation
         self.waxed = waxed
         self.facing = facing
@@ -91,22 +83,11 @@ struct CopperTrapdoor(
         self.top = top
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         return BlockState(
             copper_block_name("copper_trapdoor", self.oxidation, self.waxed),
             Properties()
@@ -116,11 +97,7 @@ struct CopperTrapdoor(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             UInt64(self.oxidation.uint8())
             | (UInt64(1) if self.waxed else UInt64(0)) << 2
@@ -131,14 +108,7 @@ struct CopperTrapdoor(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return CopperTrapdoor(
             oxidation=OxidationType(Int(hash & 0x3)),
             waxed=(hash >> 2) & 0x1 != 0,
@@ -149,11 +119,7 @@ struct CopperTrapdoor(
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for oxidation in oxidation_types():
             for waxed in [False, True]:
@@ -172,60 +138,33 @@ struct CopperTrapdoor(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(
             3, pickaxe_harvestable_from(HARVEST_LEVEL_STONE), PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go
-        `LightDiffusionLevel`).
-
-        Returns:
-            The diffusion level, 0 to 15.
-        """
+        `LightDiffusionLevel`)."""
         return 0
 
     def can_oxidate(self) -> Bool:
-        """Reports whether the block can still oxidise (Go `CanOxidate`).
-
-        Returns:
-            True unless the block is waxed.
-        """
+        """Reports whether the block can still oxidise (Go `CanOxidate`)."""
         return not self.waxed
 
     def oxidation_level(self) -> OxidationType:
-        """Returns the oxidation level (Go `OxidationLevel`).
-
-        Returns:
-            The oxidation level.
-        """
+        """Returns the oxidation level (Go `OxidationLevel`)."""
         return self.oxidation
 
     def with_oxidation_level(self, o: OxidationType) -> Self:
         """Returns the block with another oxidation level (Go
-        `WithOxidationLevel`).
-
-        Args:
-            o: The new oxidation level.
-
-        Returns:
-            The updated block.
-        """
+        `WithOxidationLevel`)."""
         var b = self
         b.oxidation = o
         return b
 
     def model(self) -> TrapdoorModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return TrapdoorModel(facing=self.facing, open=self.open, top=self.top)
 
     def use_on_block[

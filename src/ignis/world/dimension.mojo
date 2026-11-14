@@ -25,63 +25,32 @@ struct Dimension(Equatable, ImplicitlyCopyable, Writable):
     var _time_cycle: Bool
 
     def range(self) -> Range:
-        """Returns the lowest and highest valid Y coordinates of a block.
-
-        Returns:
-            The building range.
-        """
+        """Returns the lowest and highest valid Y coordinates of a block."""
         return self._range
 
     def water_evaporates(self) -> Bool:
-        """Reports whether water placed in the dimension evaporates.
-
-        Returns:
-            True in the Nether.
-        """
+        """Reports whether water placed in the dimension evaporates."""
         return self._water_evaporates
 
     def lava_spread_duration_ms(self) -> Int:
         """Returns how long lava takes to spread one block (Go
-        `LavaSpreadDuration`).
-
-        Returns:
-            The duration in milliseconds.
-        """
+        `LavaSpreadDuration`)."""
         return self._lava_spread_duration_ms
 
     def weather_cycle(self) -> Bool:
-        """Reports whether the dimension has weather.
-
-        Returns:
-            True in the Overworld.
-        """
+        """Reports whether the dimension has weather."""
         return self._weather_cycle
 
     def time_cycle(self) -> Bool:
-        """Reports whether the time of day advances.
-
-        Returns:
-            True in the Overworld.
-        """
+        """Reports whether the time of day advances."""
         return self._time_cycle
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares dimensions by ID.
-
-        Args:
-            other: The dimension to compare with.
-
-        Returns:
-            True if both have the same ID.
-        """
+        """Compares dimensions by ID."""
         return self.id == other.id
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the dimension's name.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the dimension's name."""
         writer.write(self.name)
 
 
@@ -98,15 +67,7 @@ comptime END = Dimension(2, "End", Range(0, 255), False, 1500, False, False)
 
 
 def dimension_by_id(id: Int) -> Optional[Dimension]:
-    """Looks up a vanilla dimension by ID (Go `DimensionByID`).
-
-    Args:
-        id: 0, 1 or 2.
-
-    Returns:
-        The dimension, or None for other IDs (Go returns the Overworld and
-        false).
-    """
+    """Looks up a vanilla dimension by ID (Go `DimensionByID`)."""
     if id == 0:
         return OVERWORLD
     if id == 1:

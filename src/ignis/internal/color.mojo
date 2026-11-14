@@ -20,14 +20,7 @@ struct RGBA(Equatable, ImplicitlyCopyable, Writable):
         self = RGBA(0, 0, 0, 0)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two colours.
-
-        Args:
-            other: The colour to compare with.
-
-        Returns:
-            True if all channels are equal.
-        """
+        """Compares two colours."""
         return (
             self.r == other.r
             and self.g == other.g
@@ -36,9 +29,5 @@ struct RGBA(Equatable, ImplicitlyCopyable, Writable):
         )
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the colour as `{r g b a}`, as Go prints it.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the colour as `{r g b a}`, as Go prints it."""
         writer.write("{", self.r, " ", self.g, " ", self.b, " ", self.a, "}")

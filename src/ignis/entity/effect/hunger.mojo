@@ -17,9 +17,5 @@ struct Hunger(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(17, Hunger)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0x58, 0x76, 0x53, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0x58, 0x76, 0x53, 0xFF)

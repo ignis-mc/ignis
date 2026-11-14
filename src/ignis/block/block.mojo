@@ -99,14 +99,7 @@ def first_replaceable[
 
 def horizontal_direction(d: Direction) -> Direction:
     """Converts a direction to the legacy horizontal direction some block
-    properties use (Go `horizontalDirection`).
-
-    Args:
-        d: The direction.
-
-    Returns:
-        North for south, south for west, west for north, east for east.
-    """
+    properties use (Go `horizontalDirection`)."""
     if d == Direction.SOUTH:
         return Direction.NORTH
     if d == Direction.WEST:

@@ -43,15 +43,7 @@ def bloom_may_contain(
     filter: Span[mut=False, UInt8, _], key: Span[mut=False, UInt8, _]
 ) -> Bool:
     """Reports whether a bloom filter may contain a key (Go
-    `bloomFilter.Contains`, checking both hash variants).
-
-    Args:
-        filter: One filter: the bit array followed by the probe count.
-        key: The user key.
-
-    Returns:
-        False only if the key is certainly absent.
-    """
+    `bloomFilter.Contains`, checking both hash variants)."""
     if len(filter) - 1 < 1:
         return False
     if filter[len(filter) - 1] > 30:
@@ -70,38 +62,22 @@ struct BloomGenerator(Movable, Sized):
     var _hashes: List[UInt32]
 
     def __init__(out self, bits_per_key: Int):
-        """Creates a generator.
-
-        Args:
-            bits_per_key: Filter bits per key (10 is LevelDB's usual choice).
-        """
+        """Creates a generator."""
         self._bits_per_key = bits_per_key
         var k = bits_per_key * 69 // 100
         self._k = UInt8(max(1, min(30, k)))
         self._hashes = List[UInt32]()
 
     def __len__(self) -> Int:
-        """Returns the number of keys added since the last filter.
-
-        Returns:
-            The key count.
-        """
+        """Returns the number of keys added since the last filter."""
         return len(self._hashes)
 
     def add(mut self, key: Span[mut=False, UInt8, _]):
-        """Adds a user key.
-
-        Args:
-            key: The key.
-        """
+        """Adds a user key."""
         self._hashes.append(hash(key, _SEED))
 
     def generate(mut self, mut out: List[UInt8]):
-        """Appends the filter of the keys added and forgets them.
-
-        Args:
-            out: The destination.
-        """
+        """Appends the filter of the keys added and forgets them."""
         var n_bits = UInt32(len(self._hashes) * self._bits_per_key)
         if n_bits < 64:
             n_bits = 64
@@ -129,21 +105,13 @@ struct FilterBlockWriter(Movable):
     var _offsets: List[UInt32]
 
     def __init__(out self, bits_per_key: Int):
-        """Creates a filter block writer.
-
-        Args:
-            bits_per_key: Filter bits per key.
-        """
+        """Creates a filter block writer."""
         self._gen = BloomGenerator(bits_per_key)
         self._buf = List[UInt8]()
         self._offsets = List[UInt32]()
 
     def add(mut self, ukey: Span[mut=False, UInt8, _]):
-        """Adds the user key of an appended entry.
-
-        Args:
-            ukey: The user key.
-        """
+        """Adds the user key of an appended entry."""
         self._gen.add(ukey)
 
     def _generate(mut self):
@@ -152,21 +120,13 @@ struct FilterBlockWriter(Movable):
             self._gen.generate(self._buf)
 
     def flush(mut self, offset: Int):
-        """Starts filters up to the data block that begins at `offset`.
-
-        Args:
-            offset: The file offset of the next data block.
-        """
+        """Starts filters up to the data block that begins at `offset`."""
         while offset // (1 << FILTER_BASE_LG) > len(self._offsets):
             self._generate()
 
     def finish(mut self) -> List[UInt8]:
         """Finishes the block: filters, their offsets, the offset of the
-        offsets and the base log.
-
-        Returns:
-            The filter block.
-        """
+        offsets and the base log."""
         if len(self._gen) > 0:
             self._generate()
         self._offsets.append(UInt32(len(self._buf)))
@@ -187,14 +147,7 @@ struct FilterBlockReader(Copyable, Movable):
     var _filters: Int
 
     def __init__(out self, var data: List[UInt8]) raises:
-        """Parses a filter block.
-
-        Args:
-            data: The block.
-
-        Raises:
-            If the block is malformed.
-        """
+        """Parses a filter block."""
         if len(data) < 5:
             raise Error("leveldb: filter block too short")
         var base_lg = Int(data[len(data) - 1])
@@ -209,15 +162,7 @@ struct FilterBlockReader(Copyable, Movable):
     def may_contain(
         self, block_offset: Int, ukey: Span[mut=False, UInt8, _]
     ) -> Bool:
-        """Reports whether the data block at `block_offset` may hold a key.
-
-        Args:
-            block_offset: The file offset of the data block.
-            ukey: The user key.
-
-        Returns:
-            False only if the key is certainly absent from that block.
-        """
+        """Reports whether the data block at `block_offset` may hold a key."""
         var i = block_offset >> self._base_lg
         if i < self._filters:
             var d = Span(self._data)

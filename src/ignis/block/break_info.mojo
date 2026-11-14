@@ -46,77 +46,36 @@ struct ToolFilter(Equatable, ImplicitlyCopyable, Writable):
     """The minimum harvest level of an accepted tool."""
 
     def __init__(out self, *tool_types: ToolType, min_level: Int = 0):
-        """Creates a filter accepting the tool types passed.
-
-        Args:
-            tool_types: The accepted `item.ToolType`s.
-            min_level: The minimum harvest level.
-        """
+        """Creates a filter accepting the tool types passed."""
         self.types = 0
         for t in tool_types:
             self.types |= UInt8(1) << UInt8(t.t + 1)
         self.min_level = min_level
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two filters.
-
-        Args:
-            other: The filter to compare with.
-
-        Returns:
-            True if both accept the same tools.
-        """
+        """Compares two filters."""
         return self.types == other.types and self.min_level == other.min_level
 
     def __or__(self, other: Self) -> Self:
         """Combines two filters with the same minimum level (Go
-        `f(t) || g(t)`).
-
-        Args:
-            other: The other filter.
-
-        Returns:
-            A filter accepting the tools either accepts.
-        """
+        `f(t) || g(t)`)."""
         return ToolFilter(
             types=self.types | other.types,
             min_level=min(self.min_level, other.min_level),
         )
 
     def matches(self, tool_type: ToolType, harvest_level: Int) -> Bool:
-        """Calls the predicate for a tool's type and harvest level.
-
-        Args:
-            tool_type: The tool's type (`TYPE_NONE` without a tool).
-            harvest_level: The tool's harvest level (0 without a tool).
-
-        Returns:
-            True if the tool is accepted.
-        """
+        """Calls the predicate for a tool's type and harvest level."""
         return (
             (self.types >> UInt8(tool_type.t + 1)) & 1 != 0
         ) and harvest_level >= self.min_level
 
     def matches_tool[T: Tool](self, t: T) -> Bool:
-        """Calls the predicate for a tool (Go `f(t)`).
-
-        Parameters:
-            T: The tool's type.
-
-        Args:
-            t: The tool, or `ToolNone()` without one.
-
-        Returns:
-            True if the tool is accepted.
-        """
+        """Calls the predicate for a tool (Go `f(t)`)."""
         return self.matches(t.tool_type(), t.harvest_level())
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the filter as `types/min_level`.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the filter as `types/min_level`."""
         writer.write(self.types, "/", self.min_level)
 
 
@@ -144,14 +103,7 @@ comptime HOE_EFFECTIVE = ToolFilter(TYPE_HOE)
 
 def pickaxe_harvestable_from(level: Int) -> ToolFilter:
     """Returns the filter of Go's `t.ToolType() == item.TypePickaxe &&
-    t.HarvestLevel() >= level` closures.
-
-    Args:
-        level: The minimum harvest level, a `HARVEST_LEVEL_*`.
-
-    Returns:
-        The filter.
-    """
+    t.HarvestLevel() >= level` closures."""
     return ToolFilter(TYPE_PICKAXE, min_level=level)
 
 
@@ -165,14 +117,7 @@ struct XPDropRange(Equatable, ImplicitlyCopyable):
     """The maximum amount."""
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two ranges.
-
-        Args:
-            other: The range to compare with.
-
-        Returns:
-            True if both bounds are equal.
-        """
+        """Compares two ranges."""
         return self.min == other.min and self.max == other.max
 
 
@@ -192,29 +137,14 @@ struct BreakInfo(ImplicitlyCopyable):
     """How well the block withstands explosions."""
 
     def with_xp_drop_range(self, min: Int, max: Int) -> Self:
-        """Returns the info with an XP drop range (Go `withXPDropRange`).
-
-        Args:
-            min: The minimum XP.
-            max: The maximum XP.
-
-        Returns:
-            The updated info.
-        """
+        """Returns the info with an XP drop range (Go `withXPDropRange`)."""
         var b = self
         b.xp_drops = XPDropRange(min, max)
         return b
 
     def with_blast_resistance(self, res: Float64) -> Self:
         """Returns the info with a blast resistance (Go
-        `withBlastResistance`).
-
-        Args:
-            res: The blast resistance.
-
-        Returns:
-            The updated info.
-        """
+        `withBlastResistance`)."""
         var b = self
         b.blast_resistance = res
         return b
@@ -224,16 +154,7 @@ def new_break_info(
     hardness: Float64, harvestable: ToolFilter, effective: ToolFilter
 ) -> BreakInfo:
     """Creates a `BreakInfo` whose blast resistance equals its hardness and
-    that drops no XP (Go `newBreakInfo`; the drops argument waits for items).
-
-    Args:
-        hardness: The hardness.
-        harvestable: The tools that harvest the block.
-        effective: The tools that mine it faster.
-
-    Returns:
-        The info.
-    """
+    that drops no XP (Go `newBreakInfo`; the drops argument waits for items)."""
     return BreakInfo(
         hardness=hardness,
         harvestable=harvestable,
@@ -249,11 +170,7 @@ trait Breakable:
 
     def break_info(self) -> BreakInfo:
         """Returns information related to breaking the block (Go
-        `BreakInfo`).
-
-        Returns:
-            The break info.
-        """
+        `BreakInfo`)."""
         ...
 
 

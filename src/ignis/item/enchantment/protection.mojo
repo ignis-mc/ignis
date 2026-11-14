@@ -26,52 +26,26 @@ struct Protection(Defaultable, EnchantmentType, ImplicitlyCopyable):
     """The enchantment ID (Go `item.RegisterEnchantment(0, Protection)`)."""
 
     def name(self) -> String:
-        """Returns the name of the enchantment (Go `Name`).
-
-        Returns:
-            `Protection`.
-        """
+        """Returns the name of the enchantment (Go `Name`)."""
         return "Protection"
 
     def max_level(self) -> Int:
-        """Returns the highest level of the enchantment (Go `MaxLevel`).
-
-        Returns:
-            4.
-        """
+        """Returns the highest level of the enchantment (Go `MaxLevel`)."""
         return 4
 
     def cost(self, level: Int) -> Tuple[Int, Int]:
         """Returns the range of enchanting levels that can give the
-        enchantment at a level (Go `Cost`).
-
-        Args:
-            level: The enchantment level.
-
-        Returns:
-            The minimum and maximum cost.
-        """
+        enchantment at a level (Go `Cost`)."""
         var min_cost = 1 + (level - 1) * 11
         return (min_cost, min_cost + 11)
 
     def rarity(self) -> EnchantmentRarity:
-        """Returns the rarity of the enchantment (Go `Rarity`).
-
-        Returns:
-            `EnchantmentRarity.COMMON`.
-        """
+        """Returns the rarity of the enchantment (Go `Rarity`)."""
         return EnchantmentRarity.COMMON
 
     def compatible_with_enchantment(self, id: Int) -> Bool:
         """Reports whether the enchantment can be on an item together with
-        another (Go `CompatibleWithEnchantment`, which takes the type).
-
-        Args:
-            id: The ID of the other enchantment.
-
-        Returns:
-            True if they are compatible.
-        """
+        another (Go `CompatibleWithEnchantment`, which takes the type)."""
         return (
             id != BLAST_PROTECTION_ID
             and id != FIRE_PROTECTION_ID
@@ -80,17 +54,9 @@ struct Protection(Defaultable, EnchantmentType, ImplicitlyCopyable):
 
     def compatible_items(self) -> ItemFilter:
         """Returns the items the enchantment applies to (the data of Go's
-        `CompatibleWithItem`).
-
-        Returns:
-            The filter.
-        """
+        `CompatibleWithItem`)."""
         return ItemFilter(kinds=ITEM_ARMOUR)
 
     def modifier(self) -> Float64:
-        """Returns the damage reduction per level (Go `Modifier`).
-
-        Returns:
-            0.04.
-        """
+        """Returns the damage reduction per level (Go `Modifier`)."""
         return 0.04

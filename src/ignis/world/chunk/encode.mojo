@@ -31,18 +31,7 @@ struct SerialisedData(Copyable, Movable):
 
 
 def encode[E: Encoding](c: Chunk, e: E) -> SerialisedData:
-    """Encodes every sub-chunk and the biomes of a chunk (Go `Encode`).
-
-    Parameters:
-        E: The encoding type.
-
-    Args:
-        c: The chunk.
-        e: The encoding, such as `NetworkEncoding()`.
-
-    Returns:
-        The encoded data.
-    """
+    """Encodes every sub-chunk and the biomes of a chunk (Go `Encode`)."""
     var d = SerialisedData()
     for i in range(len(c._sub)):
         d.sub_chunks.append(encode_sub_chunk(c, e, i))
@@ -52,19 +41,7 @@ def encode[E: Encoding](c: Chunk, e: E) -> SerialisedData:
 
 def encode_sub_chunk[E: Encoding](c: Chunk, e: E, ind: Int) -> List[UInt8]:
     """Encodes one sub-chunk (Go `EncodeSubChunk`): version 9, the layer
-    count, the absolute sub-chunk Y, then each layer.
-
-    Parameters:
-        E: The encoding type.
-
-    Args:
-        c: The chunk.
-        e: The encoding.
-        ind: The index of the sub-chunk.
-
-    Returns:
-        The encoded sub-chunk.
-    """
+    count, the absolute sub-chunk Y, then each layer."""
     ref s = c._sub[ind]
     var buf = List[UInt8](capacity=1024)
     buf.append(SUB_CHUNK_VERSION)
@@ -77,18 +54,7 @@ def encode_sub_chunk[E: Encoding](c: Chunk, e: E, ind: Int) -> List[UInt8]:
 
 def encode_biomes[E: Encoding](c: Chunk, e: E) -> List[UInt8]:
     """Encodes the biome storages of a chunk (Go `EncodeBiomes`). A storage
-    equal to the previous one is written as the single byte `0xff`.
-
-    Parameters:
-        E: The encoding type.
-
-    Args:
-        c: The chunk.
-        e: The encoding.
-
-    Returns:
-        The encoded biomes.
-    """
+    equal to the previous one is written as the single byte `0xff`."""
     var buf = List[UInt8](capacity=1024)
     for i in range(len(c._biomes)):
         if i > 0 and c._biomes[i].equal(c._biomes[i - 1]):
@@ -130,21 +96,7 @@ def _put_u32(mut buf: List[UInt8], v: UInt32):
 
 def disk_encode[R: BlockRegistry](c: Chunk, br: R) raises -> SerialisedData:
     """Encodes every sub-chunk and the biomes of a chunk for disk (Go
-    `Encode(c, DiskEncoding)`).
-
-    Parameters:
-        R: The registry type.
-
-    Args:
-        c: The chunk.
-        br: The registry the chunk's runtime IDs belong to.
-
-    Returns:
-        The encoded data.
-
-    Raises:
-        If a palette entry cannot be encoded.
-    """
+    `Encode(c, DiskEncoding)`)."""
     var d = SerialisedData()
     for i in range(len(c._sub)):
         d.sub_chunks.append(disk_encode_sub_chunk(c, br, i))
@@ -157,22 +109,7 @@ def disk_encode_sub_chunk[
 ](c: Chunk, br: R, ind: Int) raises -> List[UInt8]:
     """Encodes one sub-chunk for disk (Go `EncodeSubChunk(c, DiskEncoding,
     ind)`): version 9, the layer count, the sub-chunk Y, then each layer
-    with an NBT block palette.
-
-    Parameters:
-        R: The registry type.
-
-    Args:
-        c: The chunk.
-        br: The registry.
-        ind: The index of the sub-chunk.
-
-    Returns:
-        The encoded sub-chunk.
-
-    Raises:
-        If a palette entry cannot be encoded.
-    """
+    with an NBT block palette."""
     ref s = c._sub[ind]
     var buf = List[UInt8](capacity=1024)
     buf.append(SUB_CHUNK_VERSION)
@@ -194,14 +131,7 @@ def disk_encode_sub_chunk[
 def disk_encode_biomes(c: Chunk) -> List[UInt8]:
     """Encodes the biome storages of a chunk for disk (Go
     `EncodeBiomes(c, DiskEncoding)`): uint32 palettes, `0xfe` for a storage
-    equal to the previous one.
-
-    Args:
-        c: The chunk.
-
-    Returns:
-        The encoded biomes.
-    """
+    equal to the previous one."""
     var buf = List[UInt8](capacity=1024)
     for i in range(len(c._biomes)):
         if i > 0 and c._biomes[i].equal(c._biomes[i - 1]):

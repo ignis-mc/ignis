@@ -29,52 +29,29 @@ struct PropertyValue(Copyable, Equatable, Writable):
     """The value of a string property."""
 
     def __init__(out self, *, byte: UInt8):
-        """Creates a byte property value (Go `uint8`).
-
-        Args:
-            byte: The value.
-        """
+        """Creates a byte property value (Go `uint8`)."""
         self.tag = TAG_BYTE
         self.int = Int32(byte)
         self.string = String()
 
     def __init__(out self, *, bool: Bool):
-        """Creates a boolean property value, stored as a byte (Go `bool`).
-
-        Args:
-            bool: The value.
-        """
+        """Creates a boolean property value, stored as a byte (Go `bool`)."""
         self = PropertyValue(byte=UInt8(1) if bool else UInt8(0))
 
     def __init__(out self, *, int32: Int32):
-        """Creates an int32 property value (Go `int32`).
-
-        Args:
-            int32: The value.
-        """
+        """Creates an int32 property value (Go `int32`)."""
         self.tag = TAG_INT
         self.int = int32
         self.string = String()
 
     def __init__(out self, *, var string: String):
-        """Creates a string property value (Go `string`).
-
-        Args:
-            string: The value.
-        """
+        """Creates a string property value (Go `string`)."""
         self.tag = TAG_STRING
         self.int = 0
         self.string = string^
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two values, including their type.
-
-        Args:
-            other: The value to compare with.
-
-        Returns:
-            True if both have the same type and value.
-        """
+        """Compares two values, including their type."""
         return (
             self.tag == other.tag
             and self.int == other.int
@@ -82,19 +59,11 @@ struct PropertyValue(Copyable, Equatable, Writable):
         )
 
     def as_bool(self) -> Bool:
-        """Returns a byte value as a boolean.
-
-        Returns:
-            True if the value is a non-zero byte.
-        """
+        """Returns a byte value as a boolean."""
         return self.tag == TAG_BYTE and self.int != 0
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the value as `b:1`, `i:5` or `s:north`.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the value as `b:1`, `i:5` or `s:north`."""
         if self.tag == TAG_BYTE:
             writer.write("b:", self.int)
         elif self.tag == TAG_INT:
@@ -124,20 +93,11 @@ struct Properties(Copyable, Defaultable, Equatable, Sized, Writable):
         self.entries = List[Property]()
 
     def __len__(self) -> Int:
-        """Returns the number of properties.
-
-        Returns:
-            The number of properties.
-        """
+        """Returns the number of properties."""
         return len(self.entries)
 
     def set(mut self, var key: String, var value: PropertyValue):
-        """Sets a property, replacing any value with the same key.
-
-        Args:
-            key: The property name.
-            value: The value.
-        """
+        """Sets a property, replacing any value with the same key."""
         var i = 0
         while i < len(self.entries) and self.entries[i].key < key:
             i += 1
@@ -147,102 +107,45 @@ struct Properties(Copyable, Defaultable, Equatable, Sized, Writable):
         self.entries.insert(i, Property(key^, value^))
 
     def with_bool(var self, var key: String, value: Bool) -> Self:
-        """Returns the set with a boolean property added.
-
-        Args:
-            key: The property name.
-            value: The value.
-
-        Returns:
-            The updated set.
-        """
+        """Returns the set with a boolean property added."""
         self.set(key^, PropertyValue(bool=value))
         return self^
 
     def with_byte(var self, var key: String, value: UInt8) -> Self:
-        """Returns the set with a byte property added.
-
-        Args:
-            key: The property name.
-            value: The value.
-
-        Returns:
-            The updated set.
-        """
+        """Returns the set with a byte property added."""
         self.set(key^, PropertyValue(byte=value))
         return self^
 
     def with_int(var self, var key: String, value: Int32) -> Self:
-        """Returns the set with an int32 property added.
-
-        Args:
-            key: The property name.
-            value: The value.
-
-        Returns:
-            The updated set.
-        """
+        """Returns the set with an int32 property added."""
         self.set(key^, PropertyValue(int32=value))
         return self^
 
     def with_string(var self, var key: String, var value: String) -> Self:
-        """Returns the set with a string property added.
-
-        Args:
-            key: The property name.
-            value: The value.
-
-        Returns:
-            The updated set.
-        """
+        """Returns the set with a string property added."""
         self.set(key^, PropertyValue(string=value^))
         return self^
 
     def get(self, key: StringSlice) -> Optional[PropertyValue]:
-        """Looks up a property.
-
-        Args:
-            key: The property name.
-
-        Returns:
-            The value, or None if the set has no such property.
-        """
+        """Looks up a property."""
         for ref p in self.entries:
             if p.key == key:
                 return p.value.copy()
         return None
 
     def contains(self, key: StringSlice) -> Bool:
-        """Checks if a property is present.
-
-        Args:
-            key: The property name.
-
-        Returns:
-            True if the set has the property.
-        """
+        """Checks if a property is present."""
         for ref p in self.entries:
             if p.key == key:
                 return True
         return False
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two property sets.
-
-        Args:
-            other: The set to compare with.
-
-        Returns:
-            True if both hold the same keys with equal values.
-        """
+        """Compares two property sets."""
         return self.entries == other.entries
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the properties as `k=b:1,k2=s:x`, sorted by key.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the properties as `k=b:1,k2=s:x`, sorted by key."""
         for i in range(len(self.entries)):
             if i > 0:
                 writer.write(",")
@@ -262,12 +165,7 @@ struct BlockState(Copyable, Equatable, Writable):
     def __init__(
         out self, var name: String, var properties: Properties = Properties()
     ):
-        """Creates a block state with version 0.
-
-        Args:
-            name: The block name.
-            properties: The properties.
-        """
+        """Creates a block state with version 0."""
         self.name = name^
         self.properties = properties^
         self.version = 0
@@ -275,34 +173,17 @@ struct BlockState(Copyable, Equatable, Writable):
     def __init__(
         out self, var name: String, var properties: Properties, version: Int32
     ):
-        """Creates a block state.
-
-        Args:
-            name: The block name.
-            properties: The properties.
-            version: The block state version.
-        """
+        """Creates a block state."""
         self.name = name^
         self.properties = properties^
         self.version = version
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares name and properties; the version is ignored.
-
-        Args:
-            other: The state to compare with.
-
-        Returns:
-            True if both name the same state.
-        """
+        """Compares name and properties; the version is ignored."""
         return self.name == other.name and self.properties == other.properties
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the state as `name{k=b:1,...}`.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the state as `name{k=b:1,...}`."""
         writer.write(self.name, "{", self.properties, "}")
 
 
@@ -311,13 +192,6 @@ def state_key(name: StringSlice, properties: Properties) -> String:
 
     Unlike Go's `hashProperties`, names and values are length-prefixed so
     distinct states never share a key.
-
-    Args:
-        name: The block name.
-        properties: The properties.
-
-    Returns:
-        A string unique to the state.
     """
     var key = String(name)
     for ref p in properties.entries:
@@ -332,18 +206,7 @@ def state_key(name: StringSlice, properties: Properties) -> String:
 
 
 def decode_block_state(tree: Tree) raises -> BlockState:
-    """Reads a `{name, states, version}` compound (Go `BlockState` via NBT).
-
-    Args:
-        tree: The decoded compound.
-
-    Returns:
-        The block state.
-
-    Raises:
-        If a field is missing or a property has a type other than byte,
-        int or string.
-    """
+    """Reads a `{name, states, version}` compound (Go `BlockState` via NBT)."""
     var root = tree.root()
     var name = tree.get_string(root, "name")
     var version = Int32(0)

@@ -78,14 +78,7 @@ def _reduce(x: Float64) -> Tuple[UInt64, Float64]:
 
 
 def go_sin(x: Float64) -> Float64:
-    """Returns the sine of `x` as Go's `math.Sin` computes it.
-
-    Args:
-        x: The angle in radians.
-
-    Returns:
-        The sine.
-    """
+    """Returns the sine of `x` as Go's `math.Sin` computes it."""
     if x == 0 or isnan(x):
         return x
     if isinf(x):
@@ -113,14 +106,7 @@ def go_sin(x: Float64) -> Float64:
 
 
 def go_cos(x: Float64) -> Float64:
-    """Returns the cosine of `x` as Go's `math.Cos` computes it.
-
-    Args:
-        x: The angle in radians.
-
-    Returns:
-        The cosine.
-    """
+    """Returns the cosine of `x` as Go's `math.Cos` computes it."""
     if isnan(x) or isinf(x):
         return nan[DType.float64]()
     var sign = False

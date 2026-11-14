@@ -15,9 +15,5 @@ struct Blindness(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(15, Blindness)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0x1f, 0x1f, 0x23, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0x1F, 0x1F, 0x23, 0xFF)

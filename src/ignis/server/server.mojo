@@ -150,8 +150,7 @@ comptime _QUIT_KEY = "§e%multiplayer.player.left§r"
 comptime _SHUTDOWN_KEY = "%disconnect.disconnected"
 """Go's `chat.MessageServerDisconnect`, resolved."""
 comptime _SPAWN_SEARCH_Y = 32767
-"""The spawn Y of a new `level.dat`: find the surface (Go `math.MaxInt16`).
-"""
+"""The spawn Y of a new `level.dat`: find the surface (Go `math.MaxInt16`)."""
 comptime _MAX_CATCH_UP_TICKS = 5
 """The most ticks run in one `step` when the loop falls behind."""
 
@@ -159,17 +158,7 @@ comptime _MAX_CATCH_UP_TICKS = 5
 def item_entries(path: String) raises -> List[ItemEntry]:
     """Reads the StartGame item table from `vanilla_items.nbt` (Go
     `itemEntries` over the `vanillaItems` map it decodes in `init`). Go
-    ranges over a map, so its order is random; this keeps the file's order.
-
-    Args:
-        path: The path of `vanilla_items.nbt`.
-
-    Returns:
-        One entry per item.
-
-    Raises:
-        If the file cannot be read or is malformed.
-    """
+    ranges over a map, so its order is random; this keeps the file's order."""
     var data: List[UInt8]
     with open(path, "r") as f:
         data = f.read_bytes()
@@ -198,18 +187,7 @@ def data_driven_block_entries(path: String) raises -> List[BlockEntry]:
     `makeBlockEntries` over `world.DataDrivenBlocks()`, which decodes
     `data_driven_blocks.nbt`). The client needs them to complete its block
     palette: without them its sequential runtime IDs do not match the
-    server's.
-
-    Args:
-        path: The path of `data_driven_blocks.nbt` (little-endian NBT,
-            `{blocks: [{name, components}]}`).
-
-    Returns:
-        One entry per block, in the file's order.
-
-    Raises:
-        If the file cannot be read or is malformed.
-    """
+    server's."""
     var data: List[UInt8]
     with open(path, "r") as f:
         data = f.read_bytes()
@@ -267,17 +245,7 @@ def _b64(s: String) -> List[UInt8]:
 
 def parse_skin(data: ClientData) raises -> Skin:
     """Builds the network skin of a player from its client data (Go
-    `Server.parseSkin` followed by `skinToProtocol`).
-
-    Args:
-        data: The client data from the login.
-
-    Returns:
-        The skin as Dragonfly sends it in player lists.
-
-    Raises:
-        If no random bytes are available for the skin and cape IDs.
-    """
+    `Server.parseSkin` followed by `skinToProtocol`)."""
     var s = Skin()
     s.skin_id = _random_uuid_string()
     # Go decodes the resource patch into a ModelConfig and encodes it
@@ -438,14 +406,7 @@ struct Server(Movable):
 
     def __init__(out self, var conf: Config) raises:
         """Loads the world data and starts listening (Go `Config.New` and
-        `Listen`).
-
-        Args:
-            conf: The settings.
-
-        Raises:
-            If a resource cannot be loaded or the address cannot be bound.
-        """
+        `Listen`)."""
         var world = open_world(conf, monotonic_ms())
         var players = Optional[PlayerProvider](None)
         if case .Some(folder) = conf.players_folder:
@@ -490,22 +451,11 @@ struct Server(Movable):
         self._ticks = 0
 
     def addr(mut self) raises -> SocketAddr:
-        """Returns the address the listener is bound to.
-
-        Returns:
-            The signaling address.
-
-        Raises:
-            If the socket was closed.
-        """
+        """Returns the address the listener is bound to."""
         return self.listener.addr()
 
     def player_count(self) -> Int:
-        """Counts the players online (Go `PlayerCount`).
-
-        Returns:
-            The number of spawned players.
-        """
+        """Counts the players online (Go `PlayerCount`)."""
         return len(self.sessions)
 
     def run(mut self) raises:
@@ -534,14 +484,7 @@ struct Server(Movable):
         return self._close_requested
 
     def step(mut self, max_wait_ms: Int) raises:
-        """Runs one iteration of the event loop.
-
-        Args:
-            max_wait_ms: The longest time to wait for network activity.
-
-        Raises:
-            If the listener fails.
-        """
+        """Runs one iteration of the event loop."""
         var set = PollSet()
         self.listener.add_poll_fds(set)
         var due = min(self.listener.next_timeout(), self._next_tick)
@@ -784,11 +727,7 @@ struct Server(Movable):
 
     def default_game_data(self) -> GameData:
         """Returns the game data sent to a new player (Go
-        `defaultGameData` and `finaliseConn`).
-
-        Returns:
-            The data for `start_game`.
-        """
+        `defaultGameData` and `finaliseConn`)."""
         var mode = self.world.default_game_mode()
         var data = GameData()
         data.entity_unique_id = 1

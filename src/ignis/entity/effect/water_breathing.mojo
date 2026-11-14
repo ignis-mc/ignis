@@ -16,9 +16,5 @@ struct WaterBreathing(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(13, WaterBreathing)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0x98, 0xda, 0xc0, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0x98, 0xDA, 0xC0, 0xFF)

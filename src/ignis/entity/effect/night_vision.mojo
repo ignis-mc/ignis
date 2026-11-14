@@ -16,9 +16,5 @@ struct NightVision(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(16, NightVision)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0xc2, 0xff, 0x66, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0xC2, 0xFF, 0x66, 0xFF)

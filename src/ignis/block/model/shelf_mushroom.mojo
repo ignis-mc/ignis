@@ -24,28 +24,12 @@ struct ShelfMushroom(BlockModel, ImplicitlyCopyable):
     def __init__(
         out self, *, facing: Direction = Direction.NORTH, large: Bool = False
     ):
-        """Creates the model; omitted fields take Go zero values.
-
-        Args:
-            facing: The direction the mushroom faces.
-            large: Whether the mushroom is large.
-        """
+        """Creates the model; omitted fields take Go zero values."""
         self.facing = facing
         self.large = large
 
     def bbox[S: BlockSource](self, pos: Pos, src: S) -> List[BBox]:
-        """Returns the boxes of the model (Go `BBox`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            src: The blocks around it.
-
-        Returns:
-            The boxes, relative to the block.
-        """
+        """Returns the boxes of the model (Go `BBox`)."""
         var depth = 0.75 if self.large else 0.5
         return [
             FULL.extend_towards(Face.UP, -0.75).extend_towards(
@@ -54,17 +38,5 @@ struct ShelfMushroom(BlockModel, ImplicitlyCopyable):
         ]
 
     def face_solid[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
-        """Reports whether a face is solid (Go `FaceSolid`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the face is solid.
-        """
+        """Reports whether a face is solid (Go `FaceSolid`)."""
         return False

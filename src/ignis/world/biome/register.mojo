@@ -189,14 +189,7 @@ comptime VanillaBiomes = BiomeSet[
 
 def vanilla_biome_registry() raises -> BiomeRegistry:
     """Builds the registry of the vanilla biomes, finalised (Go's
-    `biome/register.go` `init` and `finaliseBiomeRegistry`).
-
-    Returns:
-        The registry.
-
-    Raises:
-        If two biomes share an ID.
-    """
+    `biome/register.go` `init` and `finaliseBiomeRegistry`)."""
     var r = BiomeRegistry()
     VanillaBiomes.register_all(r)
     r.finalise()

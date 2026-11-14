@@ -18,11 +18,7 @@ struct Wither(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(20, Wither)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0x73, 0x61, 0x56, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0x73, 0x61, 0x56, 0xFF)
 
 
@@ -32,33 +28,17 @@ struct WitherDamageSource(DamageSource, ImplicitlyCopyable):
     """
 
     def reduced_by_resistance(self) -> Bool:
-        """See `DamageSource` (Go `ReducedByResistance`).
-
-        Returns:
-            True.
-        """
+        """See `DamageSource` (Go `ReducedByResistance`)."""
         return True
 
     def reduced_by_armour(self) -> Bool:
-        """See `DamageSource` (Go `ReducedByArmour`).
-
-        Returns:
-            False.
-        """
+        """See `DamageSource` (Go `ReducedByArmour`)."""
         return False
 
     def fire(self) -> Bool:
-        """See `DamageSource` (Go `Fire`).
-
-        Returns:
-            False.
-        """
+        """See `DamageSource` (Go `Fire`)."""
         return False
 
     def ignore_totem(self) -> Bool:
-        """See `DamageSource` (Go `IgnoreTotem`).
-
-        Returns:
-            False.
-        """
+        """See `DamageSource` (Go `IgnoreTotem`)."""
         return False

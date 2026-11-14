@@ -1,5 +1,4 @@
-"""`FlowerType`, ported from Dragonfly `server/block/flower_type.go`.
-"""
+"""`FlowerType`, ported from Dragonfly `server/block/flower_type.go`."""
 
 from ..internal.enum import enum_name
 
@@ -37,38 +36,19 @@ struct FlowerType(Equatable, ImplicitlyCopyable, Writable):
     """Go `WitherRose()`."""
 
     def __init__(out self, v: Int):
-        """Creates the value with index `v` (Go `FlowerType{v}`).
-
-        Args:
-            v: 0 to 12.
-        """
+        """Creates the value with index `v` (Go `FlowerType{v}`)."""
         self._v = UInt8(v)
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two values.
-
-        Args:
-            other: The value to compare with.
-
-        Returns:
-            True if both are the same.
-        """
+        """Compares two values."""
         return self._v == other._v
 
     def uint8(self) -> UInt8:
-        """Returns the value as a byte (Go `Uint8`).
-
-        Returns:
-            0 to 12.
-        """
+        """Returns the value as a byte (Go `Uint8`)."""
         return self._v
 
     def name(self) -> StaticString:
-        """Returns the display name (Go `Name`).
-
-        Returns:
-            The name.
-        """
+        """Returns the display name (Go `Name`)."""
         return enum_name(
             (
                 "Dandelion,Poppy,Blue Orchid,Allium,Azure Bluet,"
@@ -79,11 +59,7 @@ struct FlowerType(Equatable, ImplicitlyCopyable, Writable):
         )
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the value's string form (Go `String`).
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the value's string form (Go `String`)."""
         writer.write(
             enum_name(
                 (
@@ -97,11 +73,7 @@ struct FlowerType(Equatable, ImplicitlyCopyable, Writable):
 
 
 def flower_types() -> List[FlowerType]:
-    """Returns every flower type (Go `FlowerTypes`).
-
-    Returns:
-        The values.
-    """
+    """Returns every flower type (Go `FlowerTypes`)."""
     var out = List[FlowerType](capacity=13)
     for i in range(13):
         out.append(FlowerType(i))

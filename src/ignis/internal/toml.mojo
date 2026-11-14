@@ -36,12 +36,7 @@ struct TomlValue(Copyable):
     """The kind of each element of `items`."""
 
     def __init__(out self, kind: Int, var text: String):
-        """Creates a scalar.
-
-        Args:
-            kind: The kind.
-            text: The decoded string or the literal.
-        """
+        """Creates a scalar."""
         self.kind = kind
         self.text = text^
         self.items = List[String]()
@@ -60,29 +55,11 @@ struct TomlDocument(Copyable, Defaultable):
         self.values = Dict[String, TomlValue]()
 
     def has(self, key: String) -> Bool:
-        """Reports whether a key is set.
-
-        Args:
-            key: The full dotted key.
-
-        Returns:
-            True if the document sets the key.
-        """
+        """Reports whether a key is set."""
         return key in self.values
 
     def get_string(self, key: String, default: String) raises -> String:
-        """Reads a string.
-
-        Args:
-            key: The full dotted key.
-            default: The value if the key is missing.
-
-        Returns:
-            The string.
-
-        Raises:
-            If the value is not a string.
-        """
+        """Reads a string."""
         if case .Some(v) = self.values.get(key):
             if v.kind != TOML_STRING:
                 raise Error(t"toml: {key} is not a string")
@@ -90,18 +67,7 @@ struct TomlDocument(Copyable, Defaultable):
         return default.copy()
 
     def get_int(self, key: String, default: Int) raises -> Int:
-        """Reads an integer.
-
-        Args:
-            key: The full dotted key.
-            default: The value if the key is missing.
-
-        Returns:
-            The integer.
-
-        Raises:
-            If the value is not an integer.
-        """
+        """Reads an integer."""
         if case .Some(v) = self.values.get(key):
             if v.kind != TOML_INT:
                 raise Error(t"toml: {key} is not an integer")
@@ -109,18 +75,7 @@ struct TomlDocument(Copyable, Defaultable):
         return default
 
     def get_bool(self, key: String, default: Bool) raises -> Bool:
-        """Reads a boolean.
-
-        Args:
-            key: The full dotted key.
-            default: The value if the key is missing.
-
-        Returns:
-            The boolean.
-
-        Raises:
-            If the value is not a boolean.
-        """
+        """Reads a boolean."""
         if case .Some(v) = self.values.get(key):
             if v.kind != TOML_BOOL:
                 raise Error(t"toml: {key} is not a boolean")
@@ -130,18 +85,7 @@ struct TomlDocument(Copyable, Defaultable):
     def get_string_list(
         self, key: String, var default: List[String]
     ) raises -> List[String]:
-        """Reads an array of strings.
-
-        Args:
-            key: The full dotted key.
-            default: The value if the key is missing.
-
-        Returns:
-            The strings.
-
-        Raises:
-            If the value is not an array of strings.
-        """
+        """Reads an array of strings."""
         if case .Some(v) = self.values.get(key):
             if v.kind != TOML_ARRAY:
                 raise Error(t"toml: {key} is not an array")
@@ -333,17 +277,7 @@ def _parse_value(mut c: _Cursor) raises -> TomlValue:
 
 
 def parse_toml(text: StringSlice) raises -> TomlDocument:
-    """Parses a document in the supported subset.
-
-    Args:
-        text: The document.
-
-    Returns:
-        Every value under its full dotted key.
-
-    Raises:
-        On syntax outside the subset, or a key set twice.
-    """
+    """Parses a document in the supported subset."""
     var doc = TomlDocument()
     var c = _Cursor(text)
     var table = String()
@@ -379,14 +313,7 @@ def parse_toml(text: StringSlice) raises -> TomlDocument:
 
 
 def toml_quote(s: String) -> String:
-    """Writes a string as a TOML basic string.
-
-    Args:
-        s: The string.
-
-    Returns:
-        The quoted string, with `"`, `\\` and control characters escaped.
-    """
+    """Writes a string as a TOML basic string."""
     var out = List[UInt8]()
     out.append(UInt8(ord('"')))
     for b in s.as_bytes():

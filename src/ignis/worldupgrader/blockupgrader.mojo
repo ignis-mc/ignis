@@ -74,14 +74,7 @@ struct Schema(Copyable):
     var _remapped_states: Dict[String, List[_BlockRemap]]
 
     def __init__(out self, doc: JsonDoc) raises:
-        """Parses a schema (Go `parseSchemaModel`).
-
-        Args:
-            doc: The parsed JSON file.
-
-        Raises:
-            If the schema is malformed.
-        """
+        """Parses a schema (Go `parseSchemaModel`)."""
         var r = doc.root()
         var major = Int32(doc.as_int(doc.get(r, "maxVersionMajor").value()))
         var minor = Int32(doc.as_int(doc.get(r, "maxVersionMinor").value()))
@@ -261,17 +254,7 @@ struct BlockUpgrader(Movable):
     @staticmethod
     def load(dir: StringSlice = SCHEMA_DIR) raises -> Self:
         """Loads every `.json` schema of a directory in file name order (Go
-        `init` of `registry.go`).
-
-        Args:
-            dir: The schema directory.
-
-        Returns:
-            The upgrader.
-
-        Raises:
-            If a schema cannot be read or parsed.
-        """
+        `init` of `registry.go`)."""
         var names = List[String]()
         for n in list_dir(dir):
             if n.endswith(".json"):
@@ -283,31 +266,12 @@ struct BlockUpgrader(Movable):
         return u^
 
     def register_schema(mut self, data: Span[mut=False, UInt8, _]) raises:
-        """Parses and appends a schema (Go `RegisterSchema`).
-
-        Args:
-            data: The JSON text.
-
-        Raises:
-            If the schema is malformed.
-        """
+        """Parses and appends a schema (Go `RegisterSchema`)."""
         self.schemas.append(Schema(JsonDoc(data)))
 
     def upgrade(self, state: BlockState) raises -> BlockState:
         """Upgrades a block state to the newest schema (Go `Upgrade` of a
-        `BlockState`).
-
-        Args:
-            state: The stored state.
-
-        Returns:
-            The upgraded state; its version is that of the last schema that
-            changed it.
-
-        Raises:
-            If a schema both renames and flattens the same block, which Go
-            treats as a fatal inconsistency.
-        """
+        `BlockState`)."""
         var cur = state.copy()
         var version = state.version
         for ref s in self.schemas:

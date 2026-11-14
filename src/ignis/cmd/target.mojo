@@ -39,28 +39,14 @@ struct Target(Copyable, Defaultable, Equatable, Writable):
         position: Vec3,
         player: Bool,
     ):
-        """Creates a target.
-
-        Args:
-            uuid: The entity's UUID.
-            name: The entity's name, or empty.
-            position: The entity's position.
-            player: Whether the entity is a player.
-        """
+        """Creates a target."""
         self.uuid = uuid
         self.name = name^
         self.position = position
         self.player = player
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares every field.
-
-        Args:
-            other: The other target.
-
-        Returns:
-            True if both describe the same entity at the same position.
-        """
+        """Compares every field."""
         return (
             self.uuid == other.uuid
             and self.name == other.name
@@ -69,11 +55,7 @@ struct Target(Copyable, Defaultable, Equatable, Writable):
         )
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the name, or the UUID for an unnamed target.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the name, or the UUID for an unnamed target."""
         if self.name.byte_length() > 0:
             writer.write(self.name)
         else:
@@ -89,27 +71,15 @@ trait TargetProvider:
     """
 
     def attached(self) -> Bool:
-        """Reports whether there is a world to select from (Go `tx != nil`).
-
-        Returns:
-            False if selectors such as `@a` must fail.
-        """
+        """Reports whether there is a world to select from (Go `tx != nil`)."""
         ...
 
     def entities(self) -> List[Target]:
-        """Lists every entity (Go `tx.Entities()`), players included.
-
-        Returns:
-            The entities.
-        """
+        """Lists every entity (Go `tx.Entities()`), players included."""
         ...
 
     def players(self) -> List[Target]:
-        """Lists every player (Go `tx.Players()`).
-
-        Returns:
-            The players, each with its name.
-        """
+        """Lists every player (Go `tx.Players()`)."""
         ...
 
 
@@ -121,25 +91,13 @@ struct NoTargets(Defaultable, Movable, TargetProvider):
         pass
 
     def attached(self) -> Bool:
-        """Reports that there is no world.
-
-        Returns:
-            False.
-        """
+        """Reports that there is no world."""
         return False
 
     def entities(self) -> List[Target]:
-        """Lists no entities.
-
-        Returns:
-            An empty list.
-        """
+        """Lists no entities."""
         return List[Target]()
 
     def players(self) -> List[Target]:
-        """Lists no players.
-
-        Returns:
-            An empty list.
-        """
+        """Lists no players."""
         return List[Target]()

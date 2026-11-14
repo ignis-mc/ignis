@@ -75,33 +75,17 @@ struct Slab(
         out self, *, block: AnyBlock, top: Bool = False, double: Bool = False
     ):
         """Creates the block; `block` is required, the other fields default to Go zero values.
-
-        Args:
-            block: The block the slab is made of.
-            top: Whether the slab is in the top half of the block.
-            double: Whether the slab is a double slab.
         """
         self.block = block
         self.top = top
         self.double = double
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         var side = "top" if self.top else "bottom"
         var n = encode_slab_block(self.block, self.double)
         return BlockState(
@@ -110,11 +94,7 @@ struct Slab(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             hash_block(self.block)
             | (UInt64(1) if self.top else UInt64(0)) << 32
@@ -123,14 +103,7 @@ struct Slab(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Slab(
             block=unhash_block(hash & 0xFFFFFFFF),
             top=(hash >> 32) & 0x1 != 0,
@@ -139,11 +112,7 @@ struct Slab(
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for s in slab_blocks():
             out.append(Slab(block=s, double=True))
@@ -153,11 +122,7 @@ struct Slab(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         var hardness = 2.0
         var blast_resistance = 6.0
         var harvestable = PICKAXE_HARVESTABLE
@@ -188,19 +153,11 @@ struct Slab(
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go
-        `LightDiffusionLevel`).
-
-        Returns:
-            The diffusion level, 0 to 15.
-        """
+        `LightDiffusionLevel`)."""
         return 15 if self.double else 0
 
     def model(self) -> SlabModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return SlabModel(double=self.double, top=self.top)
 
     def use_on_block[

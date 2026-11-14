@@ -15,23 +15,12 @@ struct Haste(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(3, Haste)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0xd9, 0xc0, 0x43, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0xD9, 0xC0, 0x43, 0xFF)
 
     def multiplier(self, lvl: Int) -> Float64:
         """Returns the multiplier of the effect at a level (Go
-        `Multiplier`).
-
-        Args:
-            lvl: The effect level.
-
-        Returns:
-            The mining speed multiplier, never below 0.
-        """
+        `Multiplier`)."""
         var v = 1 - Float64(lvl) * 0.1
         if v < 0:
             v = 0

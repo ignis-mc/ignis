@@ -37,41 +37,21 @@ struct CoralBlock(
     def __init__(
         out self, *, type: CoralType = CoralType.TUBE, dead: Bool = False
     ):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            type: The type of coral.
-            dead: Whether the coral is dead.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.type = type
         self.dead = dead
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         var dead = "dead_" if self.dead else ""
         return BlockState(String(t"minecraft:{dead}{self.type}_coral_block"))
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             UInt64(self.type.uint8())
             | (UInt64(1) if self.dead else UInt64(0)) << 3
@@ -79,25 +59,14 @@ struct CoralBlock(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return CoralBlock(
             type=CoralType(Int(hash & 0x7)), dead=(hash >> 3) & 0x1 != 0
         )
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for dead in [True, False]:
             for t in coral_types():
@@ -105,21 +74,13 @@ struct CoralBlock(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(
             1.5, PICKAXE_HARVESTABLE, PICKAXE_EFFECTIVE
         ).with_blast_resistance(6)
 
     def model(self) -> SolidModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return SolidModel()
 
     def encode_item(self) -> EncodedItem:

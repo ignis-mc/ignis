@@ -75,46 +75,18 @@ trait EntityType(Copyable, Deinitable):
     `EncodeEntity`)."""
 
     def bbox(self, data: EntityData) -> BBox:
-        """Returns the entity's bounding box (Go `BBox`).
-
-        Args:
-            data: The entity's data.
-
-        Returns:
-            The box, relative to the entity's position.
-        """
+        """Returns the entity's bounding box (Go `BBox`)."""
         ...
 
     def encode_nbt(self, data: EntityData, mut tree: Tree, tag: Tag) raises:
         """Writes the type's own fields to the entity's compound (Go
-        `EncodeNBT`).
-
-        Args:
-            data: The entity's data.
-            tree: The tree being written.
-            tag: The entity's compound.
-
-        Raises:
-            If the tree cannot be written.
-        """
+        `EncodeNBT`)."""
         ...
 
     @staticmethod
     def decode_nbt(tree: Tree, tag: Tag, mut data: EntityData) raises -> Self:
         """Reads the type's own fields from the entity's compound (Go
-        `DecodeNBT`).
-
-        Args:
-            tree: The tree read.
-            tag: The entity's compound.
-            data: The entity's data, already holding the common fields.
-
-        Returns:
-            The entity's state.
-
-        Raises:
-            If the data is malformed.
-        """
+        `DecodeNBT`)."""
         ...
 
 
@@ -160,20 +132,7 @@ trait TickerEntity(EntityType):
     ) -> Optional[EntityMovement]:
         """Ticks the entity. The entity is taken out of the world while it
         ticks, so it can use the world freely; it changes its own state
-        (`self`) and data directly.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            id: The entity's UUID.
-            data: The entity's data.
-            tx: The world.
-            current: The current tick.
-
-        Returns:
-            The movement to show to viewers, if the entity moved.
-        """
+        (`self`) and data directly."""
         ...
 
 
@@ -187,51 +146,22 @@ trait EntityTypes:
 
     @staticmethod
     def identifier(s: Self.State) -> String:
-        """Returns the saved type of an entity (Go `EncodeEntity`).
-
-        Args:
-            s: The entity's state.
-
-        Returns:
-            The identifier.
-        """
+        """Returns the saved type of an entity (Go `EncodeEntity`)."""
         ...
 
     @staticmethod
     def network_identifier(s: Self.State) -> String:
-        """Returns the type an entity is shown to clients as.
-
-        Args:
-            s: The entity's state.
-
-        Returns:
-            `NETWORK_IDENTIFIER` if the type has one, else `IDENTIFIER`.
-        """
+        """Returns the type an entity is shown to clients as."""
         ...
 
     @staticmethod
     def bbox(s: Self.State, data: EntityData) -> BBox:
-        """Returns an entity's bounding box (Go `BBox`).
-
-        Args:
-            s: The entity's state.
-            data: The entity's data.
-
-        Returns:
-            The box.
-        """
+        """Returns an entity's bounding box (Go `BBox`)."""
         ...
 
     @staticmethod
     def ticks(s: Self.State) -> Bool:
-        """Reports whether an entity is a `TickerEntity`.
-
-        Args:
-            s: The entity's state.
-
-        Returns:
-            True if it is ticked.
-        """
+        """Reports whether an entity is a `TickerEntity`."""
         ...
 
     @staticmethod
@@ -240,52 +170,20 @@ trait EntityTypes:
     ](mut e: EntityHandle[Self], mut tx: World[T], current: Int64) -> Optional[
         EntityMovement
     ]:
-        """Ticks an entity if its type is a `TickerEntity`.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            e: The entity.
-            tx: The world.
-            current: The current tick.
-
-        Returns:
-            The entity's movement, if any.
-        """
+        """Ticks an entity if its type is a `TickerEntity`."""
         ...
 
     @staticmethod
     def wrap[E: EntityType](var t: E) -> Self.State:
         """Wraps the state of an entity type in the set's state; does not
-        compile if `E` is not in the set.
-
-        Parameters:
-            E: The entity type.
-
-        Args:
-            t: The state.
-
-        Returns:
-            The set's state holding `t`.
-        """
+        compile if `E` is not in the set."""
         ...
 
     @staticmethod
     def encode_nbt(
         s: Self.State, data: EntityData, mut tree: Tree, tag: Tag
     ) raises:
-        """Writes an entity's type fields (Go `EncodeNBT`).
-
-        Args:
-            s: The entity's state.
-            data: The entity's data.
-            tree: The tree being written.
-            tag: The entity's compound.
-
-        Raises:
-            If the tree cannot be written.
-        """
+        """Writes an entity's type fields (Go `EncodeNBT`)."""
         ...
 
     @staticmethod
@@ -293,43 +191,19 @@ trait EntityTypes:
         identifier: String, tree: Tree, tag: Tag, mut data: EntityData
     ) raises -> Optional[Self.State]:
         """Reads an entity of the type with the identifier passed (Go
-        `EntityRegistry.Lookup` and `DecodeNBT`).
-
-        Args:
-            identifier: The saved type.
-            tree: The tree read.
-            tag: The entity's compound.
-            data: The entity's data, already holding the common fields.
-
-        Returns:
-            The state, or None if no type has the identifier.
-
-        Raises:
-            If the data is malformed.
-        """
+        `EntityRegistry.Lookup` and `DecodeNBT`)."""
         ...
 
 
 struct EntitySet[*Ts: EntityType](EntityTypes):
-    """Static dispatch over the entity types `Ts` (Go `EntityRegistry`).
-
-    Parameters:
-        Ts: The entity types, each with a distinct `IDENTIFIER`.
-    """
+    """Static dispatch over the entity types `Ts` (Go `EntityRegistry`)."""
 
     comptime State = Variant[*Self.Ts]
     """The state of an entity of any of `Ts`."""
 
     @staticmethod
     def identifier(s: Self.State) -> String:
-        """Returns the saved type of an entity (Go `EncodeEntity`).
-
-        Args:
-            s: The entity's state.
-
-        Returns:
-            The identifier.
-        """
+        """Returns the saved type of an entity (Go `EncodeEntity`)."""
         comptime for i in range(len(Self.Ts)):
             comptime E = Self.Ts[i]
             if s.isa[E]():
@@ -338,14 +212,7 @@ struct EntitySet[*Ts: EntityType](EntityTypes):
 
     @staticmethod
     def network_identifier(s: Self.State) -> String:
-        """Returns the type an entity is shown to clients as.
-
-        Args:
-            s: The entity's state.
-
-        Returns:
-            `NETWORK_IDENTIFIER` if the type has one, else `IDENTIFIER`.
-        """
+        """Returns the type an entity is shown to clients as."""
         comptime for i in range(len(Self.Ts)):
             comptime E = Self.Ts[i]
             if s.isa[E]():
@@ -356,15 +223,7 @@ struct EntitySet[*Ts: EntityType](EntityTypes):
 
     @staticmethod
     def bbox(s: Self.State, data: EntityData) -> BBox:
-        """Returns an entity's bounding box (Go `BBox`).
-
-        Args:
-            s: The entity's state.
-            data: The entity's data.
-
-        Returns:
-            The box.
-        """
+        """Returns an entity's bounding box (Go `BBox`)."""
         comptime for i in range(len(Self.Ts)):
             comptime E = Self.Ts[i]
             if s.isa[E]():
@@ -373,14 +232,7 @@ struct EntitySet[*Ts: EntityType](EntityTypes):
 
     @staticmethod
     def ticks(s: Self.State) -> Bool:
-        """Reports whether an entity is a `TickerEntity`.
-
-        Args:
-            s: The entity's state.
-
-        Returns:
-            True if it is ticked.
-        """
+        """Reports whether an entity is a `TickerEntity`."""
         comptime for i in range(len(Self.Ts)):
             comptime E = Self.Ts[i]
             comptime if conforms_to(E, TickerEntity):
@@ -394,19 +246,7 @@ struct EntitySet[*Ts: EntityType](EntityTypes):
     ](mut e: EntityHandle[Self], mut tx: World[T], current: Int64) -> Optional[
         EntityMovement
     ]:
-        """Ticks an entity if its type is a `TickerEntity`.
-
-        Parameters:
-            T: The world's types.
-
-        Args:
-            e: The entity.
-            tx: The world.
-            current: The current tick.
-
-        Returns:
-            The entity's movement, if any.
-        """
+        """Ticks an entity if its type is a `TickerEntity`."""
         comptime for i in range(len(Self.Ts)):
             comptime E = Self.Ts[i]
             comptime if conforms_to(E, TickerEntity):
@@ -417,34 +257,14 @@ struct EntitySet[*Ts: EntityType](EntityTypes):
     @staticmethod
     def wrap[E: EntityType](var t: E) -> Self.State:
         """Wraps the state of an entity type in the set's state; does not
-        compile if `E` is not in the set.
-
-        Parameters:
-            E: The entity type.
-
-        Args:
-            t: The state.
-
-        Returns:
-            The set's state holding `t`.
-        """
+        compile if `E` is not in the set."""
         return Self.State(t^)
 
     @staticmethod
     def encode_nbt(
         s: Self.State, data: EntityData, mut tree: Tree, tag: Tag
     ) raises:
-        """Writes an entity's type fields (Go `EncodeNBT`).
-
-        Args:
-            s: The entity's state.
-            data: The entity's data.
-            tree: The tree being written.
-            tag: The entity's compound.
-
-        Raises:
-            If the tree cannot be written.
-        """
+        """Writes an entity's type fields (Go `EncodeNBT`)."""
         comptime for i in range(len(Self.Ts)):
             comptime E = Self.Ts[i]
             if s.isa[E]():
@@ -456,20 +276,7 @@ struct EntitySet[*Ts: EntityType](EntityTypes):
         identifier: String, tree: Tree, tag: Tag, mut data: EntityData
     ) raises -> Optional[Self.State]:
         """Reads an entity of the type with the identifier passed (Go
-        `EntityRegistry.Lookup` and `DecodeNBT`).
-
-        Args:
-            identifier: The saved type.
-            tree: The tree read.
-            tag: The entity's compound.
-            data: The entity's data, already holding the common fields.
-
-        Returns:
-            The state, or None if no type has the identifier.
-
-        Raises:
-            If the data is malformed.
-        """
+        `EntityRegistry.Lookup` and `DecodeNBT`)."""
         comptime for i in range(len(Self.Ts)):
             comptime E = Self.Ts[i]
             if identifier == E.IDENTIFIER:
@@ -519,11 +326,7 @@ struct EntitySpawnOpts(Copyable, Defaultable):
 
 
 struct EntityHandle[E: EntityTypes](Copyable):
-    """The persistent identity and data of an entity (Go `EntityHandle`).
-
-    Parameters:
-        E: The entity set the entity's type is in.
-    """
+    """The persistent identity and data of an entity (Go `EntityHandle`)."""
 
     var id: UUID
     """The entity's UUID (Go `UUID`)."""
@@ -534,12 +337,7 @@ struct EntityHandle[E: EntityTypes](Copyable):
 
     def __init__(out self, opts: EntitySpawnOpts, var state: Self.E.State):
         """Creates an entity (Go `EntitySpawnOpts.New`). Add it to a world
-        with `World.add_entity`.
-
-        Args:
-            opts: The spawn options.
-            state: The type's state, such as `E.State(Text())`.
-        """
+        with `World.add_entity`."""
         self.id = opts.id
         self.data = EntityData()
         self.data.pos = opts.position
@@ -551,67 +349,34 @@ struct EntityHandle[E: EntityTypes](Copyable):
     def __init__(
         out self, id: UUID, var data: EntityData, var state: Self.E.State
     ):
-        """Creates an entity from its parts.
-
-        Args:
-            id: The UUID.
-            data: The common data.
-            state: The type's state.
-        """
+        """Creates an entity from its parts."""
         self.id = id
         self.data = data^
         self.state = state^
 
     def uuid(self) -> UUID:
-        """Returns the entity's UUID (Go `UUID`).
-
-        Returns:
-            The UUID.
-        """
+        """Returns the entity's UUID (Go `UUID`)."""
         return self.id
 
     def position(self) -> Vec3:
-        """Returns the entity's position (Go `Entity.Position`).
-
-        Returns:
-            The position.
-        """
+        """Returns the entity's position (Go `Entity.Position`)."""
         return self.data.pos
 
     def rotation(self) -> Rotation:
-        """Returns the entity's rotation (Go `Entity.Rotation`).
-
-        Returns:
-            The rotation.
-        """
+        """Returns the entity's rotation (Go `Entity.Rotation`)."""
         return self.data.rot
 
     def identifier(self) -> String:
-        """Returns the entity's saved type (Go `Type().EncodeEntity()`).
-
-        Returns:
-            The identifier.
-        """
+        """Returns the entity's saved type (Go `Type().EncodeEntity()`)."""
         return Self.E.identifier(self.state)
 
     def bbox(self) -> BBox:
-        """Returns the entity's bounding box (Go `Type().BBox(e)`).
-
-        Returns:
-            The box, relative to the position.
-        """
+        """Returns the entity's bounding box (Go `Type().BBox(e)`)."""
         return Self.E.bbox(self.state, self.data)
 
     def encode_nbt(self) raises -> Tree:
         """Encodes the entity as it is saved with its chunk (Go
-        `encodeNBT`, the type's `EncodeNBT` and `identifier`).
-
-        Returns:
-            The entity's compound.
-
-        Raises:
-            If the tree cannot be written.
-        """
+        `encodeNBT`, the type's `EncodeNBT` and `identifier`)."""
         var t = Tree()
         var root = t.root()
         _put_vec3(t, root, "Pos", self.data.pos)
@@ -627,19 +392,7 @@ struct EntityHandle[E: EntityTypes](Copyable):
 
     @staticmethod
     def decode_nbt(id: Int64, tree: Tree) raises -> Optional[Self]:
-        """Reads an entity saved with its chunk (Go `entityFromData`).
-
-        Args:
-            id: The saved ID: the last 8 bytes of the UUID, little endian.
-            tree: The entity's compound.
-
-        Returns:
-            The entity, or None if it has no `identifier` or an unknown one
-            (Go logs these and skips the entity).
-
-        Raises:
-            If the data is malformed.
-        """
+        """Reads an entity saved with its chunk (Go `entityFromData`)."""
         var root = tree.root()
         if not tree.has(root, "identifier"):
             return None
@@ -667,11 +420,7 @@ struct EntityHandle[E: EntityTypes](Copyable):
 
     def saved_id(self) -> Int64:
         """Returns the ID the entity is saved with: the last 8 bytes of its
-        UUID, little endian.
-
-        Returns:
-            The ID.
-        """
+        UUID, little endian."""
         var u = UInt64(0)
         for i in range(8):
             u |= UInt64(self.id.bytes[8 + i]) << UInt64(8 * i)

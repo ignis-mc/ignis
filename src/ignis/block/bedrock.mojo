@@ -26,75 +26,40 @@ struct Bedrock(Block, Equatable, ImplicitlyCopyable, Item, ModelledBlock):
         self.infinite_burning = False
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            `minecraft:bedrock` with `infiniburn_bit`.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         return BlockState(
             "minecraft:bedrock",
             Properties().with_bool("infiniburn_bit", self.infinite_burning),
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            1 for burning bedrock, 0 otherwise.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return UInt64(1) if self.infinite_burning else UInt64(0)
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The bedrock.
-        """
+        """Rebuilds the block from its state hash."""
         return Bedrock(infinite_burning=hash & 1 != 0)
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Burning bedrock and bedrock.
-        """
+        """Returns the registered values (Go `register.go`)."""
         return [Bedrock(infinite_burning=True), Bedrock()]
 
     def encode_item(self) -> EncodedItem:
-        """Encodes the block as an item (Go `EncodeItem`).
-
-        Returns:
-            `minecraft:bedrock`, metadata 0.
-        """
+        """Encodes the block as an item (Go `EncodeItem`)."""
         return EncodedItem("minecraft:bedrock", 0)
 
     @staticmethod
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `RegisterItem` calls
-        in `register.go`).
-
-        Returns:
-            Bedrock that does not burn.
-        """
+        in `register.go`)."""
         return [Bedrock()]
 
     def supports_end_crystal(self) -> Bool:
-        """Reports whether an end crystal may be placed on the block.
-
-        Returns:
-            True.
-        """
+        """Reports whether an end crystal may be placed on the block."""
         return True
 
     def model(self) -> SolidModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return SolidModel()

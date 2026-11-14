@@ -1,5 +1,4 @@
-"""`Empty`, ported from Dragonfly `server/block/model/empty.go`.
-"""
+"""`Empty`, ported from Dragonfly `server/block/model/empty.go`."""
 
 from ...world.block_model import BlockModel
 from ...world.block_source import BlockSource
@@ -17,32 +16,9 @@ struct Empty(BlockModel, ImplicitlyCopyable):
     """The model ID of `Empty`."""
 
     def bbox[S: BlockSource](self, pos: Pos, src: S) -> List[BBox]:
-        """Returns the boxes of the model (Go `BBox`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            src: The blocks around it.
-
-        Returns:
-            The boxes, relative to the block.
-        """
+        """Returns the boxes of the model (Go `BBox`)."""
         return []
 
     def face_solid[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
-        """Reports whether a face is solid (Go `FaceSolid`).
-
-        Parameters:
-            S: The block source type.
-
-        Args:
-            pos: The position of the block.
-            face: The face.
-            src: The blocks around it.
-
-        Returns:
-            True if the face is solid.
-        """
+        """Reports whether a face is solid (Go `FaceSolid`)."""
         return False

@@ -18,9 +18,5 @@ struct Absorption(Defaultable, ImplicitlyCopyable, LastingType):
     """The effect ID (Go `effect.Register(22, Absorption)`)."""
 
     def rgba(self) -> RGBA:
-        """Returns the colour of the effect's particles (Go `RGBA`).
-
-        Returns:
-            RGBA(0x25, 0x52, 0xa5, 0xff).
-        """
+        """Returns the colour of the effect's particles (Go `RGBA`)."""
         return RGBA(0x25, 0x52, 0xA5, 0xFF)

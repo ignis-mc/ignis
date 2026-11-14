@@ -129,15 +129,7 @@ struct Abilities(Copyable, Defaultable, Movable):
         self.vertical_fly_speed = 0
 
     def marshal_into(self, mut t: Tree, c: Tag) raises:
-        """Writes the fields into a compound in Go's field order.
-
-        Args:
-            t: The tree.
-            c: The compound to fill.
-
-        Raises:
-            If the tree rejects a value.
-        """
+        """Writes the fields into a compound in Go's field order."""
         _ = t.put_bool(c, "attackmobs", self.attack_mobs)
         _ = t.put_bool(c, "attackplayers", self.attack_players)
         _ = t.put_bool(c, "build", self.build)
@@ -160,15 +152,7 @@ struct Abilities(Copyable, Defaultable, Movable):
         _ = t.put_float(c, "verticalFlySpeed", self.vertical_fly_speed)
 
     def unmarshal_from(mut self, t: Tree, c: Tag) raises:
-        """Reads the fields present in a compound (Go `nbt.Unmarshal`).
-
-        Args:
-            t: The tree.
-            c: The compound.
-
-        Raises:
-            If a known field has the wrong type or a field is unknown.
-        """
+        """Reads the fields present in a compound (Go `nbt.Unmarshal`)."""
         for e in t.children(c):
             var n = t.name(e)
             if n == "attackmobs":
@@ -610,15 +594,7 @@ struct Data(Copyable, Defaultable, Movable):
         self.extra = Tree()
 
     def marshal_into(self, mut t: Tree, c: Tag) raises:
-        """Writes the fields into a compound in Go's field order.
-
-        Args:
-            t: The tree.
-            c: The compound to fill.
-
-        Raises:
-            If the tree rejects a value.
-        """
+        """Writes the fields into a compound in Go's field order."""
         _ = t.put_string(c, "baseGameVersion", self.base_game_version)
         _ = t.put_string(c, "BiomeOverride", self.biome_override)
         _ = t.put_bool(
@@ -797,15 +773,7 @@ struct Data(Copyable, Defaultable, Movable):
             _ = t.put_tree(c, self.extra.name(e), self.extra, e)
 
     def unmarshal_from(mut self, t: Tree, c: Tag) raises:
-        """Reads the fields present in a compound (Go `nbt.Unmarshal`).
-
-        Args:
-            t: The tree.
-            c: The compound.
-
-        Raises:
-            If a known field has the wrong type.
-        """
+        """Reads the fields present in a compound (Go `nbt.Unmarshal`)."""
         for e in t.children(c):
             var n = t.name(e)
             if n == "baseGameVersion":
@@ -1254,12 +1222,7 @@ struct Data(Copyable, Defaultable, Movable):
 
     def settings(mut self) -> Settings:
         """Returns the world settings stored in the data and counts a world
-        start (Go `Settings`, which increments `WorldStartCount`).
-
-        Returns:
-            The settings. Unknown game mode or difficulty IDs give survival
-            and normal, Go's fallbacks.
-        """
+        start (Go `Settings`, which increments `WorldStartCount`)."""
         self.world_start_count += 1
         return Settings(
             name=self.level_name,
@@ -1283,11 +1246,7 @@ struct Data(Copyable, Defaultable, Movable):
         )
 
     def put_settings(mut self, s: Settings):
-        """Stores world settings in the data (Go `PutSettings`).
-
-        Args:
-            s: The settings.
-        """
+        """Stores world settings in the data (Go `PutSettings`)."""
         self.level_name = s.name
         self.spawn_x = Int32(s.spawn.x())
         self.spawn_y = Int32(s.spawn.y())
@@ -1312,32 +1271,14 @@ struct Data(Copyable, Defaultable, Movable):
         self.difficulty = Int32(s.difficulty.id)
 
     def marshal(self) raises -> Tree:
-        """Encodes the data as a root compound (Go `nbt.Marshal(Data)`).
-
-        Returns:
-            The tree.
-
-        Raises:
-            If the tree rejects a value.
-        """
+        """Encodes the data as a root compound (Go `nbt.Marshal(Data)`)."""
         var t = Tree()
         self.marshal_into(t, t.root())
         return t^
 
     @staticmethod
     def unmarshal(t: Tree) raises -> Data:
-        """Decodes a root compound (Go `nbt.Unmarshal` into `Data`).
-
-        Args:
-            t: The decoded `level.dat` payload.
-
-        Returns:
-            The data; fields absent from the compound keep zero values.
-
-        Raises:
-            If the root is not a compound or a known field has the wrong
-            type.
-        """
+        """Decodes a root compound (Go `nbt.Unmarshal` into `Data`)."""
         if t.is_empty() or t.type_of(t.root()) != TAG_COMPOUND:
             raise Error("level.dat: root is not a compound")
         var d = Data()

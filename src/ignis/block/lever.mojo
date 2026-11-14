@@ -53,34 +53,17 @@ struct Lever(
         facing: Face = Face.DOWN,
         direction: Direction = Direction.NORTH,
     ):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            powered: Whether the lever is switched on.
-            facing: The face of the block the lever is attached to.
-            direction: The direction the lever points when on a floor or ceiling.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.powered = powered
         self.facing = facing
         self.direction = direction
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         var direction = String(self.facing)
         if self.facing == Face.DOWN or self.facing == Face.UP:
             var axis = "east_west"
@@ -95,11 +78,7 @@ struct Lever(
         )
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return (
             (UInt64(1) if self.powered else UInt64(0))
             | UInt64(Int(self.facing)) << 1
@@ -108,14 +87,7 @@ struct Lever(
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Lever(
             powered=hash & 0x1 != 0,
             facing=Face(Int((hash >> 1) & 0x7)),
@@ -124,11 +96,7 @@ struct Lever(
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         var out = List[Self]()
         for facing in faces():
             out.append(Lever(facing=facing, direction=Direction.NORTH))
@@ -143,28 +111,16 @@ struct Lever(
         return out^
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(0.5, ALWAYS_HARVESTABLE, NOTHING_EFFECTIVE)
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go
-        `LightDiffusionLevel`).
-
-        Returns:
-            The diffusion level, 0 to 15.
-        """
+        `LightDiffusionLevel`)."""
         return 0
 
     def model(self) -> EmptyModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
 
     def encode_item(self) -> EncodedItem:

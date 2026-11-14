@@ -25,27 +25,13 @@ struct Flat(Copyable, Generator):
     var _layers: List[UInt32]
 
     def __init__[B: Biome](out self, biome: B, var layers: List[UInt32]):
-        """Creates a flat generator (Go `NewFlatWithRegistry`).
-
-        Parameters:
-            B: The biome type.
-
-        Args:
-            biome: The biome of every block.
-            layers: The runtime IDs of the layers, top first: the last one
-                is the bottom of the world.
-        """
+        """Creates a flat generator (Go `NewFlatWithRegistry`)."""
         self._biome = UInt32(biome.encode_biome())
         self._layers = layers^
 
     def generate_chunk(self, pos: ChunkPos, mut chunk: Chunk):
         """Places the layers at the bottom of the chunk and sets the biome
-        everywhere.
-
-        Args:
-            pos: The position of the chunk.
-            chunk: The empty chunk to fill.
-        """
+        everywhere."""
         var min_y = Int16(chunk.range().min())
         var max_y = Int16(chunk.range().max())
         var n = Int16(len(self._layers))
@@ -66,12 +52,5 @@ struct Flat(Copyable, Generator):
                     y += 1
 
     def default_spawn(self, dim: Dimension) -> Pos:
-        """Returns the position just above the top layer at the origin.
-
-        Args:
-            dim: The dimension of the world.
-
-        Returns:
-            (0, min + layers + 1, 0).
-        """
+        """Returns the position just above the top layer at the origin."""
         return Pos(0, dim.range().min() + len(self._layers) + 1, 0)

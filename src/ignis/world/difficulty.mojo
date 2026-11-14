@@ -13,19 +13,11 @@ struct Difficulty(Equatable, ImplicitlyCopyable, Writable):
     """The ID (Go `DifficultyID`): 0 peaceful, 1 easy, 2 normal, 3 hard."""
 
     def food_regenerates(self) -> Bool:
-        """Reports whether food levels regenerate by themselves.
-
-        Returns:
-            True on peaceful.
-        """
+        """Reports whether food levels regenerate by themselves."""
         return self.id == 0
 
     def starvation_health_limit(self) -> Float64:
-        """Returns the health below which starvation stops hurting.
-
-        Returns:
-            20 on peaceful, 10 on easy, 2 on normal, -1 on hard.
-        """
+        """Returns the health below which starvation stops hurting."""
         if self.id == 0:
             return 20
         if self.id == 1:
@@ -35,19 +27,11 @@ struct Difficulty(Equatable, ImplicitlyCopyable, Writable):
         return -1
 
     def fire_spread_increase(self) -> Int:
-        """Returns how much faster fire spreads.
-
-        Returns:
-            0, 7, 14 or 21.
-        """
+        """Returns how much faster fire spreads."""
         return self.id * 7
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the difficulty's name.
-
-        Args:
-            writer: The destination.
-        """
+        """Writes the difficulty's name."""
         if self.id == 0:
             writer.write("peaceful")
         elif self.id == 1:
@@ -70,14 +54,7 @@ comptime DIFFICULTY_HARD = Difficulty(3)
 
 
 def difficulty_by_id(id: Int) -> Optional[Difficulty]:
-    """Looks up a difficulty by ID (Go `DifficultyByID`).
-
-    Args:
-        id: 0 to 3.
-
-    Returns:
-        The difficulty, or None for other IDs (Go returns normal and false).
-    """
+    """Looks up a difficulty by ID (Go `DifficultyByID`)."""
     if id < 0 or id > 3:
         return None
     return Difficulty(id)

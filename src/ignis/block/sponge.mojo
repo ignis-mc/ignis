@@ -41,77 +41,39 @@ struct Sponge(
     """Whether the sponge is wet."""
 
     def __init__(out self, *, wet: Bool = False):
-        """Creates the block; omitted fields take Go zero values.
-
-        Args:
-            wet: Whether the sponge is wet.
-        """
+        """Creates the block; omitted fields take Go zero values."""
         self.wet = wet
 
     def __eq__(self, other: Self) -> Bool:
-        """Compares two blocks.
-
-        Args:
-            other: The block to compare with.
-
-        Returns:
-            True if both are in the same state.
-        """
+        """Compares two blocks."""
         return self.hash() == other.hash()
 
     def encode_block(self) -> BlockState:
-        """Encodes the block (Go `EncodeBlock`).
-
-        Returns:
-            The name and properties.
-        """
+        """Encodes the block (Go `EncodeBlock`)."""
         if self.wet:
             return BlockState("minecraft:wet_sponge")
         return BlockState("minecraft:sponge")
 
     def hash(self) -> UInt64:
-        """Returns the state hash (Go `Hash`).
-
-        Returns:
-            The fields packed into bits.
-        """
+        """Returns the state hash (Go `Hash`)."""
         return UInt64(1) if self.wet else UInt64(0)
 
     @staticmethod
     def from_hash(hash: UInt64) -> Self:
-        """Rebuilds the block from its state hash.
-
-        Args:
-            hash: The state hash.
-
-        Returns:
-            The block.
-        """
+        """Rebuilds the block from its state hash."""
         return Sponge(wet=hash & 0x1 != 0)
 
     @staticmethod
     def all_states() -> List[Self]:
-        """Returns the registered values (Go `register.go`).
-
-        Returns:
-            Every state of the block.
-        """
+        """Returns the registered values (Go `register.go`)."""
         return [Sponge(wet=True), Sponge()]
 
     def break_info(self) -> BreakInfo:
-        """Returns the break info (Go `BreakInfo`).
-
-        Returns:
-            The hardness, blast resistance and tools.
-        """
+        """Returns the break info (Go `BreakInfo`)."""
         return new_break_info(0.6, ALWAYS_HARVESTABLE, NOTHING_EFFECTIVE)
 
     def model(self) -> SolidModel:
-        """Returns the model of the block (Go `Model`).
-
-        Returns:
-            The model.
-        """
+        """Returns the model of the block (Go `Model`)."""
         return SolidModel()
 
     def encode_item(self) -> EncodedItem:

@@ -32,18 +32,7 @@ from ..world.position import ChunkPos, SubChunkPos
 
 def network_chunk(pos: ChunkPos, dimension: Int32, c: Chunk) -> LevelChunk:
     """Builds the `LevelChunk` Dragonfly sends to a client without the blob
-    cache (Go `sendNetworkChunk` with sub-chunk requests).
-
-    Args:
-        pos: The position of the chunk.
-        dimension: The dimension ID.
-        c: The chunk.
-
-    Returns:
-        The packet: no sub-chunks, a sub-chunk limit of
-        `highest_filled_sub_chunk()`, and the biomes followed by a zero
-        border block count as payload.
-    """
+    cache (Go `sendNetworkChunk` with sub-chunk requests)."""
     var pk = LevelChunk()
     pk.dimension = dimension
     pk.sub_chunk_count = 0
@@ -60,17 +49,7 @@ def sub_chunk_index(
     centre: SubChunkPos, offset: SubChunkOffset, r: Range
 ) -> Optional[Int16]:
     """Returns the index of the sub-chunk a request offset points at (from
-    Go `ViewSubChunks`).
-
-    Args:
-        centre: The centre sub-chunk of the request.
-        offset: One requested offset.
-        r: The vertical range of the dimension.
-
-    Returns:
-        The sub-chunk index, or None if it is outside the range (Go answers
-        `SubChunkResultIndexOutOfBounds`).
-    """
+    Go `ViewSubChunks`)."""
     var ind = Int16(centre.y()) + Int16(offset.y) - (Int16(r.min()) >> 4)
     if ind < 0 or ind > Int16(r.height() >> 4):
         return None
@@ -81,21 +60,7 @@ def sub_chunk_entry[
     R: BlockRegistry
 ](offset: SubChunkOffset, ind: Int16, mut col: Chunk, br: R) -> SubChunkEntry:
     """Builds the `SubChunk` entry for one sub-chunk of a loaded chunk (Go
-    `subChunkEntry`, without the blob cache).
-
-    Args:
-        offset: The requested offset, echoed in the entry.
-        ind: The index of the sub-chunk in the chunk.
-        col: The chunk; its height map is recalculated if needed.
-        br: The registry, for the height map.
-
-    Parameters:
-        R: The registry type.
-
-    Returns:
-        The entry with the height map relative to the sub-chunk and the
-        network-encoded sub-chunk, or an all-air result.
-    """
+    `subChunkEntry`, without the blob cache)."""
     var chunk_map = col.height_map(br)
     var sub_map_type = HEIGHT_MAP_DATA_HAS_DATA
     var sub_map = ProtocolHeightMap()
