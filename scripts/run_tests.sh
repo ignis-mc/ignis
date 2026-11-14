@@ -2,6 +2,9 @@
 # Runs every test_*.mojo under test/ (or the paths given) and fails if any fails.
 #
 # Usage: scripts/run_tests.sh [-j N] [path ...]
+#
+# IGNIS_TEST_SHARD=i/n runs only every n-th file starting at index i (0-based),
+# so CI can split the suite across runners.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
@@ -21,6 +24,19 @@ mapfile -d '' files < <(find "${roots[@]}" -name 'test_*.mojo' -print0 | sort -z
 if [[ ${#files[@]} -eq 0 ]]; then
     echo "no test files found under: ${roots[*]}" >&2
     exit 1
+fi
+
+if [[ -n "${IGNIS_TEST_SHARD:-}" ]]; then
+    shard="${IGNIS_TEST_SHARD%/*}"
+    shards="${IGNIS_TEST_SHARD#*/}"
+    picked=()
+    for i in "${!files[@]}"; do
+        if (( i % shards == shard )); then
+            picked+=("${files[$i]}")
+        fi
+    done
+    files=("${picked[@]}")
+    echo "shard $shard of $shards: ${#files[@]} test files"
 fi
 
 run_one() {
