@@ -73,9 +73,12 @@ from ..world.item import ItemRegistry
 from ..world.dimension import Dimension
 from ..world.position import ChunkPos
 from ..item.stack import Stack
+from ..world.particle import Particle
+from ..world.sound import Sound
 from ..world.viewer import BLOCK_ACTION_OPEN, Viewer
 from .chunk import network_chunk
 from .inventory import instance_from_item
+from .sound import play_sound, view_particle as particle_packet
 
 
 @fieldwise_init
@@ -266,6 +269,14 @@ struct SessionViewer(Viewer):
         pk.container_type = w.container_type
         pk.server_side = True
         self.queue[].push(pk)
+
+    def view_sound[S: Sound](mut self, pos: Vec3, s: S):
+        """Plays a sound at a position (Go `ViewSound`)."""
+        play_sound(self.queue[], pos, s, False)
+
+    def view_particle[P: Particle](mut self, pos: Vec3, p: P):
+        """Shows a particle at a position (Go `ViewParticle`)."""
+        particle_packet(self.queue[], pos, p)
 
     def view_block_update(mut self, pos: Pos, rid: UInt32, layer: Int):
         """Sends a changed block (Go `ViewBlockUpdate`)."""
