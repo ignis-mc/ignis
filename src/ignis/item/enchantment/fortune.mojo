@@ -2,13 +2,8 @@
 `server/item/enchantment/fortune.go`.
 """
 
-from ...block.break_info import (
-    TOOL_TYPE_AXE,
-    TOOL_TYPE_HOE,
-    TOOL_TYPE_PICKAXE,
-    TOOL_TYPE_SHOVEL,
-    ToolFilter,
-)
+from ...block.break_info import ToolFilter
+from ..tool import TYPE_AXE, TYPE_HOE, TYPE_PICKAXE, TYPE_SHOVEL
 from ..enchantment_rarity import EnchantmentRarity
 from . import FORTUNE_ID, SILK_TOUCH_ID, EnchantmentType, ItemFilter
 
@@ -83,9 +78,9 @@ struct Fortune(Defaultable, EnchantmentType, ImplicitlyCopyable):
         """
         return ItemFilter(
             tools=ToolFilter(
-                TOOL_TYPE_PICKAXE,
-                TOOL_TYPE_SHOVEL,
-                TOOL_TYPE_AXE,
-                TOOL_TYPE_HOE,
+                TYPE_PICKAXE,
+                TYPE_SHOVEL,
+                TYPE_AXE,
+                TYPE_HOE,
             )
         )

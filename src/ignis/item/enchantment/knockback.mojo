@@ -2,7 +2,8 @@
 `server/item/enchantment/knockback.go`.
 """
 
-from ...block.break_info import TOOL_TYPE_SWORD, ToolFilter
+from ...block.break_info import ToolFilter
+from ..tool import TYPE_SWORD
 from ..enchantment_rarity import EnchantmentRarity
 from . import KNOCKBACK_ID, EnchantmentType, ItemFilter
 
@@ -74,7 +75,7 @@ struct Knockback(Defaultable, EnchantmentType, ImplicitlyCopyable):
         Returns:
             The filter.
         """
-        return ItemFilter(tools=ToolFilter(TOOL_TYPE_SWORD))
+        return ItemFilter(tools=ToolFilter(TYPE_SWORD))
 
     def force(self, level: Int) -> Float64:
         """Returns the extra knockback force at a level (Go `Force`).

@@ -2,7 +2,8 @@
 `server/item/enchantment/fire_aspect.go`.
 """
 
-from ...block.break_info import TOOL_TYPE_SWORD, ToolFilter
+from ...block.break_info import ToolFilter
+from ..tool import TYPE_SWORD
 from ..enchantment_rarity import EnchantmentRarity
 from . import FIRE_ASPECT_ID, EnchantmentType, ItemFilter
 
@@ -74,7 +75,7 @@ struct FireAspect(Defaultable, EnchantmentType, ImplicitlyCopyable):
         Returns:
             The filter.
         """
-        return ItemFilter(tools=ToolFilter(TOOL_TYPE_SWORD))
+        return ItemFilter(tools=ToolFilter(TYPE_SWORD))
 
     def duration(self, level: Int) -> Int:
         """Returns how long a hit sets the target on fire (Go `Duration`).

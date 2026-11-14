@@ -2,7 +2,8 @@
 `server/item/enchantment/sharpness.go`.
 """
 
-from ...block.break_info import TOOL_TYPE_AXE, TOOL_TYPE_SWORD, ToolFilter
+from ...block.break_info import ToolFilter
+from ..tool import TYPE_AXE, TYPE_SWORD
 from ..enchantment_rarity import EnchantmentRarity
 from . import SHARPNESS_ID, EnchantmentType, ItemFilter
 
@@ -74,7 +75,7 @@ struct Sharpness(Defaultable, EnchantmentType, ImplicitlyCopyable):
         Returns:
             The filter.
         """
-        return ItemFilter(tools=ToolFilter(TOOL_TYPE_SWORD, TOOL_TYPE_AXE))
+        return ItemFilter(tools=ToolFilter(TYPE_SWORD, TYPE_AXE))
 
     def addend(self, level: Int) -> Float64:
         """Returns the bonus the enchantment adds at a level (Go `Addend`).

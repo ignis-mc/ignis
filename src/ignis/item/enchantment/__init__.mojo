@@ -18,6 +18,7 @@ waits for it too.
 from ...block.break_info import ToolFilter
 from ...world.damage_source import DamageSource
 from ..enchantment_rarity import EnchantmentRarity
+from ..tool import ToolType
 
 comptime PROTECTION_ID = 0
 """The ID of `Protection`."""
@@ -132,7 +133,8 @@ struct ItemFilter(Equatable, ImplicitlyCopyable):
 
         Args:
             kinds: The `ITEM_*` bits of the item.
-            tool_type: The item's `TOOL_TYPE_*` if it is an `item.Tool`.
+            tool_type: The item's tool type number (`item.ToolType.t`) if
+                it is an `item.Tool`.
 
         Returns:
             True if the enchantment applies to the item.
@@ -140,7 +142,7 @@ struct ItemFilter(Equatable, ImplicitlyCopyable):
         if self.kinds & kinds != 0:
             return True
         if case .Some(t) = tool_type:
-            return self.tools.matches(t, 0)
+            return self.tools.matches(ToolType(t), 0)
         return False
 
 
