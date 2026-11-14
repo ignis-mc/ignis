@@ -1,7 +1,6 @@
 """`Portal`, ported from Dragonfly `server/block/portal.go`.
 
-TODO(world-runtime): Model, Portal, HasLiquidDrops, NeighbourUpdateTick,
-EntityInside.
+TODO(world-runtime): Model, Portal, NeighbourUpdateTick and EntityInside.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
@@ -10,6 +9,7 @@ from ..world.block_state import BlockState, Properties
 from .cube.axis import Axis
 from .hash import HASH_PORTAL
 from .model.portal import Portal as PortalModel
+from .liquid import LiquidRemovable
 
 
 struct Portal(
@@ -18,6 +18,7 @@ struct Portal(
     ImplicitlyCopyable,
     LightDiffuser,
     LightEmitter,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """The translucent part of the nether portal that teleports the player to and from the nether.
@@ -72,3 +73,7 @@ struct Portal(
     def model(self) -> PortalModel:
         """Returns the model of the block (Go `Model`)."""
         return PortalModel(axis=self.axis)
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns False (Go `HasLiquidDrops`)."""
+        return False

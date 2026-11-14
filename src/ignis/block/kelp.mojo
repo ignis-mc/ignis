@@ -3,27 +3,41 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): BoneMeal, UseOnBlock, NeighbourUpdateTick, RandomTick and
-the drops.
+TODO(world-runtime): BoneMeal, UseOnBlock and the drops.
 """
 
 from ..item.dried_kelp import DriedKelp
 from ..item.item import Compostable
 from ..item.smelting_info import SmeltInfo, Smeltable
 from ..item.stack import Stack
-from ..world.block import Block, LightDiffuser
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    LiquidDisplacer,
+    LiquidInfo,
+    NeighbourUpdateTicker,
+    RandomTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
-from .hash import HASH_KELP
+from .hash import AnyBlock, HASH_KELP
 from .model.empty import Empty as EmptyModel
+from .liquid import source_water_can_displace
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air
+from .water import Water
 
 
 struct Kelp(
@@ -34,7 +48,10 @@ struct Kelp(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
+    NeighbourUpdateTicker,
+    RandomTicker,
     Smeltable,
 ):
     """An underwater block that can grow on top of itself."""
@@ -108,3 +125,41 @@ struct Kelp(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks out of water or without support (Go `NeighbourUpdateTick`)."""
+        if not tx.liquid(pos):
+            break_block(self, pos, tx)
+            return
+        if changed_neighbour.y() - 1 == pos.y():
+            tx.set_block(pos, Kelp(age=tx.global_rand().int_n(25)))
+        var below = pos.side(Face.DOWN)
+        if not tx.block_as[Kelp](below):
+            if not face_solid_at(tx, below, Face.UP):
+                break_block(self, pos, tx)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May grow into the water above (Go `RandomTick`)."""
+        if tx.rand().int_n(100) < 15 and self.age < 25:
+            var above = pos.side(Face.UP)
+            var l = tx.liquid(above)
+            if not l:
+                return
+            var br = tx.block_registry()
+            if br[].is_block[Water](l.value()):
+                var b = tx.block(above)
+                if b == br[].air_runtime_id() or br[].is_block[Water](b):
+                    tx.set_block(above, Kelp(age=self.age + 1))
+                    if (
+                        tx.liquid_info(above)
+                        .or_else(LiquidInfo("", 8, False, 1))
+                        .depth
+                        < 8
+                    ):
+                        tx.set_liquid(above, Water(still=True, depth=8))

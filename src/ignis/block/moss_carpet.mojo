@@ -1,11 +1,15 @@
 """`MossCarpet`, ported from Dragonfly `server/block/moss_carpet.go`.
 
-TODO(world-runtime): SideClosed, HasLiquidDrops, NeighbourUpdateTick,
-UseOnBlock and the drops.
+TODO(world-runtime): UseOnBlock and the drops.
 """
 
 from ..item.item import Compostable
-from ..world.block import Block, LightDiffuser
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    LiquidDisplacer,
+    NeighbourUpdateTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
@@ -14,10 +18,17 @@ from .break_info import (
     BreakInfo,
     Breakable,
     NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
-from .hash import HASH_MOSS_CARPET
+from .hash import AnyBlock, HASH_MOSS_CARPET
 from .model.carpet import Carpet as CarpetModel
+from .liquid import LiquidRemovable, source_water_can_displace
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air
 
 
 struct MossCarpet(
@@ -28,7 +39,10 @@ struct MossCarpet(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
+    LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
 ):
     """A thin decorative variant of the moss block."""
 
@@ -88,3 +102,18 @@ struct MossCarpet(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks over air (Go `NeighbourUpdateTick`)."""
+        if is_air(tx, pos.side(Face.DOWN)):
+            break_block(self, pos, tx)

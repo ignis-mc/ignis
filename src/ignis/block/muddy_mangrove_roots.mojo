@@ -1,7 +1,7 @@
 """`MuddyMangroveRoots`, ported from Dragonfly
 `server/block/muddy_mangrove_roots.go`.
 
-TODO(world-runtime): SoilFor, UseOnBlock and the drops.
+TODO(world-runtime): UseOnBlock and the drops.
 """
 
 from ..world.block import Block
@@ -16,8 +16,23 @@ from .break_info import (
     new_break_info,
 )
 from .cube.axis import Axis, axes
-from .hash import HASH_MUDDY_MANGROVE_ROOTS
+from .hash import (
+    AnyBlock,
+    HASH_BAMBOO,
+    HASH_BAMBOO_SAPLING,
+    HASH_DOUBLE_FLOWER,
+    HASH_DOUBLE_TALL_GRASS,
+    HASH_FERN,
+    HASH_FLOWER,
+    HASH_MUDDY_MANGROVE_ROOTS,
+    HASH_NETHER_SPROUTS,
+    HASH_PINK_PETALS,
+    HASH_RED_SHRUB,
+    HASH_SAPLING,
+    HASH_SHORT_GRASS,
+)
 from .model.solid import Solid as SolidModel
+from .dirt import Soil
 
 
 struct MuddyMangroveRoots(
@@ -27,6 +42,7 @@ struct MuddyMangroveRoots(
     ImplicitlyCopyable,
     Item,
     ModelledBlock,
+    Soil,
 ):
     """A decorative variant of mangrove roots."""
 
@@ -86,3 +102,20 @@ struct MuddyMangroveRoots(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def soil_for(self, b: AnyBlock) -> Bool:
+        """Grows plants, bamboo and saplings (Go `SoilFor`)."""
+        var k = b.kind
+        return (
+            k == HASH_SHORT_GRASS
+            or k == HASH_FERN
+            or k == HASH_DOUBLE_TALL_GRASS
+            or k == HASH_FLOWER
+            or k == HASH_DOUBLE_FLOWER
+            or k == HASH_NETHER_SPROUTS
+            or k == HASH_PINK_PETALS
+            or k == HASH_BAMBOO_SAPLING
+            or k == HASH_BAMBOO
+            or k == HASH_SAPLING
+            or k == HASH_RED_SHRUB
+        )

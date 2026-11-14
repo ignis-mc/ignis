@@ -13,6 +13,8 @@ from .cube.direction import Direction
 from .cube.face import Face
 from .cube.pos import Pos
 from .cube.rotation import Rotation
+from ..entity.falling_block import FallingBlock
+from ..world.entity import EntityHandle, EntitySpawnOpts
 from .hash import AnyBlock
 
 comptime UNKNOWN_DIRECTION = Direction(4)
@@ -69,7 +71,7 @@ def replaceable_with[
     T: WorldTypes
 ](mut tx: World[T], pos: Pos, with_: AnyBlock) -> Bool:
     """Reports whether the block at `pos` may be replaced by `with_` (Go
-    `replaceableWith`, without the liquid check: liquids are not ported)."""
+    `replaceableWith`)."""
     if pos.out_of_bounds(tx.range()):
         return False
     var br = tx.block_registry()
@@ -78,7 +80,11 @@ def replaceable_with[
     var hash = br[].state_hash(rid)
     if not T.Blocks.replaceable_by(kind, hash, with_):
         return False
-    return AnyBlock(kind, hash) != with_
+    if AnyBlock(kind, hash) == with_:
+        return False
+    if case .Some(l) = tx.liquid(pos):
+        return T.Blocks.replaceable_by(br[].kind(l), br[].state_hash(l), with_)
+    return True
 
 
 def first_replaceable[
@@ -107,3 +113,83 @@ def horizontal_direction(d: Direction) -> Direction:
     if d == Direction.NORTH:
         return Direction.WEST
     return Direction.EAST
+
+
+@fieldwise_init
+struct FlammabilityInfo(ImplicitlyCopyable):
+    """How a block behaves with fire (Go `FlammabilityInfo`)."""
+
+    var encouragement: Int
+    """The chance the block catches fire when fire spreads."""
+    var flammability: Int
+    """The chance the block burns away when fire next to it ticks."""
+    var lava_flammable: Bool
+    """Whether lava can set it on fire."""
+
+
+trait Flammable:
+    """A block that can catch fire (Go `Flammable`)."""
+
+    def flammability_info(self) -> FlammabilityInfo:
+        """Returns how the block behaves with fire (Go
+        `FlammabilityInfo`)."""
+        ...
+
+
+trait Solidifiable:
+    """A falling block that can stop falling next to some blocks, such as
+    concrete powder next to water (Go `entity.Solidifiable`)."""
+
+    def solidifies[T: WorldTypes](self, pos: Pos, mut tx: World[T]) -> Bool:
+        """Reports whether the falling block stops at `pos` (Go
+        `Solidifies`)."""
+        ...
+
+
+def gravity_fall[B: Block, T: WorldTypes](b: B, pos: Pos, mut tx: World[T]):
+    """Turns a block with nothing under it into a falling block entity (Go
+    `gravityAffected.fall`). Worlds whose entity set lacks falling blocks
+    leave it in place."""
+    if not replaceable_with(tx, pos.side(Face.DOWN), AnyBlock(b)):
+        return
+    var br = tx.block_registry()
+    var rid = br[].block_runtime_id(b)
+    var state = T.Entities.try_wrap(
+        FallingBlock(AnyBlock(b), br[].state(rid).copy())
+    )
+    if not state:
+        return
+    tx.set_block_runtime_id(pos, br[].air_runtime_id())
+    var opts = EntitySpawnOpts()
+    opts.position = pos.vec3_centre()
+    _ = tx.add_entity(EntityHandle[T.Entities](opts, state.take()))
+
+
+def face_solid_at[
+    T: WorldTypes
+](mut tx: World[T], pos: Pos, face: Face) -> Bool:
+    """Reports whether a face of the block at `pos` is solid (Go
+    `tx.Block(pos).Model().FaceSolid(pos, face, tx)`)."""
+    var rid = tx.block(pos)
+    var br = tx.block_registry()
+    return T.Blocks.face_solid(
+        br[].kind(rid), br[].state_hash(rid), pos, face, tx.source()
+    )
+
+
+def is_air[T: WorldTypes](mut tx: World[T], pos: Pos) -> Bool:
+    """Reports whether the block at `pos` is air (Go `tx.Block(pos).(Air)`)."""
+    return tx.block(pos) == tx.block_registry()[].air_runtime_id()
+
+
+def light_diffuser_at[
+    T: WorldTypes
+](mut tx: World[T], pos: Pos) -> Optional[UInt8]:
+    """Returns the light diffusion level of the block at `pos` if it is a
+    `LightDiffuser` (Go `tx.Block(pos).(LightDiffuser)`)."""
+    var rid = tx.block(pos)
+    var br = tx.block_registry()
+    var f = br[].filtering_block(rid)
+    if T.Blocks.is_light_diffuser(br[].kind(rid), br[].state_hash(rid)):
+        return f
+    return None

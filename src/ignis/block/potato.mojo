@@ -1,8 +1,7 @@
 """`Potato`, ported from Dragonfly `server/block/potato.go`.
 
-TODO(world-runtime): the `crop` helpers (NeighbourUpdateTick, HasLiquidDrops,
-CalculateGrowthChance), GrowthStage, SameCrop, RandomTick, BoneMeal, UseOnBlock
-and the drops.
+TODO(world-runtime): the `crop` helpers (NeighbourUpdateTick,
+CalculateGrowthChance), BoneMeal, UseOnBlock and the drops.
 """
 
 from ..item.baked_potato import BakedPotato
@@ -14,7 +13,12 @@ from ..item.item import (
 )
 from ..item.smelting_info import SmeltInfo, Smeltable
 from ..item.stack import Stack
-from ..world.block import Block, LightDiffuser
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    NeighbourUpdateTicker,
+    RandomTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -23,10 +27,16 @@ from .break_info import (
     BreakInfo,
     Breakable,
     NOTHING_EFFECTIVE,
+    break_block,
     new_break_info,
 )
 from .hash import HASH_POTATO
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .crop import Crop, calculate_growth_chance, crop_neighbour_update_tick
 
 
 struct Potato(
@@ -34,11 +44,15 @@ struct Potato(
     Breakable,
     Compostable,
     Consumable,
+    Crop,
     Equatable,
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
+    RandomTicker,
     Smeltable,
 ):
     """A crop that can be consumed raw or cooked."""
@@ -124,3 +138,28 @@ struct Potato(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
+
+    def growth_stage(self) -> Int:
+        """Returns the growth stage (Go `GrowthStage`)."""
+        return self.growth
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks unless on farmland (Go `crop.NeighbourUpdateTick`)."""
+        crop_neighbour_update_tick(self, pos, tx)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Breaks in the dark, else may grow (Go `RandomTick`)."""
+        if tx.light(pos) < 8:
+            break_block(self, pos, tx)
+        elif self.growth < 7 and tx.rand().float64() <= calculate_growth_chance(
+            pos, tx
+        ):
+            var c = self.copy()
+            c.growth += 1
+            tx.set_block(pos, c)

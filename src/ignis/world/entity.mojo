@@ -180,6 +180,13 @@ trait EntityTypes:
         ...
 
     @staticmethod
+    def try_wrap[E: EntityType](var t: E) -> Optional[Self.State]:
+        """Wraps the state of an entity type, or returns None if `E` is not
+        in the set (for blocks that spawn entities, such as falling
+        blocks, in worlds of any entity set)."""
+        ...
+
+    @staticmethod
     def encode_nbt(
         s: Self.State, data: EntityData, mut tree: Tree, tag: Tag
     ) raises:
@@ -259,6 +266,15 @@ struct EntitySet[*Ts: EntityType](EntityTypes):
         """Wraps the state of an entity type in the set's state; does not
         compile if `E` is not in the set."""
         return Self.State(t^)
+
+    @staticmethod
+    def try_wrap[E: EntityType](var t: E) -> Optional[Self.State]:
+        """Wraps the state of an entity type, or returns None if `E` is not
+        in the set."""
+        comptime for i in range(len(Self.Ts)):
+            comptime if Self.Ts[i] == E:
+                return Self.State(rebind_var[Self.Ts[i]](t^))
+        return None
 
     @staticmethod
     def encode_nbt(

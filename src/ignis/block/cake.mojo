@@ -3,25 +3,40 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, Activate, Ignite,
-SideClosed, Model, HasLiquidDrops and the drops.
+TODO(world-runtime): UseOnBlock, Activate, Ignite, Model, HasLiquidDrops and
+the drops.
 """
 
 from ..item.optional_colour import OptionalColour, optional_colours
-from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    LightEmitter,
+    LiquidDisplacer,
+    NeighbourUpdateTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NEVER_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NEVER_HARVESTABLE,
+    NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
-from .hash import HASH_CAKE
+from .hash import AnyBlock, HASH_CAKE
 from .model.cake import Cake as CakeModel
+from .liquid import source_water_can_displace
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air
+from .water import Water
+from ..world.sound.block import FireExtinguish
 
 
 struct Cake(
@@ -32,7 +47,9 @@ struct Cake(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidDisplacer,
     ModelledBlock,
+    NeighbourUpdateTicker,
 ):
     """An edible block."""
 
@@ -140,3 +157,28 @@ struct Cake(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks over air; water puts its candle out (Go
+        `NeighbourUpdateTick`)."""
+        if is_air(tx, pos.side(Face.DOWN)):
+            break_block(self, pos, tx)
+            return
+        var l = tx.liquid(pos)
+        var br = tx.block_registry()
+        if (
+            l
+            and br[].is_block[Water](l.value())
+            and self.candle
+            and self.candle_lit
+        ):
+            var c = self.copy()
+            c.candle_lit = False
+            tx.set_block(pos, c)
+            tx.play_sound(pos.vec3_centre(), FireExtinguish())

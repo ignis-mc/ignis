@@ -1,11 +1,8 @@
 """`Beacon`, ported from Dragonfly `server/block/beacon.go`.
 
-Go's `sourceWaterDisplacer` makes beacons a `LiquidDisplacer`; that trait
-comes with liquids.
-
-TODO(world-runtime): the `Primary` and `Secondary` `effect.LastingType` fields,
-SideClosed, Activate, Level, Tick, recalculateLevel, obstructed,
-broadcastBeaconEffects and the drops.
+TODO(world-runtime): the `Primary`, `Secondary` `effect.LastingType` fields,
+Activate, Level, Tick, recalculateLevel, obstructed, broadcastBeaconEffects and
+the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree
@@ -24,6 +21,9 @@ from .break_info import (
 )
 from .hash import HASH_BEACON
 from .model.solid import Solid as SolidModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Beacon(
@@ -34,6 +34,7 @@ struct Beacon(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidDisplacer,
     ModelledBlock,
     NBTer,
 ):
@@ -113,3 +114,7 @@ struct Beacon(
         var b = self.copy()
         b.level = Int(get_int32(tag, root, "Levels"))
         return b^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

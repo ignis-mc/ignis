@@ -3,8 +3,8 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): InsertItem, ExtractItem, Model, SideClosed, Activate,
-fill, ScheduledTick, FlammabilityInfo, the break handler and the drops.
+TODO(world-runtime): InsertItem, ExtractItem, Model, Activate, fill,
+ScheduledTick, FlammabilityInfo, the break handler and the drops.
 """
 
 from ..item.smelting_info import Fuel, FuelInfo
@@ -21,6 +21,9 @@ from .break_info import (
 )
 from .hash import HASH_COMPOSTER
 from .model.composter import Composter as ComposterModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Composter(
@@ -31,6 +34,7 @@ struct Composter(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """A block that turns organic items into bone meal."""
@@ -100,3 +104,7 @@ struct Composter(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

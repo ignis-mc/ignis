@@ -3,8 +3,7 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, Activate, SideClosed,
-Model, Wax, Strip, RandomTick (attemptOxidation), EncodeItem and the drops.
+TODO(world-runtime): Activate, Model, Wax, Strip, EncodeItem and the drops.
 
 TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, Activate, SideClosed,
 Model, Wax, Strip, RandomTick (attemptOxidation) and the drops.
@@ -15,25 +14,42 @@ from .cube.pos import Pos
 from .cube.rotation import Rotation
 from ..mgl64 import Vec3
 from ..world.world import World, WorldTypes
-from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
-from .hash import AnyBlock
-from ..world.block import Block, LightDiffuser
+from .block import (
+    Placement,
+    UsableOnBlock,
+    face_solid_at,
+    first_replaceable,
+    is_air,
+    replaceable_with,
+)
+from .hash import AnyBlock, HASH_COPPER_DOOR
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    LiquidDisplacer,
+    NeighbourUpdateTicker,
+    RandomTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    HARVEST_LEVEL_STONE,
-    PICKAXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    HARVEST_LEVEL_STONE,
+    PICKAXE_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
+    drop_item,
     new_break_info,
     pickaxe_harvestable_from,
 )
 from .cube.direction import Direction, directions
-from .hash import HASH_COPPER_DOOR
 from .model.door import Door as DoorModel
 from .oxidation_type import OxidationType, oxidation_types
-from .oxidizable import Oxidisable, copper_block_name
+from .oxidizable import Oxidisable, attempt_oxidation, copper_block_name
+from .liquid import source_water_can_displace
+from ..item.stack import Stack
 
 
 struct CopperDoor(
@@ -43,8 +59,11 @@ struct CopperDoor(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
+    NeighbourUpdateTicker,
     Oxidisable,
+    RandomTicker,
     UsableOnBlock,
 ):
     """A copper door that blocks entities, opened and closed by players."""
@@ -231,3 +250,43 @@ struct CopperDoor(
             out.append(Self(oxidation=o))
             out.append(Self(oxidation=o, waxed=True))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks without its other half or a solid block below, and
+        keeps both halves equally oxidised (Go `NeighbourUpdateTick`)."""
+        if pos == changed_neighbour:
+            return
+        var d = self.copy()
+        if d.top:
+            var b = tx.block_as[CopperDoor](pos.side(Face.DOWN))
+            if not b:
+                break_block_no_drops(d, pos, tx)
+            elif (
+                d.oxidation != b.value().oxidation or d.waxed != b.value().waxed
+            ):
+                d.oxidation = b.value().oxidation
+                d.waxed = b.value().waxed
+                tx.set_block(pos, d)
+        elif not face_solid_at(tx, pos.side(Face.DOWN), Face.UP):
+            break_block_no_drops(d, pos, tx)
+            drop_item(tx, Stack(d, 1), pos.vec3_centre())
+        else:
+            var b = tx.block_as[CopperDoor](pos.side(Face.UP))
+            if not b:
+                break_block_no_drops(d, pos, tx)
+            elif (
+                d.oxidation != b.value().oxidation or d.waxed != b.value().waxed
+            ):
+                d.oxidation = b.value().oxidation
+                d.waxed = b.value().waxed
+                tx.set_block(pos, d)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May oxidise (Go `RandomTick`)."""
+        attempt_oxidation(pos, tx, self)

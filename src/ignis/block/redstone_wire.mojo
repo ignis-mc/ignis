@@ -2,7 +2,7 @@
 
 TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RedstoneUpdate,
 RedstoneSource, RedstonePower, RedstoneStrongPower, the connection calculation,
-diagonal wire updates, Model, HasLiquidDrops, the break handler and the drops.
+diagonal wire updates, Model, the break handler and the drops.
 """
 
 from ..item.armour_trim import ArmourTrimMaterial
@@ -20,6 +20,7 @@ from .break_info import (
 from .hash import HASH_REDSTONE_WIRE
 from .model.empty import Empty as EmptyModel
 from .wire_connection import WireConnections, all_wire_connections
+from .liquid import LiquidRemovable
 
 
 struct RedstoneWire(
@@ -30,6 +31,7 @@ struct RedstoneWire(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A block used to transfer redstone power between blocks."""
@@ -118,3 +120,7 @@ struct RedstoneWire(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

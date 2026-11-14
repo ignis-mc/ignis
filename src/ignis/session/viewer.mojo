@@ -19,9 +19,11 @@ from minecraft.protocol.entity_metadata import (
     ENTITY_DATA_KEY_FLAGS,
     ENTITY_DATA_KEY_HEIGHT,
     ENTITY_DATA_KEY_SCALE,
+    ENTITY_DATA_KEY_VARIANT,
     ENTITY_DATA_KEY_WIDTH,
     new_entity_metadata,
 )
+from minecraft.protocol.packet.add_actor import AddActor
 from minecraft.protocol.packet.add_item_actor import AddItemActor
 from minecraft.protocol.packet.move_actor_absolute import (
     MOVE_FLAG_ON_GROUND,
@@ -41,6 +43,9 @@ from minecraft.protocol.packet.set_time import SetTime
 
 from ..block.cube.pos import Pos
 from ..block.cube.rotation import Rotation
+from ..block.hash import AnyBlock
+from ..entity.falling_block import FallingBlock
+from ..world.block_state import BlockState
 from ..entity.item import ItemBehaviour
 from ..item.nbt import read_disk_nbt
 from ..entity.register import VanillaEntities
@@ -155,6 +160,12 @@ struct SessionViewer(Viewer):
         shown so far."""
         comptime if E == VanillaEntities:
             ref h = rebind[EntityHandle[VanillaEntities]](e)
+            if h.state.isa[FallingBlock]():
+                ref fb = h.state[FallingBlock]
+                self._view_falling_block(
+                    String(h.id), h.data.pos, h.data.vel, fb.block, fb.state
+                )
+                return
             if not h.state.isa[ItemBehaviour]():
                 return
             ref item = h.state[ItemBehaviour]
@@ -187,6 +198,44 @@ struct SessionViewer(Viewer):
             pk.entity_metadata = m^
             self.queue[].push(pk)
 
+    def _view_falling_block(
+        mut self,
+        key: String,
+        pos: Vec3,
+        vel: Vec3,
+        block: AnyBlock,
+        state: BlockState,
+    ):
+        # Go `ViewEntity` for `FallingBlockType`: an actor whose variant is
+        # the block's runtime ID.
+        if key in self.queue[].entity_ids:
+            return
+        var rid = self.queue[].blocks[].runtime_id_of(block.kind, block.state)
+        if not rid:
+            rid = (
+                self.queue[]
+                .blocks[]
+                .state_to_runtime_id(state.name, state.properties)
+            )
+        var id = self.queue[].new_entity_id(key)
+        var pk = AddActor()
+        pk.entity_unique_id = Int64(id)
+        pk.entity_runtime_id = id
+        pk.entity_type = String(FallingBlock.NETWORK_IDENTIFIER)
+        pk.position = _vec32(pos)
+        pk.velocity = _vec32(vel)
+        var m = new_entity_metadata()
+        try:
+            m.set(ENTITY_DATA_KEY_WIDTH, Float32(0.98))
+            m.set(ENTITY_DATA_KEY_HEIGHT, Float32(0.98))
+            m.set(ENTITY_DATA_KEY_SCALE, Float32(1))
+            m.set(ENTITY_DATA_KEY_VARIANT, Int32(rid.or_else(0)))
+            m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_HAS_GRAVITY)
+        except:
+            pass
+        pk.entity_metadata = m^
+        self.queue[].push(pk)
+
     def hide_entity[E: EntityTypes](mut self, e: EntityHandle[E]):
         """Removes a world entity from view (Go `HideEntity`)."""
         var key = String(e.id)
@@ -211,7 +260,12 @@ struct SessionViewer(Viewer):
             return
         var pk = MoveActorAbsolute()
         pk.entity_runtime_id = found.value()
-        pk.position = _vec32(pos.add(Vec3(0, ItemBehaviour.NETWORK_OFFSET, 0)))
+        var offset = ItemBehaviour.NETWORK_OFFSET
+        comptime if E == VanillaEntities:
+            ref h = rebind[EntityHandle[VanillaEntities]](e)
+            if h.state.isa[FallingBlock]():
+                offset = FallingBlock.NETWORK_OFFSET
+        pk.position = _vec32(pos.add(Vec3(0, offset, 0)))
         pk.rotation = _vec32(Vec3(rot.pitch(), rot.yaw(), rot.yaw()))
         if on_ground:
             pk.flags = MOVE_FLAG_ON_GROUND

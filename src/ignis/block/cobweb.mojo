@@ -17,6 +17,7 @@ from .break_info import (
 )
 from .hash import HASH_COBWEB
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct Cobweb(
@@ -26,6 +27,7 @@ struct Cobweb(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A block that slows down entities moving through it."""
@@ -84,3 +86,7 @@ struct Cobweb(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

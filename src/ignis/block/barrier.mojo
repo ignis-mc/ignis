@@ -1,9 +1,4 @@
 """`Barrier`, ported from Dragonfly `server/block/barrier.go`.
-
-Go's `sourceWaterDisplacer` makes barriers a `LiquidDisplacer`; that trait
-comes with liquids.
-
-TODO(world-runtime): SideClosed.
 """
 
 from ..world.block import Block, LightDiffuser
@@ -12,10 +7,19 @@ from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .hash import HASH_BARRIER
 from .model.solid import Solid as SolidModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Barrier(
-    Block, Equatable, ImplicitlyCopyable, Item, LightDiffuser, ModelledBlock
+    Block,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    LightDiffuser,
+    LiquidDisplacer,
+    ModelledBlock,
 ):
     """A transparent solid block used to create invisible boundaries."""
 
@@ -67,3 +71,7 @@ struct Barrier(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)
