@@ -10,14 +10,21 @@ Every method has an empty default body, which replaces Go's `NopViewer`
 embedding: implement only what you need. Entity methods are generic over the
 world's entity set. Blocks are runtime IDs, as everywhere in Ignis.
 
+Containers add Go's `ContainerViewer.ViewSlotChange`, and
+`view_block_entity` stands for the `BlockActorData` Go's session sends from
+`ViewBlockUpdate`. Block entities of whole chunks reach sessions with the
+sub-chunks they request (`World.network_block_entities`).
+
 Not ported yet (they need unported types): `ViewEntityGameMode`,
-`ViewEntityDisplacement`, `ViewFurnaceUpdate`, `ViewBrewingUpdate`,
-`ViewEntityAction`, `ViewEntityState`, `ViewEntityAnimation`,
-`ViewBlockAction`, `ViewEmote`, `ViewSkin`,
-`ViewEntityWake`, and the block entities passed to `ViewChunk`.
+`ViewEntityDisplacement`, `ViewBrewingUpdate`, `ViewEntityAction`,
+`ViewEntityState`, `ViewEntityAnimation`, `ViewEmote`, `ViewSkin` and
+`ViewEntityWake`.
 """
 
+from minecraft.nbt.tree import Tree
+
 from ..block.cube.pos import Pos
+from ..item.stack import Stack
 from ..block.cube.rotation import Rotation
 from ..mgl64 import Vec3
 from .chunk.chunk import Chunk
@@ -26,6 +33,12 @@ from .entity import EntityHandle, EntityTypes
 from .particle import Particle
 from .sound import Sound
 from .position import ChunkPos
+
+
+comptime BLOCK_ACTION_OPEN = 0
+"""Go `block.OpenAction`: a chest or barrel opens."""
+comptime BLOCK_ACTION_CLOSE = 1
+"""Go `block.CloseAction`: a chest or barrel closes."""
 
 
 trait Viewer(Deinitable, Movable):
@@ -82,6 +95,37 @@ trait Viewer(Deinitable, Movable):
 
     def view_block_update(mut self, pos: Pos, rid: UInt32, layer: Int):
         """Views a block being set (Go `ViewBlockUpdate`)."""
+        pass
+
+    def view_block_entity(mut self, pos: Pos, nbt: Tree):
+        """Views the network NBT of a block entity, `x`, `y` and `z`
+        included (Go's `BlockActorData` in `ViewBlockUpdate`)."""
+        pass
+
+    def view_block_action(mut self, pos: Pos, action: Int):
+        """Views a `BLOCK_ACTION_*` at a block (Go `ViewBlockAction`)."""
+        pass
+
+    def view_slot_change(mut self, slot: Int, it: Stack):
+        """Views a slot of the container the viewer opened changing (Go
+        `ContainerViewer.ViewSlotChange`)."""
+        pass
+
+    def view_furnace_update(
+        mut self,
+        prev_cook_ms: Int,
+        cook_ms: Int,
+        prev_remaining_ms: Int,
+        remaining_ms: Int,
+        prev_max_ms: Int,
+        max_ms: Int,
+    ):
+        """Views the progress of the smelter the viewer opened (Go
+        `ViewFurnaceUpdate`)."""
+        pass
+
+    def view_container_removed(mut self):
+        """The container the viewer opened is gone; its window closes."""
         pass
 
     def view_sound[S: Sound](mut self, pos: Vec3, s: S):

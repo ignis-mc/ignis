@@ -53,7 +53,9 @@ from minecraft.protocol.packet.interact import (
     INTERACT_ACTION_OPEN_INVENTORY,
     Interact,
 )
+from minecraft.protocol.packet.item_stack_request import ItemStackRequest
 from minecraft.protocol.packet.id import (
+    ID_INVENTORY_SLOT,
     ID_CONTAINER_CLOSE,
     ID_CONTAINER_OPEN,
     ID_ADD_PLAYER,
@@ -423,6 +425,20 @@ def test_open_and_close_inventory() raises:
     open.action_type = INTERACT_ACTION_NPC_OPEN
     with assert_raises(contains="interact"):
         _ = s.handle_packet(_packet(open), w)
+
+
+def test_outside_changes_survive_a_request() raises:
+    # A slot the server changed on its own (closing a window puts the UI
+    # items back) reached the client only on the next tick; a stack
+    # request handled first discarded it, and the client's IDs went stale.
+    var w = _world()
+    var s = _session("Steve", 1)
+    _spawn(s, w)
+    var before = s.conn.count(ID_INVENTORY_SLOT)
+    s.invs.inv.set_item(3, Stack(Stick(), 4))
+    var pk = ItemStackRequest()
+    _ = s.handle_packet(_packet(pk), w)
+    assert_equal(s.conn.count(ID_INVENTORY_SLOT), before + 1)
 
 
 def test_write_error_kept() raises:

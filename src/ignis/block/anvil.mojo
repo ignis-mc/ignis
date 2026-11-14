@@ -23,9 +23,20 @@ from ..world.world import World, WorldTypes
 from .cube.pos import Pos
 from .cube.face import Face
 from .block import gravity_fall
+from .block import (
+    Activatable,
+    Placement,
+    UsableOnBlock,
+    UseContext,
+    User,
+    first_replaceable,
+)
+from ..mgl64 import Vec3
+from .hash import AnyBlock
 
 
 struct Anvil(
+    Activatable,
     Block,
     Breakable,
     Equatable,
@@ -34,6 +45,7 @@ struct Anvil(
     LightDiffuser,
     ModelledBlock,
     NeighbourUpdateTicker,
+    UsableOnBlock,
 ):
     """A block that allows players to repair items, rename items, and combine enchantments.
     """
@@ -106,6 +118,35 @@ struct Anvil(
     def model(self) -> AnvilModel:
         """Returns the model of the block (Go `Model`)."""
         return AnvilModel(facing=self.facing)
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens the block's window (Go `Activate`)."""
+        ctx.open_container = True
+        return True
+
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: User,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places the anvil turned left of the user (Go `UseOnBlock`)."""
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var b = self.copy()
+        b.facing = user.direction().rotate_left()
+        return [Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()))]
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

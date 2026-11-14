@@ -3,6 +3,9 @@
 TODO(world-runtime): Wax, Strip and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..world.block import Block, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -30,6 +33,7 @@ struct Copper(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
     Oxidisable,
@@ -64,6 +68,10 @@ struct Copper(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bassDrum`)."""
+        return Instrument.BASS_DRUM
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

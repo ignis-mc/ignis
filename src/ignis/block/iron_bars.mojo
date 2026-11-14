@@ -3,8 +3,16 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, DeriveState and the drops.
+TODO(world-runtime): the drops.
 """
+
+from ..world.block import NeighbourUpdateTicker
+from ..world.block_source import BlockSource
+from ..world.world import World, WorldTypes
+from .block import StateDeriver
+from .connections import calculate_connections
+from .cube.pos import Pos
+
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
@@ -34,6 +42,8 @@ struct IronBars(
     LightDiffuser,
     LiquidDisplacer,
     ModelledBlock,
+    NeighbourUpdateTicker,
+    StateDeriver,
 ):
     """A pane-like block made of iron."""
 
@@ -86,6 +96,24 @@ struct IronBars(
         """Returns the light the block takes away (Go
         `LightDiffusionLevel`)."""
         return 0
+
+    def derive_state[S: BlockSource](self, pos: Pos, src: S) -> Self:
+        """Returns the block with the sides it connects to at `pos` (Go
+        `DeriveState`)."""
+        var b = self
+        b.connections = calculate_connections(self.model(), src, pos)
+        return b
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Updates the connections when a neighbour changes (Go
+        `NeighbourUpdateTick`)."""
+        var c = calculate_connections(self.model(), tx.source(), pos)
+        if c != self.connections:
+            var b = self
+            b.connections = c
+            tx.set_block(pos, b)
 
     def model(self) -> ThinModel:
         """Returns the model of the block (Go `Model`)."""

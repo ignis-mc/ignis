@@ -3,6 +3,9 @@
 TODO(world-runtime): FlammabilityInfo, the drops and RepairsWoodTools.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
@@ -26,6 +29,7 @@ struct Planks(
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
 ):
@@ -47,6 +51,10 @@ struct Planks(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

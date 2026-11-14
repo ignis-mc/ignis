@@ -55,6 +55,7 @@ func main() {
 	n[1].change, n[1].later = popsChanges, popsLater
 	write(filepath.Join(*out, "neighbours.txt"), n)
 	write(filepath.Join(*out, "random_ticks.txt"), randomTickScenarios())
+	writeDerive(filepath.Join(*out, "derive_state.txt"))
 }
 
 func write(path string, scenarios []scenario) {

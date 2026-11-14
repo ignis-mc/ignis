@@ -4,6 +4,9 @@ TODO(world-runtime): the falling behaviour of `gravityAffected` and the drops
 (flint).
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..world.block import Block, NeighbourUpdateTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -29,6 +32,7 @@ struct Gravel(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
     NeighbourUpdateTicker,
@@ -48,6 +52,10 @@ struct Gravel(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `snare`)."""
+        return Instrument.SNARE
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

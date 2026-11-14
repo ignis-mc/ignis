@@ -9,6 +9,11 @@ TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, Activate, SideClosed,
 Model, Wax, Strip, RandomTick (attemptOxidation) and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Activatable, Instrumented, UseContext
+from .door_placement import door_hinge_right, door_placement_position
+from ..world.sound.block import DoorClose, DoorOpen
+
 from .cube.face import Face
 from .cube.pos import Pos
 from .cube.rotation import Rotation
@@ -17,6 +22,7 @@ from ..world.world import World, WorldTypes
 from .block import (
     Placement,
     UsableOnBlock,
+    User,
     face_solid_at,
     first_replaceable,
     is_air,
@@ -53,10 +59,12 @@ from ..item.stack import Stack
 
 
 struct CopperDoor(
+    Activatable,
     Block,
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     LiquidDisplacer,
@@ -107,6 +115,10 @@ struct CopperDoor(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -204,37 +216,55 @@ struct CopperDoor(
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> List[Placement]:
         """Places both halves of the door on a solid block, facing away
-        from the user (Go `UseOnBlock` with `doorPlacementPosition`; the
-        hinge is not chosen from neighbours yet, Go `doorHingeRight`)."""
-        var me = AnyBlock(Self.BASE_HASH, self.hash())
-        var at = first_replaceable(tx, pos, face, me)
-        if not at or at.value()[1] != Face.UP:
+        from the user with the hinge chosen from its neighbours (Go
+        `UseOnBlock`)."""
+        var at = door_placement_position(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
             return List[Placement]()
-        var p = at.value()[0]
-        if not replaceable_with(tx, p.side(Face.UP), me):
-            return List[Placement]()
-        var below = p.side(Face.DOWN)
-        var br = tx.block_registry()
-        var rid = tx.block(below)
-        if not T.Blocks.face_solid(
-            br[].kind(rid), br[].state_hash(rid), below, Face.UP, tx.source()
-        ):
-            return List[Placement]()
+        var p = at.value()
         var lower = self
         lower.facing = user.direction()
+        lower.right = door_hinge_right(tx, p, lower.facing)
         lower.top = False
-        var upper = lower
-        upper.top = True
+        var upper = CopperDoor(
+            oxidation=lower.oxidation,
+            waxed=lower.waxed,
+            facing=lower.facing,
+            top=True,
+            right=lower.right,
+        )
         return [
             Placement(p, AnyBlock(Self.BASE_HASH, lower.hash()), True),
             Placement(
                 p.side(Face.UP), AnyBlock(Self.BASE_HASH, upper.hash()), True
             ),
         ]
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens or closes both halves of the door (Go `Activate`)."""
+        var d = self
+        d.open = not d.open
+        tx.set_block(pos, d)
+        var other_pos = pos.side(Face.DOWN if d.top else Face.UP)
+        if case .Some(other) = tx.block_as[CopperDoor](other_pos):
+            var o = other
+            o.open = d.open
+            tx.set_block(other_pos, o)
+        if d.open:
+            tx.play_sound(pos.vec3_centre(), DoorOpen(block=AnyBlock(d)))
+            return True
+        tx.play_sound(pos.vec3_centre(), DoorClose(block=AnyBlock(d)))
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

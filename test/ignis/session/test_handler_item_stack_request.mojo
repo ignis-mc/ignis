@@ -1,4 +1,38 @@
+from ignis.block.crafting_table import CraftingTable
+from ignis.block.banner import Banner
+from ignis.block.hash import (
+    HASH_CRAFTING_TABLE,
+    HASH_GRINDSTONE,
+    HASH_LOOM,
+    HASH_SMITHING_TABLE,
+    HASH_STONECUTTER,
+)
+from ignis.block.stone import Stone
+from ignis.item.smithing_template import SmithingTemplate
+from ignis.block.log import Log
+from ignis.block.planks import Planks
+from ignis.item.banner_pattern import BannerPattern
+from ignis.item.banner_pattern_type import BannerPatternType
+from ignis.item.colour import Colour
 from ignis.item.diamond import Diamond
+from ignis.item.dye import Dye
+from ignis.item.enchantment import CURSE_OF_VANISHING_ID, EFFICIENCY_ID
+from ignis.item.shears import Shears
+from ignis.item.stack import Enchantment
+from ignis.session.handler_item_stack_request import grindstone_experience
+from ignis.item.recipe.item import Item as RecipeItem
+from ignis.item.recipe.item_tag import ItemTags, new_item_tag
+from ignis.item.recipe.recipe import (
+    new_shaped,
+    new_shapeless,
+    new_smithing_transform,
+)
+from ignis.item.recipe.register import Recipes
+from ignis.item.recipe.shape import Shape
+from ignis.session.handler_item_stack_request import repeat_stacks
+from ignis.session.window import WINDOW_UI, Window
+from ignis.world.item import ItemRegistry
+from std.memory import ArcPointer
 from ignis.item.stack import Stack
 from ignis.item.stick import Stick
 from ignis.session.handler_item_stack_request import (
@@ -7,6 +41,7 @@ from ignis.session.handler_item_stack_request import (
 )
 from ignis.session.inventory import Inventories
 from minecraft.protocol.container import (
+    CONTAINER_CRAFTING_INPUT,
     CONTAINER_CREATED_OUTPUT,
     CONTAINER_CURSOR,
     CONTAINER_HOT_BAR,
@@ -16,7 +51,11 @@ from minecraft.protocol.container import (
 from minecraft.protocol.item_stack import (
     ITEM_STACK_RESPONSE_STATUS_ERROR,
     ITEM_STACK_RESPONSE_STATUS_OK,
+    AutoCraftRecipeStackRequestAction,
     CraftCreativeStackRequestAction,
+    CraftGrindstoneRecipeStackRequestAction,
+    CraftLoomRecipeStackRequestAction,
+    CraftRecipeStackRequestAction,
     DestroyStackRequestAction,
     DropStackRequestAction,
     ItemStackRequest,
@@ -259,6 +298,259 @@ def test_creative_craft_and_take_in_one_request() raises:
     pk.requests.append(req^)
     assert_equal(run(h, pk, invs, True)[0], ITEM_STACK_RESPONSE_STATUS_OK)
     assert_equal(invs.inv.item(0).count(), 1)
+
+
+def _recipes() raises -> ArcPointer[Recipes]:
+    var r = Recipes()
+    var reg = ItemRegistry()
+    # 1: a log of any kind (tag) gives 4 oak planks.
+    var tags = ItemTags.parse(
+        String('{"minecraft:logs": ["minecraft:oak_log"]}').as_bytes()
+    )
+    var logs = RecipeItem(new_item_tag(tags, "minecraft:logs", 1))
+    r.register(
+        new_shapeless([logs^], Stack(Planks(), 4), "crafting_table"), reg
+    )
+    # 2: four planks in a square give a crafting table.
+    var square = List[RecipeItem]()
+    for _ in range(4):
+        square.append(RecipeItem(Stack(Planks(), 1)))
+    r.register(
+        new_shaped(
+            square^, Stack(CraftingTable(), 1), Shape(2, 2), "crafting_table"
+        ),
+        reg,
+    )
+    # 3: a stonecutter turns one stone into two planks.
+    r.register(
+        new_shapeless(
+            [RecipeItem(Stack(Stone(), 1))], Stack(Planks(), 2), "stonecutter"
+        ),
+        reg,
+    )
+    # 4: a smithing table upgrades a diamond into a stick.
+    r.register(
+        new_smithing_transform(
+            RecipeItem(Stack(Diamond(), 1)),
+            RecipeItem(Stack(Stick(), 1)),
+            RecipeItem(Stack(SmithingTemplate(), 1)),
+            Stack(Stick(), 1),
+            "smithing_table",
+        ),
+        reg,
+    )
+    return ArcPointer(r^)
+
+
+def craft(id: UInt32, times: Int) -> StackRequestAction:
+    var a = CraftRecipeStackRequestAction()
+    a.recipe_network_id = id
+    a.number_of_crafts = UInt8(times)
+    return StackRequestAction(a^)
+
+
+def test_repeat_stacks() raises:
+    var out = repeat_stacks([Stack(Planks(), 4)], 20)
+    assert_equal(len(out), 2)
+    assert_equal(out[0].count(), 64)
+    assert_equal(out[1].count(), 16)
+
+
+def test_craft_planks_in_the_small_grid() raises:
+    var invs = Inventories()
+    invs.ui.set_item(28, Stack(Log(), 3))
+    var h = ItemStackRequestHandler()
+    h.use_recipes(_recipes(), ArcPointer(ItemRegistry()))
+    var res = run(h, packet(1, craft(1, 2)), invs)
+    assert_equal(res[0], ITEM_STACK_RESPONSE_STATUS_OK)
+    assert_equal(invs.ui.item(28).count(), 1)
+    var made = invs.ui.item(CRAFTING_RESULT)
+    assert_true(made.item_as[Planks]())
+    assert_equal(made.count(), 8)
+
+
+def test_craft_needs_enough_input() raises:
+    var invs = Inventories()
+    invs.ui.set_item(28, Stack(Log(), 1))
+    var h = ItemStackRequestHandler()
+    h.use_recipes(_recipes(), ArcPointer(ItemRegistry()))
+    var res = run(h, packet(1, craft(1, 2)), invs)
+    assert_equal(res[0], ITEM_STACK_RESPONSE_STATUS_ERROR)
+    assert_equal(invs.ui.item(28).count(), 1)
+
+
+def test_crafting_table_uses_the_large_grid() raises:
+    var invs = Inventories()
+    for s in [32, 33, 35, 36]:
+        invs.ui.set_item(s, Stack(Planks(), 1))
+    var h = ItemStackRequestHandler()
+    h.use_recipes(_recipes(), ArcPointer(ItemRegistry()))
+    # Without a crafting table open, the 3x3 slots are not the grid.
+    assert_equal(
+        run(h, packet(1, craft(2, 1)), invs)[0],
+        ITEM_STACK_RESPONSE_STATUS_ERROR,
+    )
+    invs.window = Window(WINDOW_UI, HASH_CRAFTING_TABLE)
+    assert_equal(
+        run(h, packet(2, craft(2, 1)), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    assert_true(invs.ui.item(CRAFTING_RESULT).item_as[CraftingTable]())
+    assert_true(invs.ui.item(32).empty())
+
+
+def test_auto_craft_takes_from_the_inventory() raises:
+    var invs = Inventories()
+    invs.inv.set_item(5, Stack(Planks(), 3))
+    invs.inv.set_item(9, Stack(Planks(), 3))
+    var h = ItemStackRequestHandler()
+    h.use_recipes(_recipes(), ArcPointer(ItemRegistry()))
+    var a = AutoCraftRecipeStackRequestAction()
+    a.recipe_network_id = 2
+    a.number_of_crafts = 1
+    var res = run(h, packet(1, StackRequestAction(a^)), invs)
+    assert_equal(res[0], ITEM_STACK_RESPONSE_STATUS_OK)
+    assert_equal(invs.inv.item(5).count() + invs.inv.item(9).count(), 2)
+    assert_true(invs.ui.item(CRAFTING_RESULT).item_as[CraftingTable]())
+
+
+def test_stonecutting() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_STONECUTTER)
+    invs.ui.set_item(3, Stack(Stone(), 2))
+    var h = ItemStackRequestHandler()
+    h.use_recipes(_recipes(), ArcPointer(ItemRegistry()))
+    # A crafting table recipe is no stonecutter recipe.
+    assert_equal(
+        run(h, packet(1, craft(1, 1)), invs)[0],
+        ITEM_STACK_RESPONSE_STATUS_ERROR,
+    )
+    assert_equal(
+        run(h, packet(2, craft(3, 2)), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    assert_true(invs.ui.item(3).empty())
+    assert_equal(invs.ui.item(CRAFTING_RESULT).count(), 4)
+
+
+def test_smithing_transform() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_SMITHING_TABLE)
+    # Go's `Comparable` also compares custom names, so the input must be
+    # a plain diamond to match the recipe.
+    invs.ui.set_item(0x33, Stack(Diamond(), 1))
+    invs.ui.set_item(0x34, Stack(Stick(), 1))
+    invs.ui.set_item(0x35, Stack(SmithingTemplate(), 1))
+    var h = ItemStackRequestHandler()
+    h.use_recipes(_recipes(), ArcPointer(ItemRegistry()))
+    assert_equal(
+        run(h, packet(1, craft(4, 1)), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    var out = invs.ui.item(CRAFTING_RESULT)
+    assert_true(out.item_as[Stick]())
+    assert_equal(out.count(), 1)
+    assert_true(invs.ui.item(0x35).empty())
+
+
+def grind() -> StackRequestAction:
+    return StackRequestAction(CraftGrindstoneRecipeStackRequestAction())
+
+
+def test_grindstone_strips_all_but_curses() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_GRINDSTONE)
+    var s = Stack(Shears(), 1).with_forced_enchantments(
+        [Enchantment(EFFICIENCY_ID, 3), Enchantment(CURSE_OF_VANISHING_ID, 1)]
+    )
+    invs.ui.set_item(0x10, s.with_anvil_cost(5))
+    var h = ItemStackRequestHandler()
+    assert_equal(
+        run(h, packet(1, grind()), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    var out = invs.ui.item(CRAFTING_RESULT)
+    assert_equal(len(out.enchantments()), 1)
+    assert_equal(Int(out.enchantments()[0].id), CURSE_OF_VANISHING_ID)
+    assert_equal(out.anvil_cost(), 0)
+    assert_true(invs.ui.item(0x10).empty())
+    # Efficiency III costs at least 21 levels; the curse costs nothing.
+    assert_equal(len(h.experience_costs), 1)
+    assert_equal(h.experience_costs[0], 21)
+    assert_equal(grindstone_experience(21, 0), 11)
+
+
+def test_grindstone_repairs_two_items() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_GRINDSTONE)
+    var a = Stack(Shears(), 1)
+    var max = a.max_durability()
+    invs.ui.set_item(0x10, a.with_durability(100))
+    invs.ui.set_item(0x11, a.with_durability(50))
+    var h = ItemStackRequestHandler()
+    assert_equal(
+        run(h, packet(1, grind()), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    var out = invs.ui.item(CRAFTING_RESULT)
+    assert_equal(out.durability(), min(150 + max * 5 // 100, max))
+    assert_equal(len(h.experience_costs), 0)
+
+
+def test_grindstone_needs_the_same_type() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_GRINDSTONE)
+    invs.ui.set_item(0x10, Stack(Shears(), 1))
+    invs.ui.set_item(0x11, Stack(Stick(), 1))
+    var h = ItemStackRequestHandler()
+    assert_equal(
+        run(h, packet(1, grind()), invs)[0], ITEM_STACK_RESPONSE_STATUS_ERROR
+    )
+
+
+def loom(pattern: String) -> StackRequestAction:
+    var a = CraftLoomRecipeStackRequestAction()
+    a.pattern = pattern
+    a.times_crafted = 1
+    return StackRequestAction(a^)
+
+
+def _loom_inputs() raises -> Inventories:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_LOOM)
+    invs.ui.set_item(0x09, Stack(Banner(), 1))
+    var d = Dye()
+    d.colour = Colour(14)
+    invs.ui.set_item(0x0A, Stack(d, 2))
+    return invs^
+
+
+def test_loom_adds_a_pattern() raises:
+    var invs = _loom_inputs()
+    var h = ItemStackRequestHandler()
+    assert_equal(
+        run(h, packet(1, loom("bo")), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    var out = invs.ui.item(CRAFTING_RESULT)
+    assert_true(out.item_as[Banner]())
+    var nbt = out.item_nbt()
+    var l = nbt.get_list(nbt.root(), "Patterns")
+    assert_equal(nbt.length(l), 1)
+    assert_equal(nbt.get_string(nbt.at(l, 0), "Pattern"), "bo")
+    assert_true(invs.ui.item(0x09).empty())
+    assert_equal(invs.ui.item(0x0A).count(), 1)
+
+
+def test_loom_needs_the_pattern_item() raises:
+    var invs = _loom_inputs()
+    var h = ItemStackRequestHandler()
+    assert_equal(
+        run(h, packet(1, loom("cre")), invs)[0],
+        ITEM_STACK_RESPONSE_STATUS_ERROR,
+    )
+    invs.ui.set_item(
+        0x0B, Stack(BannerPattern(type=BannerPatternType.CREEPER), 1)
+    )
+    assert_equal(
+        run(h, packet(2, loom("cre")), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    # The pattern item is not used up (Go keeps it).
+    assert_equal(invs.ui.item(0x0B).count(), 1)
 
 
 def main() raises:

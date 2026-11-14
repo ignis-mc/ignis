@@ -75,6 +75,20 @@ trait NBTer(Copyable, Deinitable):
         ...
 
 
+trait Container(NBTer):
+    """A block holding items that viewers open (Go `block.Container`).
+
+    The world keeps the inventory with the block entity, so the block only
+    names its size; Go's `Inventory`, `AddViewer` and `RemoveViewer` are
+    `World` methods.
+    """
+
+    def inventory_size(self) -> Int:
+        """Returns the number of slots this block stores (a paired chest
+        stores 27 of the 54 its window shows)."""
+        ...
+
+
 trait LightEmitter:
     """A block that emits light (Go `block.LightEmitter`; `world` uses the
     same trait for its private `lightEmitter`)."""
@@ -100,6 +114,17 @@ trait RandomTicker(Block):
 
     def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
         """Handles a random tick of the block."""
+        ...
+
+
+trait TickerBlock(Block):
+    """A block entity that does something every tick (Go `TickerBlock`),
+    such as a furnace smelting."""
+
+    def tick[
+        T: WorldTypes
+    ](self, current_tick: Int64, pos: Pos, mut tx: World[T]):
+        """Ticks the block; `self` carries its block entity NBT."""
         ...
 
 

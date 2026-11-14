@@ -3,9 +3,23 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): UseOnBlock, Activate, Ignite, Model, HasLiquidDrops and
-the drops.
+Ignis players have no hunger yet: eating sets the use context's food and
+saturation, which the server does not apply.
+
+TODO(world-runtime): UseOnBlock, Model, HasLiquidDrops and the drops.
 """
+
+from ..item.enchantment import FIRE_ASPECT_ID
+from ..item.flint_and_steel import FlintAndSteel
+from ..item.stack import Stack
+from ..mgl64 import Vec3
+from ..world.sound.block import Ignite
+from ..world.sound.entity import Burp
+from ..world.sound.item import ItemUseOn
+from .air import Air
+from .block import Activatable, UseContext
+from .candle import Candle
+
 
 from ..item.optional_colour import OptionalColour, optional_colours
 from ..world.block import (
@@ -40,6 +54,7 @@ from ..world.sound.block import FireExtinguish
 
 
 struct Cake(
+    Activatable,
     Block,
     Breakable,
     Equatable,
@@ -84,6 +99,62 @@ struct Cake(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Puts a candle on the cake, lights or snuffs it, or eats a bite (Go
+        `Activate`)."""
+        var c = self
+        if c.bites == 0 and not c.candle:
+            if case .Some(candle) = ctx.held.item_as[Candle]():
+                c.candle = True
+                c.candle_colour = candle.colour
+                tx.set_block(pos, c)
+                tx.play_sound(pos.vec3_centre(), ItemUseOn(block=AnyBlock(c)))
+                ctx.subtract_from_count(1)
+                return True
+        if ctx.held.enchantment(FIRE_ASPECT_ID):
+            _ = c.ignite(pos, tx)
+            ctx.damage_item(1)
+            return True
+        if ctx.held.item_as[FlintAndSteel]():
+            return False
+        if c.candle and c.candle_lit and face == Face.UP and ctx.held.empty():
+            c.candle_lit = False
+            tx.set_block(pos, c)
+            return True
+        # Go: the user implements Saturate (every Ignis user is a player).
+        if c.candle:
+            tx.drop_item(
+                pos.vec3_centre(), Stack(Candle(colour=c.candle_colour), 1)
+            )
+            c.candle = False
+            c.candle_lit = False
+            c.candle_colour = OptionalColour(0)
+        ctx.food = 2
+        ctx.saturation = 0.4
+        tx.play_sound(ctx.user_pos.add(Vec3(0, 1.5, 0)), Burp())
+        c.bites += 1
+        if c.bites > 6:
+            tx.set_block(pos, Air())
+            return True
+        tx.set_block(pos, c)
+        return True
+
+    def ignite[T: WorldTypes](self, pos: Pos, mut tx: World[T]) -> Bool:
+        """Lights the candle on the cake (Go `Ignite`)."""
+        if not self.candle or self.candle_lit:
+            return False
+        if tx.liquid(pos):
+            return False
+        var c = self
+        c.candle_lit = True
+        tx.set_block(pos, c)
+        tx.play_sound(pos.vec3(), Ignite())
+        return True
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

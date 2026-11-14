@@ -24,7 +24,23 @@ from minecraft.protocol.entity_metadata import (
     EntityMetadata,
     new_entity_metadata,
 )
+from minecraft.nbt.encode import encode
+from minecraft.nbt.nbt import NBT, NETWORK_LITTLE_ENDIAN
+from minecraft.nbt.tree import Tree
 from minecraft.protocol.packet.add_actor import AddActor
+from minecraft.protocol.packet.block_actor_data import BlockActorData
+from minecraft.protocol.packet.block_event import (
+    BLOCK_EVENT_CHANGE_CHEST_STATE,
+    BlockEvent,
+)
+from minecraft.protocol.packet.container_close import ContainerClose
+from minecraft.protocol.packet.container_set_data import (
+    CONTAINER_DATA_FURNACE_LIT_DURATION,
+    CONTAINER_DATA_FURNACE_LIT_TIME,
+    CONTAINER_DATA_FURNACE_TICK_COUNT,
+    ContainerSetData,
+)
+from minecraft.protocol.packet.inventory_slot import InventorySlot
 from minecraft.protocol.packet.add_item_actor import AddItemActor
 from minecraft.protocol.packet.move_actor_absolute import (
     MOVE_FLAG_ON_GROUND,
@@ -62,6 +78,7 @@ from minecraft.protocol.uuid import UUID
 from ..world.block_state import BlockState
 from ..entity.item import ItemBehaviour
 from ..item.nbt import read_disk_nbt
+from ..block.register import VanillaBlocks
 from ..entity.register import VanillaEntities
 from ..mgl64 import Vec3
 from ..world.block_registry import BasicBlockRegistry
@@ -70,9 +87,29 @@ from ..world.entity import EntityHandle, EntityTypes
 from ..world.item import ItemRegistry
 from ..world.dimension import Dimension
 from ..world.position import ChunkPos
-from ..world.viewer import Viewer
+from ..item.stack import Stack
+from ..world.particle import Particle
+from ..world.sound import Sound
+from ..world.viewer import BLOCK_ACTION_OPEN, Viewer
 from .chunk import network_chunk
 from .inventory import instance_from_item
+from .sound import play_sound, view_particle as particle_packet
+
+
+@fieldwise_init
+struct OpenedWindow(Copyable):
+    """A container window the client has open (Go's `openedWindowID`,
+    `openedContainerID` and `openedPos`)."""
+
+    var window_id: UInt8
+    """The window ID, 1 to 99."""
+    var container_type: UInt8
+    """The `CONTAINER_TYPE_*` it was opened with."""
+    var pos: Pos
+    """The block that was opened."""
+    var stored: Bool
+    """The block keeps the inventory (Go `block.Container`); otherwise the
+    window uses the UI inventory or the ender chest."""
 
 
 struct PacketQueue(Defaultable, Movable):
@@ -91,6 +128,11 @@ struct PacketQueue(Defaultable, Movable):
     """The block registry, for block items."""
     var items: ArcPointer[ItemRegistry]
     """The item registry stacks are encoded with."""
+    var opened: Optional[OpenedWindow]
+    """The container window the client has open, shared by the session
+    and its viewer (Go `containerOpened`)."""
+    var last_window_id: UInt8
+    """The last window ID handed out (Go `openedWindowID`)."""
 
     def __init__(out self):
         """Creates an empty queue without registries."""
@@ -110,6 +152,16 @@ struct PacketQueue(Defaultable, Movable):
         self.next_entity_id = 1
         self.blocks = blocks
         self.items = items
+        self.opened = None
+        self.last_window_id = 0
+
+    def next_window_id(mut self) -> UInt8:
+        """Returns the next window ID, 1 to 99 (Go `nextWindowID`)."""
+        if self.last_window_id >= 99:
+            self.last_window_id = 1
+        else:
+            self.last_window_id += 1
+        return self.last_window_id
 
     def new_entity_id(mut self, key: String) -> UInt64:
         """Assigns the next runtime ID to an entity (Go `ViewEntity`)."""
@@ -160,6 +212,87 @@ struct SessionViewer(Viewer):
         )
         self.queue[].push(pk)
 
+    def view_block_entity(mut self, pos: Pos, nbt: Tree):
+        """Sends a block entity's NBT (Go `BlockActorData` in
+        `ViewBlockUpdate`)."""
+        var pk = BlockActorData()
+        pk.position = _block_pos(pos)
+        try:
+            pk.nbt_data.raw = encode(nbt, NETWORK_LITTLE_ENDIAN)
+            pk.nbt_data.encoding = NETWORK_LITTLE_ENDIAN
+        except:
+            return
+        self.queue[].push(pk)
+
+    def view_block_action(mut self, pos: Pos, action: Int):
+        """Opens or closes a chest's lid (Go `ViewBlockAction`)."""
+        var pk = BlockEvent()
+        pk.position = _block_pos(pos)
+        pk.event_type = BLOCK_EVENT_CHANGE_CHEST_STATE
+        pk.event_data = 1 if action == BLOCK_ACTION_OPEN else 0
+        self.queue[].push(pk)
+
+    def view_slot_change(mut self, slot: Int, it: Stack):
+        """Sends a slot of the opened container (Go `ViewSlotChange`)."""
+        if not self.queue[].opened:
+            return
+        var pk = InventorySlot()
+        pk.window_id = UInt32(self.queue[].opened.value().window_id)
+        pk.slot = UInt32(slot)
+        pk.new_item = instance_from_item(
+            self.queue[].blocks[], self.queue[].items[], it
+        )
+        self.queue[].push(pk)
+
+    def view_furnace_update(
+        mut self,
+        prev_cook_ms: Int,
+        cook_ms: Int,
+        prev_remaining_ms: Int,
+        remaining_ms: Int,
+        prev_max_ms: Int,
+        max_ms: Int,
+    ):
+        """Sends the smelting progress (Go `ViewFurnaceUpdate`)."""
+        if not self.queue[].opened:
+            return
+        var window = self.queue[].opened.value().window_id
+        if prev_cook_ms != cook_ms:
+            self._set_data(window, CONTAINER_DATA_FURNACE_TICK_COUNT, cook_ms)
+        if prev_remaining_ms != remaining_ms:
+            self._set_data(
+                window, CONTAINER_DATA_FURNACE_LIT_TIME, remaining_ms
+            )
+        if prev_max_ms != max_ms:
+            self._set_data(window, CONTAINER_DATA_FURNACE_LIT_DURATION, max_ms)
+
+    def _set_data(mut self, window: UInt8, key: Int32, ms: Int):
+        var pk = ContainerSetData()
+        pk.window_id = window
+        pk.key = key
+        pk.value = Int32(ms // 50)
+        self.queue[].push(pk)
+
+    def view_container_removed(mut self):
+        """Closes the window of a container that is gone (Go
+        `closeWindow(false)`)."""
+        if not self.queue[].opened:
+            return
+        var w = self.queue[].opened.take()
+        var pk = ContainerClose()
+        pk.window_id = w.window_id
+        pk.container_type = w.container_type
+        pk.server_side = True
+        self.queue[].push(pk)
+
+    def view_sound[S: Sound](mut self, pos: Vec3, s: S):
+        """Plays a sound at a position (Go `ViewSound`)."""
+        play_sound(self.queue[], pos, s, False)
+
+    def view_particle[P: Particle](mut self, pos: Vec3, p: P):
+        """Shows a particle at a position (Go `ViewParticle`)."""
+        particle_packet(self.queue[], pos, p)
+
     def view_block_update(mut self, pos: Pos, rid: UInt32, layer: Int):
         """Sends a changed block (Go `ViewBlockUpdate`)."""
         var pk = UpdateBlock()
@@ -197,7 +330,7 @@ struct SessionViewer(Viewer):
                 var stack = item.item.copy()
                 if not item.resolved():
                     # Loaded from disk: only the NBT is known.
-                    stack = read_disk_nbt(
+                    stack = read_disk_nbt[VanillaBlocks](
                         self.queue[].items[],
                         item.item_nbt,
                         item.item_nbt.root(),
