@@ -9,8 +9,8 @@ cd "$(dirname "$0")/.."
 port="${1:-19190}"
 inc=(-I src -I third_party/protocol/src -I third_party/nethernet/src)
 mkdir -p build
-mojo build "${inc[@]}" cmd/ignis/main.mojo -o build/ignis
-mojo build "${inc[@]}" interop/bots/two_bots.mojo -o build/two_bots
+mojo build --fp-mode contract=off "${inc[@]}" cmd/ignis/main.mojo -o build/ignis
+mojo build --fp-mode contract=off "${inc[@]}" interop/bots/two_bots.mojo -o build/two_bots
 
 dir="$(mktemp -d)"
 trap 'kill "$pid" 2>/dev/null || true; rm -rf "$dir"' EXIT
