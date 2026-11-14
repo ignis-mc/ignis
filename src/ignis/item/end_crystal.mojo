@@ -1,6 +1,6 @@
 """EndCrystal, ported from Dragonfly `server/item/end_crystal.go`.
 
-TODO(port): `UseOnBlock`.
+TODO(player): `UseOnBlock`.
 """
 
 from ..world.item import EncodedItem, Item, item_hash

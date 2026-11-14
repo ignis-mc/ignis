@@ -1,6 +1,6 @@
 """EnderEye, ported from Dragonfly `server/item/ender_eye.go`.
 
-TODO(port): `UseOnBlock`.
+TODO(player): `UseOnBlock`.
 """
 
 from ..world.item import EncodedItem, Item, item_hash

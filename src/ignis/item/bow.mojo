@@ -1,16 +1,21 @@
 """Bow, ported from Dragonfly `server/item/bow.go`.
 
-TODO(port): `DurabilityInfo`, `Release`, `Requirements`.
+TODO(player): `Release` (Go `Releasable`, with `requirements`).
 """
 
 from ..world.item import EncodedItem, Item, item_hash
+from .arrow import Arrow
+from .durability import DurabilityInfo, Durable
 from .enchantment import Enchantable
 from .item import MaxCounter
 from .smelting_info import Fuel, FuelInfo
+from .stack import Stack
 
 
 @fieldwise_init
-struct Bow(Enchantable, Equatable, Fuel, ImplicitlyCopyable, Item, MaxCounter):
+struct Bow(
+    Durable, Enchantable, Equatable, Fuel, ImplicitlyCopyable, Item, MaxCounter
+):
     """A ranged weapon that fires arrows."""
 
     comptime BASE_HASH: UInt64 = item_hash("Bow")
@@ -19,6 +24,19 @@ struct Bow(Enchantable, Equatable, Fuel, ImplicitlyCopyable, Item, MaxCounter):
     def max_count(self) -> Int:
         """Returns the maximum count (Go `MaxCount`)."""
         return 1
+
+    def durability_info(self) -> DurabilityInfo:
+        """Returns the durability info (Go `DurabilityInfo`): 385 uses."""
+        return DurabilityInfo(
+            max_durability=385,
+            attack_durability=0,
+            break_durability=0,
+            persistent=False,
+        )
+
+    def requirements(self) -> List[Stack]:
+        """Returns the items needed to release the bow (Go `Requirements`)."""
+        return [Stack(Arrow(), 1)]
 
     def fuel_info(self) -> FuelInfo:
         """Returns the fuel info (Go `FuelInfo`): burns 10 s."""

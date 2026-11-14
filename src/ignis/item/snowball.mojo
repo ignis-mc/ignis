@@ -1,6 +1,6 @@
 """Snowball, ported from Dragonfly `server/item/snowball.go`.
 
-TODO(port): `Use`.
+TODO(player): `Use`.
 """
 
 from ..world.item import EncodedItem, Item, item_hash

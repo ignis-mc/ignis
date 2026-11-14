@@ -1,14 +1,15 @@
 """FlintAndSteel, ported from Dragonfly `server/item/flint_and_steel.go`.
 
-TODO(port): `DurabilityInfo`, `UseOnBlock`.
+TODO(player): `UseOnBlock` (igniting blocks, nether portals and fire).
 """
 
 from ..world.item import EncodedItem, Item, item_hash
+from .durability import DurabilityInfo, Durable
 from .item import MaxCounter
 
 
 @fieldwise_init
-struct FlintAndSteel(Equatable, ImplicitlyCopyable, Item, MaxCounter):
+struct FlintAndSteel(Durable, Equatable, ImplicitlyCopyable, Item, MaxCounter):
     """An item used to light blocks on fire."""
 
     comptime BASE_HASH: UInt64 = item_hash("FlintAndSteel")
@@ -17,6 +18,15 @@ struct FlintAndSteel(Equatable, ImplicitlyCopyable, Item, MaxCounter):
     def max_count(self) -> Int:
         """Returns the maximum count (Go `MaxCount`)."""
         return 1
+
+    def durability_info(self) -> DurabilityInfo:
+        """Returns the durability info (Go `DurabilityInfo`): 65 uses."""
+        return DurabilityInfo(
+            max_durability=65,
+            attack_durability=0,
+            break_durability=0,
+            persistent=False,
+        )
 
     def encode_item(self) -> EncodedItem:
         """Encodes the item (Go `EncodeItem`)."""

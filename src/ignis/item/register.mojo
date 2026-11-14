@@ -15,6 +15,8 @@ from ..block.stone import Stone
 from ..world.item import ItemRegistry
 from .amethyst_shard import AmethystShard
 from .apple import Apple
+from .arrow import Arrow
+from .axe import Axe
 from .baked_potato import BakedPotato
 from .banner_pattern import BannerPattern
 from .beef import Beef
@@ -32,6 +34,7 @@ from .bow import Bow
 from .bowl import Bowl
 from .bread import Bread
 from .brick import Brick
+from .bucket import Bucket
 from .carrot_on_a_stick import CarrotOnAStick
 from .charcoal import Charcoal
 from .chestplate import Chestplate
@@ -62,12 +65,14 @@ from .feather import Feather
 from .fermented_spider_eye import FermentedSpiderEye
 from .fire_charge import FireCharge
 from .firework import Firework
+from .firework_star import FireworkStar
 from .flint import Flint
 from .flint_and_steel import FlintAndSteel
 from .ghast_tear import GhastTear
 from .glass_bottle import GlassBottle
 from .glistering_melon_slice import GlisteringMelonSlice
 from .glowstone_dust import GlowstoneDust
+from .goat_horn import GoatHorn
 from .gold_ingot import GoldIngot
 from .gold_nugget import GoldNugget
 from .golden_apple import GoldenApple
@@ -75,17 +80,21 @@ from .golden_carrot import GoldenCarrot
 from .gunpowder import Gunpowder
 from .heart_of_the_sea import HeartOfTheSea
 from .helmet import Helmet
+from .hoe import Hoe
 from .honey_bottle import HoneyBottle
 from .honeycomb import Honeycomb
+from .ink_sac import InkSac
 from .iron_ingot import IronIngot
 from .iron_nugget import IronNugget
 from .item_set import ItemSet
 from .lapis_lazuli import LapisLazuli
 from .leather import Leather
 from .leggings import Leggings
+from .lingering_potion import LingeringPotion
 from .magma_cream import MagmaCream
 from .melon_slice import MelonSlice
 from .mushroom_stew import MushroomStew
+from .music_disc import MusicDisc
 from .mutton import Mutton
 from .nautilus_shell import NautilusShell
 from .nether_brick import NetherBrick
@@ -95,9 +104,11 @@ from .netherite_ingot import NetheriteIngot
 from .netherite_scrap import NetheriteScrap
 from .paper import Paper
 from .phantom_membrane import PhantomMembrane
+from .pickaxe import Pickaxe
 from .poisonous_potato import PoisonousPotato
 from .popped_chorus_fruit import PoppedChorusFruit
 from .porkchop import Porkchop
+from .potion import Potion
 from .pottery_sherd import PotterySherd
 from .prismarine_crystal import PrismarineCrystals
 from .prismarine_shard import PrismarineShard
@@ -116,15 +127,18 @@ from .rotten_flesh import RottenFlesh
 from .salmon import Salmon
 from .scute import Scute
 from .shears import Shears
+from .shovel import Shovel
 from .shulker_shell import ShulkerShell
 from .slimeball import Slimeball
 from .smithing_template import SmithingTemplate
 from .snowball import Snowball
 from .spider_eye import SpiderEye
+from .splash_potion import SplashPotion
 from .spyglass import Spyglass
 from .stick import Stick
 from .sugar import Sugar
 from .suspicious_stew import SuspiciousStew
+from .sword import Sword
 from .totem import Totem
 from .tropical_fish import TropicalFish
 from .turtle_shell import TurtleShell
@@ -135,6 +149,8 @@ from .written_book import WrittenBook
 comptime VanillaItems = ItemSet[
     AmethystShard,
     Apple,
+    Arrow,
+    Axe,
     BakedPotato,
     BannerPattern,
     Beef,
@@ -152,6 +168,7 @@ comptime VanillaItems = ItemSet[
     Bowl,
     Bread,
     Brick,
+    Bucket,
     CarrotOnAStick,
     Charcoal,
     Chestplate,
@@ -182,12 +199,14 @@ comptime VanillaItems = ItemSet[
     FermentedSpiderEye,
     FireCharge,
     Firework,
+    FireworkStar,
     Flint,
     FlintAndSteel,
     GhastTear,
     GlassBottle,
     GlisteringMelonSlice,
     GlowstoneDust,
+    GoatHorn,
     GoldIngot,
     GoldNugget,
     GoldenApple,
@@ -195,16 +214,20 @@ comptime VanillaItems = ItemSet[
     Gunpowder,
     HeartOfTheSea,
     Helmet,
+    Hoe,
     HoneyBottle,
     Honeycomb,
+    InkSac,
     IronIngot,
     IronNugget,
     LapisLazuli,
     Leather,
     Leggings,
+    LingeringPotion,
     MagmaCream,
     MelonSlice,
     MushroomStew,
+    MusicDisc,
     Mutton,
     NautilusShell,
     NetherBrick,
@@ -214,9 +237,11 @@ comptime VanillaItems = ItemSet[
     NetheriteScrap,
     Paper,
     PhantomMembrane,
+    Pickaxe,
     PoisonousPotato,
     PoppedChorusFruit,
     Porkchop,
+    Potion,
     PotterySherd,
     PrismarineCrystals,
     PrismarineShard,
@@ -235,15 +260,18 @@ comptime VanillaItems = ItemSet[
     Salmon,
     Scute,
     Shears,
+    Shovel,
     ShulkerShell,
     Slimeball,
     SmithingTemplate,
     Snowball,
     SpiderEye,
+    SplashPotion,
     Spyglass,
     Stick,
     Sugar,
     SuspiciousStew,
+    Sword,
     Totem,
     TropicalFish,
     TurtleShell,

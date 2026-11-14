@@ -1,6 +1,6 @@
 """FireCharge, ported from Dragonfly `server/item/fire_charge.go`.
 
-TODO(port): `UseOnBlock`.
+TODO(player): `UseOnBlock`.
 """
 
 from ..world.item import EncodedItem, Item, item_hash
