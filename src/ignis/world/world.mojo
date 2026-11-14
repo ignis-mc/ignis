@@ -16,14 +16,21 @@ by the world and addressed by `LoaderID` (see `loader.mojo`).
 
 Durations are milliseconds (Go `time.Duration`); world ticks are 50 ms.
 
+Light is computed as Dragonfly does when a chunk loads (`Fill` for the
+chunk, then `Spread` for every loaded chunk whose 3x3 neighbourhood it
+completes; see `chunk/light_area.mojo`). Dragonfly never relights after
+that, so its light goes stale when blocks change; Ignis relights around
+every changed block (`chunk.light.relight`), giving what Dragonfly computes
+when the chunks are loaded again.
+
 Fixed from Dragonfly: chunks holding entities are always saved, and an
 entity changing chunk marks both chunks modified (Dragonfly lost entities
 that moved into an unmodified chunk and saved stale positions).
 
 Not ported yet: liquids beyond keeping layer 1 consistent, block entities,
-the light engine, redstone, particles and sounds, structures, lightning,
-sleeping, view layers, portals, and the disk provider. Errors Go logs
-(provider failures) are kept in `last_error` instead.
+redstone, particles and sounds, structures, lightning, sleeping, view
+layers, portals, and the disk provider. Errors Go logs (provider failures)
+are kept in `last_error` instead.
 """
 
 from std.collections import Dict, Set
@@ -47,6 +54,8 @@ from .chunk.chunk import Chunk
 from .chunk.column import Column as ChunkColumn
 from .chunk.column import Entity as ChunkEntity
 from .chunk.column import ScheduledBlockUpdate
+from .chunk.light import relight
+from .chunk.light_area import ChunkPointer, LightArea, chunk_pointer
 from .difficulty import Difficulty
 from .dimension import END, NETHER, OVERWORLD, Dimension
 from .entity import EntityHandle, EntityTypes
@@ -338,6 +347,8 @@ struct World[T: WorldTypes](Movable):
         var z = UInt8(pos.z() & 0xF)
         var ci = self._chunk(chunk_pos_from_block_pos(pos))
         var air = self._br[].air_runtime_id()
+        var old_light = self._light_info(ci, x, y, z)
+        var old_height = self._cols[ci].chunk.height_at(self._br[], x, z)
         self._cols[ci].modified = True
         self._cols[ci].chunk.set_block(x, y, z, 0, rid)
 
@@ -362,9 +373,83 @@ struct World[T: WorldTypes](Movable):
                 second_layer = True
             if second_layer:
                 self._notify_block(ci, pos, air, 1)
+        self._cols[ci].chunk.update_height_map_column(self._br[], x, z)
+        var height = self._cols[ci].chunk.height_at(self._br[], x, z)
+        if height != old_height or self._light_info(ci, x, y, z) != old_light:
+            self._relight(ci, pos, Int(old_height))
         self._notify_block(ci, pos, shown, 0)
         if not opts.disable_block_updates:
             self._do_block_updates_around(pos)
+
+    def _light_info(self, ci: Int, x: UInt8, y: Int16, z: UInt8) -> Int:
+        # The light emitted and filtered at a position (the higher of both
+        # layers), which with the height map is all light depends on.
+        ref c = self._cols[ci].chunk
+        var a = c.block(x, y, z, 0)
+        var b = c.block(x, y, z, 1)
+        var emission = max(self._br[].light_block(a), self._br[].light_block(b))
+        var filter = max(
+            self._br[].filtering_block(a), self._br[].filtering_block(b)
+        )
+        return (Int(emission) << 4) | Int(filter)
+
+    def _relight(mut self, ci: Int, pos: Pos, old_height: Int):
+        # Relights the 3x3 chunks around a changed block; chunks that are
+        # not loaded are left out.
+        var centre = self._cols[ci].pos
+        var ptrs = List[ChunkPointer](capacity=9)
+        var absent = List[Int]()
+        for dz in range(-1, 2):
+            for dx in range(-1, 2):
+                var p = ChunkPos(centre.x() + Int32(dx), centre.z() + Int32(dz))
+                var j = self._col_index.get(p).or_else(-1)
+                if j < 0:
+                    absent.append(len(ptrs))
+                    j = ci
+                ptrs.append(chunk_pointer(self._cols[j].chunk))
+        var a = LightArea(
+            self._br[], ptrs^, Int(centre.x()) - 1, Int(centre.z()) - 1
+        )
+        for i in absent:
+            a.set_absent(i)
+        relight(a, pos.x(), pos.y(), pos.z(), old_height)
+
+    def light(self, pos: Pos) -> UInt8:
+        """Returns the higher of the sky and block light at a position, 0 to
+        15; 0 in chunks that are not loaded (Go `Tx.Light`)."""
+        if pos.y() < self._ra.min():
+            return 0
+        if pos.y() > self._ra.max():
+            # Above the rest of the world, so full sky light.
+            return 15
+        if case .Some(ci) = self._col_index.get(chunk_pos_from_block_pos(pos)):
+            return self._cols[ci].chunk.light(
+                UInt8(pos.x() & 0xF), Int16(pos.y()), UInt8(pos.z() & 0xF)
+            )
+        return 0
+
+    def sky_light(mut self, pos: Pos) -> UInt8:
+        """Returns the sky light at a position, 0 to 15, loading or
+        generating its chunk if needed (Go `Tx.SkyLight`)."""
+        if pos.y() < self._ra.min():
+            return 0
+        if pos.y() > self._ra.max():
+            return 15
+        var ci = self._chunk(chunk_pos_from_block_pos(pos))
+        return self._cols[ci].chunk.sky_light(
+            UInt8(pos.x() & 0xF), Int16(pos.y()), UInt8(pos.z() & 0xF)
+        )
+
+    def block_light(mut self, pos: Pos) -> UInt8:
+        """Returns the light from light-emitting blocks at a position, 0 to
+        15, loading or generating its chunk if needed (Go
+        `Tx.BlockLight`)."""
+        if pos.out_of_bounds(self._ra):
+            return 0
+        var ci = self._chunk(chunk_pos_from_block_pos(pos))
+        return self._cols[ci].chunk.block_light(
+            UInt8(pos.x() & 0xF), Int16(pos.y()), UInt8(pos.z() & 0xF)
+        )
 
     def _notify_block(mut self, ci: Int, pos: Pos, rid: UInt32, layer: Int):
         var ids = self._cols[ci].viewers.copy()
@@ -999,11 +1084,15 @@ struct World[T: WorldTypes](Movable):
         return ci
 
     def _add_chunk(mut self, pos: ChunkPos, var c: ChunkColumn) -> Int:
-        # Go `addChunk` and `columnFrom`. Light and derived block states are
-        # not computed yet.
+        # Go `loadChunk`'s Fill, then `addChunk` and `columnFrom`. Derived
+        # block states are not computed yet.
         var ci = len(self._cols)
         self._cols.append(Column(pos, c.chunk.copy()))
         self._col_index[pos] = ci
+        var one = List[ChunkPointer]()
+        one.append(chunk_pointer(self._cols[ci].chunk))
+        var area = LightArea(self._br[], one^, Int(pos.x()), Int(pos.z()))
+        area.fill()
         for ref se in c.entities:
             try:
                 var maybe = EntityHandle[Self.T.Entities].decode_nbt(
@@ -1029,12 +1118,40 @@ struct World[T: WorldTypes](Movable):
                 ScheduledTick(t.pos, t.block, self._block_hash(t.block), tick)
             )
         self._scheduled.add(scheduled)
+        self._calculate_light(pos)
         return ci
+
+    def _calculate_light(mut self, centre: ChunkPos):
+        # Go `calculateLight`: spreads the light of every loaded chunk
+        # around centre whose neighbours are now all loaded.
+        for x in range(-1, 2):
+            for z in range(-1, 2):
+                var pos = ChunkPos(centre.x() + Int32(x), centre.z() + Int32(z))
+                if pos in self._col_index:
+                    self._spread_light(pos)
+
+    def _spread_light(mut self, pos: ChunkPos):
+        # Go `spreadLight`.
+        var ptrs = List[ChunkPointer](capacity=9)
+        for z in range(-1, 2):
+            for x in range(-1, 2):
+                var p = ChunkPos(pos.x() + Int32(x), pos.z() + Int32(z))
+                var found = self._col_index.get(p)
+                if not found:
+                    # Not all surrounding chunks exist: stop spreading.
+                    return
+                ptrs.append(chunk_pointer(self._cols[found.value()].chunk))
+        var area = LightArea(
+            self._br[], ptrs^, Int(pos.x()) - 1, Int(pos.z()) - 1
+        )
+        area.spread()
 
     def _column_to(mut self, ci: Int) raises -> ChunkColumn:
         # Go `columnTo`.
         var pos = self._cols[ci].pos
         var c = ChunkColumn(self._cols[ci].chunk.copy())
+        # Providers do not store light; it is computed again on load.
+        c.chunk.clear_light()
         for key in self._cols[ci].entities:
             if case .Some(i) = self._ent_index.get(key):
                 ref h = self._ents[i].handle

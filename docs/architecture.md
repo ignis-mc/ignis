@@ -396,9 +396,35 @@ Implemented in `ignis.server` (Go `server.go`, `conf.go`) and
   memtable; a full memtable (4 MiB) is written as a level-0 table in the
   writing call, followed by at most two compaction steps. Long pauses can
   be avoided by calling `DB.compact_once()` from idle time.
-- Not ported yet: the light engine (server-side only; the client computes
-  its own light), block entities, liquids, redstone, and the client blob
+- Not ported yet: block entities, liquids, redstone, and the client blob
   cache.
+
+## Light
+
+Implemented in `ignis.world.chunk` (`light.mojo`, `light_area.mojo`,
+`light_type.mojo`; Go `light.go`, `light_area.go`, `light_type.go`) and
+wired into `World`. Light is server-side state (the client computes its
+own); crops, grass, saplings and ice read it.
+
+- Sub-chunks hold sky and block light as `LightArray`s (Go's 2048-byte
+  nibble slices; a uniform array stands for Go's shared `fullLight` and
+  `noLight` until it is written).
+- A `LightArea` is Go's `lightArea` over `ChunkPointer`s into chunks the
+  caller owns. Loading a chunk runs `Fill` on it, then `Spread` for every
+  loaded chunk whose 3x3 neighbourhood it completes, as Go's `loadChunk`
+  and `addChunk` do.
+- Dragonfly never relights after a load. Ignis relights around every block
+  change (`chunk.light.relight`, called from `set_block_runtime_id` when the
+  emitted or filtered light or the height map changes), and the result is
+  what Dragonfly computes when it loads the chunks again, quirks included:
+  the block at a column's height map value does not light its neighbours in
+  the same chunk. Fixed: `Spread` also crosses borders in the top
+  sub-chunk.
+- The world API is Go's: `light(pos)` (does not load chunks),
+  `sky_light(pos)` and `block_light(pos)` (load them), all 0 to 15.
+- `interop/light` writes per-chunk hashes of every light array for six
+  scenarios, before and after block changes; `test_light.mojo` and
+  `test_world_light.mojo` reproduce them exactly.
 
 ## Commands
 
