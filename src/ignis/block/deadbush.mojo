@@ -4,8 +4,8 @@ Go's `replaceable` helper is `Replaceable`. Go's
 `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes with
 liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock,
-BoneMeal, CompostChance, FlammabilityInfo, EncodeItem and the drops.
+TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
+FlammabilityInfo and the drops.
 """
 
 from .block import Replaceable
@@ -13,6 +13,7 @@ from .hash import AnyBlock
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NOTHING_EFFECTIVE,
@@ -29,6 +30,7 @@ struct DeadBush(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
     Replaceable,
@@ -120,3 +122,12 @@ struct DeadBush(
     def replaceable_by(self, b: AnyBlock) -> Bool:
         """Any block replaces it (Go's embedded `replaceable`)."""
         return True
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:deadbush", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

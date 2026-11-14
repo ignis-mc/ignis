@@ -4,14 +4,17 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): UseOnBlock, Activate (pose changes), EncodeNBT,
-DecodeNBT, Model, Wax, Strip, RandomTick (attemptOxidation), EncodeItem and
-the drops.
+TODO(world-runtime): UseOnBlock, Activate (pose changes), Model, Wax, Strip,
+RandomTick (attemptOxidation) and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from minecraft.nbt.tree import Tag, Tree
+
+from ..internal.nbtconv.read import get_int32
+from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     PICKAXE_EFFECTIVE,
@@ -32,8 +35,10 @@ struct CopperGolemStatue(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
+    NBTer,
     Oxidisable,
 ):
     """A decorative statue left behind by a copper golem."""
@@ -199,3 +204,32 @@ struct CopperGolemStatue(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(
+            copper_block_name(
+                "copper_golem_statue", self.oxidation, self.waxed
+            ),
+            0,
+        )
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for o in oxidation_types():
+            out.append(Self(oxidation=o))
+            out.append(Self(oxidation=o, waxed=True))
+        return out^
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        _ = tag.put_int(root, "Pose", Int32(self.pose.uint8()))
+        _ = tag.put_string(root, "id", "CopperGolemStatue")
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        var c = self.copy()
+        c.pose = CopperGolemPose(Int(get_int32(tag, root, "Pose")))
+        return c^

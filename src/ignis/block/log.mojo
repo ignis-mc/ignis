@@ -1,7 +1,6 @@
 """`Log`, ported from Dragonfly `server/block/log.go`.
 
-TODO(world-runtime): Strip, EncodeItem, FlammabilityInfo,
-FuelInfo and the drops.
+TODO(world-runtime): Strip, FlammabilityInfo and the drops.
 """
 
 from .cube.face import Face
@@ -11,9 +10,14 @@ from ..mgl64 import Vec3
 from ..world.world import World, WorldTypes
 from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
 from .hash import AnyBlock
+
+from ..item.charcoal import Charcoal
+from ..item.smelting_info import Fuel, FuelInfo, SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -31,8 +35,11 @@ struct Log(
     Block,
     Breakable,
     Equatable,
+    Fuel,
     ImplicitlyCopyable,
+    Item,
     ModelledBlock,
+    Smeltable,
     UsableOnBlock,
 ):
     """A naturally occurring block found in trees, used to craft other blocks.
@@ -178,3 +185,31 @@ struct Log(
         return [
             Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()), False)
         ]
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): 15 s if the wood burns."""
+        if not self.wood.flammable():
+            return FuelInfo()
+        return FuelInfo(15000)
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns what smelting the block gives (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(Charcoal(), 1), 0.15)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        var stem = self.wood == WoodType.CRIMSON or self.wood == WoodType.WARPED
+        var suffix = "_stem" if stem else "_log"
+        if not self.stripped:
+            return EncodedItem(String(t"minecraft:{self.wood}{suffix}"), 0)
+        return EncodedItem(String(t"minecraft:stripped_{self.wood}{suffix}"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for w in wood_types():
+            if w != WoodType.BAMBOO:
+                out.append(Self(wood=w, stripped=True))
+                out.append(Self(wood=w))
+        return out^

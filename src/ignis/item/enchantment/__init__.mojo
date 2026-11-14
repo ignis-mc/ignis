@@ -146,6 +146,15 @@ struct ItemFilter(Equatable, ImplicitlyCopyable):
         return False
 
 
+trait Enchantable:
+    """An item that may be enchanted at an enchanting table (Go
+    `item.Enchantable`)."""
+
+    def enchantment_value(self) -> Int:
+        """Returns the item's enchantability; higher gives better offers."""
+        ...
+
+
 trait EnchantmentType(Copyable, Defaultable, Deinitable):
     """A type of enchantment (Go `item.EnchantmentType`)."""
 

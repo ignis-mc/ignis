@@ -1,14 +1,15 @@
 """`ConcretePowder`, ported from Dragonfly
 `server/block/concrete_powder.go`.
 
-TODO(world-runtime): Solidifies, NeighbourUpdateTick, the falling behaviour
-of `gravityAffected`, EncodeItem and the drops.
+TODO(world-runtime): Solidifies, NeighbourUpdateTick, the falling behaviour of
+`gravityAffected` and the drops.
 """
 
 from ..item.colour import Colour, colours
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     SHOVEL_EFFECTIVE,
@@ -21,7 +22,7 @@ from .model.solid import Solid as SolidModel
 
 
 struct ConcretePowder(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
 ):
     """A gravity affected block that comes in 16 different colours."""
 
@@ -107,3 +108,17 @@ struct ConcretePowder(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(
+            String(t"minecraft:{self.colour}_concrete_powder"), 0
+        )
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for c in colours():
+            out.append(Self(colour=c))
+        return out^

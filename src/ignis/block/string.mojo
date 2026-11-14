@@ -4,17 +4,18 @@ Go names the type `String`; here it is `StringBlock` so that it does not
 shadow the built-in `String` wherever it is imported.
 
 TODO(world-runtime): UseOnBlock, EntityInside, NeighbourUpdateTick, tripwire
-hook logic, HasLiquidDrops, Model, EncodeItem and the drops.
+hook logic, HasLiquidDrops, Model and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .connections import Connections, all_connections
@@ -27,6 +28,7 @@ struct StringBlock(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -175,3 +177,12 @@ struct StringBlock(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:string", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

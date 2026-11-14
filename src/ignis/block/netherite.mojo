@@ -1,16 +1,17 @@
 """`Netherite`, ported from Dragonfly `server/block/netherite.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the drops, PowersBeacon.
+TODO(world-runtime): the drops and PowersBeacon.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    HARVEST_LEVEL_DIAMOND,
-    PICKAXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    HARVEST_LEVEL_DIAMOND,
+    PICKAXE_EFFECTIVE,
     new_break_info,
     pickaxe_harvestable_from,
 )
@@ -19,7 +20,12 @@ from .model.solid import Solid as SolidModel
 
 
 struct Netherite(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A precious mineral block made from 9 netherite ingots."""
 
@@ -99,3 +105,12 @@ struct Netherite(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:netherite_block", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

@@ -66,6 +66,7 @@ from minecraft.protocol.skin import (
     Skin,
     SkinAnimation,
 )
+from minecraft.protocol.packet.packet import encode_packet
 from minecraft.protocol.uuid import UUID
 from minecraft.server_status_provider import ListenerStatusProvider
 from nethernet.crypto.base64 import base64_decode
@@ -112,9 +113,15 @@ from ..block.grass import Grass
 from ..block.register import vanilla_block_registry
 from ..block.register import VanillaBlocks
 from ..entity.register import VanillaEntities
+from ..item.creative.creative import load_creative_items
+from ..item.recipe.vanilla import load_vanilla_recipes
+from ..item.register import vanilla_item_registry
 from ..mgl64 import Vec3
 from ..player.player import BBOX_HEIGHT, BBOX_WIDTH, EYE_HEIGHT, Player
+from ..session.armour_trim import trim_data
 from ..session.conn import NetConn
+from ..session.creative import creative_content
+from ..session.recipes import crafting_data, random_recipe_ids
 from ..session.session import Config as SessionConfig
 from ..session.session import (
     HandleResult,
@@ -217,6 +224,32 @@ def data_driven_block_entries(path: String) raises -> List[BlockEntry]:
         entry.properties = to_nbt(props, NETWORK_LITTLE_ENDIAN)
         out.append(entry^)
     return out^
+
+
+def item_packets(
+    br: BasicBlockRegistry, vanilla_items_path: String
+) raises -> Tuple[List[UInt8], List[UInt8], List[UInt8], List[Stack]]:
+    """Encodes the `CreativeContent`, `CraftingData` and `TrimData` packets
+    every session gets on join, and returns the creative items in network
+    ID order (ID n is entry n - 1). Go builds the packets per session, with
+    new random recipe IDs each time; Ignis builds them once, so the recipe
+    IDs are random per server start."""
+    var reg = vanilla_item_registry(vanilla_items_path)
+    var creative = load_creative_items(br, reg)
+    var recipes = load_vanilla_recipes(br, reg)
+    var ids = random_recipe_ids(len(recipes.recipes()))
+    var creative_pk = creative_content(br, reg, creative)
+    var crafting_pk = crafting_data(br, reg, recipes, ids)
+    var trim_pk = trim_data()
+    var stacks = List[Stack]()
+    for ref i in creative.items():
+        stacks.append(i.stack.copy())
+    return (
+        encode_packet(creative_pk),
+        encode_packet(crafting_pk),
+        encode_packet(trim_pk),
+        stacks^,
+    )
 
 
 def _random_uuid_string() raises -> String:
@@ -384,9 +417,12 @@ struct Server(Movable):
     var item_registry: ArcPointer[ItemRegistry]
     """The registered items, shared with the sessions."""
     var creative_items: ArcPointer[List[Stack]]
-    """The creative inventory (Go `creative.Items`); empty until the
-    creative items are ported."""
+    """The creative inventory (Go `creative.Items`), in network ID
+    order."""
     var _biomes: List[UInt8]
+    var _creative: List[UInt8]
+    var _crafting: List[UInt8]
+    var _trim: List[UInt8]
     var _custom_blocks: List[BlockEntry]
     var _pending: List[MinecraftConn]
     var _closing: List[MinecraftConn]
@@ -417,6 +453,9 @@ struct Server(Movable):
         var items = item_entries(conf.vanilla_items_path)
         var item_reg = vanilla_item_registry(conf.vanilla_items_path)
         var biomes = biome_definition_packet(vanilla_biome_registry())
+        var item_pks = item_packets(
+            world.block_registry()[], conf.vanilla_items_path
+        )
         var blocks = data_driven_block_entries(conf.data_driven_blocks_path)
         var lc = ListenConfig()
         lc.authentication_disabled = conf.auth_disabled
@@ -432,8 +471,11 @@ struct Server(Movable):
         register_builtin_commands(self.commands)
         self._items = items^
         self.item_registry = ArcPointer(item_reg^)
-        self.creative_items = ArcPointer(List[Stack]())
+        self.creative_items = ArcPointer(item_pks[3].copy())
         self._biomes = biomes^
+        self._creative = item_pks[0].copy()
+        self._crafting = item_pks[1].copy()
+        self._trim = item_pks[2].copy()
         self._custom_blocks = blocks^
         self._pending = List[MinecraftConn]()
         self._closing = List[MinecraftConn]()
@@ -903,6 +945,9 @@ struct Server(Movable):
         sc.blocks = self.world.block_registry()
         sc.items = self.item_registry
         sc.creative_items = self.creative_items
+        sc.creative_content = self._creative.copy()
+        sc.crafting_data = self._crafting.copy()
+        sc.trim_data = self._trim.copy()
         self.sessions.append(Session(NetConn(conn^), player^, skin^, sc))
         var n = len(self.sessions) - 1
         if case .Some(d) = self._player_data.get(uuid_key(uuid)):

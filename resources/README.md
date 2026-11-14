@@ -7,6 +7,9 @@ dependencies.
 | --- | --- | --- |
 | `block_states.nbt` | Dragonfly v0.11.6 `server/world/block_states.nbt` (Minecraft 1.26.60, protocol 2225) | `88b8c903ac75d46247bed5ff785c0c050068d28440190f7412d697b045d2d51f` |
 | `data_driven_blocks.nbt` | Dragonfly v0.11.6 `server/world/data_driven_blocks.nbt` (Minecraft 1.26.60, protocol 2225) | `edd004e69730a5f4ced9b2feef25d2c6b2ffba8153e2e81686ed4b57cf0d47ef` |
+| `creative_items.nbt` | Dragonfly v0.11.6 `server/item/creative/creative_items.nbt` (Minecraft 1.26.60, protocol 2225) | `8cc5f625407023eb400381616323bdf51a4c111bf1566edebff7d0a3f87a41e3` |
+| `crafting_data.nbt`, `smithing_data.nbt`, `smithing_trim_data.nbt`, `potion_data.nbt` | Dragonfly v0.11.6 `server/item/recipe/` (Minecraft 1.26.60, protocol 2225) | `5458827f9541cfdef12f083f10ba8fa278d56b391d0768a0d857e71f3235f8f2`, `317f704a96997fffa2e0b3cb5590a80cd0d2ea00d2d46eb9451e45b8506e148a`, `2ad132a2c5566336ddc9e2d0de5548c72336b2268c85ee42942851da864694e0`, `992a90ef8835226aaacdf450bb32148df8e1a91f0ff5c82e4a08f47f64d6c96e` |
+| `item_tags.json` | Dragonfly v0.11.6 `server/item/recipe/item_tags.json` | `4af255938ccb9617cb7d33f9d531e38e5f2cbfeda28dbaca80bcb6076350227d` |
 | `vanilla_items.nbt` | Dragonfly v0.11.6 `server/world/vanilla_items.nbt` (Minecraft 1.26.60, protocol 2225) | `b3a2e88d38525e494a1a3658cec2f02bd03c74975ed67cedad518beceeadef8f` |
 
 | `legacy_states.nbt` | Dragonfly v0.11.6 `server/world/chunk/legacy_states.nbt` | `a07a8a60d868c3334f7a57b2ff020a28a7a76397f40fd42ff8e5e44f08cb87e3` |
@@ -19,6 +22,16 @@ registers them. `ignis.world.block_registry` loads it.
 `vanilla_items.nbt` is one network-little-endian compound mapping each item
 name to `{runtime_id, component_based, version, data?}`: the item table
 StartGame carries and the item runtime IDs. `ignis.world.item` loads it.
+
+`creative_items.nbt` is one network-little-endian compound `{groups: [{category,
+name, icon}], items: [{name, meta, nbt?, block_properties?, group_index?}]}`:
+the creative inventory. `ignis.item.creative.creative` loads it.
+
+The recipe files are network-little-endian NBT: `crafting_data.nbt` a
+compound `{shaped, shapeless, shulker_box, multi}`, the smithing files lists
+of recipes and `potion_data.nbt` `{potions, container_changes}`;
+`item_tags.json` maps item tags to item names. `ignis.item.recipe.vanilla`
+loads them.
 
 `data_driven_blocks.nbt` is one little-endian compound `{blocks: [{name,
 components}]}`: the vanilla blocks StartGame must list for the client to

@@ -116,6 +116,21 @@ trait Item(Copyable, Deinitable):
         ...
 
 
+trait ItemHasher(Item):
+    """An item whose identity holds more than its `hash`: a block whose item
+    depends on block entity data, such as a banner's colour (Go compares
+    the whole item value). `AnyItem` stores `item_hash` for these."""
+
+    def item_hash(self) -> UInt64:
+        """Returns the hash identifying the item among its type's items."""
+        ...
+
+    @staticmethod
+    def from_item_hash(hash: UInt64) -> Self:
+        """Rebuilds the item from the value `item_hash` returned."""
+        ...
+
+
 @fieldwise_init
 struct AnyItem(Equatable, Hashable, ImplicitlyCopyable, Writable):
     """An item whose type is only known at run time (Go: a `world.Item`
@@ -141,6 +156,8 @@ struct AnyItem(Equatable, Hashable, ImplicitlyCopyable, Writable):
         Returns:
             The item as an `AnyItem`.
         """
+        comptime if conforms_to(T, ItemHasher):
+            return AnyItem(T.BASE_HASH, _item_hash(it), conforms_to(T, Block))
         return AnyItem(T.BASE_HASH, it.hash(), conforms_to(T, Block))
 
     def is_a[T: Item](self) -> Bool:
@@ -165,7 +182,7 @@ struct AnyItem(Equatable, Hashable, ImplicitlyCopyable, Writable):
         """
         if not self.is_a[T]():
             return None
-        return T.from_hash(self.hash)
+        return from_any_hash[T](self.hash)
 
     def write_to(self, mut writer: Some[Writer]):
         """Writes the kind and hash, for debugging.
@@ -500,3 +517,19 @@ struct ItemRegistry(Copyable, Defaultable):
                 entry.data = NBT.empty_compound()
             out.append(entry^)
         return out^
+
+
+def from_any_hash[T: Item](hash: UInt64) -> T:
+    """Rebuilds an item from an `AnyItem.hash`: `from_item_hash` for an
+    `ItemHasher`, `from_hash` otherwise."""
+    comptime if conforms_to(T, ItemHasher):
+        return _from_item_hash[T](hash)
+    return T.from_hash(hash)
+
+
+def _item_hash[T: ItemHasher](it: T) -> UInt64:
+    return it.item_hash()
+
+
+def _from_item_hash[T: ItemHasher](hash: UInt64) -> T:
+    return T.from_item_hash(hash)

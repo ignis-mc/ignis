@@ -1,12 +1,12 @@
 """`Copper`, ported from Dragonfly `server/block/copper.go`.
 
-TODO(world-runtime): Wax, Strip, RandomTick (attemptOxidation), EncodeItem
-and the drops.
+TODO(world-runtime): Wax, Strip, RandomTick (attemptOxidation) and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     HARVEST_LEVEL_STONE,
     PICKAXE_EFFECTIVE,
@@ -23,7 +23,13 @@ from .oxidizable import Oxidisable
 
 
 struct Copper(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock, Oxidisable
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Oxidisable,
 ):
     """A solid block commonly found in deserts and beaches underneath sand."""
 
@@ -178,3 +184,30 @@ struct Copper(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if (
+            self.type == CopperType.NORMAL
+            and self.oxidation == OxidationType.UNOXIDISED
+            and not self.waxed
+        ):
+            return EncodedItem("minecraft:copper_block", 0)
+        var name = String("copper")
+        if self.type != CopperType.NORMAL:
+            name = String(t"{self.type}_{name}")
+        if self.oxidation != OxidationType.UNOXIDISED:
+            name = String(t"{self.oxidation}_{name}")
+        if self.waxed:
+            name = "waxed_" + name
+        return EncodedItem("minecraft:" + name, 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for o in oxidation_types():
+            for c in copper_types():
+                out.append(Self(type=c, oxidation=o))
+                out.append(Self(type=c, oxidation=o, waxed=True))
+        return out^

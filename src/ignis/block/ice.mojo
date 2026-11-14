@@ -1,12 +1,13 @@
 """`Ice`, ported from Dragonfly `server/block/ice.go`.
 
-TODO(world-runtime): Friction, RandomTick (melting), the break handler
-turning it into water, EncodeItem and the drops.
+TODO(world-runtime): Friction, RandomTick (melting), the break handler turning
+it into water and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     PICKAXE_EFFECTIVE,
@@ -23,6 +24,7 @@ struct Ice(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -109,3 +111,12 @@ struct Ice(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:ice", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

@@ -2,20 +2,22 @@
 
 Go's `replaceable` helper is `Replaceable`.
 
-TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock,
-BoneMeal, CompostChance, FlammabilityInfo, EncodeItem and the drops.
+TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
+FlammabilityInfo and the drops.
 """
 
 from .block import Replaceable
 from .hash import AnyBlock
+from ..item.item import Compostable
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_SHORT_GRASS
@@ -25,8 +27,10 @@ from .model.empty import Empty as EmptyModel
 struct ShortGrass(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
     Replaceable,
@@ -125,3 +129,16 @@ struct ShortGrass(
     def replaceable_by(self, b: AnyBlock) -> Bool:
         """Any block replaces it (Go's embedded `replaceable`)."""
         return True
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:short_grass", 0)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.65
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

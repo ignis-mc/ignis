@@ -1,12 +1,13 @@
 """`Farmland`, ported from Dragonfly `server/block/farmland.go`.
 
-TODO(world-runtime): SoilFor, NeighbourUpdateTick, RandomTick (with
-hydrated), EntityLand, EncodeItem and the drops.
+TODO(world-runtime): SoilFor, NeighbourUpdateTick, RandomTick (with hydrated),
+EntityLand and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     SHOVEL_EFFECTIVE,
@@ -18,7 +19,9 @@ from .hash import HASH_FARMLAND
 from .model.tilled_grass import TilledGrass as TilledGrassModel
 
 
-struct Farmland(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Farmland(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A block that crops are grown on, created by using a hoe on dirt or grass.
     """
 
@@ -107,3 +110,12 @@ struct Farmland(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return TilledGrassModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:farmland", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

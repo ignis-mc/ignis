@@ -1,11 +1,14 @@
 """`Clay`, ported from Dragonfly `server/block/clay.go`.
 
-TODO(world-runtime): Instrument, EncodeItem and the drops.
+TODO(world-runtime): Instrument and the drops.
 """
 
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     SHOVEL_EFFECTIVE,
@@ -15,9 +18,18 @@ from .break_info import (
 )
 from .hash import HASH_CLAY
 from .model.solid import Solid as SolidModel
+from .terracotta import Terracotta
 
 
-struct Clay(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Clay(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
+):
     """A block that can be found underwater."""
 
     comptime BASE_HASH: UInt64 = HASH_CLAY
@@ -92,3 +104,16 @@ struct Clay(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns what smelting the block gives (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(Terracotta(), 1), 0.35)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:clay", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

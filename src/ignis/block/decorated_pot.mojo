@@ -3,15 +3,18 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the `Item item.Stack` and `Decorations
-[4]PotDecoration` fields, PotDecoration, InsertItem, ExtractItem, wobble,
-ProjectileHit, Model, UseOnBlock, SideClosed, EncodeNBT, DecodeNBT, the
-break handler, EncodeItem and the drops.
+TODO(world-runtime): the `Item item.Stack` and `Decorations [4]PotDecoration`
+fields, PotDecoration, InsertItem, ExtractItem, wobble, ProjectileHit, Model,
+UseOnBlock, SideClosed, the break handler and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from minecraft.nbt.nbt import TAG_STRING
+from minecraft.nbt.tree import Tag, Tree
+
+from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .block import horizontal_direction
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -30,8 +33,10 @@ struct DecoratedPot(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
+    NBTer,
 ):
     """A decorative block that can be crafted from bricks and pottery sherds."""
 
@@ -131,3 +136,26 @@ struct DecoratedPot(
             The model.
         """
         return DecoratedPotModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:decorated_pot", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        _ = tag.put_string(root, "id", "DecoratedPot")
+        # TODO(world-runtime): the decorations and the item; without
+        # decorations every side is a brick.
+        var sherds = tag.put_list(root, "sherds", TAG_STRING)
+        for _ in range(4):
+            _ = tag.append_string(sherds, "minecraft:brick")
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        # TODO(world-runtime): the item and the decorations (sherds).
+        return Self(facing=self.facing)

@@ -1,22 +1,23 @@
 """`Torch`, ported from Dragonfly `server/block/torch.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, HasLiquidDrops,
-EncodeItem and the drops.
+TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, HasLiquidDrops and the
+drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .block import UNKNOWN_FACE
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .cube.face import Face, faces
-from .fire_type import FireType
+from .fire_type import FireType, fire_types
 from .hash import HASH_TORCH
 from .model.empty import Empty as EmptyModel
 
@@ -26,6 +27,7 @@ struct Torch(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
@@ -155,3 +157,17 @@ struct Torch(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.type == FireType.SOUL:
+            return EncodedItem("minecraft:soul_torch", 0)
+        return EncodedItem("minecraft:torch", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in fire_types():
+            out.append(Torch(type=v))
+        return out^

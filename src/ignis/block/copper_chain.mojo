@@ -4,12 +4,13 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): SideClosed, UseOnBlock, Model, Wax, Strip, RandomTick
-(attemptOxidation), EncodeItem and the drops.
+(attemptOxidation) and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -29,6 +30,7 @@ struct CopperChain(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
     Oxidisable,
@@ -185,3 +187,18 @@ struct CopperChain(
             The model.
         """
         return ChainModel(axis=self.axis)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(
+            copper_block_name("copper_chain", self.oxidation, self.waxed), 0
+        )
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for o in oxidation_types():
+            out.append(Self(oxidation=o))
+            out.append(Self(oxidation=o, waxed=True))
+        return out^

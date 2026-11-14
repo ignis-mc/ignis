@@ -1,16 +1,17 @@
 """`MudBricks`, ported from Dragonfly `server/block/mud_bricks.go`.
 
-TODO(world-runtime): EncodeItem and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_MUD_BRICKS
@@ -18,7 +19,12 @@ from .model.solid import Solid as SolidModel
 
 
 struct MudBricks(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A decorative block obtained by crafting 4 packed mud."""
 
@@ -96,3 +102,12 @@ struct MudBricks(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:mud_bricks", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

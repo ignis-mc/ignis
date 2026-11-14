@@ -5,13 +5,16 @@ with liquids.
 
 TODO(world-runtime): the `Items [4]CampfireItem` field, Model, SideClosed,
 Activate, UseOnBlock, Splash, Ignite, Extinguish, Tick, NeighbourUpdateTick,
-EntityInside, DecodeNBT, EncodeNBT, the drops (charcoal or soul soil) and
-break handler, FlammabilityInfo, EncodeItem.
+EntityInside, the drops (charcoal or soul soil) and break handler,
+FlammabilityInfo.
 """
 
-from ..world.block import Block, LightDiffuser, LightEmitter
+from minecraft.nbt.tree import Tag, Tree
+
+from ..world.block import Block, LightDiffuser, LightEmitter, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -30,9 +33,11 @@ struct Campfire(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
+    NBTer,
 ):
     """A block that can be used to cook food, pacify bees, act as a spread-proof light source,
     smoke signal or damaging trap block."""
@@ -170,3 +175,27 @@ struct Campfire(
             The model.
         """
         return CampfireModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.type == FireType.SOUL:
+            return EncodedItem("minecraft:soul_campfire", 0)
+        return EncodedItem("minecraft:campfire", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for f in fire_types():
+            out.append(Self(type=f))
+        return out^
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        _ = tag.put_string(root, "id", "Campfire")
+        # TODO(world-runtime): Item1-4 and ItemTime1-4 of the cooking items.
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        # TODO(world-runtime): the cooking items.
+        return self.copy()

@@ -1,19 +1,28 @@
 """`EndPortalFrame`, ported from Dragonfly
 `server/block/end_portal_frame.go`.
 
-TODO(world-runtime): Model, UseOnBlock, EncodeItem.
+TODO(world-runtime): Model, UseOnBlock.
 """
 
-from ..world.block import Block, LightEmitter
+from minecraft.nbt.tree import Tag, Tree
+
+from ..world.block import Block, LightEmitter, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .cube.direction import Direction, directions
 from .hash import HASH_END_PORTAL_FRAME
 from .model.end_portal_frame import EndPortalFrame as EndPortalFrameModel
 
 
 struct EndPortalFrame(
-    Block, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+    Block,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    LightEmitter,
+    ModelledBlock,
+    NBTer,
 ):
     """A block that makes up an end portal."""
 
@@ -115,3 +124,22 @@ struct EndPortalFrame(
             The model.
         """
         return EndPortalFrameModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:end_portal_frame", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the End portal block actor stored with the frame (Go
+        `EncodeNBT`)."""
+        _ = tag.put_string(root, "id", "EndPortal")
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the frame; eye and facing are block state (Go `DecodeNBT`).
+        """
+        return self.copy()

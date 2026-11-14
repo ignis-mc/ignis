@@ -1,23 +1,31 @@
 """`Tuff`, ported from Dragonfly `server/block/tuff.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the `oneOf` drops.
+TODO(world-runtime): the `oneOf` drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .hash import HASH_TUFF
 from .model.solid import Solid as SolidModel
 
 
-struct Tuff(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Tuff(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+):
     """An ornamental rock formed from volcanic ash."""
 
     comptime BASE_HASH: UInt64 = HASH_TUFF
@@ -103,3 +111,14 @@ struct Tuff(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.chiseled:
+            return EncodedItem("minecraft:chiseled_tuff", 0)
+        return EncodedItem("minecraft:tuff", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Tuff(), Tuff(chiseled=True)]

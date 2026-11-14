@@ -1,11 +1,12 @@
 """`EndStone`, ported from Dragonfly `server/block/end_stone.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the `oneOf` drops.
+TODO(world-runtime): the `oneOf` drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -17,7 +18,9 @@ from .hash import HASH_END_STONE
 from .model.solid import Solid as SolidModel
 
 
-struct EndStone(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct EndStone(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A block found in the End."""
 
     comptime BASE_HASH: UInt64 = HASH_END_STONE
@@ -94,3 +97,12 @@ struct EndStone(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:end_stone", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

@@ -3,7 +3,7 @@
 Go's `replaceable` and `flowingWaterDisplacer` helpers come with `world.Tx`
 and liquids.
 
-TODO(world-runtime): SideClosed, EncodeItem.
+TODO(world-runtime): SideClosed.
 """
 
 from .block import Replaceable
@@ -11,6 +11,7 @@ from .hash import AnyBlock
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .hash import HASH_LIGHT
 from .model.empty import Empty as EmptyModel
 
@@ -19,6 +20,7 @@ struct Light(
     Block,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
@@ -121,3 +123,15 @@ struct Light(
     def replaceable_by(self, b: AnyBlock) -> Bool:
         """Any block replaces it (Go's embedded `replaceable`)."""
         return True
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:light_block_{self.level}"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for i in range(16):
+            out.append(Self(level=i))
+        return out^

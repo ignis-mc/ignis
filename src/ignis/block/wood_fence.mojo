@@ -4,12 +4,14 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): NeighbourUpdateTick, DeriveState, SideClosed, Model,
-FlammabilityInfo, FuelInfo, EncodeItem and the drops.
+FlammabilityInfo and the drops.
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -27,7 +29,9 @@ struct WoodFence(
     Block,
     Breakable,
     Equatable,
+    Fuel,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -143,3 +147,21 @@ struct WoodFence(
             The model.
         """
         return FenceModel(wood=True)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.wood}_fence"), 0)
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`); none for nether wood."""
+        if not self.wood.flammable():
+            return FuelInfo()
+        return FuelInfo(15000)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in wood_types():
+            out.append(WoodFence(wood=v))
+        return out^

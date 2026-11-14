@@ -1,11 +1,12 @@
 """`LitPumpkin`, ported from Dragonfly `server/block/lit_pumpkin.go`.
 
-TODO(world-runtime): UseOnBlock, EncodeItem and the drops.
+TODO(world-runtime): UseOnBlock and the drops.
 """
 
 from ..world.block import Block, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -19,7 +20,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct LitPumpkin(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A jack o'lantern: a carved pumpkin with a torch inside."""
 
@@ -118,3 +125,12 @@ struct LitPumpkin(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:lit_pumpkin", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

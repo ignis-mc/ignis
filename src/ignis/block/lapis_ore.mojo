@@ -1,11 +1,15 @@
 """`LapisOre`, ported from Dragonfly `server/block/lapis_ore.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
+TODO(world-runtime): the drops.
 """
 
+from ..item.lapis_lazuli import LapisLazuli
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     HARVEST_LEVEL_STONE,
     PICKAXE_EFFECTIVE,
@@ -19,7 +23,15 @@ from .model.solid import Solid as SolidModel
 from .ore_type import OreType, ore_types
 
 
-struct LapisOre(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct LapisOre(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
+):
     """An ore block from which lapis lazuli is obtained."""
 
     comptime BASE_HASH: UInt64 = HASH_LAPIS_ORE
@@ -112,3 +124,21 @@ struct LapisOre(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns what smelting the block gives (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(LapisLazuli(), 1), 0.2, ores=True)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(
+            String(t"minecraft:{self.type.prefix()}lapis_ore"), 0
+        )
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for o in ore_types():
+            out.append(Self(type=o))
+        return out^

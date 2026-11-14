@@ -4,13 +4,18 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the `Book item.Stack` field, Model, SideClosed,
-UseOnBlock, Activate, Punch, TurnPage, EncodeNBT, DecodeNBT,
-FlammabilityInfo, FuelInfo, EncodeItem and the drops (the book).
+UseOnBlock, Activate, Punch, TurnPage, FlammabilityInfo and the drops (the
+book).
 """
 
-from ..world.block import Block
+from minecraft.nbt.tree import Tag, Tree
+
+from ..internal.nbtconv.read import get_int32
+from ..item.smelting_info import Fuel, FuelInfo
+from ..world.block import Block, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -23,7 +28,16 @@ from .hash import HASH_LECTERN
 from .model.lectern import Lectern as LecternModel
 
 
-struct Lectern(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Lectern(
+    Block,
+    Breakable,
+    Equatable,
+    Fuel,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    NBTer,
+):
     """A librarian's job site block found in villages, used to hold books for multiple players to
     read in multiplayer."""
 
@@ -120,3 +134,31 @@ struct Lectern(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return LecternModel()
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
+        return FuelInfo(15000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:lectern", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        # TODO(world-runtime): book and totalPages, once the lectern holds a
+        # book.
+        _ = tag.put_byte(root, "hasBook", 0)
+        _ = tag.put_int(root, "page", Int32(self.page))
+        _ = tag.put_string(root, "id", "Lectern")
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        var l = self.copy()
+        l.page = Int(get_int32(tag, root, "page"))
+        # TODO(world-runtime): the book.
+        return l^

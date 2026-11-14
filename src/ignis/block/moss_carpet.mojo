@@ -1,17 +1,19 @@
 """`MossCarpet`, ported from Dragonfly `server/block/moss_carpet.go`.
 
 TODO(world-runtime): SideClosed, HasLiquidDrops, NeighbourUpdateTick,
-UseOnBlock, CompostChance, EncodeItem and the drops.
+UseOnBlock and the drops.
 """
 
+from ..item.item import Compostable
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_MOSS_CARPET
@@ -21,8 +23,10 @@ from .model.carpet import Carpet as CarpetModel
 struct MossCarpet(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -109,3 +113,16 @@ struct MossCarpet(
             The model.
         """
         return CarpetModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:moss_carpet", 0)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.3
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

@@ -1,17 +1,19 @@
 """`NetherWartBlock`, ported from Dragonfly
 `server/block/nether_wart_block.go`.
 
-TODO(world-runtime): CompostChance, EncodeItem and the drops.
+TODO(world-runtime): the drops.
 """
 
+from ..item.item import Compostable
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    HOE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    HOE_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_NETHER_WART_BLOCK
@@ -19,7 +21,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct NetherWartBlock(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Compostable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A decorative block found in crimson forests and crafted from nether wart.
     """
@@ -105,3 +113,18 @@ struct NetherWartBlock(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.warped:
+            return EncodedItem("minecraft:warped_wart_block", 0)
+        return EncodedItem("minecraft:nether_wart_block", 0)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.85
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [NetherWartBlock(warped=True), NetherWartBlock()]

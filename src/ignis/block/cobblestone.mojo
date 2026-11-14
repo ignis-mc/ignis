@@ -1,12 +1,14 @@
 """`Cobblestone`, ported from Dragonfly `server/block/cobblestone.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the `oneOf` drops,
-RepairsStoneTools.
+TODO(world-runtime): the `oneOf` drops, RepairsStoneTools.
 """
 
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -16,10 +18,17 @@ from .break_info import (
 )
 from .hash import HASH_COBBLESTONE
 from .model.solid import Solid as SolidModel
+from .stone import Stone
 
 
 struct Cobblestone(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
 ):
     """A common block, obtained from mining stone."""
 
@@ -106,3 +115,18 @@ struct Cobblestone(
             The model.
         """
         return SolidModel()
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns what smelting the block gives (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(Stone(), 1), 0.1)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.mossy:
+            return EncodedItem("minecraft:mossy_cobblestone", 0)
+        return EncodedItem("minecraft:cobblestone", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self(mossy=True), Self()]

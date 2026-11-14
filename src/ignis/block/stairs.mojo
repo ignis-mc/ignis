@@ -4,8 +4,8 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): NeighbourUpdateTick, DeriveState,
-calculateCorner, continued, Model, Instrument, FlammabilityInfo, FuelInfo,
-SideClosed, EncodeItem and the drops.
+calculateCorner, continued, Model, Instrument, FlammabilityInfo, SideClosed and
+the drops.
 """
 
 from .cube.face import Face
@@ -15,13 +15,23 @@ from ..mgl64 import Vec3
 from ..world.world import World, WorldTypes
 from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
 from .hash import AnyBlock
+
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import BreakInfo, Breakable, new_break_info
 from .cube.direction import Direction
-from .hash import HASH_STAIRS, AnyBlock, hash_block, unhash_block
+from .hash import (
+    AnyBlock,
+    HASH_BAMBOO_MOSAIC,
+    HASH_STAIRS,
+    hash_block,
+    unhash_block,
+)
 from .model.stair import Stair as StairModel
+from .planks import Planks
 from .register import break_info
 from .stairs_corner import StairsCorner, stairs_corners
 from .stairs_type import encode_stairs_block, stairs_blocks
@@ -31,7 +41,9 @@ struct Stairs(
     Block,
     Breakable,
     Equatable,
+    Fuel,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
     UsableOnBlock,
@@ -210,6 +222,29 @@ struct Stairs(
         return [
             Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()), False)
         ]
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(
+            String(t"minecraft:{encode_stairs_block(self.block)}_stairs"), 0
+        )
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info of the block it is made of (Go `FuelInfo`)."""
+        if case .Some(p) = self.block.get[Planks]():
+            return p.fuel_info()
+        if self.block.kind == HASH_BAMBOO_MOSAIC:
+            # Go `BambooMosaic.FuelInfo`.
+            return FuelInfo(15000)
+        return FuelInfo()
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in stairs_blocks():
+            out.append(Stairs(block=v))
+        return out^
 
 
 def to_stairs_direction(v: Direction) -> Int32:

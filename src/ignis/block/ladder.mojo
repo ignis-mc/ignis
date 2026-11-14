@@ -3,13 +3,15 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, UseOnBlock, EntityInside,
-SideClosed, Model, FuelInfo, EncodeItem and the drops.
+TODO(world-runtime): NeighbourUpdateTick, UseOnBlock, EntityInside, SideClosed,
+Model and the drops.
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .block import UNKNOWN_DIRECTION
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -27,7 +29,9 @@ struct Ladder(
     Block,
     Breakable,
     Equatable,
+    Fuel,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -132,3 +136,16 @@ struct Ladder(
             The model.
         """
         return LadderModel(facing=self.facing)
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
+        return FuelInfo(15000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:ladder", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

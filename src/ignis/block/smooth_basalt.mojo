@@ -1,16 +1,17 @@
 """`SmoothBasalt`, ported from Dragonfly `server/block/smooth_basalt.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the `oneOf` drops.
+TODO(world-runtime): the `oneOf` drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .hash import HASH_SMOOTH_BASALT
@@ -18,7 +19,12 @@ from .model.solid import Solid as SolidModel
 
 
 struct SmoothBasalt(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A decorative variant of basalt."""
 
@@ -96,3 +102,12 @@ struct SmoothBasalt(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:smooth_basalt", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

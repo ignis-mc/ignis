@@ -1,11 +1,12 @@
 """`DirtPath`, ported from Dragonfly `server/block/dirt_path.go`.
 
-TODO(world-runtime): Till, NeighbourUpdateTick, EncodeItem and the drops.
+TODO(world-runtime): Till, NeighbourUpdateTick and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     SHOVEL_EFFECTIVE,
@@ -22,6 +23,7 @@ struct DirtPath(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -109,3 +111,12 @@ struct DirtPath(
             The model.
         """
         return TilledGrassModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:grass_path", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

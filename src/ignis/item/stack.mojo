@@ -16,10 +16,17 @@ Differences from Go:
   nothing).
 - `comparable` compares items by type and hash rather than by encoded name;
   they differ only for distinct values that encode to the same name.
+- Go's stack holds the item value. Ignis holds its `AnyItem` (type and
+  hash) and, for `NBTer` items, the item's `EncodeNBT` as a `Tree`, which
+  `item_as` decodes back into the value.
 """
 
+from minecraft.nbt.encode import to_nbt
+from minecraft.nbt.nbt import LITTLE_ENDIAN
+from minecraft.nbt.tree import Tree
 from std.os import abort
 
+from ..world.block import NBTer
 from ..world.item import AnyItem, Item, ItemInfo, RegisteredItem
 from .item import item_info
 
@@ -48,6 +55,7 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
     var _unbreakable: Bool
     var _anvil_cost: Int
     var _enchantments: List[Enchantment]
+    var _nbt: Tree
 
     def __init__(out self):
         """Creates an empty stack (Go `Stack{}`)."""
@@ -62,6 +70,7 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
         self._unbreakable = False
         self._anvil_cost = 0
         self._enchantments = List[Enchantment]()
+        self._nbt = Tree()
 
     def __init__[T: Item](out self, it: T, count: Int):
         """Creates a stack of a typed item (Go `NewStack`). Aborts if the
@@ -75,6 +84,11 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
             count: The count.
         """
         self = Self(RegisteredItem(AnyItem.of(it), item_info(it)), count)
+        comptime if conforms_to(T, NBTer):
+            try:
+                _encode_nbt(it, self._nbt)
+            except e:
+                abort(String(t"cannot encode item NBT: {e}"))
 
     def __init__(out self, it: RegisteredItem, count: Int):
         """Creates a stack of an item of unknown type, as found in the
@@ -296,7 +310,26 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
         """
         if self.empty():
             return None
-        return self._item.get[T]()
+        var it = self._item.get[T]()
+        comptime if conforms_to(T, NBTer):
+            if it and has_nbt(self._nbt):
+                try:
+                    return _decode_nbt(it.value(), self._nbt)
+                except:
+                    return it^
+        return it^
+
+    def item_nbt(self) -> Tree:
+        """Returns the NBT of the item value (Go `s.Item().(world.NBTer)
+        .EncodeNBT()`); an empty compound for other items."""
+        return self._nbt.copy()
+
+    def with_item_nbt(self, var data: Tree) -> Self:
+        """Returns the stack with the item's NBT replaced (Go: a stack of
+        the item after `DecodeNBT`)."""
+        var s = self.copy()
+        s._nbt = data^
+        return s^
 
     def with_custom_name(self, name: String) -> Self:
         """Returns the stack with a custom name (Go `WithCustomName`).
@@ -486,7 +519,13 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
                     return False
             else:
                 return False
-        return True
+        try:
+            return (
+                to_nbt(self._nbt, LITTLE_ENDIAN).raw
+                == to_nbt(s2._nbt, LITTLE_ENDIAN).raw
+            )
+        except:
+            return False
 
     def write_to(self, mut writer: Some[Writer]):
         """Writes the stack for debugging (Go `String`).
@@ -506,3 +545,19 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
             ") x",
             self._count,
         )
+
+
+def _encode_nbt[T: NBTer](it: T, mut out: Tree) raises:
+    it.encode_nbt(out, out.root())
+
+
+def _decode_nbt[T: NBTer](it: T, data: Tree) raises -> T:
+    return it.decode_nbt(data, data.root())
+
+
+def has_nbt(t: Tree) -> Bool:
+    """Reports whether a compound tree has at least one entry."""
+    try:
+        return len(t.children(t.root())) != 0
+    except:
+        return False

@@ -2,14 +2,14 @@
 
 Go's `flowingWaterDisplacer` comes with liquids.
 
-TODO(world-runtime): Activate, UseOnBlock, NeighbourUpdateTick,
-HasLiquidDrops, SideClosed, RedstoneSource, RedstonePower,
-RedstoneStrongPower, EncodeItem and the drops.
+TODO(world-runtime): Activate, UseOnBlock, NeighbourUpdateTick, HasLiquidDrops,
+SideClosed, RedstoneSource, RedstonePower, RedstoneStrongPower and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NOTHING_EFFECTIVE,
@@ -28,6 +28,7 @@ struct Lever(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -165,3 +166,12 @@ struct Lever(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:lever", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

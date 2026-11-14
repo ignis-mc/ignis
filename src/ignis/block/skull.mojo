@@ -3,14 +3,16 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): Helmet, DefencePoints, Toughness, KnockBackResistance,
-SideClosed, UseOnBlock, Model, DecodeNBT, EncodeNBT, EncodeItem and the
-drops.
+TODO(world-runtime): SideClosed, UseOnBlock, Model and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from minecraft.nbt.tree import Tag, Tree
+
+from ..item.armour import HelmetType
+from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .attachment import (
     Attachment,
     attachment_from_uint8,
@@ -20,13 +22,13 @@ from .attachment import (
 from .block import UNKNOWN_DIRECTION
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .cube.direction import directions
-from .cube.orientation import Orientation
+from .cube.orientation import Orientation, orientation_from_yaw
 from .hash import HASH_SKULL
 from .model.skull import Skull as SkullModel
 from .skull_type import SkullType, skull_types
@@ -36,9 +38,12 @@ struct Skull(
     Block,
     Breakable,
     Equatable,
+    HelmetType,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
+    NBTer,
 ):
     """A decorative block that can be worn as a helmet."""
 
@@ -160,3 +165,53 @@ struct Skull(
         return SkullModel(
             direction=self.attach.facing().face(), hanging=self.attach.hanging()
         )
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.type}"), 0)
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the NBT (Go `EncodeNBT`)."""
+        _ = tag.put_string(root, "id", "Skull")
+        _ = tag.put_byte(root, "SkullType", 255)
+        _ = tag.put_float(
+            root, "Rotation", Float32(self.attach.orientation().yaw())
+        )
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Decodes the NBT (Go `DecodeNBT`)."""
+        var s = self
+        if case .Some(t) = tag.get(root, "SkullType"):
+            var v = tag.as_byte(t)
+            if v != 255:
+                s.type = SkullType(Int(v))
+        var yaw = Float64(0)
+        if case .Some(t) = tag.get(root, "Rotation"):
+            yaw = Float64(tag.as_float(t))
+        # Go sets the orientation of any attachment, as here.
+        s.attach._o = orientation_from_yaw(yaw)
+        return s
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in skull_types():
+            out.append(Skull(type=v))
+        return out^
+
+    def helmet(self) -> Bool:
+        """Reports whether the block is worn as a helmet (Go `Helmet`)."""
+        return True
+
+    def defence_points(self) -> Float64:
+        """Returns the defence points (Go `DefencePoints`): none."""
+        return 0
+
+    def toughness(self) -> Float64:
+        """Returns the toughness (Go `Toughness`): none."""
+        return 0
+
+    def knock_back_resistance(self) -> Float64:
+        """Returns the knock-back resistance (Go `KnockBackResistance`)."""
+        return 0

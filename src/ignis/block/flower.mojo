@@ -1,13 +1,14 @@
 """`Flower`, ported from Dragonfly `server/block/flower.go`.
 
 TODO(world-runtime): EntityInside (wither rose), NeighbourUpdateTick,
-HasLiquidDrops, UseOnBlock, BoneMeal, CompostChance, FlammabilityInfo,
-EncodeItem and the drops.
+HasLiquidDrops, UseOnBlock, BoneMeal, FlammabilityInfo and the drops.
 """
 
+from ..item.item import Compostable
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NOTHING_EFFECTIVE,
@@ -23,8 +24,10 @@ from .model.empty import Empty as EmptyModel
 struct Flower(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -121,3 +124,19 @@ struct Flower(
             The model.
         """
         return EmptyModel()
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.65
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.type}"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for f in flower_types():
+            out.append(Self(type=f))
+        return out^

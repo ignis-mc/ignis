@@ -1,13 +1,14 @@
 """`Pumpkin`, ported from Dragonfly `server/block/pumpkin.go`.
 
-TODO(world-runtime): Carve, UseOnBlock, Helmet, DefencePoints,
-KnockBackResistance, Toughness, Instrument, CompostChance, EncodeItem and
-the drops.
+TODO(world-runtime): Carve, UseOnBlock, Instrument and the drops.
 """
 
+from ..item.armour import HelmetType
+from ..item.item import Compostable
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -20,7 +21,16 @@ from .hash import HASH_PUMPKIN
 from .model.solid import Solid as SolidModel
 
 
-struct Pumpkin(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Pumpkin(
+    Block,
+    Breakable,
+    Compostable,
+    Equatable,
+    HelmetType,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+):
     """A crop block; carved, it can be worn as a helmet."""
 
     comptime BASE_HASH: UInt64 = HASH_PUMPKIN
@@ -124,3 +134,34 @@ struct Pumpkin(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.carved:
+            return EncodedItem("minecraft:carved_pumpkin", 0)
+        return EncodedItem("minecraft:pumpkin", 0)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.65
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Pumpkin(carved=True), Pumpkin()]
+
+    def helmet(self) -> Bool:
+        """Reports whether the pumpkin is worn as a helmet (Go `Helmet`)."""
+        return self.carved
+
+    def defence_points(self) -> Float64:
+        """Returns the defence points (Go `DefencePoints`): none."""
+        return 0
+
+    def toughness(self) -> Float64:
+        """Returns the toughness (Go `Toughness`): none."""
+        return 0
+
+    def knock_back_resistance(self) -> Float64:
+        """Returns the knock-back resistance (Go `KnockBackResistance`)."""
+        return 0

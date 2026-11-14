@@ -353,17 +353,22 @@ def decode_block_state(tree: Tree) raises -> BlockState:
     if case .Some(states) = tree.get(root, "states"):
         if tree.type_of(states) != TAG_COMPOUND:
             raise Error(t"block state {name}: states is not a compound")
-        for child in tree.children(states):
-            var key = tree.name(child)
-            var tag = tree.type_of(child)
-            if tag == TAG_BYTE:
-                properties.set(key^, PropertyValue(byte=tree.as_byte(child)))
-            elif tag == TAG_INT:
-                properties.set(key^, PropertyValue(int32=tree.as_int(child)))
-            elif tag == TAG_STRING:
-                properties.set(
-                    key^, PropertyValue(string=tree.as_string(child))
-                )
-            else:
-                raise Error(t"block state {name}: property {key} has tag {tag}")
+        properties = decode_properties(tree, states)
     return BlockState(name^, properties^, version)
+
+
+def decode_properties(tree: Tree, states: Tag) raises -> Properties:
+    """Reads a compound of block properties (bytes, ints and strings)."""
+    var properties = Properties()
+    for child in tree.children(states):
+        var key = tree.name(child)
+        var tag = tree.type_of(child)
+        if tag == TAG_BYTE:
+            properties.set(key^, PropertyValue(byte=tree.as_byte(child)))
+        elif tag == TAG_INT:
+            properties.set(key^, PropertyValue(int32=tree.as_int(child)))
+        elif tag == TAG_STRING:
+            properties.set(key^, PropertyValue(string=tree.as_string(child)))
+        else:
+            raise Error(t"block property {key} has tag {tag}")
+    return properties^

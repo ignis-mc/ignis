@@ -6,6 +6,9 @@ with liquids.
 
 TODO(world-runtime): Activate, SideClosed, Model, Wax, Strip,
 RandomTick (attemptOxidation), EncodeItem and the drops.
+
+TODO(world-runtime): UseOnBlock, Activate, SideClosed, Model, Wax, Strip,
+RandomTick (attemptOxidation) and the drops.
 """
 
 from .cube.face import Face
@@ -18,6 +21,7 @@ from .hash import AnyBlock
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     HARVEST_LEVEL_STONE,
     PICKAXE_EFFECTIVE,
@@ -38,6 +42,7 @@ struct CopperTrapdoor(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
     Oxidisable,
@@ -247,3 +252,18 @@ struct CopperTrapdoor(
         return [
             Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()), False)
         ]
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(
+            copper_block_name("copper_trapdoor", self.oxidation, self.waxed), 0
+        )
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for o in oxidation_types():
+            out.append(Self(oxidation=o))
+            out.append(Self(oxidation=o, waxed=True))
+        return out^

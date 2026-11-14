@@ -3,8 +3,8 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): Activate, SideClosed, Model,
-FlammabilityInfo, FuelInfo, EncodeItem and the drops.
+TODO(world-runtime): Activate, SideClosed, Model, FlammabilityInfo
+and the drops.
 """
 
 from .cube.face import Face
@@ -14,9 +14,12 @@ from ..mgl64 import Vec3
 from ..world.world import World, WorldTypes
 from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
 from .hash import AnyBlock
+
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -34,7 +37,9 @@ struct WoodTrapdoor(
     Block,
     Breakable,
     Equatable,
+    Fuel,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
     UsableOnBlock,
@@ -202,3 +207,23 @@ struct WoodTrapdoor(
         return [
             Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()), False)
         ]
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.wood == WoodType.OAK:
+            return EncodedItem("minecraft:trapdoor", 0)
+        return EncodedItem(String(t"minecraft:{self.wood}_trapdoor"), 0)
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`); none for nether wood."""
+        if not self.wood.flammable():
+            return FuelInfo()
+        return FuelInfo(15000)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in wood_types():
+            out.append(WoodTrapdoor(wood=v))
+        return out^

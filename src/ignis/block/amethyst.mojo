@@ -1,11 +1,12 @@
 """`Amethyst`, ported from Dragonfly `server/block/amethyst.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_HARVESTABLE,
     BreakInfo,
@@ -16,7 +17,9 @@ from .hash import HASH_AMETHYST
 from .model.solid import Solid as SolidModel
 
 
-struct Amethyst(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Amethyst(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A decorative block crafted from amethyst shards."""
 
     comptime BASE_HASH: UInt64 = HASH_AMETHYST
@@ -91,3 +94,12 @@ struct Amethyst(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:amethyst_block", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

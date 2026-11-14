@@ -8,6 +8,7 @@ silverfish spawn.
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -21,7 +22,7 @@ from .model.solid import Solid as SolidModel
 
 
 struct InfestedDeepslate(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
 ):
     """A deepslate block that hides a silverfish."""
 
@@ -112,3 +113,12 @@ struct InfestedDeepslate(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:infested_deepslate", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]
