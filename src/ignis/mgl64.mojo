@@ -1,104 +1,207 @@
-"""The part of go-gl/mathgl's `mgl64` that Ignis uses.
+"""The parts of `github.com/go-gl/mathgl/mgl64` (v1.2.0) that Dragonfly
+uses: `Vec3`, `FloatEqual` and `DegToRad`.
 
-Dragonfly uses `mgl64.Vec3` for positions everywhere. The protocol
-submodule's `Vec3` is the 32-bit `mgl32.Vec3` used on the wire; this is the
-64-bit one used by the server.
+Go's `mgl64.Vec3` is a `[3]float64`; here it is a struct with `x`, `y` and
+`z` methods mirroring `v[0]`, `v[1]` and `v[2]`.
 """
 
-from std.math import sqrt
+from std.math import pi, sqrt
 
 
 @fieldwise_init
 struct Vec3(Defaultable, Equatable, ImplicitlyCopyable, Writable):
-    """A three-component `Float64` vector (Go `mgl64.Vec3`)."""
+    """A vector of three float64 values (Go `mgl64.Vec3`)."""
 
-    var x: Float64
-    """The first component."""
-    var y: Float64
-    """The second component."""
-    var z: Float64
-    """The third component."""
+    var _x: Float64
+    var _y: Float64
+    var _z: Float64
 
     def __init__(out self):
         """Creates the zero vector."""
-        self.x = 0
-        self.y = 0
-        self.z = 0
+        self._x = 0
+        self._y = 0
+        self._z = 0
+
+    def x(self) -> Float64:
+        """Returns the first element (Go `v[0]`).
+
+        Returns:
+            The X value.
+        """
+        return self._x
+
+    def y(self) -> Float64:
+        """Returns the second element (Go `v[1]`).
+
+        Returns:
+            The Y value.
+        """
+        return self._y
+
+    def z(self) -> Float64:
+        """Returns the third element (Go `v[2]`).
+
+        Returns:
+            The Z value.
+        """
+        return self._z
 
     def __getitem__(self, i: Int) -> Float64:
-        """Gets a component by index, as Go's `v[i]`.
+        """Returns an element by index (Go `v[i]`).
 
         Args:
             i: 0, 1 or 2.
 
         Returns:
-            The component.
+            The element.
         """
         if i == 0:
-            return self.x
+            return self._x
         if i == 1:
-            return self.y
-        return self.z
+            return self._y
+        return self._z
 
-    def __setitem__(mut self, i: Int, value: Float64):
-        """Sets a component by index, as Go's `v[i] = value`.
+    def with_elem(self, i: Int, v: Float64) -> Self:
+        """Returns the vector with one element replaced (Go `v[i] = x` on a
+        copy).
 
         Args:
             i: 0, 1 or 2.
-            value: The new value.
-        """
-        if i == 0:
-            self.x = value
-        elif i == 1:
-            self.y = value
-        else:
-            self.z = value
-
-    def __eq__(self, other: Self) -> Bool:
-        """Compares component-wise.
-
-        Args:
-            other: The other vector.
+            v: The new value.
 
         Returns:
-            True if all components are equal.
+            The updated vector.
         """
-        return self.x == other.x and self.y == other.y and self.z == other.z
+        if i == 0:
+            return Self(v, self._y, self._z)
+        if i == 1:
+            return Self(self._x, v, self._z)
+        return Self(self._x, self._y, v)
 
-    def add(self, other: Self) -> Self:
+    def add(self, o: Self) -> Self:
         """Adds two vectors (Go `Add`).
 
         Args:
-            other: The vector to add.
+            o: The vector to add.
 
         Returns:
             The sum.
         """
-        return Vec3(self.x + other.x, self.y + other.y, self.z + other.z)
+        return Self(self._x + o._x, self._y + o._y, self._z + o._z)
 
-    def sub(self, other: Self) -> Self:
+    def sub(self, o: Self) -> Self:
         """Subtracts a vector (Go `Sub`).
 
         Args:
-            other: The vector to subtract.
+            o: The vector to subtract.
 
         Returns:
             The difference.
         """
-        return Vec3(self.x - other.x, self.y - other.y, self.z - other.z)
+        return Self(self._x - o._x, self._y - o._y, self._z - o._z)
 
-    def len(self) -> Float64:
-        """Gets the Euclidean length (Go `Len`).
+    def mul(self, c: Float64) -> Self:
+        """Scales the vector (Go `Mul`).
+
+        Args:
+            c: The factor.
 
         Returns:
-            The length.
+            The scaled vector.
         """
-        return sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
+        return Self(self._x * c, self._y * c, self._z * c)
+
+    def len(self) -> Float64:
+        """Returns the length of the vector (Go `Len`).
+
+        Returns:
+            The Euclidean length.
+        """
+        return sqrt(self._x * self._x + self._y * self._y + self._z * self._z)
+
+    def len_sqr(self) -> Float64:
+        """Returns the squared length of the vector (Go `LenSqr`).
+
+        Returns:
+            `x*x + y*y + z*z`.
+        """
+        return self._x * self._x + self._y * self._y + self._z * self._z
+
+    def normalize(self) -> Self:
+        """Scales the vector to length 1 (Go `Normalize`).
+
+        Returns:
+            The vector times `1 / len`.
+        """
+        var l = 1.0 / self.len()
+        return Self(self._x * l, self._y * l, self._z * l)
+
+    def dot(self, o: Self) -> Float64:
+        """Returns the dot product (Go `Dot`).
+
+        Args:
+            o: The other vector.
+
+        Returns:
+            The dot product.
+        """
+        return self._x * o._x + self._y * o._y + self._z * o._z
 
     def write_to(self, mut writer: Some[Writer]):
-        """Writes the vector as `[x y z]`, as Go's `%v` does.
+        """Writes the vector as `[x y z]`, as Go prints it.
 
         Args:
             writer: The destination.
         """
-        writer.write("[", self.x, " ", self.y, " ", self.z, "]")
+        writer.write("[", self._x, " ", self._y, " ", self._z, "]")
+
+
+comptime EPSILON: Float64 = 1e-10
+"""How precisely `float_equal` compares (Go `mgl64.Epsilon`)."""
+comptime MIN_NORMAL: Float64 = 1.1754943508222875e-38
+"""The smallest normal float32 (Go `mgl64.MinNormal`)."""
+
+
+def float_equal_threshold(a: Float64, b: Float64, epsilon: Float64) -> Bool:
+    """Compares two floats relative to their size (Go
+    `FloatEqualThreshold`).
+
+    Args:
+        a: The first value.
+        b: The second value.
+        epsilon: The relative tolerance.
+
+    Returns:
+        True if the values are approximately equal.
+    """
+    if a == b:
+        return True
+    var diff = abs(a - b)
+    if a * b == 0 or diff < MIN_NORMAL:
+        return diff < epsilon * epsilon
+    return diff / (abs(a) + abs(b)) < epsilon
+
+
+def float_equal(a: Float64, b: Float64) -> Bool:
+    """Compares two floats with `EPSILON` (Go `FloatEqual`).
+
+    Args:
+        a: The first value.
+        b: The second value.
+
+    Returns:
+        True if the values are approximately equal.
+    """
+    return float_equal_threshold(a, b, EPSILON)
+
+
+def deg_to_rad(angle: Float64) -> Float64:
+    """Converts degrees to radians (Go `DegToRad`).
+
+    Args:
+        angle: The angle in degrees.
+
+    Returns:
+        The angle in radians.
+    """
+    return angle * pi / 180

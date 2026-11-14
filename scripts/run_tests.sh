@@ -27,7 +27,7 @@ run_one() {
     local file="$1"
     local log
     log="$(mktemp)"
-    if mojo run -I src -I third_party/protocol/src -I third_party/nethernet/src -D ASSERT=all "$file" >"$log" 2>&1; then
+    if mojo run --fp-mode contract=off -I src -I test -I third_party/protocol/src -I third_party/nethernet/src -D ASSERT=all "$file" >"$log" 2>&1; then
         grep -E '^Summary' "$log" | sed "s|^|ok   $file  |"
         rm -f "$log"
         return 0

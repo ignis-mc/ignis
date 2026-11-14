@@ -823,13 +823,12 @@ def _bool_arg(line: Line) raises Message -> Bool:
 
 def _vec3_arg(mut line: Line) raises Message -> Vec3:
     """Go `parser.vec3`: three floats."""
-    var v = Vec3()
-    v.x = _float_arg(line, 64)
+    var x = _float_arg(line, 64)
     line.remove_next()
-    v.y = _float_arg(line, 64)
+    var y = _float_arg(line, 64)
     line.remove_next()
-    v.z = _float_arg(line, 64)
-    return v
+    var z = _float_arg(line, 64)
+    return Vec3(x, y, z)
 
 
 def _sub_arg(line: Line, name: StringSlice) raises Message:

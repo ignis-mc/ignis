@@ -1,4 +1,6 @@
 """Player sessions, ported from Dragonfly `server/session`.
 
-Only the command packets (`command.go`) are ported so far.
+Ported so far: the chunk payloads (`chunk.go`), the network item stacks
+(`stackFromItem`/`stackToItem` of `player.go`) and the command packets
+(`command.go`).
 """

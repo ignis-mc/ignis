@@ -200,7 +200,7 @@ struct TpPos(cmd.Runnable):
         S: cmd.Source
     ](mut self, mut src: S, mut o: cmd.Output, mut tx: S.Tx):
         var d = self.destination
-        o.print(t"tp pos {f64(d.x)} {f64(d.y)} {f64(d.z)}")
+        o.print(t"tp pos {f64(d.x())} {f64(d.y())} {f64(d.z())}")
 
 
 struct TpTargets(cmd.Runnable):
