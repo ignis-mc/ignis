@@ -7,7 +7,7 @@ TODO(world-runtime): NeighbourUpdateTick, DeriveState and the
 """
 
 from ..item.colour import Colour, colours
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, LiquidDisplacer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -15,20 +15,22 @@ from .break_info import (
     ALWAYS_HARVESTABLE,
     BreakInfo,
     Breakable,
+    Dropper,
     NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .connections import Connections, all_connections
-from .hash import HASH_STAINED_GLASS_PANE
+from .hash import AnyBlock, HASH_STAINED_GLASS_PANE
 from .model.thin import Thin as ThinModel
-from ..world.block import LiquidDisplacer
-from .hash import AnyBlock
 from .liquid import source_water_can_displace
+from ..item.stack import Stack
+from ..item.tool import ToolInfo
 
 
 struct StainedGlassPane(
     Block,
     Breakable,
+    Dropper,
     Equatable,
     ImplicitlyCopyable,
     Item,
@@ -125,3 +127,9 @@ struct StainedGlassPane(
     def can_displace(self, b: AnyBlock) -> Bool:
         """Holds water sources (Go `sourceWaterDisplacer`)."""
         return source_water_can_displace(b)
+
+    def drops(self, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+        """Drops itself only with silk touch (Go `silkTouchOnlyDrop`)."""
+        if silk_touch:
+            return [Stack(self, 1)]
+        return []

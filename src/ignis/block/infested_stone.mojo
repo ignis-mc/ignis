@@ -8,18 +8,27 @@ from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    Dropper,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .hash import HASH_INFESTED_STONE
 from .model.solid import Solid as SolidModel
+from ..item.stack import Stack
+from ..item.tool import ToolInfo
 
 
 struct InfestedStone(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Dropper,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A stone block that hides a silverfish."""
 
@@ -72,3 +81,9 @@ struct InfestedStone(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def drops(self, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+        """Drops itself only with silk touch (Go `silkTouchOnlyDrop`)."""
+        if silk_touch:
+            return [Stack(self, 1)]
+        return []

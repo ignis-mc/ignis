@@ -10,19 +10,28 @@ from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    Dropper,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .cube.axis import Axis, axes
 from .hash import HASH_INFESTED_DEEPSLATE
 from .model.solid import Solid as SolidModel
+from ..item.stack import Stack
+from ..item.tool import ToolInfo
 
 
 struct InfestedDeepslate(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Dropper,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A deepslate block that hides a silverfish."""
 
@@ -84,3 +93,9 @@ struct InfestedDeepslate(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def drops(self, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+        """Drops itself only with silk touch (Go `silkTouchOnlyDrop`)."""
+        if silk_touch:
+            return [Stack(self, 1)]
+        return []
