@@ -14,5 +14,13 @@ def test_encode_block() raises:
     )
 
 
+def test_encode_item() raises:
+    assert_equal(Stone().encode_item().name, "minecraft:stone")
+    assert_equal(
+        Stone(smooth=True).encode_item().name, "minecraft:smooth_stone"
+    )
+    assert_equal(len(Stone.all_items()), 2)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

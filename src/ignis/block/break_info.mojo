@@ -1,28 +1,23 @@
 """Block breaking data, ported from Dragonfly `server/block/break_info.go`.
 
-Go's `BreakInfo` holds closures over `item.Tool`. Until the item package
-exists, the `Harvestable` and `Effective` closures are `ToolFilter` values:
-the tool types they accept and the minimum harvest level, which is all any
-Dragonfly block checks. `Drops`, `BreakHandler`, `BreakDuration` and the
+Go's `BreakInfo` holds closures over `item.Tool`. Here the `Harvestable`
+and `Effective` closures are `ToolFilter` values: the `item.ToolType`s they
+accept and the minimum harvest level, which is all any Dragonfly block
+checks; `matches_tool` applies one to an `item.Tool`. `Drops`, `BreakHandler`, `BreakDuration` and the
 drop helpers (`oneOf`, `silkTouchOneOf`, fortune) need items and `world.Tx`:
 TODO(world-runtime) port them with `item.Tool`, `item.Stack` and `Tx`.
 """
 
-comptime TOOL_TYPE_NONE = -1
-"""Go `item.TypeNone`. TODO(world-runtime): replace the tool type constants
-with `item.ToolType` when items land."""
-comptime TOOL_TYPE_PICKAXE = 0
-"""Go `item.TypePickaxe`."""
-comptime TOOL_TYPE_AXE = 1
-"""Go `item.TypeAxe`."""
-comptime TOOL_TYPE_HOE = 2
-"""Go `item.TypeHoe`."""
-comptime TOOL_TYPE_SHOVEL = 3
-"""Go `item.TypeShovel`."""
-comptime TOOL_TYPE_SHEARS = 4
-"""Go `item.TypeShears`."""
-comptime TOOL_TYPE_SWORD = 5
-"""Go `item.TypeSword`."""
+from ..item.tool import (
+    TYPE_AXE,
+    TYPE_HOE,
+    TYPE_PICKAXE,
+    TYPE_SHEARS,
+    TYPE_SHOVEL,
+    TYPE_SWORD,
+    Tool,
+    ToolType,
+)
 
 comptime HARVEST_LEVEL_WOOD = 1
 """Go `item.ToolTierWood.HarvestLevel` (gold is the same)."""
@@ -45,16 +40,16 @@ struct ToolFilter(Equatable, ImplicitlyCopyable, Writable):
     var min_level: Int
     """The minimum harvest level of an accepted tool."""
 
-    def __init__(out self, *tool_types: Int, min_level: Int = 0):
+    def __init__(out self, *tool_types: ToolType, min_level: Int = 0):
         """Creates a filter accepting the tool types passed.
 
         Args:
-            tool_types: `TOOL_TYPE_*` values.
+            tool_types: The accepted `item.ToolType`s.
             min_level: The minimum harvest level.
         """
         self.types = 0
         for t in tool_types:
-            self.types |= UInt8(1) << UInt8(t + 1)
+            self.types |= UInt8(1) << UInt8(t.t + 1)
         self.min_level = min_level
 
     def __eq__(self, other: Self) -> Bool:
@@ -83,19 +78,33 @@ struct ToolFilter(Equatable, ImplicitlyCopyable, Writable):
             min_level=min(self.min_level, other.min_level),
         )
 
-    def matches(self, tool_type: Int, harvest_level: Int) -> Bool:
-        """Calls the predicate for a tool.
+    def matches(self, tool_type: ToolType, harvest_level: Int) -> Bool:
+        """Calls the predicate for a tool's type and harvest level.
 
         Args:
-            tool_type: The tool's `TOOL_TYPE_*`.
+            tool_type: The tool's type (`TYPE_NONE` without a tool).
             harvest_level: The tool's harvest level (0 without a tool).
 
         Returns:
             True if the tool is accepted.
         """
         return (
-            (self.types >> UInt8(tool_type + 1)) & 1 != 0
+            (self.types >> UInt8(tool_type.t + 1)) & 1 != 0
         ) and harvest_level >= self.min_level
+
+    def matches_tool[T: Tool](self, t: T) -> Bool:
+        """Calls the predicate for a tool (Go `f(t)`).
+
+        Parameters:
+            T: The tool's type.
+
+        Args:
+            t: The tool, or `ToolNone()` without one.
+
+        Returns:
+            True if the tool is accepted.
+        """
+        return self.matches(t.tool_type(), t.harvest_level())
 
     def write_to(self, mut writer: Some[Writer]):
         """Writes the filter as `types/min_level`.
@@ -112,19 +121,19 @@ comptime NEVER_HARVESTABLE = ToolFilter(types=0, min_level=0)
 """Go `neverHarvestable`: no item."""
 comptime NOTHING_EFFECTIVE = ToolFilter(types=0, min_level=0)
 """Go `nothingEffective`: no tool mines faster than a hand."""
-comptime PICKAXE_EFFECTIVE = ToolFilter(TOOL_TYPE_PICKAXE)
+comptime PICKAXE_EFFECTIVE = ToolFilter(TYPE_PICKAXE)
 """Go `pickaxeEffective`."""
 comptime PICKAXE_HARVESTABLE = PICKAXE_EFFECTIVE
 """Go `pickaxeHarvestable`: any pickaxe."""
-comptime AXE_EFFECTIVE = ToolFilter(TOOL_TYPE_AXE)
+comptime AXE_EFFECTIVE = ToolFilter(TYPE_AXE)
 """Go `axeEffective`."""
-comptime SHEARS_EFFECTIVE = ToolFilter(TOOL_TYPE_SHEARS)
+comptime SHEARS_EFFECTIVE = ToolFilter(TYPE_SHEARS)
 """Go `shearsEffective`."""
-comptime SWORD_EFFECTIVE = ToolFilter(TOOL_TYPE_SWORD)
+comptime SWORD_EFFECTIVE = ToolFilter(TYPE_SWORD)
 """Go `swordEffective`."""
-comptime SHOVEL_EFFECTIVE = ToolFilter(TOOL_TYPE_SHOVEL)
+comptime SHOVEL_EFFECTIVE = ToolFilter(TYPE_SHOVEL)
 """Go `shovelEffective`."""
-comptime HOE_EFFECTIVE = ToolFilter(TOOL_TYPE_HOE)
+comptime HOE_EFFECTIVE = ToolFilter(TYPE_HOE)
 """Go `hoeEffective`."""
 
 
@@ -138,7 +147,7 @@ def pickaxe_harvestable_from(level: Int) -> ToolFilter:
     Returns:
         The filter.
     """
-    return ToolFilter(TOOL_TYPE_PICKAXE, min_level=level)
+    return ToolFilter(TYPE_PICKAXE, min_level=level)
 
 
 @fieldwise_init

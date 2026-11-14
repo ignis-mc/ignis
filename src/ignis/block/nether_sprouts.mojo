@@ -6,12 +6,12 @@ TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock,
 BoneMeal, CompostChance, FlammabilityInfo, EncodeItem and the drops.
 """
 
+from ..item.tool import TYPE_SHEARS
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from .break_info import (
     NOTHING_EFFECTIVE,
-    TOOL_TYPE_SHEARS,
     BreakInfo,
     Breakable,
     ToolFilter,
@@ -94,9 +94,7 @@ struct NetherSprouts(
         Returns:
             The hardness, blast resistance and tools.
         """
-        return new_break_info(
-            0, ToolFilter(TOOL_TYPE_SHEARS), NOTHING_EFFECTIVE
-        )
+        return new_break_info(0, ToolFilter(TYPE_SHEARS), NOTHING_EFFECTIVE)
 
     def light_diffusion_level(self) -> UInt8:
         """Returns the light the block takes away (Go

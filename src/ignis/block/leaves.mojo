@@ -8,13 +8,12 @@ NeighbourUpdateTick, FlammabilityInfo, CompostChance, SideClosed, the drops
 (saplings, sticks, apples).
 """
 
+from ..item.tool import TYPE_HOE, TYPE_SHEARS
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    TOOL_TYPE_HOE,
-    TOOL_TYPE_SHEARS,
     BreakInfo,
     Breakable,
     ToolFilter,
@@ -145,7 +144,7 @@ struct Leaves(
             The hardness, blast resistance and tools.
         """
         return new_break_info(
-            0.2, ALWAYS_HARVESTABLE, ToolFilter(TOOL_TYPE_SHEARS, TOOL_TYPE_HOE)
+            0.2, ALWAYS_HARVESTABLE, ToolFilter(TYPE_SHEARS, TYPE_HOE)
         )
 
     def light_diffusion_level(self) -> UInt8:
