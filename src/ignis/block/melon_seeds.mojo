@@ -1,18 +1,20 @@
 """`MelonSeeds`, ported from Dragonfly `server/block/melon_seeds.go`.
 
-TODO(world-runtime): the `crop` helpers (NeighbourUpdateTick,
-HasLiquidDrops, CalculateGrowthChance), GrowthStage, SameCrop, RandomTick,
-BoneMeal, UseOnBlock, CompostChance, EncodeItem and the drops.
+TODO(world-runtime): the `crop` helpers (NeighbourUpdateTick, HasLiquidDrops,
+CalculateGrowthChance), GrowthStage, SameCrop, RandomTick, BoneMeal, UseOnBlock
+and the drops.
 """
 
+from ..item.item import Compostable
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .cube.face import Face
@@ -23,8 +25,10 @@ from .model.empty import Empty as EmptyModel
 struct MelonSeeds(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -133,3 +137,16 @@ struct MelonSeeds(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:melon_seeds", 0)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.3
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

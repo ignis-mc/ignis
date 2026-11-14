@@ -3,13 +3,14 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): Model, NeighbourUpdateTick, UseOnBlock, SideClosed,
-EncodeItem and the drops.
+TODO(world-runtime): Model, NeighbourUpdateTick, UseOnBlock, SideClosed and the
+drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -27,6 +28,7 @@ struct Lantern(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
@@ -146,3 +148,17 @@ struct Lantern(
             The model.
         """
         return LanternModel(hanging=self.hanging)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.type == FireType.SOUL:
+            return EncodedItem("minecraft:soul_lantern", 0)
+        return EncodedItem("minecraft:lantern", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for f in fire_types():
+            out.append(Self(type=f))
+        return out^

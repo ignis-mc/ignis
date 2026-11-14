@@ -1,19 +1,20 @@
 """`RedstoneWire`, ported from Dragonfly `server/block/redstone_wire.go`.
 
 TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RedstoneUpdate,
-RedstoneSource, RedstonePower, RedstoneStrongPower, the connection
-calculation and diagonal wire updates, Model, HasLiquidDrops, the break
-handler, EncodeItem and the drops.
+RedstoneSource, RedstonePower, RedstoneStrongPower, the connection calculation,
+diagonal wire updates, Model, HasLiquidDrops, the break handler and the drops.
 """
 
+from ..item.armour_trim import ArmourTrimMaterial
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_REDSTONE_WIRE
@@ -22,10 +23,12 @@ from .wire_connection import WireConnections, all_wire_connections
 
 
 struct RedstoneWire(
+    ArmourTrimMaterial,
     Block,
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -140,3 +143,21 @@ struct RedstoneWire(
             The model.
         """
         return EmptyModel()
+
+    def trim_material(self) -> StaticString:
+        """Returns the trim material identifier (Go `TrimMaterial`)."""
+        return "redstone"
+
+    def material_colour(self) -> StaticString:
+        """Returns the trim text colour (Go `MaterialColour`, `text.Redstone`).
+        """
+        return "§m"
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:redstone", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

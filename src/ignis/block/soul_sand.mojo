@@ -1,23 +1,31 @@
 """`SoulSand`, ported from Dragonfly `server/block/soul_sand.go`.
 
-TODO(world-runtime): SoilFor, Instrument, EncodeItem and the drops.
+TODO(world-runtime): SoilFor, Instrument and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    SHOVEL_EFFECTIVE,
     BreakInfo,
     Breakable,
+    SHOVEL_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_SOUL_SAND
 from .model.solid import Solid as SolidModel
 
 
-struct SoulSand(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct SoulSand(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+):
     """A block found naturally only in the nether."""
 
     comptime BASE_HASH: UInt64 = HASH_SOUL_SAND
@@ -92,3 +100,12 @@ struct SoulSand(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:soul_sand", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

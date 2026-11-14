@@ -3,15 +3,19 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the `Front` and `Back` `SignText` fields (text, base
-colour, glow, owner), SideClosed, Ink, Wax, Activate, EditingFace,
-UseOnBlock, NeighbourUpdateTick, DecodeNBT, EncodeNBT, FlammabilityInfo,
-FuelInfo, EncodeItem and the drops.
+TODO(world-runtime): the `Front`, `Back` `SignText` fields (text, base colour,
+glow, owner), SideClosed, Ink, Wax, Activate, EditingFace, UseOnBlock,
+NeighbourUpdateTick, FlammabilityInfo and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from minecraft.nbt.tree import Tag, Tree
+
+from ..item.item import MaxCounter
+from ..item.smelting_info import Fuel, FuelInfo
+from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .attachment import (
     Attachment,
     attachment_from_uint8,
@@ -36,9 +40,13 @@ struct Sign(
     Block,
     Breakable,
     Equatable,
+    Fuel,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
+    MaxCounter,
     ModelledBlock,
+    NBTer,
 ):
     """A non-solid block that can display text."""
 
@@ -172,3 +180,46 @@ struct Sign(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.wood}_sign"), 0)
+
+    def max_count(self) -> Int:
+        """Returns the maximum count (Go `MaxCount`)."""
+        return 16
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`); none for nether wood."""
+        if not self.wood.flammable():
+            return FuelInfo()
+        return FuelInfo(10000)
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the NBT (Go `EncodeNBT`)."""
+        _ = tag.put_string(root, "id", "Sign")
+        _ = tag.put_byte(root, "IsWaxed", UInt8(1) if self.waxed else 0)
+        # The sign texts are not ported: both sides are Go's zero SignText,
+        # whose colour nbtconv writes as opaque black.
+        for side in ["FrontText", "BackText"]:
+            var c = tag.put_compound(root, side)
+            _ = tag.put_int(c, "SignTextColor", -0x1000000)
+            _ = tag.put_byte(c, "IgnoreLighting", 0)
+            _ = tag.put_string(c, "Text", "")
+            _ = tag.put_string(c, "TextOwner", "")
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Decodes the NBT (Go `DecodeNBT`); only `IsWaxed` is kept."""
+        var s = self
+        s.waxed = False
+        if case .Some(t) = tag.get(root, "IsWaxed"):
+            s.waxed = tag.as_byte(t) != 0
+        return s
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in wood_types():
+            out.append(Sign(wood=v))
+        return out^

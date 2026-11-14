@@ -1,16 +1,17 @@
 """`TintedGlass`, ported from Dragonfly `server/block/tinted_glass.go`.
 
-TODO(world-runtime): PreventsSuffocation, EncodeItem and the drops.
+TODO(world-runtime): PreventsSuffocation and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_TINTED_GLASS
@@ -18,7 +19,12 @@ from .model.solid import Solid as SolidModel
 
 
 struct TintedGlass(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A decorative, fully transparent solid block that blocks light."""
 
@@ -96,3 +102,12 @@ struct TintedGlass(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:tinted_glass", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

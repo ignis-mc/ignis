@@ -1,12 +1,13 @@
 """`Grindstone`, ported from Dragonfly `server/block/grindstone.go`.
 
 TODO(world-runtime): Model, SideClosed, Activate, UseOnBlock,
-NeighbourUpdateTick, EncodeItem and the drops.
+NeighbourUpdateTick and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .block import horizontal_direction
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -27,6 +28,7 @@ struct Grindstone(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -149,3 +151,12 @@ struct Grindstone(
         if self.attach == GrindstoneAttachment.WALL:
             axis = self.facing.face().axis()
         return GrindstoneModel(axis=axis)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:grindstone", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

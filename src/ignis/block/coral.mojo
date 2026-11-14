@@ -4,12 +4,13 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): UseOnBlock, HasLiquidDrops, NeighbourUpdateTick,
-ScheduledTick, SideClosed, EncodeItem and the drops.
+ScheduledTick, SideClosed and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NOTHING_EFFECTIVE,
@@ -27,6 +28,7 @@ struct Coral(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -136,3 +138,18 @@ struct Coral(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.dead:
+            return EncodedItem(String(t"minecraft:dead_{self.type}_coral"), 0)
+        return EncodedItem(String(t"minecraft:{self.type}_coral"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for dead in [True, False]:
+            for t in coral_types():
+                out.append(Self(type=t, dead=dead))
+        return out^

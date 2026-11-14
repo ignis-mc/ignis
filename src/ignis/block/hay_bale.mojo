@@ -1,12 +1,14 @@
 """`HayBale`, ported from Dragonfly `server/block/hay_bale.go`.
 
-TODO(world-runtime): Instrument, EntityLand, UseOnBlock, CompostChance,
-FlammabilityInfo, EncodeItem and the drops.
+TODO(world-runtime): Instrument, EntityLand, UseOnBlock, FlammabilityInfo and
+the drops.
 """
 
+from ..item.item import Compostable
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     HOE_EFFECTIVE,
@@ -19,7 +21,15 @@ from .hash import HASH_HAY_BALE
 from .model.solid import Solid as SolidModel
 
 
-struct HayBale(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct HayBale(
+    Block,
+    Breakable,
+    Compostable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+):
     """A decorative, flammable block that can also be used to feed horses, breed llamas, reduce fall damage, and extend campfire smokes.
     """
 
@@ -110,3 +120,16 @@ struct HayBale(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.85
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:hay_block", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

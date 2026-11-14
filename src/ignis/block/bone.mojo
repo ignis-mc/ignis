@@ -1,11 +1,12 @@
 """`Bone`, ported from Dragonfly `server/block/bone.go`.
 
-TODO(world-runtime): Instrument, UseOnBlock, EncodeItem and the drops.
+TODO(world-runtime): Instrument, UseOnBlock and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -18,7 +19,9 @@ from .hash import HASH_BONE
 from .model.solid import Solid as SolidModel
 
 
-struct Bone(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Bone(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A decorative block that can be crafted from bone meal."""
 
     comptime BASE_HASH: UInt64 = HASH_BONE
@@ -108,3 +111,12 @@ struct Bone(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:bone_block", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

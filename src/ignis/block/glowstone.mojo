@@ -1,12 +1,13 @@
 """`Glowstone`, ported from Dragonfly `server/block/glowstone.go`.
 
-TODO(world-runtime): Instrument, CanRedstoneWireStepDown,
-RedstoneNonConductive, EncodeItem and the drops.
+TODO(world-runtime): Instrument, CanRedstoneWireStepDown, RedstoneNonConductive
+and the drops.
 """
 
 from ..world.block import Block, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NOTHING_EFFECTIVE,
@@ -19,7 +20,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct Glowstone(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A naturally generating block found in the nether that emits light."""
 
@@ -103,3 +110,12 @@ struct Glowstone(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:glowstone", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

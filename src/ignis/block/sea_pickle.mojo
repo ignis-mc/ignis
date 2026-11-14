@@ -4,18 +4,23 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): canSurvive, BoneMeal, UseOnBlock, HasLiquidDrops,
-NeighbourUpdateTick, SideClosed, CompostChance, SmeltInfo, EncodeItem and
-the drops.
+NeighbourUpdateTick, SideClosed and the drops.
 """
 
+from ..item.colour import Colour
+from ..item.dye import Dye
+from ..item.item import Compostable
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_SEA_PICKLE
@@ -25,11 +30,14 @@ from .model.empty import Empty as EmptyModel
 struct SeaPickle(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
+    Smeltable,
 ):
     """A small stationary underwater block that emits light."""
 
@@ -149,3 +157,20 @@ struct SeaPickle(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:sea_pickle", 0)
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(Dye(colour=Colour.LIME), 1), 0.1)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.65
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

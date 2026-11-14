@@ -1,12 +1,14 @@
 """`Bamboo`, ported from Dragonfly `server/block/bamboo.go`.
 
 TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RandomTick, BoneMeal,
-grow, Model, FuelInfo, FlammabilityInfo, EncodeItem and the drops.
+grow, Model, FlammabilityInfo and the drops.
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .bamboo_leaf_size import BambooLeafSize, bamboo_leaf_sizes
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -23,7 +25,9 @@ struct Bamboo(
     Block,
     Breakable,
     Equatable,
+    Fuel,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -153,3 +157,16 @@ struct Bamboo(
             The model.
         """
         return BambooModel(thick=self.thick)
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 2.5 s."""
+        return FuelInfo(2500)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:bamboo", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

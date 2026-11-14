@@ -1,12 +1,14 @@
 """`Deepslate`, ported from Dragonfly `server/block/deepslate.go`.
 
-TODO(world-runtime): UseOnBlock, EncodeItem, SmeltInfo and the `oneOf`
-drops.
+TODO(world-runtime): UseOnBlock and the `oneOf` drops.
 """
 
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -21,7 +23,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct Deepslate(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
 ):
     """A stone type found deep underground in the world."""
 
@@ -134,3 +142,21 @@ struct Deepslate(
             The model.
         """
         return SolidModel()
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns what smelting the block gives (Go `SmeltInfo`)."""
+        if self.type == DeepslateType.COBBLED:
+            return SmeltInfo(Stack(Deepslate(), 1), 0.1)
+        return SmeltInfo()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.type}"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for t in deepslate_types():
+            out.append(Self(type=t))
+        return out^

@@ -170,9 +170,12 @@ hash collides, and air exists.
 
 ### Items
 
-Implemented in `ignis.world.item` (Go `world/item.go`) and `ignis.item`
-with stick, diamond, coal, beef and shears, and the five ported blocks as
-block items.
+Implemented in `ignis.world.item` (Go `world/item.go`) and `ignis.item`:
+all 132 Dragonfly item types and the 219 block types registered as items
+(1434 registered items), the creative inventory (`ignis.item.creative`)
+and the recipes (`ignis.item.recipe`). Behaviour that needs players, the
+world or entities (`Use`, `UseOnBlock`, `Release`, applying `Consume`, ...)
+is listed per module after `TODO(player):` or `TODO(world-runtime):`.
 
 - **An item type is a struct conforming to `world.Item`**: `BASE_HASH`,
   `encode_item() -> EncodedItem` (Go `EncodeItem`'s name and meta),
@@ -180,23 +183,45 @@ block items.
   Dragonfly has no item hashes, so an item's `BASE_HASH` is
   `item_hash("GoTypeName")` (FNV-1a 64, computed at compile time). A block
   that is an item conforms to both `Block` and `Item` and keeps its block
-  `BASE_HASH`; the two traits share `hash` and `from_hash`.
+  `BASE_HASH`; the two traits share `hash` and `from_hash`. Variants are
+  packed into `hash` (tier index, potion ID, colour, ...); NBT-only fields
+  (trims, leather colour, book pages, firework explosions) are fields
+  compared by `__eq__` but not hashed.
+- **`world.ItemHasher`**: a block whose item identity holds data outside
+  its state (a banner's or bed's colour, the note block Go registers with
+  pitch 24) gives `AnyItem` its `item_hash` instead of the state hash;
+  `ItemSet.state_hash` maps it back for the block registry.
 - **An item of unknown type is an `AnyItem`** (`kind`, `hash`, `block`).
   `it.get[Stick]()` replaces Go's `it.(Stick)`.
+- **Go's optional item interfaces are traits** (`MaxCounter`, `Durable`,
+  `Repairable`, `Tool`, `Armour` and the slot traits, `Consumable`,
+  `Smeltable`, `Fuel`, `Enchantable`, `Compostable`, `OffHand`, `Weapon`,
+  `Cooldown`, `BeaconPayment`, `ArmourTrimMaterial`, `world.NBTer`), and
+  `item.ItemSet[*Ts]` has one dispatcher per trait taking `(kind, hash)`
+  (`fuel_info`, `smelt_info`, `item_nbt`, ...), as `BlockSet` does for
+  blocks. Go's `Consume(tx, c)` acts on the consumer; here
+  `Consumable.consume_info()` describes it as data (food, saturation,
+  effects with Go's chance, removed effects, the stack left over).
 - **`ItemRegistry`** replaces Go's item globals: it loads
   `resources/vanilla_items.nbt` (runtime IDs exactly as Dragonfly assigns
   them, and the StartGame item table via `item_entries()`), and items are
-  registered into it (`ignis.item.register.vanilla_item_registry`).
-- **`item.Stack`** holds an `AnyItem` plus an `ItemInfo` (max count,
-  durability, ...) computed from the type's traits (`MaxCounter`,
-  `Durable`, `Repairable`) when the stack is created, so stack methods need
-  no dispatch. Stacks start with network ID 0; the layer that sends them
-  assigns IDs (Go uses a global counter).
-- **`item.ItemSet[*Ts]`** registers item types and is where item behaviour
-  dispatch goes (`Usable`, `Consumable`, ...), as `BlockSet` does for
-  blocks. `BlockSet.block_item`/`encode_block_item` give a block as an item.
+  registered into it (`ignis.item.register.vanilla_item_registry`, over
+  `VanillaItems` and `VanillaBlockItems`).
+- **`item.Stack`** holds an `AnyItem`, an `ItemInfo` (max count,
+  durability, ...) computed from the type's traits when the stack is
+  created, and, for `NBTer` items, the item's `EncodeNBT` as a `Tree`
+  (Go's stack holds the item value; `item_as[T]` decodes it back). Stacks
+  start with network ID 0; the layer that sends them assigns IDs (Go uses a
+  global counter).
 - The network form of stacks is `ignis.session.item` (`stack_from_item`,
-  `stack_to_item`), byte-exact against Dragonfly.
+  `stack_to_item`), byte-exact against Dragonfly. `ignis.session.creative`
+  and `ignis.session.recipes` build `CreativeContent` and `CraftingData`;
+  both match Dragonfly byte for byte (with NBT keys sorted, since Go's map
+  order is random, and recipe IDs passed in, since Go's are random UUIDs).
+- Tests: `test/ignis/item/test_register.mojo` rebuilds every line of
+  `test/data/items/defs.txt` from `interop/items` (type, name, meta, block
+  state, max count, durability, tool, armour, food, fuel, smelting,
+  enchantability, repair items, compost chance, weapon data).
 
 ### The world and transactions
 

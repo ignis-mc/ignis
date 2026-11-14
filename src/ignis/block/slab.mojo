@@ -1,24 +1,32 @@
 """`Slab`, ported from Dragonfly `server/block/slab.go`.
 
-TODO(world-runtime): UseOnBlock, Instrument, FlammabilityInfo, FuelInfo,
-CanDisplace, SideClosed, CanRedstoneWireStepDown, Model, EncodeItem and the
-drops.
+TODO(world-runtime): UseOnBlock, Instrument, FlammabilityInfo, CanDisplace,
+SideClosed, CanRedstoneWireStepDown, Model and the drops.
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .blackstone import Blackstone
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .end_bricks import EndBricks
-from .hash import HASH_SLAB, AnyBlock, hash_block, unhash_block
+from .hash import (
+    AnyBlock,
+    HASH_BAMBOO_MOSAIC,
+    HASH_SLAB,
+    hash_block,
+    unhash_block,
+)
 from .model.slab import Slab as SlabModel
+from .planks import Planks
 from .polished_blackstone_brick import PolishedBlackstoneBrick
 from .purpur import Purpur
 from .quartz import Quartz
@@ -34,7 +42,9 @@ struct Slab(
     Block,
     Breakable,
     Equatable,
+    Fuel,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -183,3 +193,25 @@ struct Slab(
             The model.
         """
         return SlabModel(double=self.double, top=self.top)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        var n = encode_slab_block(self.block, False)
+        return EncodedItem(String(t"minecraft:{n[0]}{n[1]}"), 0)
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info of the block it is made of (Go `FuelInfo`)."""
+        if case .Some(p) = self.block.get[Planks]():
+            return p.fuel_info()
+        if self.block.kind == HASH_BAMBOO_MOSAIC:
+            # Go `BambooMosaic.FuelInfo`.
+            return FuelInfo(15000)
+        return FuelInfo()
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in slab_blocks():
+            out.append(Slab(block=v))
+        return out^

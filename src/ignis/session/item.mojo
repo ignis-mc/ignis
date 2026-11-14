@@ -5,14 +5,16 @@ Dragonfly `server/session/player.go`.
 from minecraft.nbt.decode import from_nbt
 from minecraft.nbt.encode import to_nbt
 from minecraft.nbt.nbt import LITTLE_ENDIAN, NBT
+from minecraft.nbt.tree import Tree
 from minecraft.protocol.item import ItemStack, ItemType
 
 from ..block.air import Air
 from ..block.register import VanillaBlocks
 from ..item.nbt import read_nbt, write_nbt
-from ..item.stack import Stack
+from ..item.register import VanillaBlockItems, VanillaItems
+from ..item.stack import Stack, has_nbt
 from ..world.block_registry import BasicBlockRegistry
-from ..world.item import ItemRegistry, ItemRuntimeID, RegisteredItem
+from ..world.item import AnyItem, ItemRegistry, ItemRuntimeID, RegisteredItem
 
 
 def stack_from_item(
@@ -37,12 +39,15 @@ def stack_from_item(
     var block_runtime_id = UInt32(0)
     var id: Optional[ItemRuntimeID]
     if item.block:
-        if case .Some(rid) = br.runtime_id_of(item.kind, item.hash):
+        var state = VanillaBlockItems.state_hash(item.kind, item.hash)
+        if not state:
+            raise Error(t"stack_from_item: unknown block item {item}")
+        if case .Some(rid) = br.runtime_id_of(item.kind, state.value()):
             block_runtime_id = rid
         else:
             raise Error(t"stack_from_item: unregistered block {item}")
         id = None
-        if case .Some(enc) = VanillaBlocks.encode_block_item(
+        if case .Some(enc) = VanillaBlockItems.encode_item(
             item.kind, item.hash
         ):
             if case .Some(rid) = reg.runtime_id(enc.name):
@@ -55,7 +60,14 @@ def stack_from_item(
     s.item_type = ItemType(id.value().runtime_id, UInt32(id.value().meta))
     s.count = UInt16(it.count())
     s.block_runtime_id = Int32(block_runtime_id)
-    var tree = write_nbt(it)
+    var st = it.copy()
+    if not has_nbt(st.item_nbt()):
+        # A stack made from a registered item rather than a typed value has
+        # no item NBT yet; Go encodes the item value on every send.
+        var data = _item_nbt(item, Tree())
+        if case .Some(ref d) = data:
+            st = st.with_item_nbt(d.copy())
+    var tree = write_nbt(st)
     if len(tree.children(tree.root())) != 0:
         s.nbt_data = to_nbt(tree, LITTLE_ENDIAN)
     else:
@@ -91,8 +103,21 @@ def stack_to_item(
         if rid < UInt32(br.block_count()):
             t = VanillaBlocks.block_item(br.kind(rid), br.state_hash(rid))
     var s: Stack
+    var data = from_nbt(it.nbt_data)
     if case .Some(found) = t:
         s = Stack(found, Int(it.count))
+        # Go `nbter.DecodeNBT(it.NBTData)` on an NBTer item.
+        if has_nbt(data):
+            if case .Some(ref d) = _item_nbt(found.item, data):
+                s = s.with_item_nbt(d.copy())
     else:
         s = Stack(Air(), Int(it.count))
-    return read_nbt(from_nbt(it.nbt_data), s)
+    return read_nbt(data, s)
+
+
+def _item_nbt(it: AnyItem, data: Tree) raises -> Optional[Tree]:
+    """The `EncodeNBT` of an item after decoding `data` into it, or None if
+    its type is not an `NBTer`."""
+    if it.block:
+        return VanillaBlockItems.item_nbt(it.kind, it.hash, data)
+    return VanillaItems.item_nbt(it.kind, it.hash, data)

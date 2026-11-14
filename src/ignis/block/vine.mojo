@@ -4,16 +4,17 @@ Go's `replaceable` helper (ReplaceableBy) comes with `world.Tx`. Go's
 `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes with
 liquids.
 
-TODO(world-runtime): EntityInside, SideClosed, UseOnBlock,
-NeighbourUpdateTick, RandomTick, CompostChance, FlammabilityInfo,
-WithAttachment, SetAttachment, Attachment, Attachments, EncodeItem and the
-drops.
+TODO(world-runtime): EntityInside, SideClosed, UseOnBlock, NeighbourUpdateTick,
+RandomTick, FlammabilityInfo, WithAttachment, SetAttachment, Attachment,
+Attachments and the drops.
 """
 
+from ..item.item import Compostable
 from ..item.tool import TYPE_SHEARS
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     AXE_EFFECTIVE,
     BreakInfo,
@@ -28,8 +29,10 @@ from .model.empty import Empty as EmptyModel
 struct Vines(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -173,3 +176,16 @@ struct Vines(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:vine", 0)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.5
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

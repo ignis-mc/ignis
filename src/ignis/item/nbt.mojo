@@ -39,6 +39,10 @@ def write_nbt(s: Stack) raises -> Tree:
     if s.empty():
         return tag^
     var root = tag.root()
+    # The item's own NBT (Go `EncodeNBT` of an `NBTer` item) comes first.
+    var data = s.item_nbt()
+    for c in data.children(data.root()):
+        _ = tag.put_tree(root, data.name(c), data, c)
     # writeAnvilCost
     if s.anvil_cost() > 0:
         _ = tag.put_int(root, "RepairCost", Int32(s.anvil_cost()))

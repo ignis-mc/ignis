@@ -1,17 +1,17 @@
 """`Obsidian`, ported from Dragonfly `server/block/obsidian.go`.
 
-TODO(world-runtime): Frame, SupportsEndCrystal, EncodeItem, SmeltInfo and
-the drops.
+TODO(world-runtime): Frame, SupportsEndCrystal and the drops.
 """
 
 from ..world.block import Block, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    HARVEST_LEVEL_DIAMOND,
-    PICKAXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    HARVEST_LEVEL_DIAMOND,
+    PICKAXE_EFFECTIVE,
     new_break_info,
     pickaxe_harvestable_from,
 )
@@ -20,7 +20,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct Obsidian(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A dark purple block known for its high blast resistance and strength, most commonly found when
     water flows over lava."""
@@ -118,3 +124,14 @@ struct Obsidian(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.crying:
+            return EncodedItem("minecraft:crying_obsidian", 0)
+        return EncodedItem("minecraft:obsidian", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Obsidian(crying=True), Obsidian()]

@@ -1,17 +1,17 @@
 """`Magma`, ported from Dragonfly `server/block/magma.go`.
 
-TODO(world-runtime): EntityStepOn, MagmaDamageSource, SmeltInfo, EncodeItem
-and the drops.
+TODO(world-runtime): EntityStepOn, MagmaDamageSource and the drops.
 """
 
 from ..world.block import Block, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .hash import HASH_MAGMA
@@ -19,7 +19,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct Magma(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A light-emitting block found in the nether that damages entities standing on it.
     """
@@ -104,3 +110,12 @@ struct Magma(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:magma", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

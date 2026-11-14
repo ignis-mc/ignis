@@ -1,13 +1,14 @@
 """`Cactus`, ported from Dragonfly `server/block/cactus.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RandomTick,
-EntityInside, DamageSource, CanDisplace, SideClosed, Model, EncodeItem and
-the drops.
+TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RandomTick, EntityInside,
+DamageSource, CanDisplace, SideClosed, Model and the drops.
 """
 
+from ..item.item import Compostable
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NOTHING_EFFECTIVE,
@@ -22,8 +23,10 @@ from .model.cactus import Cactus as CactusModel
 struct Cactus(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -123,3 +126,16 @@ struct Cactus(
             The model.
         """
         return CactusModel()
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.5
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:cactus", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

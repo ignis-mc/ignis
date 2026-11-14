@@ -273,5 +273,11 @@ func main() {
 	v.hex("file.sha256", sum[:])
 	itemTable(v, vanillaItems, *out)
 	stacks(v)
+	itemDefinitions(*out)
+	creative_registerCreativeItems()
+	recipe_registerVanilla()
+	creativeVectors(*out)
+	craftingVectors(*out)
+	trimVectors(*out)
 	v.write(filepath.Join(*out, "vectors.txt"))
 }

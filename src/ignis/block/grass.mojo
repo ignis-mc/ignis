@@ -4,6 +4,7 @@ TODO(world-runtime): RandomTick, BoneMeal, SoilFor, Till, Shovel,
 CompostChance and the drops.
 """
 
+from ..item.item import Compostable
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -21,7 +22,13 @@ from .model.solid import Solid as SolidModel
 
 @fieldwise_init
 struct Grass(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Compostable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """Grass blocks generate abundantly across the surface of the world."""
 
@@ -66,6 +73,10 @@ struct Grass(
             Grass.
         """
         return [Grass()]
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`): 0.3."""
+        return 0.3
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`).

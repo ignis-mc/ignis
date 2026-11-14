@@ -3,14 +3,17 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the `Item item.Stack` field, Activate, Punch,
-UseOnBlock, NeighbourUpdateTick, SideClosed, DecodeNBT, EncodeNBT, Pick, the
-break handler, EncodeItem and the drops.
+TODO(world-runtime): the `Item item.Stack` field, Activate, Punch, UseOnBlock,
+NeighbourUpdateTick, SideClosed, Pick, the break handler and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from minecraft.nbt.tree import Tag, Tree
+
+from ..internal.nbtconv.read import get_float32, get_uint8
+from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NOTHING_EFFECTIVE,
@@ -28,8 +31,10 @@ struct ItemFrame(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
+    NBTer,
 ):
     """A block that displays an item."""
 
@@ -160,3 +165,31 @@ struct ItemFrame(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.glowing:
+            return EncodedItem("minecraft:glow_frame", 0)
+        return EncodedItem("minecraft:frame", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self(glowing=True), Self()]
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        _ = tag.put_float(root, "ItemDropChance", Float32(self.drop_chance))
+        _ = tag.put_byte(root, "ItemRotation", UInt8(self.rotations))
+        _ = tag.put_string(
+            root, "id", "GlowItemFrame" if self.glowing else "ItemFrame"
+        )
+        # TODO(world-runtime): Item, once the frame holds a stack.
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        var i = self.copy()
+        i.drop_chance = Float64(get_float32(tag, root, "ItemDropChance"))
+        i.rotations = Int(get_uint8(tag, root, "ItemRotation"))
+        # TODO(world-runtime): the item.
+        return i^

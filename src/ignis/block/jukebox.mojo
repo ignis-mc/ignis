@@ -1,13 +1,16 @@
 """`Jukebox`, ported from Dragonfly `server/block/jukebox.go`.
 
 TODO(world-runtime): the `Item item.Stack` field, InsertItem, ExtractItem,
-Activate, Disc, the break handler dropping the disc, DecodeNBT, EncodeNBT,
-FuelInfo, EncodeItem and the drops.
+Activate, Disc, the break handler dropping the disc and the drops.
 """
 
-from ..world.block import Block
+from minecraft.nbt.tree import Tag, Tree
+
+from ..item.smelting_info import Fuel, FuelInfo
+from ..world.block import Block, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -19,7 +22,16 @@ from .hash import HASH_JUKEBOX
 from .model.solid import Solid as SolidModel
 
 
-struct Jukebox(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Jukebox(
+    Block,
+    Breakable,
+    Equatable,
+    Fuel,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    NBTer,
+):
     """A block used to play music discs."""
 
     comptime BASE_HASH: UInt64 = HASH_JUKEBOX
@@ -96,3 +108,26 @@ struct Jukebox(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
+        return FuelInfo(15000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:jukebox", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        _ = tag.put_string(root, "id", "Jukebox")
+        # TODO(world-runtime): RecordItem, once the jukebox holds a disc.
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        # TODO(world-runtime): the disc in RecordItem.
+        return self.copy()

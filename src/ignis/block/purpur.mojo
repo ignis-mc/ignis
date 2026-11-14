@@ -1,16 +1,17 @@
 """`Purpur`, `PurpurPillar`, ported from Dragonfly `server/block/purpur.go`.
 
-TODO(world-runtime): PurpurPillar.UseOnBlock, EncodeItem and the drops.
+TODO(world-runtime): PurpurPillar.UseOnBlock and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .cube.axis import Axis, axes
@@ -18,7 +19,14 @@ from .hash import HASH_PURPUR, HASH_PURPUR_PILLAR
 from .model.solid import Solid as SolidModel
 
 
-struct Purpur(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Purpur(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+):
     """A decorative block found in end cities."""
 
     comptime BASE_HASH: UInt64 = HASH_PURPUR
@@ -99,9 +107,23 @@ struct Purpur(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
         """
         return SolidModel()
 
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:purpur_block", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]
+
 
 struct PurpurPillar(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A pillar variant of purpur."""
 
@@ -192,3 +214,12 @@ struct PurpurPillar(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:purpur_pillar", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

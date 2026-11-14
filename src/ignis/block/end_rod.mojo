@@ -2,13 +2,13 @@
 
 Go's `flowingWaterDisplacer` comes with liquids.
 
-TODO(world-runtime): UseOnBlock, Model, SideClosed, EncodeItem and the
-drops.
+TODO(world-runtime): UseOnBlock, Model, SideClosed and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NOTHING_EFFECTIVE,
@@ -27,6 +27,7 @@ struct EndRod(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
@@ -138,3 +139,12 @@ struct EndRod(
             The model.
         """
         return EndRodModel(axis=self.facing.axis())
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:end_rod", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

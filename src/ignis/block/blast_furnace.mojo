@@ -1,14 +1,16 @@
 """`BlastFurnace`, ported from Dragonfly `server/block/blast_furnace.go`.
 
 TODO(world-runtime): the `*smelter` (smelter.go: inventory, fuel, progress,
-Experience and the XP the break info drops), NewFurnace, Tick, EncodeNBT,
-DecodeNBT, Activate, UseOnBlock, the break handler dropping the inventory,
-EncodeItem and the drops.
+Experience and the XP the break info drops), NewFurnace, Tick, Activate,
+UseOnBlock, the break handler dropping the inventory and the drops.
 """
 
-from ..world.block import Block, LightEmitter
+from minecraft.nbt.tree import Tag, Tree
+
+from ..world.block import Block, LightEmitter, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     PICKAXE_EFFECTIVE,
@@ -22,7 +24,14 @@ from .model.solid import Solid as SolidModel
 
 
 struct BlastFurnace(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    LightEmitter,
+    ModelledBlock,
+    NBTer,
 ):
     """A block that smelts ores, raw metals, iron and gold armour and tools, similar to a
     furnace, but at twice the speed."""
@@ -137,3 +146,29 @@ struct BlastFurnace(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:blast_furnace", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        # TODO(world-runtime): the smelter's durations, experience and
+        # inventory; these are a new smelter's.
+        _ = tag.put_short(root, "BurnTime", 0)
+        _ = tag.put_short(root, "CookTime", 0)
+        _ = tag.put_short(root, "BurnDuration", 0)
+        _ = tag.put_short(root, "StoredXPInt", 0)
+        _ = tag.put_list(root, "Items")
+        _ = tag.put_string(root, "id", "BlastFurnace")
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        # TODO(world-runtime): the smelter's state; Go keeps only the
+        # facing and lit state of the block.
+        return Self(facing=self.facing, lit=self.lit)

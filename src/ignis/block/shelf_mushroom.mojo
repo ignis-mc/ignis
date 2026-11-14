@@ -1,17 +1,18 @@
 """`ShelfMushroom`, ported from Dragonfly `server/block/shelf_mushroom.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, BoneMeal, Model,
-CompostChance, EncodeItem and the drops.
+TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, BoneMeal, Model and the
+drops.
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .cube.direction import Direction, directions
@@ -24,6 +25,7 @@ struct ShelfMushroom(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -137,3 +139,12 @@ struct ShelfMushroom(
             The model.
         """
         return ShelfMushroomModel(facing=self.facing, large=self.large)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:shelf_mushroom", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

@@ -1,11 +1,13 @@
 """`CraftingTable`, ported from Dragonfly `server/block/crafting_table.go`.
 
-TODO(world-runtime): Activate, FuelInfo, EncodeItem and the drops.
+TODO(world-runtime): Activate and the drops.
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -18,7 +20,7 @@ from .model.solid import Solid as SolidModel
 
 
 struct CraftingTable(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block, Breakable, Equatable, Fuel, ImplicitlyCopyable, Item, ModelledBlock
 ):
     """A utility block that allows the player to craft a variety of blocks and items.
     """
@@ -95,3 +97,16 @@ struct CraftingTable(
             The model.
         """
         return SolidModel()
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
+        return FuelInfo(15000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:crafting_table", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

@@ -1,17 +1,19 @@
 """`NetherWart`, ported from Dragonfly `server/block/nether_wart.go`.
 
 TODO(world-runtime): HasLiquidDrops, RandomTick, UseOnBlock,
-NeighbourUpdateTick, CompostChance, EncodeItem and the drops (fortune).
+NeighbourUpdateTick and the drops (fortune).
 """
 
+from ..item.item import Compostable
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_NETHER_WART
@@ -21,8 +23,10 @@ from .model.empty import Empty as EmptyModel
 struct NetherWart(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -122,3 +126,16 @@ struct NetherWart(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:nether_wart", 0)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.65
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

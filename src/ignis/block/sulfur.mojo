@@ -1,23 +1,31 @@
 """`Sulfur`, ported from Dragonfly `server/block/sulfur.go`.
 
-TODO(world-runtime): EncodeItem and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .hash import HASH_SULFUR
 from .model.solid import Solid as SolidModel
 
 
-struct Sulfur(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Sulfur(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+):
     """A decorative mineral block."""
 
     comptime BASE_HASH: UInt64 = HASH_SULFUR
@@ -103,3 +111,14 @@ struct Sulfur(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.chiseled:
+            return EncodedItem("minecraft:chiseled_sulfur", 0)
+        return EncodedItem("minecraft:sulfur", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Sulfur(), Sulfur(chiseled=True)]

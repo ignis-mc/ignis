@@ -1,12 +1,15 @@
 """`Wood`, ported from Dragonfly `server/block/wood.go`.
 
-TODO(world-runtime): UseOnBlock, Strip, EncodeItem, FlammabilityInfo,
-FuelInfo and the drops.
+TODO(world-runtime): UseOnBlock, Strip, FlammabilityInfo and the drops.
 """
 
+from ..item.charcoal import Charcoal
+from ..item.smelting_info import Fuel, FuelInfo, SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -20,7 +23,16 @@ from .model.solid import Solid as SolidModel
 from .wood_type import WoodType, wood_types
 
 
-struct Wood(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Wood(
+    Block,
+    Breakable,
+    Equatable,
+    Fuel,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
+):
     """A block with the log texture on all six sides."""
 
     comptime BASE_HASH: UInt64 = HASH_WOOD
@@ -138,3 +150,34 @@ struct Wood(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        var kind = "wood"
+        if self.wood == WoodType.CRIMSON or self.wood == WoodType.WARPED:
+            kind = "hyphae"
+        if self.stripped:
+            return EncodedItem(
+                String(t"minecraft:stripped_{self.wood}_{kind}"), 0
+            )
+        return EncodedItem(String(t"minecraft:{self.wood}_{kind}"), 0)
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`); none for nether wood."""
+        if not self.wood.flammable():
+            return FuelInfo()
+        return FuelInfo(15000)
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(Charcoal(), 1), 0.15)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in wood_types():
+            if v != WoodType.BAMBOO:
+                out.append(Wood(wood=v, stripped=True))
+                out.append(Wood(wood=v))
+        return out^

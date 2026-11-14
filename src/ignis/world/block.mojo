@@ -18,6 +18,8 @@ Go passes `RandomTick` and `ScheduledTick` a `*rand.Rand` next to the
 both would borrow the world twice.
 """
 
+from minecraft.nbt.tree import Tag, Tree
+
 from ..block.cube.pos import Pos
 from .block_state import BlockState
 from .world import World, WorldTypes
@@ -71,6 +73,23 @@ trait Block(Copyable, Deinitable):
         Returns:
             The values, in Go's registration order.
         """
+        ...
+
+
+trait NBTer(Copyable, Deinitable):
+    """A block, item or entity with NBT data (Go `world.NBTer`).
+
+    Go's map becomes a compound in a `Tree`; keys are written in the order
+    Go's map literal lists them (Go's own order is random).
+    """
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the value's NBT into the compound `root` (Go `EncodeNBT`)."""
+        ...
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the value with the NBT of compound `root` decoded into it
+        (Go `DecodeNBT`)."""
         ...
 
 

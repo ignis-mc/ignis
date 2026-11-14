@@ -1,12 +1,13 @@
 """`BambooBlock`, ported from Dragonfly `server/block/bamboo_block.go`.
 
-TODO(world-runtime): UseOnBlock, Strip, EncodeItem, FlammabilityInfo,
-FuelInfo and the drops.
+TODO(world-runtime): UseOnBlock, Strip, FlammabilityInfo and the drops.
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -20,7 +21,7 @@ from .model.solid import Solid as SolidModel
 
 
 struct BambooBlock(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block, Breakable, Equatable, Fuel, ImplicitlyCopyable, Item, ModelledBlock
 ):
     """A block made from bamboo, which can be stripped."""
 
@@ -121,3 +122,18 @@ struct BambooBlock(
             The model.
         """
         return SolidModel()
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
+        return FuelInfo(15000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.stripped:
+            return EncodedItem("minecraft:stripped_bamboo_block", 0)
+        return EncodedItem("minecraft:bamboo_block", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self(), Self(stripped=True)]
