@@ -30,6 +30,10 @@ from minecraft.protocol.container import (
     CONTAINER_CRAFTING_INPUT,
     CONTAINER_CREATED_OUTPUT,
     CONTAINER_INVENTORY,
+    CONTAINER_SMITHING_TABLE_INPUT,
+    CONTAINER_SMITHING_TABLE_MATERIAL,
+    CONTAINER_SMITHING_TABLE_TEMPLATE,
+    CONTAINER_STONECUTTER_INPUT,
     FullContainerName,
 )
 from minecraft.protocol.item_stack import (
@@ -66,12 +70,22 @@ from minecraft.nbt.nbt import TAG_STRING
 from minecraft.nbt.tree import Tree
 
 from ..block.decorated_pot import DecoratedPot
-from ..block.hash import HASH_CRAFTING_TABLE
+from ..block.hash import (
+    HASH_CRAFTING_TABLE,
+    HASH_SMITHING_TABLE,
+    HASH_STONECUTTER,
+)
+from ..item.boots import Boots
+from ..item.chestplate import Chestplate
+from ..item.helmet import Helmet
+from ..item.leggings import Leggings
+from ..item.register import VanillaItems
+from ..item.smithing_template import SmithingTemplate
 from ..block.register import VanillaBlocks
 from ..item.brick import Brick
 from ..item.pottery_sherd import PotterySherd
 from ..item.recipe.item import Item as RecipeItem
-from ..item.recipe.recipe import RecipeKind
+from ..item.recipe.recipe import Recipe, RecipeKind
 from ..item.recipe.register import Recipes
 from ..item.stack import Stack
 from ..world.item import ItemRegistry
@@ -95,6 +109,14 @@ comptime CRAFTING_GRID_SMALL_OFFSET = 28
 """The UI slot of the 2x2 grid (Go `craftingGridSmallOffset`)."""
 comptime CRAFTING_GRID_LARGE_OFFSET = 32
 """The UI slot of the 3x3 grid (Go `craftingGridLargeOffset`)."""
+comptime STONECUTTER_INPUT_SLOT = 0x03
+"""Go `stonecutterInputSlot`."""
+comptime SMITHING_INPUT_SLOT = 0x33
+"""Go `smithingInputSlot`."""
+comptime SMITHING_MATERIAL_SLOT = 0x34
+"""Go `smithingMaterialSlot`."""
+comptime SMITHING_TEMPLATE_SLOT = 0x35
+"""Go `smithingTemplateSlot`."""
 comptime _ACK_TIMEOUT_MS = 5000
 comptime _MAX_RESPONSE_CHANGES = 256
 
@@ -225,7 +247,17 @@ struct ItemStackRequestHandler(Defaultable, Movable):
                 )
             elif v.isa[CraftRecipeStackRequestAction]():
                 ref a = v[CraftRecipeStackRequestAction]
-                self._craft(a.recipe_network_id, Int(a.number_of_crafts), invs)
+                # Go: the opened block picks a special craft first.
+                if self._window.block == HASH_SMITHING_TABLE:
+                    self._smithing(a.recipe_network_id, invs)
+                elif self._window.block == HASH_STONECUTTER:
+                    self._stonecutting(
+                        a.recipe_network_id, Int(a.number_of_crafts), invs
+                    )
+                else:
+                    self._craft(
+                        a.recipe_network_id, Int(a.number_of_crafts), invs
+                    )
             elif v.isa[AutoCraftRecipeStackRequestAction]():
                 ref a = v[AutoCraftRecipeStackRequestAction]
                 self._auto_craft(
@@ -461,6 +493,90 @@ struct ItemStackRequestHandler(Defaultable, Movable):
                     t"recipe {network_id}: could not consume expected item"
                 )
         self._create_results(repeat_stacks(r.output(), times), invs)
+
+    def _recipe(self, network_id: UInt32) raises -> Recipe:
+        var index = Int(network_id) - 1
+        if index < 0 or index >= len(self._recipes[].recipes()):
+            raise Error(t"recipe with network id {network_id} does not exist")
+        return self._recipes[].recipes()[index].copy()
+
+    def _stonecutting(
+        mut self, network_id: UInt32, times: Int, mut invs: Inventories
+    ) raises:
+        """Go `handleStonecutting`."""
+        var r = self._recipe(network_id)
+        if r.kind != RecipeKind.SHAPELESS:
+            raise Error(t"recipe {network_id} is not a shapeless recipe")
+        if r.block() != "stonecutter":
+            raise Error(t"recipe {network_id} is not a stonecutter recipe")
+        if times < 1:
+            raise Error("times crafted must be at least 1")
+        var at = _slot(CONTAINER_STONECUTTER_INPUT, STONECUTTER_INPUT_SLOT)
+        var input = self._item(at, invs)
+        if input.count() < times:
+            raise Error("input item count is less than number of crafts")
+        if not self._matches(input, r.input()[0]):
+            raise Error("input item is not the same as expected input")
+        self._set(at, input.grow(-times), invs)
+        self._create_results(repeat_stacks(r.output(), times), invs)
+
+    def _smithing(mut self, network_id: UInt32, mut invs: Inventories) raises:
+        """Go `handleSmithing`: upgrades (transform) and armour trims."""
+        var r = self._recipe(network_id)
+        if r.block() != "smithing_table":
+            raise Error(t"recipe {network_id} is not a smithing table recipe")
+        var trim = r.kind == RecipeKind.SMITHING_TRIM
+        if r.kind != RecipeKind.SMITHING_TRANSFORM and not trim:
+            raise Error(t"recipe {network_id} is not a smithing recipe")
+        var at_input = _slot(
+            CONTAINER_SMITHING_TABLE_INPUT, SMITHING_INPUT_SLOT
+        )
+        var at_material = _slot(
+            CONTAINER_SMITHING_TABLE_MATERIAL, SMITHING_MATERIAL_SLOT
+        )
+        var at_template = _slot(
+            CONTAINER_SMITHING_TABLE_TEMPLATE, SMITHING_TEMPLATE_SLOT
+        )
+        var input = self._item(at_input, invs)
+        if not self._matches(input, r.input()[0]):
+            raise Error("input item is not the same as expected input")
+        var material = self._item(at_material, invs)
+        if not self._matches(material, r.input()[1]):
+            raise Error("material item is not the same as expected material")
+        var template = self._item(at_template, invs)
+        if not self._matches(template, r.input()[2]):
+            raise Error("template item is not the same as expected template")
+        self._set(at_input, input.grow(-1), invs)
+        self._set(at_material, material.grow(-1), invs)
+        self._set(at_template, template.grow(-1), invs)
+        var result = input.grow(1 - input.count())
+        if not trim:
+            self._create_results([result.with_item_of(r.output()[0])], invs)
+            return
+        var t = template.item_as[SmithingTemplate]()
+        if not t:
+            raise Error("template item is not a smithing template")
+        var m = material.item().value()
+        var mname: Optional[StaticString] = None
+        if not m.block:
+            mname = VanillaItems.trim_material(m.kind, m.hash)
+        if not mname:
+            raise Error("material item is not an armour trim material")
+        var k = input.item().value().kind
+        if (
+            k != Helmet.BASE_HASH
+            and k != Chestplate.BASE_HASH
+            and k != Leggings.BASE_HASH
+            and k != Boots.BASE_HASH
+        ):
+            raise Error("input item is not trimmable")
+        # Go `Trimmable.WithTrim`, written as the armour's `Trim` NBT.
+        var nbt = result.item_nbt()
+        _ = nbt.remove(nbt.root(), "Trim")
+        var c = nbt.put_compound(nbt.root(), "Trim")
+        _ = nbt.put_string(c, "Material", String(mname.value()))
+        _ = nbt.put_string(c, "Pattern", t.value().template.name())
+        self._create_results([result.with_item_nbt(nbt^)], invs)
 
     def _dynamic_craft(mut self, times_in: Int, mut invs: Inventories) raises:
         """Go `tryDynamicCraft`: the decorated pot from four decorations."""

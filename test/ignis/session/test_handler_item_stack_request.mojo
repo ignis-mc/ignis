@@ -1,11 +1,21 @@
 from ignis.block.crafting_table import CraftingTable
-from ignis.block.hash import HASH_CRAFTING_TABLE
+from ignis.block.hash import (
+    HASH_CRAFTING_TABLE,
+    HASH_SMITHING_TABLE,
+    HASH_STONECUTTER,
+)
+from ignis.block.stone import Stone
+from ignis.item.smithing_template import SmithingTemplate
 from ignis.block.log import Log
 from ignis.block.planks import Planks
 from ignis.item.diamond import Diamond
 from ignis.item.recipe.item import Item as RecipeItem
 from ignis.item.recipe.item_tag import ItemTags, new_item_tag
-from ignis.item.recipe.recipe import new_shaped, new_shapeless
+from ignis.item.recipe.recipe import (
+    new_shaped,
+    new_shapeless,
+    new_smithing_transform,
+)
 from ignis.item.recipe.register import Recipes
 from ignis.item.recipe.shape import Shape
 from ignis.session.handler_item_stack_request import repeat_stacks
@@ -298,6 +308,24 @@ def _recipes() raises -> ArcPointer[Recipes]:
         ),
         reg,
     )
+    # 3: a stonecutter turns one stone into two planks.
+    r.register(
+        new_shapeless(
+            [RecipeItem(Stack(Stone(), 1))], Stack(Planks(), 2), "stonecutter"
+        ),
+        reg,
+    )
+    # 4: a smithing table upgrades a diamond into a stick.
+    r.register(
+        new_smithing_transform(
+            RecipeItem(Stack(Diamond(), 1)),
+            RecipeItem(Stack(Stick(), 1)),
+            RecipeItem(Stack(SmithingTemplate(), 1)),
+            Stack(Stick(), 1),
+            "smithing_table",
+        ),
+        reg,
+    )
     return ArcPointer(r^)
 
 
@@ -370,6 +398,43 @@ def test_auto_craft_takes_from_the_inventory() raises:
     assert_equal(res[0], ITEM_STACK_RESPONSE_STATUS_OK)
     assert_equal(invs.inv.item(5).count() + invs.inv.item(9).count(), 2)
     assert_true(invs.ui.item(CRAFTING_RESULT).item_as[CraftingTable]())
+
+
+def test_stonecutting() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_STONECUTTER)
+    invs.ui.set_item(3, Stack(Stone(), 2))
+    var h = ItemStackRequestHandler()
+    h.use_recipes(_recipes(), ArcPointer(ItemRegistry()))
+    # A crafting table recipe is no stonecutter recipe.
+    assert_equal(
+        run(h, packet(1, craft(1, 1)), invs)[0],
+        ITEM_STACK_RESPONSE_STATUS_ERROR,
+    )
+    assert_equal(
+        run(h, packet(2, craft(3, 2)), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    assert_true(invs.ui.item(3).empty())
+    assert_equal(invs.ui.item(CRAFTING_RESULT).count(), 4)
+
+
+def test_smithing_transform() raises:
+    var invs = Inventories()
+    invs.window = Window(WINDOW_UI, HASH_SMITHING_TABLE)
+    # Go's `Comparable` also compares custom names, so the input must be
+    # a plain diamond to match the recipe.
+    invs.ui.set_item(0x33, Stack(Diamond(), 1))
+    invs.ui.set_item(0x34, Stack(Stick(), 1))
+    invs.ui.set_item(0x35, Stack(SmithingTemplate(), 1))
+    var h = ItemStackRequestHandler()
+    h.use_recipes(_recipes(), ArcPointer(ItemRegistry()))
+    assert_equal(
+        run(h, packet(1, craft(4, 1)), invs)[0], ITEM_STACK_RESPONSE_STATUS_OK
+    )
+    var out = invs.ui.item(CRAFTING_RESULT)
+    assert_true(out.item_as[Stick]())
+    assert_equal(out.count(), 1)
+    assert_true(invs.ui.item(0x35).empty())
 
 
 def main() raises:
