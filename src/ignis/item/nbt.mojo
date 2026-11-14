@@ -1,8 +1,11 @@
 """The NBT of item stacks, ported from Dragonfly `server/item/nbt.go`.
 
-Only the network form of `WriteNBT` and `ReadNBT` is ported: the disk form
-wraps the stack with its name, block and count and comes with the world
-provider. Go writes the tags into a map, so its key order is random; Ignis
+`write_nbt`/`read_nbt` are the network form of `WriteNBT` and `ReadNBT`;
+`write_disk_nbt`/`read_disk_nbt` the disk form (`writeItemStack`,
+`readItemStack`): `{Name, Damage, Block?, Count, tag?}`, with the damage in
+`tag` as a short. Reading looks the item up by `Name` and `Damage`; Go
+also decodes `Block` to pick a block item's state, which matters only for
+block items with several registered states and is not done yet. Go writes the tags into a map, so its key order is random; Ignis
 writes them in the order `WriteNBT` adds them. User values
 (`dragonflyData`) are not ported, and `read_nbt` keeps enchantments of any
 ID because the enchantment table is not ported yet (Go drops unknown IDs).
@@ -18,6 +21,10 @@ from minecraft.nbt.nbt import (
 )
 from minecraft.nbt.tree import Tag, Tree
 
+from ..block.register import VanillaBlocks
+from ..world.block_registry import BasicBlockRegistry
+from ..world.chunk.encoding import encode_disk_block_state
+from ..world.item import EncodedItem, ItemRegistry
 from .stack import Enchantment, Stack
 
 
@@ -138,3 +145,79 @@ def _int(data: Tree, t: Tag, key: StringSpan, tag_type: UInt8) raises -> Int64:
             return Int64(data.as_short(v))
         return Int64(data.as_int(v))
     return 0
+
+
+def write_disk_nbt(
+    br: BasicBlockRegistry, reg: ItemRegistry, s: Stack
+) raises -> Tree:
+    """Encodes a stack for disk (Go `WriteNBT(s, true)`); an empty compound
+    for an empty stack. Raises if the item has no name."""
+    var t = Tree(TAG_COMPOUND)
+    if s.empty():
+        return t^
+    var it = s.item().value()
+    var enc: Optional[EncodedItem]
+    if it.block:
+        enc = VanillaBlocks.encode_block_item(it.kind, it.hash)
+    else:
+        enc = reg.encode_item(it)
+    if not enc:
+        raise Error(t"write_disk_nbt: item without a name {it}")
+    var tag = write_nbt(s)
+    var root = t.root()
+    _ = t.put_string(root, "Name", enc.value().name)
+    _ = t.put_short(root, "Damage", enc.value().meta)
+    if it.block:
+        if case .Some(rid) = br.runtime_id_of(it.kind, it.hash):
+            encode_disk_block_state(br, rid, t, t.put_compound(root, "Block"))
+    _ = t.put_byte(root, "Count", UInt8(s.count()))
+    var tr = tag.root()
+    if len(tag.children(tr)) > 0:
+        # Go's disk writeDamage stores the damage as a short.
+        if case .Some(d) = tag.get(tr, "Damage"):
+            if tag.type_of(d) == TAG_INT:
+                var v = tag.as_int(d)
+                _ = tag.remove(tr, "Damage")
+                _ = tag.put_short(tr, "Damage", Int16(v))
+        _ = t.put_tree(root, "tag", tag, tr)
+    return t^
+
+
+def read_disk_nbt(reg: ItemRegistry, t: Tree, m: Tag) -> Stack:
+    """Decodes a stack from disk (Go `ReadNBT(m, nil)`); an empty stack if
+    the item is unknown or the data is malformed."""
+    try:
+        if t.type_of(m) != TAG_COMPOUND:
+            return Stack()
+        var name = String()
+        var meta = Int16(0)
+        var count = 0
+        if case .Some(e) = t.get(m, "Name"):
+            if t.type_of(e) == TAG_STRING:
+                name = t.as_string(e)
+        if case .Some(e) = t.get(m, "Damage"):
+            if t.type_of(e) == TAG_SHORT:
+                meta = t.as_short(e)
+        if case .Some(e) = t.get(m, "Count"):
+            if t.type_of(e) == TAG_BYTE:
+                count = Int(t.as_byte(e))
+        var found = reg.item_by_name(name, meta)
+        if not found:
+            return Stack()
+        var s = Stack(found.value(), count)
+        if case .Some(tag) = t.get(m, "tag"):
+            if t.type_of(tag) != TAG_COMPOUND:
+                return s^
+            var sub = Tree(TAG_COMPOUND)
+            for c in t.children(tag):
+                _ = sub.put_tree(sub.root(), t.name(c), t, c)
+            var sr = sub.root()
+            if case .Some(d) = sub.get(sr, "Damage"):
+                if sub.type_of(d) == TAG_SHORT:
+                    var v = sub.as_short(d)
+                    _ = sub.remove(sr, "Damage")
+                    _ = sub.put_int(sr, "Damage", Int32(v))
+            s = read_nbt(sub, s)
+        return s^
+    except:
+        return Stack()

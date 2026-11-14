@@ -1,25 +1,18 @@
 """Inventories in player data, ported from Dragonfly
-`server/player/playerdb/inventory.go` with the disk form of Go's
-`item.WriteNBT`/`ReadNBT` (`writeItemStack`/`readItemStack`).
+`server/player/playerdb/inventory.go`.
 
-A stored item is little-endian NBT `{Name, Damage, Count, Block?, tag?}`.
-Reading looks the item up by `Name` and `Damage`; Go also decodes `Block`
-to pick a block item's state, which matters only for block items with
-several registered states, and is not done yet.
+A stored item is the little-endian NBT of `item.nbt.write_disk_nbt`.
 """
 
 from minecraft.nbt.decode import decode
 from minecraft.nbt.encode import encode
-from minecraft.nbt.nbt import LITTLE_ENDIAN, TAG_BYTE, TAG_INT, TAG_SHORT
-from minecraft.nbt.tree import Tree
+from minecraft.nbt.nbt import LITTLE_ENDIAN
 
-from ...block.register import VanillaBlocks
-from ...item.nbt import read_nbt, write_nbt
+from ...item.nbt import read_disk_nbt, write_disk_nbt
 from ...item.stack import Stack
 from ...session.inventory import Inventories
 from ...world.block_registry import BasicBlockRegistry
-from ...world.chunk.encoding import encode_disk_block_state
-from ...world.item import EncodedItem, ItemRegistry
+from ...world.item import ItemRegistry
 from .json import Data, Slot
 
 
@@ -31,35 +24,7 @@ def encode_item(
     if s.empty():
         return List[UInt8]()
     try:
-        var it = s.item().value()
-        var enc: Optional[EncodedItem]
-        if it.block:
-            enc = VanillaBlocks.encode_block_item(it.kind, it.hash)
-        else:
-            enc = reg.encode_item(it)
-        if not enc:
-            return List[UInt8]()
-        var tag = write_nbt(s)
-        var t = Tree()
-        var root = t.root()
-        _ = t.put_string(root, "Name", enc.value().name)
-        _ = t.put_short(root, "Damage", enc.value().meta)
-        if it.block:
-            if case .Some(rid) = br.runtime_id_of(it.kind, it.hash):
-                encode_disk_block_state(
-                    br, rid, t, t.put_compound(root, "Block")
-                )
-        _ = t.put_byte(root, "Count", UInt8(s.count()))
-        var tr = tag.root()
-        if len(tag.children(tr)) > 0:
-            # Go's disk writeDamage stores the damage as a short.
-            if case .Some(d) = tag.get(tr, "Damage"):
-                if tag.type_of(d) == TAG_INT:
-                    var v = tag.as_int(d)
-                    _ = tag.remove(tr, "Damage")
-                    _ = tag.put_short(tr, "Damage", Int16(v))
-            _ = t.put_tree(root, "tag", tag, tr)
-        return encode(t, LITTLE_ENDIAN)
+        return encode(write_disk_nbt(br, reg, s), LITTLE_ENDIAN)
     except:
         return List[UInt8]()
 
@@ -71,34 +36,7 @@ def decode_item(reg: ItemRegistry, data: List[UInt8]) -> Stack:
         return Stack()
     try:
         var t = decode(Span(data), LITTLE_ENDIAN)
-        var root = t.root()
-        var name = String()
-        var meta = Int16(0)
-        var count = 0
-        if case .Some(e) = t.get(root, "Name"):
-            name = t.as_string(e)
-        if case .Some(e) = t.get(root, "Damage"):
-            if t.type_of(e) == TAG_SHORT:
-                meta = t.as_short(e)
-        if case .Some(e) = t.get(root, "Count"):
-            if t.type_of(e) == TAG_BYTE:
-                count = Int(t.as_byte(e))
-        var found = reg.item_by_name(name, meta)
-        if not found:
-            return Stack()
-        var s = Stack(found.value(), count)
-        if case .Some(tag) = t.get(root, "tag"):
-            var sub = Tree()
-            for c in t.children(tag):
-                _ = sub.put_tree(sub.root(), t.name(c), t, c)
-            var sr = sub.root()
-            if case .Some(d) = sub.get(sr, "Damage"):
-                if sub.type_of(d) == TAG_SHORT:
-                    var v = sub.as_short(d)
-                    _ = sub.remove(sr, "Damage")
-                    _ = sub.put_int(sr, "Damage", Int32(v))
-            s = read_nbt(sub, s)
-        return s^
+        return read_disk_nbt(reg, t, t.root())
     except:
         return Stack()
 
