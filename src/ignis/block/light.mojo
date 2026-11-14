@@ -6,6 +6,8 @@ and liquids.
 TODO(world-runtime): SideClosed, EncodeItem.
 """
 
+from .block import Replaceable
+from .hash import AnyBlock
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -20,6 +22,7 @@ struct Light(
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
+    Replaceable,
 ):
     """An invisible block that can produce any light level."""
 
@@ -114,3 +117,7 @@ struct Light(
             The model.
         """
         return EmptyModel()
+
+    def replaceable_by(self, b: AnyBlock) -> Bool:
+        """Any block replaces it (Go's embedded `replaceable`)."""
+        return True

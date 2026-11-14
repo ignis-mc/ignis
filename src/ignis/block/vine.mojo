@@ -1,6 +1,6 @@
 """`Vines`, ported from Dragonfly `server/block/vine.go`.
 
-Go's `replaceable` helper (ReplaceableBy) comes with `world.Tx`. Go's
+Go's `replaceable` helper is `Replaceable`. Go's
 `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes with
 liquids.
 
@@ -11,6 +11,8 @@ drops.
 """
 
 from ..item.tool import TYPE_SHEARS
+from .block import Replaceable
+from .hash import AnyBlock
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
@@ -32,6 +34,7 @@ struct Vines(
     ImplicitlyCopyable,
     LightDiffuser,
     ModelledBlock,
+    Replaceable,
 ):
     """A climbable block that grows on walls and in the shade."""
 
@@ -173,3 +176,7 @@ struct Vines(
             The model.
         """
         return EmptyModel()
+
+    def replaceable_by(self, b: AnyBlock) -> Bool:
+        """Any block replaces it (Go's embedded `replaceable`)."""
+        return True

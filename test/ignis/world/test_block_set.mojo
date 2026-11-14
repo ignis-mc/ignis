@@ -8,6 +8,10 @@ from ignis.block.bedrock import Bedrock
 from ignis.block.cube.pos import Pos
 from ignis.block.register import VanillaBlocks
 from std.testing import TestSuite, assert_equal, assert_false, assert_true
+from ignis.block.hash import AnyBlock
+from ignis.block.short_grass import ShortGrass
+from support.block_source import FixedSource
+from ignis.block.register import vanilla_block_registry
 from support.world_runtime import (
     RandomProbe,
     ScheduledProbe,
@@ -93,6 +97,37 @@ def test_tick_dispatch() raises:
     # The registry flags random tickers (Go `RandomTickBlock`).
     assert_true(br[].random_tick_block(br[].block_runtime_id(RandomProbe())))
     assert_false(br[].random_tick_block(br[].block_runtime_id(Dirt())))
+
+
+def test_interaction_dispatch() raises:
+    var stone = Stone()
+    var info = VanillaBlocks.break_info(Stone.BASE_HASH, stone.hash()).value()
+    assert_equal(info.hardness, 1.5)
+    assert_false(Bool(VanillaBlocks.break_info(Air.BASE_HASH, Air().hash())))
+    var by = AnyBlock(Dirt.BASE_HASH, Dirt().hash())
+    assert_true(VanillaBlocks.replaceable_by(Air.BASE_HASH, Air().hash(), by))
+    assert_true(
+        VanillaBlocks.replaceable_by(
+            ShortGrass.BASE_HASH, ShortGrass().hash(), by
+        )
+    )
+    assert_false(
+        VanillaBlocks.replaceable_by(Stone.BASE_HASH, stone.hash(), by)
+    )
+    var src = FixedSource(vanilla_block_registry("resources/block_states.nbt"))
+    assert_equal(
+        len(
+            VanillaBlocks.model_bbox(
+                Air.BASE_HASH, Air().hash(), Pos(0, 0, 0), src
+            )
+        ),
+        0,
+    )
+    var boxes = VanillaBlocks.model_bbox(
+        Stone.BASE_HASH, stone.hash(), Pos(0, 0, 0), src
+    )
+    assert_equal(len(boxes), 1)
+    assert_equal(boxes[0].height(), 1.0)
 
 
 def test_block_items() raises:

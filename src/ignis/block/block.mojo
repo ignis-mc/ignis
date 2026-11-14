@@ -8,12 +8,22 @@ The embedded helper structs of that file (`solid`, `transparent`,
 
 from .cube.direction import Direction
 from .cube.face import Face
+from .hash import AnyBlock
 
 comptime UNKNOWN_DIRECTION = Direction(4)
 """A direction past the four real ones, for blocks that may face none (Go
 `unknownDirection`)."""
 comptime UNKNOWN_FACE = Face(6)
 """A face past the six real ones (Go `unknownFace`)."""
+
+
+trait Replaceable:
+    """A block that another block may replace when placed (Go
+    `Replaceable`)."""
+
+    def replaceable_by(self, b: AnyBlock) -> Bool:
+        """Reports whether `b` may replace this block (Go `ReplaceableBy`)."""
+        ...
 
 
 def horizontal_direction(d: Direction) -> Direction:

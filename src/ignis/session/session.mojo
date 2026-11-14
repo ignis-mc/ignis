@@ -98,6 +98,9 @@ from minecraft.protocol.packet.biome_definition_list import (
 )
 from minecraft.protocol.packet.chunk_radius_updated import ChunkRadiusUpdated
 from minecraft.protocol.packet.command_request import CommandRequest
+from minecraft.protocol.packet.item_stack_request import ItemStackRequest
+from minecraft.protocol.packet.mob_equipment import MobEquipment
+from minecraft.protocol.inventory import WINDOW_ID_INVENTORY, WINDOW_ID_OFF_HAND
 from minecraft.protocol.packet.update_player_game_type import (
     UpdatePlayerGameType,
 )
@@ -107,6 +110,8 @@ from minecraft.protocol.packet.update_soft_enum import (
 )
 from minecraft.protocol.packet.id import (
     ID_COMMAND_REQUEST,
+    ID_ITEM_STACK_REQUEST,
+    ID_MOB_EQUIPMENT,
     ID_PLAYER_AUTH_INPUT,
     ID_REQUEST_CHUNK_RADIUS,
     ID_SUB_CHUNK_REQUEST,
@@ -185,6 +190,24 @@ from ..world.position import ChunkPos, SubChunkPos
 from ..world.world import World, WorldTypes
 from .chunk import sub_chunk_entry, sub_chunk_index
 from .command import build_available_commands, command_output
+from .handler_item_stack_request import ItemStackRequestHandler
+from .inventory import (
+    INV_ARMOUR,
+    INV_ENDER_CHEST,
+    INV_MAIN,
+    INV_OFF_HAND,
+    INV_UI,
+    Inventories,
+    instance_from_item,
+    inventory_content,
+    inventory_slot,
+    window_id,
+)
+from .item import stack_to_item
+from ..item.stack import Stack
+from ..world.block_registry import BasicBlockRegistry
+from ..world.item import ItemRegistry
+from nethernet.os.time import monotonic_ms
 from .conn import Conn
 from .viewer import PacketQueue
 
@@ -212,6 +235,12 @@ struct Config(Copyable, Defaultable):
     var biome_definitions: List[UInt8]
     """The encoded `BiomeDefinitionList` packet sent first (Go
     `sendBiomes`), from `biome_definition_packet`; empty sends none."""
+    var blocks: ArcPointer[BasicBlockRegistry]
+    """The block registry, for block items (Go `BlockRegistry`)."""
+    var items: ArcPointer[ItemRegistry]
+    """The item registry stacks are encoded with."""
+    var creative_items: ArcPointer[List[Stack]]
+    """The creative inventory, in network ID order (Go `creative.Items`)."""
 
     def __init__(out self):
         """Creates the settings Dragonfly's server uses by default."""
@@ -220,6 +249,9 @@ struct Config(Copyable, Defaultable):
         self.join_message = True
         self.quit_message = True
         self.biome_definitions = List[UInt8]()
+        self.blocks = ArcPointer(BasicBlockRegistry())
+        self.items = ArcPointer(ItemRegistry())
+        self.creative_items = ArcPointer(List[Stack]())
 
 
 def biome_definition_packet(r: BiomeRegistry) raises -> List[UInt8]:
@@ -244,6 +276,10 @@ struct HandleResult(Copyable, Defaultable):
     """A chat line to send to every player (Go `chat.Global`)."""
     var command: Optional[String]
     """A command line to run as the player (Go `ExecuteCommand`)."""
+    var held_changed: Bool
+    """The held items changed (Go `ViewEntityItems` to viewers)."""
+    var dropped: List[Stack]
+    """Stacks the player dropped (Go `Controllable.Drop`)."""
 
     def __init__(out self):
         """Creates a result in which nothing changed."""
@@ -251,6 +287,8 @@ struct HandleResult(Copyable, Defaultable):
         self.state_changed = False
         self.chat = None
         self.command = None
+        self.held_changed = False
+        self.dropped = List[Stack]()
 
 
 def uuid_key(id: UUID) -> String:
@@ -395,6 +433,9 @@ struct Session[C: Conn](Movable):
     var _runnables: Dict[String, List[Int]]
     var _enum_values: Dict[String, List[String]]
     var _soft_enums: Set[String]
+    var invs: Inventories
+    """The player's inventories (Go's session inventory fields)."""
+    var _stack_requests: ItemStackRequestHandler
 
     def __init__(
         out self,
@@ -435,6 +476,8 @@ struct Session[C: Conn](Movable):
         self._runnables = Dict[String, List[Int]]()
         self._enum_values = Dict[String, List[String]]()
         self._soft_enums = Set[String]()
+        self.invs = Inventories()
+        self._stack_requests = ItemStackRequestHandler()
         self._entity_runtime_ids[
             uuid_key(self.player.uuid())
         ] = SELF_ENTITY_RUNTIME_ID
@@ -540,6 +583,7 @@ struct Session[C: Conn](Movable):
         self.send_available_entities()
         self.send_game_mode()
         self.view_entity_state(self.player.copy())
+        self.send_inventories()
 
     def close[T: WorldTypes](mut self, mut w: World[T]):
         """Stops loading chunks (the world part of Go `close`).
@@ -680,6 +724,28 @@ struct Session[C: Conn](Movable):
             return self._handle_player_auth_input(pk.decode[PlayerAuthInput]())
         if id == ID_TEXT:
             return self._handle_text(pk.decode[Text]())
+        if id == ID_ITEM_STACK_REQUEST:
+            var res = HandleResult()
+            var held = self.invs.held_item()
+            var off = self.invs.off_hand_item()
+            var resp = self._stack_requests.handle(
+                pk.decode[ItemStackRequest](),
+                self.invs,
+                self.player.game_mode().creative_inventory(),
+                self._conf.creative_items[],
+                monotonic_ms(),
+                res.dropped,
+            )
+            self.write_packet(resp)
+            # Go's inTransaction: the response already told the client.
+            self._discard_inventory_changes()
+            res.held_changed = (
+                held != self.invs.held_item()
+                or off != self.invs.off_hand_item()
+            )
+            return res^
+        if id == ID_MOB_EQUIPMENT:
+            return self._handle_mob_equipment(pk.decode[MobEquipment]())
         if id == ID_COMMAND_REQUEST:
             # Go `CommandRequestHandler`: the origin is kept for the output.
             var req = pk.decode[CommandRequest]()
@@ -720,6 +786,41 @@ struct Session[C: Conn](Movable):
             self.write_packet(upd)
             return HandleResult()
         return HandleResult()
+
+    def _handle_mob_equipment(
+        mut self, pk: MobEquipment
+    ) raises -> HandleResult:
+        """Go `MobEquipmentHandler` and `VerifyAndSetHeldSlot`."""
+        if pk.entity_runtime_id != SELF_ENTITY_RUNTIME_ID:
+            raise Error("entity runtime ID must be the session's own")
+        var res = HandleResult()
+        if Int8(pk.window_id) == WINDOW_ID_OFF_HAND:
+            return res^
+        if Int8(pk.window_id) != WINDOW_ID_INVENTORY:
+            raise Error(
+                t"only main inventory should be involved in slot change, got"
+                t" window ID {pk.window_id}"
+            )
+        var slot = Int(pk.inventory_slot)
+        if slot < 0 or slot > 8:
+            raise Error(t"slot exceeds hotbar range 0-8: slot is {slot}")
+        var expected = stack_to_item(
+            self._conf.blocks[], self._conf.items[], pk.new_item.stack
+        )
+        var actual = self.invs.inv.item(slot)
+        if expected != actual:
+            # Out of sync: tell the client what the slot holds.
+            var fix = inventory_slot(
+                self._conf.blocks[],
+                self._conf.items[],
+                actual,
+                slot,
+                window_id(INV_MAIN),
+            )
+            self.write_packet(fix)
+        res.held_changed = slot != self.invs.held_slot
+        self.invs.held_slot = slot
+        return res^
 
     def _handle_player_auth_input(
         mut self, var pk: PlayerAuthInput
@@ -1007,6 +1108,107 @@ struct Session[C: Conn](Movable):
         if resend:
             self.send_available_commands(commands, src)
 
+    # ===------------------------------------------------------------------=== #
+    # Inventories (Go player.go)
+    # ===------------------------------------------------------------------=== #
+
+    def send_inventories(mut self):
+        """Sends every inventory (Go's `sendInv` calls in `Spawn`)."""
+        for kind in [INV_MAIN, INV_UI, INV_OFF_HAND, INV_ARMOUR]:
+            var pk = inventory_content(
+                self._conf.blocks[],
+                self._conf.items[],
+                self.invs.get(kind),
+                window_id(kind),
+            )
+            self.write_packet(pk)
+        self._discard_inventory_changes()
+
+    def send_held_slot(mut self):
+        """Sends the selected hotbar slot and its item (Go `SendHeldSlot`)."""
+        var pk = MobEquipment()
+        pk.entity_runtime_id = SELF_ENTITY_RUNTIME_ID
+        pk.new_item = instance_from_item(
+            self._conf.blocks[], self._conf.items[], self.invs.held_item()
+        )
+        pk.inventory_slot = UInt8(self.invs.held_slot)
+        pk.hot_bar_slot = UInt8(self.invs.held_slot)
+        self.write_packet(pk)
+
+    def send_inventory_changes(mut self) -> Bool:
+        """Sends the slots changed outside item stack requests, as Go's
+        inventory slot functions do; returns whether a held item changed."""
+        var held = False
+        for slot in self.invs.inv.take_changes():
+            if slot == self.invs.held_slot:
+                held = True
+            var pk = inventory_slot(
+                self._conf.blocks[],
+                self._conf.items[],
+                self._slot(INV_MAIN, slot),
+                slot,
+                window_id(INV_MAIN),
+            )
+            self.write_packet(pk)
+        for slot in self.invs.armour.inv.take_changes():
+            var pk = inventory_slot(
+                self._conf.blocks[],
+                self._conf.items[],
+                self._slot(INV_ARMOUR, slot),
+                slot,
+                window_id(INV_ARMOUR),
+            )
+            self.write_packet(pk)
+        for kind in [INV_OFF_HAND, INV_UI]:
+            if len(self.invs.get(kind).take_changes()) == 0:
+                continue
+            if kind == INV_OFF_HAND:
+                held = True
+            var pk = inventory_content(
+                self._conf.blocks[],
+                self._conf.items[],
+                self.invs.get(kind),
+                window_id(kind),
+            )
+            self.write_packet(pk)
+        _ = self.invs.ender_chest.take_changes()
+        return held
+
+    def _slot(self, kind: Int, slot: Int) -> Stack:
+        try:
+            return self.invs.get(kind).item(slot)
+        except:
+            return Stack()
+
+    def _discard_inventory_changes(mut self):
+        for kind in [
+            INV_MAIN,
+            INV_UI,
+            INV_OFF_HAND,
+            INV_ARMOUR,
+            INV_ENDER_CHEST,
+        ]:
+            _ = self.invs.get(kind).take_changes()
+
+    def view_entity_items(mut self, p: Player, main: Stack, off: Stack):
+        """Shows another player's held items (Go `ViewEntityItems`)."""
+        var known = self.entity_runtime_id(p)
+        if not known or known.value() == SELF_ENTITY_RUNTIME_ID:
+            return
+        var pk = MobEquipment()
+        pk.entity_runtime_id = known.value()
+        pk.new_item = instance_from_item(
+            self._conf.blocks[], self._conf.items[], main
+        )
+        self.write_packet(pk)
+        var pk2 = MobEquipment()
+        pk2.entity_runtime_id = known.value()
+        pk2.new_item = instance_from_item(
+            self._conf.blocks[], self._conf.items[], off
+        )
+        pk2.window_id = UInt8(Int(WINDOW_ID_OFF_HAND))
+        self.write_packet(pk2)
+
     def view_time(mut self, time: Int64):
         """Sends the time of day (Go `ViewTime`).
 
@@ -1089,7 +1291,7 @@ struct Session[C: Conn](Movable):
         pk.entries.append(entry^)
         self.write_packet(pk)
 
-    def view_entity(mut self, p: Player):
+    def view_entity(mut self, p: Player, held: Stack = Stack()):
         """Shows another player (Go `ViewEntity` for a `Controllable` that
         is an actual player); the session's own player gets its state.
 
@@ -1113,6 +1315,9 @@ struct Session[C: Conn](Movable):
         pk.position = vec64_to32(p.position())
         pk.uuid = p.uuid()
         pk.username = p.name()
+        pk.held_item = instance_from_item(
+            self._conf.blocks[], self._conf.items[], held
+        )
         pk.yaw = Float32(rot.yaw())
         pk.build_platform = Int32(DEVICE_UNKNOWN)
         pk.ability_data.entity_unique_id = Int64(id)

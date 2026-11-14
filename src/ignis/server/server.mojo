@@ -91,6 +91,10 @@ from ..cmd.register import Registry
 from .builtin import register_builtin_commands
 from .command import CommandSource, execute_command
 from .provider import WorldProvider
+from ..item.register import vanilla_item_registry
+from ..item.stack import Stack
+from ..player.playerdb.inventory import load_inventories, put_inventories
+from ..world.item import ItemRegistry
 
 from ..block.bedrock import Bedrock
 from ..block.dirt import Dirt
@@ -367,6 +371,11 @@ struct Server(Movable):
     """The commands players and the console run (Go's global `cmd`
     registry); the built-in ones are registered at start."""
     var _items: List[ItemEntry]
+    var item_registry: ArcPointer[ItemRegistry]
+    """The registered items, shared with the sessions."""
+    var creative_items: ArcPointer[List[Stack]]
+    """The creative inventory (Go `creative.Items`); empty until the
+    creative items are ported."""
     var _biomes: List[UInt8]
     var _custom_blocks: List[BlockEntry]
     var _pending: List[MinecraftConn]
@@ -396,6 +405,7 @@ struct Server(Movable):
         if case .Some(folder) = conf.players_folder:
             players = PlayerProvider(folder)
         var items = item_entries(conf.vanilla_items_path)
+        var item_reg = vanilla_item_registry(conf.vanilla_items_path)
         var biomes = biome_definition_packet(vanilla_biome_registry())
         var blocks = data_driven_block_entries(conf.data_driven_blocks_path)
         var lc = ListenConfig()
@@ -411,6 +421,8 @@ struct Server(Movable):
         self.commands = Registry[CommandSource]()
         register_builtin_commands(self.commands)
         self._items = items^
+        self.item_registry = ArcPointer(item_reg^)
+        self.creative_items = ArcPointer(List[Stack]())
         self._biomes = biomes^
         self._custom_blocks = blocks^
         self._pending = List[MinecraftConn]()
@@ -635,6 +647,12 @@ struct Server(Movable):
         var key = uuid_key(p.uuid())
         var data = self._player_data.get(key).or_else(PlayerData())
         data.put_player(p, self.world.dimension().id)
+        put_inventories(
+            data,
+            self.world.block_registry()[],
+            self.item_registry[],
+            self.sessions[i].invs,
+        )
         try:
             self._players.value().save(p.uuid(), data)
         except e:
@@ -872,8 +890,13 @@ struct Server(Movable):
         sc.join_message = self.conf.join_quit_messages
         sc.quit_message = self.conf.join_quit_messages
         sc.biome_definitions = self._biomes.copy()
+        sc.blocks = self.world.block_registry()
+        sc.items = self.item_registry
+        sc.creative_items = self.creative_items
         self.sessions.append(Session(NetConn(conn^), player^, skin^, sc))
         var n = len(self.sessions) - 1
+        if case .Some(d) = self._player_data.get(uuid_key(uuid)):
+            load_inventories(d, self.item_registry[], self.sessions[n].invs)
         var me = self.sessions[n].player.copy()
         var my_skin = self.sessions[n].join_skin.copy()
         # sessionList.Add: everyone sees everyone in the player list.
@@ -892,10 +915,20 @@ struct Server(Movable):
             self.commands.commands(), CommandSource(self.sessions[n].player)
         )
         # World.AddEntity: viewers see the new player and it sees them.
+        var my_held = self.sessions[n].invs.held_item()
+        var my_off = self.sessions[n].invs.off_hand_item()
         for j in range(n):
-            self.sessions[j].view_entity(me)
+            self.sessions[j].view_entity(me, my_held)
+            self.sessions[j].view_entity_items(me, my_held, my_off)
             var other = self.sessions[j].player.copy()
-            self.sessions[n].view_entity(other)
+            self.sessions[n].view_entity(
+                other, self.sessions[j].invs.held_item()
+            )
+            self.sessions[n].view_entity_items(
+                other,
+                self.sessions[j].invs.held_item(),
+                self.sessions[j].invs.off_hand_item(),
+            )
         print(t"player joined name={name} uuid={uuid}")
         if self.conf.join_quit_messages:
             for _i in range(len(self.sessions)):
@@ -952,6 +985,26 @@ struct Server(Movable):
                 s.send_message(line)
         if case .Some(line) = res.command:
             self.execute_player_command(i, line)
+        if res.held_changed:
+            self._show_held_items(i)
+        for ref d in res.dropped:
+            self.drop_item(i, d)
+
+    def _show_held_items(mut self, i: Int):
+        """Shows a player's held items to the others (Go `ViewEntityItems`
+        from the inventory slot functions)."""
+        var p = self.sessions[i].player.copy()
+        var main = self.sessions[i].invs.held_item()
+        var off = self.sessions[i].invs.off_hand_item()
+        for j in range(len(self.sessions)):
+            if j != i:
+                self.sessions[j].view_entity_items(p, main, off)
+
+    def drop_item(mut self, i: Int, s: Stack):
+        """Drops a stack from a player's eyes (Go `Player.Drop`)."""
+        # TODO(item entities): spawn the stack as an item entity.
+        _ = i
+        _ = s
 
     def _tick(mut self):
         """Runs the per-tick session work (each session's `background`
@@ -959,6 +1012,8 @@ struct Server(Movable):
         self._ticks += 1
         for i in range(len(self.sessions)):
             self.sessions[i].send_chunks(self.world)
+            if self.sessions[i].send_inventory_changes():
+                self._show_held_items(i)
             # Go `background`: enums every second, commands every 5 seconds.
             if self._ticks % 20 == 0 or self._ticks % 100 == 0:
                 var src = CommandSource(self.sessions[i].player)

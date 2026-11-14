@@ -23,7 +23,11 @@ where `_random_tick[T: RandomTicker]` is a plain generic function. Inside the
 a type to the set is all a new block needs.
 """
 
+from ..block.block import Replaceable
+from ..block.break_info import BreakInfo, Breakable
+from ..block.cube.bbox import BBox
 from ..block.cube.face import Face
+from ..block.hash import AnyBlock
 from ..block.cube.pos import Pos
 from ..item.item import item_info
 from .block import Block, NeighbourUpdateTicker, RandomTicker, ScheduledTicker
@@ -157,6 +161,27 @@ trait BlockTypes:
         ...
 
     @staticmethod
+    def model_bbox[
+        S: BlockSource
+    ](kind: UInt64, hash: UInt64, pos: Pos, src: S) -> List[BBox]:
+        """Returns the boxes of a block's model, relative to `pos` (Go
+        `b.Model().BBox(pos, src)`); a full cube for types without a model.
+        """
+        ...
+
+    @staticmethod
+    def break_info(kind: UInt64, hash: UInt64) -> Optional[BreakInfo]:
+        """Returns a block's break info, or None if it is not `Breakable`."""
+        ...
+
+    @staticmethod
+    def replaceable_by(kind: UInt64, hash: UInt64, by: AnyBlock) -> Bool:
+        """Reports whether `by` may replace a block (Go
+        `b.(Replaceable).ReplaceableBy(by)`); False if it is not
+        `Replaceable`."""
+        ...
+
+    @staticmethod
     def block_item(kind: UInt64, hash: UInt64) -> Optional[RegisteredItem]:
         """Returns a block as an item, if its type is an item.
 
@@ -246,6 +271,38 @@ struct BlockSet[*Ts: Block](BlockTypes):
                 if kind == B.BASE_HASH:
                     return _face_solid(B.from_hash(hash), pos, face, src)
         return UnknownModel().face_solid(pos, face, src)
+
+    @staticmethod
+    def model_bbox[
+        S: BlockSource
+    ](kind: UInt64, hash: UInt64, pos: Pos, src: S) -> List[BBox]:
+        """Returns the boxes of a block's model, relative to `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, ModelledBlock):
+                if kind == B.BASE_HASH:
+                    return _model_bbox(B.from_hash(hash), pos, src)
+        return UnknownModel().bbox(pos, src)
+
+    @staticmethod
+    def break_info(kind: UInt64, hash: UInt64) -> Optional[BreakInfo]:
+        """Returns a block's break info, or None if it is not `Breakable`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, Breakable):
+                if kind == B.BASE_HASH:
+                    return _break_info(B.from_hash(hash))
+        return None
+
+    @staticmethod
+    def replaceable_by(kind: UInt64, hash: UInt64, by: AnyBlock) -> Bool:
+        """Reports whether `by` may replace a block."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, Replaceable):
+                if kind == B.BASE_HASH:
+                    return _replaceable_by(B.from_hash(hash), by)
+        return False
 
     @staticmethod
     def block_item(kind: UInt64, hash: UInt64) -> Optional[RegisteredItem]:
@@ -415,6 +472,20 @@ def _face_solid[
     B: ModelledBlock, S: BlockSource
 ](b: B, pos: Pos, face: Face, src: S) -> Bool:
     return b.model().face_solid(pos, face, src)
+
+
+def _model_bbox[
+    B: ModelledBlock, S: BlockSource
+](b: B, pos: Pos, src: S) -> List[BBox]:
+    return b.model().bbox(pos, src)
+
+
+def _break_info[B: Breakable](b: B) -> BreakInfo:
+    return b.break_info()
+
+
+def _replaceable_by[B: Replaceable](b: B, by: AnyBlock) -> Bool:
+    return b.replaceable_by(by)
 
 
 def _block_item[T: Item](b: T) -> RegisteredItem:
