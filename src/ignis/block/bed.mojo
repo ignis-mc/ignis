@@ -5,12 +5,15 @@ with liquids.
 
 TODO(world-runtime): the `Sleeper` entity handle, Model, SideClosed,
 UseOnBlock, Activate, EntityLand, bounce, NeighbourUpdateTick, head, the break
-handler waking the sleeper and the drops, DecodeNBT, EncodeNBT.
+handler waking the sleeper and the drops.
 """
 
+from minecraft.nbt.tree import Tag, Tree
+
+from ..internal.nbtconv.read import get_uint8
 from ..item.colour import Colour, colours
 from ..item.item import MaxCounter
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -36,6 +39,7 @@ struct Bed(
     LightDiffuser,
     MaxCounter,
     ModelledBlock,
+    NBTer,
 ):
     """A block that allows players to sleep to set their spawn point and skip the night.
     """
@@ -184,3 +188,18 @@ struct Bed(
         for c in colours():
             out.append(Self(colour=c))
         return out^
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        _ = tag.put_string(root, "id", "Bed")
+        _ = tag.put_byte(root, "color", self.colour.uint8())
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        var c = Int(get_uint8(tag, root, "color"))
+        if c > 15:
+            # Go indexes Colours() and panics.
+            raise Error(t"bed: invalid colour {c}")
+        var b = self.copy()
+        b.colour = Colour(c)
+        return b^

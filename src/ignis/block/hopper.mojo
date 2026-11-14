@@ -5,11 +5,14 @@ with liquids.
 
 TODO(world-runtime): the inventory and viewer fields, NewHopper, Model,
 SideClosed, Inventory, WithName, AddViewer, RemoveViewer, Activate, UseOnBlock,
-Tick, insertItem, extractItem, RedstoneUpdate, EncodeNBT, DecodeNBT, the break
-handler and the drops.
+Tick, insertItem, extractItem, RedstoneUpdate, , the break handler and the
+drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from minecraft.nbt.tree import Tag, Tree
+
+from ..internal.nbtconv.read import get_int32, get_string
+from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -33,6 +36,7 @@ struct Hopper(
     Item,
     LightDiffuser,
     ModelledBlock,
+    NBTer,
 ):
     """A block used to collect item entities directly above it, as well as to transfer items into
     and out of other containers."""
@@ -179,3 +183,23 @@ struct Hopper(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        # TODO(world-runtime): the inventory; Go writes an empty one as an
+        # empty list.
+        _ = tag.put_list(root, "Items")
+        _ = tag.put_int(root, "TransferCooldown", Int32(self.transfer_cooldown))
+        _ = tag.put_string(root, "id", "Hopper")
+        if self.custom_name.byte_length() != 0:
+            _ = tag.put_string(root, "CustomName", self.custom_name)
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        # TODO(world-runtime): the inventory.
+        return Self(
+            facing=self.facing,
+            powered=self.powered,
+            custom_name=get_string(tag, root, "CustomName"),
+            transfer_cooldown=Int(get_int32(tag, root, "TransferCooldown")),
+        )

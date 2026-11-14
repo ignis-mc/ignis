@@ -5,12 +5,15 @@ with liquids.
 
 TODO(world-runtime): the inventory, pairing (paired, pairX, pairZ, pairInv) and
 viewer fields, NewChest, Inventory, WithName, SideClosed, AddViewer,
-RemoveViewer, Activate, UseOnBlock, open/close, Paired, pair, unpair,
-DecodeNBT, EncodeNBT, the break handler, FlammabilityInfo and the drops.
+RemoveViewer, Activate, UseOnBlock, open/close, Paired, pair, unpair, , the
+break handler, FlammabilityInfo and the drops.
 """
 
+from minecraft.nbt.tree import Tag, Tree
+
+from ..internal.nbtconv.read import get_string
 from ..item.smelting_info import Fuel, FuelInfo
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -35,6 +38,7 @@ struct Chest(
     Item,
     LightDiffuser,
     ModelledBlock,
+    NBTer,
 ):
     """A container block which may be used to store items."""
 
@@ -159,3 +163,20 @@ struct Chest(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        # TODO(world-runtime): the inventory; Go writes an empty one as an
+        # empty list.
+        _ = tag.put_list(root, "Items")
+        _ = tag.put_string(root, "id", "Chest")
+        if self.custom_name.byte_length() != 0:
+            _ = tag.put_string(root, "CustomName", self.custom_name)
+        # TODO(world-runtime): pairx and pairz of paired chests.
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        # TODO(world-runtime): the inventory and pairing.
+        return Self(
+            facing=self.facing, custom_name=get_string(tag, root, "CustomName")
+        )

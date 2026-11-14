@@ -4,11 +4,12 @@
 Go's `sourceWaterDisplacer` makes the table a `LiquidDisplacer`; that trait
 comes with liquids.
 
-TODO(world-runtime): Model, SideClosed, Activate, EncodeNBT, DecodeNBT and the
-drops.
+TODO(world-runtime): Model, SideClosed, Activate,  and the drops.
 """
 
-from ..world.block import Block, LightDiffuser, LightEmitter
+from minecraft.nbt.tree import Tag, Tree
+
+from ..world.block import Block, LightDiffuser, LightEmitter, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
@@ -32,6 +33,7 @@ struct EnchantingTable(
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
+    NBTer,
 ):
     """A block that allows players to spend their experience point levels to enchant tools, weapons,
     books, armour, and certain other items."""
@@ -136,3 +138,11 @@ struct EnchantingTable(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        _ = tag.put_string(root, "id", "EnchantTable")
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        return self.copy()

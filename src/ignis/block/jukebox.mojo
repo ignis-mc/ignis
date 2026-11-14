@@ -1,12 +1,13 @@
 """`Jukebox`, ported from Dragonfly `server/block/jukebox.go`.
 
 TODO(world-runtime): the `Item item.Stack` field, InsertItem, ExtractItem,
-Activate, Disc, the break handler dropping the disc, DecodeNBT, EncodeNBT and
-the drops.
+Activate, Disc, the break handler dropping the disc and the drops.
 """
 
+from minecraft.nbt.tree import Tag, Tree
+
 from ..item.smelting_info import Fuel, FuelInfo
-from ..world.block import Block
+from ..world.block import Block, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
@@ -22,7 +23,14 @@ from .model.solid import Solid as SolidModel
 
 
 struct Jukebox(
-    Block, Breakable, Equatable, Fuel, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    Fuel,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    NBTer,
 ):
     """A block used to play music discs."""
 
@@ -113,3 +121,13 @@ struct Jukebox(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        _ = tag.put_string(root, "id", "Jukebox")
+        # TODO(world-runtime): RecordItem, once the jukebox holds a disc.
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        # TODO(world-runtime): the disc in RecordItem.
+        return self.copy()
