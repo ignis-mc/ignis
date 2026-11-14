@@ -1,8 +1,6 @@
 """`EndRod`, ported from Dragonfly `server/block/end_rod.go`.
 
-Go's `flowingWaterDisplacer` comes with liquids.
-
-TODO(world-runtime): UseOnBlock, Model, SideClosed and the drops.
+TODO(world-runtime): UseOnBlock, Model and the drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
@@ -20,6 +18,9 @@ from .cube.axis import Axis
 from .cube.face import Face, faces
 from .hash import HASH_END_ROD
 from .model.end_rod import EndRod as EndRodModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import flowing_water_can_displace
 
 
 struct EndRod(
@@ -30,6 +31,7 @@ struct EndRod(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """A decorative light source that emits white particles."""
@@ -102,3 +104,7 @@ struct EndRod(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds any water (Go `flowingWaterDisplacer`)."""
+        return flowing_water_can_displace(b)

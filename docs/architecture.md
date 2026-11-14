@@ -263,8 +263,54 @@ struct ServerWorld(WorldTypes):
 - **Durations** are milliseconds (Go `time.Duration`); `delay_ms // 50`
   ticks, as Go divides by `time.Second / 20`.
 - **Randomness**: `ignis.internal.rand` is Go's `math/rand/v2` PCG and
-  `Rand`, so seeded worlds draw Dragonfly's numbers.
+  `Rand`, so seeded worlds draw Dragonfly's numbers. `tx.rand()` is the
+  world's generator (Go passes it to random and scheduled ticks);
+  `tx.global_rand()` stands in for Go's global `math/rand` source, which
+  Dragonfly's blocks use for drops and the like, so those draws leave the
+  world's generator in step with Dragonfly's.
+- **Entities tick in a stable order** (Go ranges over a map, in random
+  order), so for example a stack of falling blocks always lands cleanly.
 - **Errors** Go logs (provider failures) go to `World.last_error`.
+
+### Block behaviour
+
+The world-driven behaviour of blocks (Go's `RandomTick`, `ScheduledTick`,
+`NeighbourUpdateTick`, liquids) is ported in the block modules; the world
+dispatches it through `BlockTypes`.
+
+- **Liquids** (`block/liquid.mojo`, `water.mojo`, `lava.mojo`): a liquid
+  conforms to `world.Liquid`; `tick_liquid[L]` is Go's `tickLiquid` for any
+  typed liquid. The blocks it meets are runtime IDs, whose `Liquid`,
+  `LiquidDisplacer` (waterlogging) and `LiquidRemovable` methods go
+  through the block set. `tx.liquid(pos)` and `tx.set_liquid(pos, l)` are
+  Go's `Tx.Liquid`/`SetLiquid` over layers 0 and 1, and `set_block` keeps a
+  displaced liquid on layer 1.
+- **Go interfaces a block's neighbours are asked about** become traits
+  with a `BlockSet` dispatcher taking `(kind, hash)`: `Soil`
+  (`supports_vegetation`), `Crop`, `Flammable`, `Oxidisable`,
+  `Solidifiable`, `LightDiffuser`, `Replaceable`, `Liquid*`. Helpers
+  such as `face_solid_at(tx, pos, face)` read a neighbour's model.
+- **Item drops**: `tx.drop_item(pos, stack)` (Go's `dropItem`) queues the
+  stack; the world cannot build item entities (their NBT needs the item
+  registry), so the server spawns the queued drops after each world tick
+  (`take_item_drops`). `break_block`/`break_block_no_drops` are Go's.
+- **Entities spawned by blocks**: `EntityTypes.try_wrap(E())` wraps an
+  entity type or gives None if the world's set lacks it; falling blocks
+  (`entity/falling_block.mojo`) spawn that way.
+- **Light**: blocks read `tx.light`, `sky_light` and `block_light` (see
+  "Light" below). Liquids set with `set_liquid` relight like blocks set
+  with `set_block`.
+- **Handler events** for liquids, leaves, fire and crops are on
+  `world.Handler` (blocks as `AnyBlock`); blocks call them through
+  `tx.handle_*`. Sounds and particles go to viewers (`tx.play_sound`,
+  `tx.add_particle`, `Viewer.view_sound`/`view_particle`); sessions do not
+  turn them into packets yet.
+- **Vectors**: `interop/behaviour` runs Dragonfly's own ticks on small
+  seeded worlds (liquids, light, neighbour updates and falling blocks, one-
+  chunk random-tick worlds) and the tests under `test/ignis/block/` and
+  `test/ignis/world/chunk/test_light_features.mojo` match them block for
+  block; see
+  its README for what makes a world deterministic in Go.
 
 ### Viewers and loaders
 
@@ -370,6 +416,34 @@ Implemented in `ignis.server` (Go `server.go`, `conf.go`) and
   `server.builtin` registers `/gamemode`, `/tp`, `/time`, `/list` and
   `/say`.
 
+### Inventories and interaction
+
+- **Inventories** (`item.inventory`, Go `item/inventory`) collect changed
+  slots instead of calling a `SlotFunc`; the session sends the changes made
+  outside item stack requests. Stacks get network IDs from a `StackIDs`
+  source shared by a session's inventories; `Stack.grow`/`add_stack` clear
+  the ID as Go draws a new one. The session owns the player's inventories
+  (`session.inventory.Inventories`) so copying a `Player` stays cheap.
+- **Item stack requests** (`session.handler_item_stack_request`) run on
+  `Inventories` alone and return the response, so they are tested without
+  a connection.
+- **Breaking and placing** (`server.interact`) are server functions for
+  the player of a session, as Go's player methods reach the world through
+  their transaction. Like Dragonfly, the server computes break times for
+  the crack animation and trusts the client's finish.
+- **Block behaviour for interaction** goes through `BlockTypes`
+  dispatchers: `model_bbox`, `break_info`, `replaceable_by` (Go
+  `Replaceable`), `drops` (`Dropper`, Go `BreakInfo.Drops`; others drop
+  themselves) and `use_on_block` (`UsableOnBlock`, Go `item.UsableOnBlock`
+  on blocks, returning the `Placement`s). Held tools go through
+  `ItemSet.tool` and `ItemSet.durability_info`.
+- **Item entities** (`entity.item`) tick their own physics
+  (`entity.movement`, Go `MovementComputer`) and keep their stack's disk
+  NBT, because entity NBT callbacks get no registries. Picking up and
+  merging need players and the concrete entity set, so the server does
+  them each tick. A session and its world viewer share entity runtime IDs
+  through their `PacketQueue`.
+
 ## World data
 
 - `resources/block_states.nbt` (with the other Dragonfly resources as they
@@ -396,8 +470,7 @@ Implemented in `ignis.server` (Go `server.go`, `conf.go`) and
   memtable; a full memtable (4 MiB) is written as a level-0 table in the
   writing call, followed by at most two compaction steps. Long pauses can
   be avoided by calling `DB.compact_once()` from idle time.
-- Not ported yet: block entities, liquids, redstone, and the client blob
-  cache.
+- Not ported yet: block entities, redstone, and the client blob cache.
 
 ## Light
 

@@ -1,26 +1,37 @@
 """`CoralBlock`, ported from Dragonfly `server/block/coral_block.go`.
 
-TODO(world-runtime): NeighbourUpdateTick, ScheduledTick and the drops.
+TODO(world-runtime): the drops.
 """
 
-from ..world.block import Block
+from ..world.block import Block, NeighbourUpdateTicker, ScheduledTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .coral_type import CoralType, coral_types
 from .hash import HASH_CORAL_BLOCK
 from .model.solid import Solid as SolidModel
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .water import Water
 
 
 struct CoralBlock(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    NeighbourUpdateTicker,
+    ScheduledTicker,
 ):
     """A solid block that comes in 5 variants."""
 
@@ -99,3 +110,24 @@ struct CoralBlock(
             for t in coral_types():
                 out.append(Self(type=t, dead=dead))
         return out^
+
+    def scheduled_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Dies without water next to it (Go `ScheduledTick`)."""
+        var adjacent_water = False
+        var br = tx.block_registry()
+        for neighbour in pos.neighbours(tx.range()):
+            if case .Some(l) = tx.liquid(neighbour):
+                if br[].is_block[Water](l):
+                    adjacent_water = True
+        if not adjacent_water:
+            var c = self.copy()
+            c.dead = True
+            tx.set_block(pos, c)
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Checks for water soon unless dead (Go `NeighbourUpdateTick`)."""
+        if self.dead:
+            return
+        tx.schedule_block_update(pos, self, 2500)

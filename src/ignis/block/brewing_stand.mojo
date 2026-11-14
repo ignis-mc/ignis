@@ -4,8 +4,8 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the `*brewer` (brewer.go: inventory, fuel, brewing
-progress), NewBrewingStand, Tick, Model, SideClosed, Activate, UseOnBlock, the
-break handler and the drops.
+progress), NewBrewingStand, Tick, Model, Activate, UseOnBlock, the break
+handler and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree
@@ -23,6 +23,9 @@ from .break_info import (
 )
 from .hash import HASH_BREWING_STAND
 from .model.brewing_stand import BrewingStand as BrewingStandModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct BrewingStand(
@@ -32,6 +35,7 @@ struct BrewingStand(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
     NBTer,
 ):
@@ -146,3 +150,7 @@ struct BrewingStand(
         # TODO(world-runtime): the brewer's state. Go returns a new brewing
         # stand, without the slot state.
         return Self()
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

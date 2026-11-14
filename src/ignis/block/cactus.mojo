@@ -1,23 +1,35 @@
 """`Cactus`, ported from Dragonfly `server/block/cactus.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RandomTick, EntityInside,
-DamageSource, CanDisplace, SideClosed, Model and the drops.
+TODO(world-runtime): UseOnBlock, EntityInside, DamageSource, CanDisplace,
+SideClosed, Model and the drops.
 """
 
 from ..item.item import Compostable
-from ..world.block import Block, LightDiffuser
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    NeighbourUpdateTicker,
+    RandomTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
-from .hash import HASH_CACTUS
+from .hash import AnyBlock, HASH_CACTUS
 from .model.cactus import Cactus as CactusModel
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air
+from .dirt import supports_vegetation
 
 
 struct Cactus(
@@ -29,6 +41,8 @@ struct Cactus(
     Item,
     LightDiffuser,
     ModelledBlock,
+    NeighbourUpdateTicker,
+    RandomTicker,
 ):
     """A plant block that generates naturally in dry areas and causes damage."""
 
@@ -97,3 +111,41 @@ struct Cactus(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks where it cannot grow (Go `NeighbourUpdateTick`)."""
+        if not _cactus_can_grow_here(pos, tx, True):
+            break_block(self, pos, tx)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Grows a block taller every 16 ticks (Go `RandomTick`)."""
+        var c = self.copy()
+        if c.age < 15:
+            c.age += 1
+        elif c.age == 15:
+            c.age = 0
+            if _cactus_can_grow_here(pos.side(Face.DOWN), tx, False):
+                for y in range(1, 3):
+                    var p = pos.add(Pos(0, y, 0))
+                    if is_air(tx, p):
+                        tx.set_block(p, Cactus())
+                        break
+                    elif not tx.block_as[Cactus](p):
+                        break
+        tx.set_block(pos, c)
+
+
+def _cactus_can_grow_here[
+    T: WorldTypes
+](pos: Pos, mut tx: World[T], recursive: Bool) -> Bool:
+    # Go `Cactus.canGrowHere`: air on every side and soil below.
+    for face in [Face.NORTH, Face.EAST, Face.SOUTH, Face.WEST]:
+        if not is_air(tx, pos.side(face)):
+            return False
+    if recursive and tx.block_as[Cactus](pos.side(Face.DOWN)):
+        return _cactus_can_grow_here(pos.side(Face.DOWN), tx, recursive)
+    return supports_vegetation(
+        AnyBlock(Cactus()), tx.block(pos.side(Face.DOWN)), tx
+    )

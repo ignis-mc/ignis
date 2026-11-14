@@ -3,10 +3,17 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, DeriveState,
-calculateCorner, continued, Model, Instrument, FlammabilityInfo, SideClosed and
-the drops.
+TODO(world-runtime): NeighbourUpdateTick, DeriveState, calculateCorner,
+continued, Model, Instrument, FlammabilityInfo and the drops.
 """
+
+from .cube.face import Face
+from .cube.pos import Pos
+from .cube.rotation import Rotation
+from ..mgl64 import Vec3
+from ..world.world import World, WorldTypes
+from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
+from .hash import AnyBlock
 
 from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
@@ -27,6 +34,8 @@ from .planks import Planks
 from .register import break_info
 from .stairs_corner import StairsCorner, stairs_corners
 from .stairs_type import encode_stairs_block, stairs_blocks
+from ..world.block import LiquidDisplacer
+from .liquid import source_water_can_displace
 
 
 struct Stairs(
@@ -37,7 +46,9 @@ struct Stairs(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
+    UsableOnBlock,
 ):
     """A block that allows entities to walk up blocks without jumping."""
 
@@ -143,6 +154,33 @@ struct Stairs(
             left=self.corner.left(),
         )
 
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: Rotation,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places the stairs facing away from the user, upside down when
+        clicked on the upper half of a side or under a block (Go
+        `UseOnBlock`; the corner is not derived from neighbours yet)."""
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var f = at.value()[1]
+        var b = self.copy()
+        b.facing = user.direction()
+        if f == Face.DOWN or (click.y() > 0.5 and f != Face.UP):
+            b.upside_down = True
+        return [
+            Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()), False)
+        ]
+
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""
         return EncodedItem(
@@ -165,6 +203,16 @@ struct Stairs(
         for v in stairs_blocks():
             out.append(Stairs(block=v))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)
+
+    def side_closed[
+        T: WorldTypes
+    ](self, pos: Pos, side: Pos, mut tx: World[T]) -> Bool:
+        """Closed where the model's face is solid (Go `SideClosed`)."""
+        return self.model().face_solid(pos, pos.face(side), tx.source())
 
 
 def to_stairs_direction(v: Direction) -> Int32:

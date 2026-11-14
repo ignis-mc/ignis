@@ -3,9 +3,16 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): UseOnBlock, Activate, SideClosed, Model, FlammabilityInfo
-and the drops.
+TODO(world-runtime): Activate, Model, FlammabilityInfo and the drops.
 """
+
+from .cube.face import Face
+from .cube.pos import Pos
+from .cube.rotation import Rotation
+from ..mgl64 import Vec3
+from ..world.world import World, WorldTypes
+from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
+from .hash import AnyBlock
 
 from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
@@ -23,6 +30,8 @@ from .cube.direction import Direction, directions
 from .hash import HASH_WOOD_TRAPDOOR
 from .model.trapdoor import Trapdoor as TrapdoorModel
 from .wood_type import WoodType, wood_types
+from ..world.block import LiquidDisplacer
+from .liquid import source_water_can_displace
 
 
 struct WoodTrapdoor(
@@ -33,7 +42,9 @@ struct WoodTrapdoor(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
+    UsableOnBlock,
 ):
     """A wooden trapdoor, opened and closed by players."""
 
@@ -129,6 +140,31 @@ struct WoodTrapdoor(
         """Returns the model of the block (Go `Model`)."""
         return TrapdoorModel(facing=self.facing, open=self.open, top=self.top)
 
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: Rotation,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places the trapdoor facing the user, at the top when clicked on
+        the upper half of a side or under a block (Go `UseOnBlock`)."""
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var f = at.value()[1]
+        var b = self
+        b.facing = user.direction().opposite()
+        b.top = (click.y() > 0.5 and f != Face.UP) or f == Face.DOWN
+        return [
+            Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()), False)
+        ]
+
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""
         if self.wood == WoodType.OAK:
@@ -148,3 +184,7 @@ struct WoodTrapdoor(
         for v in wood_types():
             out.append(WoodTrapdoor(wood=v))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

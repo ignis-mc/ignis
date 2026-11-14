@@ -1,22 +1,26 @@
 """`Ice`, ported from Dragonfly `server/block/ice.go`.
 
-TODO(world-runtime): Friction, RandomTick (melting), the break handler turning
-it into water and the drops.
+TODO(world-runtime): Friction, the break handler turning it into water and the
+drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    PICKAXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_ICE
 from .model.solid import Solid as SolidModel
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .water import Water
 
 
 struct Ice(
@@ -27,6 +31,7 @@ struct Ice(
     Item,
     LightDiffuser,
     ModelledBlock,
+    RandomTicker,
 ):
     """A solid block similar to packed ice."""
 
@@ -82,3 +87,16 @@ struct Ice(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Melts next to bright block light (Go `RandomTick`)."""
+        for f in range(6):
+            if tx.block_light(pos.side(Face(f))) > 11:
+                # Go `melt`.
+                if tx.dimension().water_evaporates():
+                    tx.set_block_runtime_id(
+                        pos, tx.block_registry()[].air_runtime_id()
+                    )
+                    return
+                tx.set_block(pos, Water(still=True, depth=8))
+                return

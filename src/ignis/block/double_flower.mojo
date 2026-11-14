@@ -1,24 +1,31 @@
 """`DoubleFlower`, ported from Dragonfly `server/block/double_flower.go`.
 
-TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
-FlammabilityInfo and the drops.
+TODO(world-runtime): UseOnBlock, BoneMeal, FlammabilityInfo and the drops.
 """
 
 from ..item.item import Compostable
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
 from .double_flower_type import DoubleFlowerType, double_flower_types
-from .hash import HASH_DOUBLE_FLOWER
+from .hash import AnyBlock, HASH_DOUBLE_FLOWER
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air
+from .dirt import supports_vegetation
 
 
 struct DoubleFlower(
@@ -29,7 +36,9 @@ struct DoubleFlower(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
 ):
     """A two block high flower consisting of an upper and lower part."""
 
@@ -115,3 +124,32 @@ struct DoubleFlower(
         for f in double_flower_types():
             out.append(Self(type=f))
         return out^
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks without its other half or soil (Go `NeighbourUpdateTick`)."""
+        if self.upper_part:
+            var bottom = tx.block_as[DoubleFlower](pos.side(Face.DOWN))
+            if (
+                not bottom
+                or bottom.value().type != self.type
+                or bottom.value().upper_part
+            ):
+                break_block_no_drops(self, pos, tx)
+            return
+        var upper = tx.block_as[DoubleFlower](pos.side(Face.UP))
+        if (
+            not upper
+            or upper.value().type != self.type
+            or not upper.value().upper_part
+        ):
+            break_block_no_drops(self, pos, tx)
+        elif not supports_vegetation(
+            AnyBlock(self), tx.block(pos.side(Face.DOWN)), tx
+        ):
+            break_block(self, pos, tx)

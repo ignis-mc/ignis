@@ -1,17 +1,16 @@
 """`Light`, ported from Dragonfly `server/block/light.go`.
-
-Go's `replaceable` and `flowingWaterDisplacer` helpers come with `world.Tx`
-and liquids.
-
-TODO(world-runtime): SideClosed.
 """
 
+from .block import Replaceable
+from .hash import AnyBlock
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .hash import HASH_LIGHT
 from .model.empty import Empty as EmptyModel
+from ..world.block import LiquidDisplacer
+from .liquid import flowing_water_can_displace
 
 
 struct Light(
@@ -21,7 +20,9 @@ struct Light(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidDisplacer,
     ModelledBlock,
+    Replaceable,
 ):
     """An invisible block that can produce any light level."""
 
@@ -75,6 +76,10 @@ struct Light(
         """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
 
+    def replaceable_by(self, b: AnyBlock) -> Bool:
+        """Any block replaces it (Go's embedded `replaceable`)."""
+        return True
+
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""
         return EncodedItem(String(t"minecraft:light_block_{self.level}"), 0)
@@ -86,3 +91,7 @@ struct Light(
         for i in range(16):
             out.append(Self(level=i))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds any water (Go `flowingWaterDisplacer`)."""
+        return flowing_water_can_displace(b)

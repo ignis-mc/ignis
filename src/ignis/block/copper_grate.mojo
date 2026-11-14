@@ -3,25 +3,28 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): Wax, Strip, RandomTick (attemptOxidation) and the drops.
+TODO(world-runtime): Wax, Strip and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    HARVEST_LEVEL_STONE,
-    PICKAXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    HARVEST_LEVEL_STONE,
+    PICKAXE_EFFECTIVE,
     new_break_info,
     pickaxe_harvestable_from,
 )
 from .hash import HASH_COPPER_GRATE
 from .model.solid import Solid as SolidModel
 from .oxidation_type import OxidationType, oxidation_types
-from .oxidizable import Oxidisable, copper_block_name
+from .oxidizable import Oxidisable, attempt_oxidation, copper_block_name
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
 
 
 struct CopperGrate(
@@ -33,6 +36,7 @@ struct CopperGrate(
     LightDiffuser,
     ModelledBlock,
     Oxidisable,
+    RandomTicker,
 ):
     """A transparent copper block."""
 
@@ -134,3 +138,7 @@ struct CopperGrate(
             out.append(Self(oxidation=o))
             out.append(Self(oxidation=o, waxed=True))
         return out^
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May oxidise (Go `RandomTick`)."""
+        attempt_oxidation(pos, tx, self)

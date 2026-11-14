@@ -1,27 +1,34 @@
 """`DoubleTallGrass`, ported from Dragonfly
 `server/block/double_tall_grass.go`.
 
-Go's `replaceable` helper (ReplaceableBy) comes with `world.Tx`.
+Go's `replaceable` helper is `Replaceable`.
 
-TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
-FlammabilityInfo and the drops.
+TODO(world-runtime): UseOnBlock, BoneMeal, FlammabilityInfo and the drops.
 """
 
+from .block import Replaceable, face_solid_at, is_air
+from .hash import AnyBlock, HASH_DOUBLE_TALL_GRASS
 from ..item.item import Compostable
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
 from .double_tall_grass_type import DoubleTallGrassType, double_tall_grass_types
-from .hash import HASH_DOUBLE_TALL_GRASS
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .dirt import supports_vegetation
 
 
 struct DoubleTallGrass(
@@ -32,7 +39,10 @@ struct DoubleTallGrass(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
+    Replaceable,
 ):
     """A two block high variety of grass."""
 
@@ -103,6 +113,10 @@ struct DoubleTallGrass(
         """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
 
+    def replaceable_by(self, b: AnyBlock) -> Bool:
+        """Any block replaces it (Go's embedded `replaceable`)."""
+        return True
+
     def compost_chance(self) -> Float64:
         """Returns the compost chance (Go `CompostChance`)."""
         if self.type == DoubleTallGrassType.FERN:
@@ -120,3 +134,32 @@ struct DoubleTallGrass(
         for g in double_tall_grass_types():
             out.append(Self(type=g))
         return out^
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks without its other half or soil (Go `NeighbourUpdateTick`)."""
+        if self.upper_part:
+            var bottom = tx.block_as[DoubleTallGrass](pos.side(Face.DOWN))
+            if (
+                not bottom
+                or bottom.value().type != self.type
+                or bottom.value().upper_part
+            ):
+                break_block_no_drops(self, pos, tx)
+            return
+        var upper = tx.block_as[DoubleTallGrass](pos.side(Face.UP))
+        if (
+            not upper
+            or upper.value().type != self.type
+            or not upper.value().upper_part
+        ):
+            break_block_no_drops(self, pos, tx)
+        elif not supports_vegetation(
+            AnyBlock(self), tx.block(pos.side(Face.DOWN)), tx
+        ):
+            break_block(self, pos, tx)

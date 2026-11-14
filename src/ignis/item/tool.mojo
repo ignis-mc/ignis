@@ -171,6 +171,36 @@ trait Tool:
         ...
 
 
+@fieldwise_init
+struct ToolInfo(Equatable, ImplicitlyCopyable, Writable):
+    """What breaking a block needs to know about the held item: Go asks the
+    `item.Tool` it holds; Ignis dispatches once (`ItemSet.tool`)."""
+
+    var tool_type: ToolType
+    """Go `ToolType`."""
+    var harvest_level: Int
+    """Go `HarvestLevel`."""
+    var efficiency: Float64
+    """Go `BaseMiningEfficiency` for the block being broken."""
+
+    @staticmethod
+    def none() -> ToolInfo:
+        """Returns Go's `ToolNone`."""
+        return ToolInfo(TYPE_NONE, 0, 1)
+
+    def write_to(self, mut writer: Some[Writer]):
+        """Writes the fields, for debugging."""
+        writer.write(
+            "ToolInfo(",
+            self.tool_type,
+            ", ",
+            self.harvest_level,
+            ", ",
+            self.efficiency,
+            ")",
+        )
+
+
 struct ToolNone(Defaultable, ImplicitlyCopyable, Tool):
     """The tool used when nothing that is a tool is held (Go `ToolNone`)."""
 

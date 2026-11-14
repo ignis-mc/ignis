@@ -3,8 +3,7 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): canSurvive, BoneMeal, UseOnBlock, HasLiquidDrops,
-NeighbourUpdateTick, SideClosed and the drops.
+TODO(world-runtime): BoneMeal, UseOnBlock and the drops.
 """
 
 from ..item.colour import Colour
@@ -12,7 +11,13 @@ from ..item.dye import Dye
 from ..item.item import Compostable
 from ..item.smelting_info import SmeltInfo, Smeltable
 from ..item.stack import Stack
-from ..world.block import Block, LightDiffuser, LightEmitter
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    LightEmitter,
+    LiquidDisplacer,
+    NeighbourUpdateTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -21,10 +26,18 @@ from .break_info import (
     BreakInfo,
     Breakable,
     NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
-from .hash import HASH_SEA_PICKLE
+from .hash import AnyBlock, HASH_SEA_PICKLE
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable, source_water_can_displace
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air, light_diffuser_at
+from .water import Water
 
 
 struct SeaPickle(
@@ -36,7 +49,10 @@ struct SeaPickle(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidDisplacer,
+    LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
     Smeltable,
 ):
     """A small stationary underwater block that emits light."""
@@ -127,3 +143,45 @@ struct SeaPickle(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks where it cannot survive and dies out of water (Go
+        `NeighbourUpdateTick`)."""
+        if not _sea_pickle_can_survive(pos, tx):
+            break_block(self, pos, tx)
+            return
+        var alive = False
+        if case .Some(l) = tx.liquid(pos):
+            alive = tx.block_registry()[].is_block[Water](l)
+        if self.dead == alive:
+            var s = self.copy()
+            s.dead = not alive
+            tx.set_block(pos, s)
+
+
+def _sea_pickle_can_survive[T: WorldTypes](pos: Pos, mut tx: World[T]) -> Bool:
+    # Go `SeaPickle.canSurvive`.
+    var below = pos.side(Face.DOWN)
+    if not face_solid_at(tx, below, Face.UP):
+        return False
+    if case .Some(l) = tx.liquid(pos):
+        var br = tx.block_registry()
+        if (
+            not br[].is_block[Water](l)
+            or tx.liquid_info(pos).value().depth != 8
+        ):
+            return False
+    if case .Some(d) = light_diffuser_at(tx, below):
+        if d != 15:
+            return False
+    return True

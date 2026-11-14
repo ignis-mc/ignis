@@ -8,6 +8,16 @@ drop helpers (`oneOf`, `silkTouchOneOf`, fortune) need items and `world.Tx`:
 TODO(world-runtime) port them with `item.Tool`, `item.Stack` and `Tx`.
 """
 
+from std.math import ceil
+
+from ..item.enchantment.efficiency import Efficiency
+from ..mgl64 import Vec3
+from ..world.particle.block import BlockBreak
+from ..world.block import Block
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .hash import AnyBlock
+from ..item.stack import Stack
 from ..item.tool import (
     TYPE_AXE,
     TYPE_HOE,
@@ -16,6 +26,7 @@ from ..item.tool import (
     TYPE_SHOVEL,
     TYPE_SWORD,
     Tool,
+    ToolInfo,
     ToolType,
 )
 
@@ -167,3 +178,155 @@ trait Breakable:
         """Returns information related to breaking the block (Go
         `BreakInfo`)."""
         ...
+
+
+trait Dropper:
+    """A block whose drops are not just itself (Go's `BreakInfo.Drops`
+    function; blocks without it drop themselves, Go's `oneOf(b)`)."""
+
+    def drops(self, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+        """Returns what breaking the block with a tool drops."""
+        ...
+
+
+@fieldwise_init
+struct BreakContext(Defaultable, ImplicitlyCopyable):
+    """The status effects and surroundings that change how fast a player
+    breaks blocks (Go `BreakContext`)."""
+
+    var haste_level: Int
+    """The Haste level, 0 without the effect."""
+    var conduit_power_level: Int
+    """The Conduit Power level; does not stack with Haste."""
+    var mining_fatigue_level: Int
+    """The Mining Fatigue level."""
+    var underwater: Bool
+    """The player's head is in water (5x slower without Aqua Affinity)."""
+    var aqua_affinity: Bool
+    """The helmet has Aqua Affinity."""
+    var flying: Bool
+    """The player flies, which cancels the airborne penalty."""
+    var airborne: Bool
+    """The player is not on the ground (5x slower)."""
+
+    def __init__(out self):
+        """Creates the context of a player on the ground without effects."""
+        self = Self(0, 0, 0, False, False, False, False)
+
+
+comptime NEVER_BREAKS_MS = Int.MAX
+"""The duration of a block that is not `Breakable` (Go `math.MaxInt64`)."""
+
+
+def break_duration_ms(
+    info: Optional[BreakInfo],
+    tool: ToolInfo,
+    efficiency_level: Int,
+    ctx: BreakContext,
+) -> Int:
+    """Returns how long breaking a block takes with a tool, in milliseconds
+    (Go `BreakDuration`); `info` is None for blocks that are not `Breakable`
+    and `efficiency_level` is the held item's Efficiency level or 0. See
+    https://minecraft.wiki/w/Breaking#Calculation."""
+    if not info:
+        return NEVER_BREAKS_MS
+    var b = info.value()
+    if b.hardness <= 0:
+        return 0
+    var can_harvest = b.harvestable.matches(tool.tool_type, tool.harvest_level)
+    var speed = 1.0
+    if b.effective.matches(tool.tool_type, tool.harvest_level):
+        speed = tool.efficiency
+        if not can_harvest:
+            # A tool of the right type but too low a tier gives no bonus.
+            speed = 1
+        elif efficiency_level > 0:
+            speed += Efficiency.addend(efficiency_level)
+    var positive = max(ctx.haste_level, ctx.conduit_power_level)
+    if positive > 0:
+        speed *= 0.2 * Float64(positive) + 1
+    if ctx.mining_fatigue_level > 0:
+        speed *= pow(0.3, Float64(ctx.mining_fatigue_level))
+    if ctx.underwater and not ctx.aqua_affinity:
+        speed /= 5
+    if ctx.airborne and not ctx.flying:
+        speed /= 5
+    var damage = speed / b.hardness
+    if can_harvest:
+        damage /= 30
+    else:
+        damage /= 100
+    if positive > 0:
+        damage *= pow(1.2, Float64(positive))
+    if ctx.mining_fatigue_level > 0:
+        damage *= pow(0.7, Float64(ctx.mining_fatigue_level))
+    if damage >= 1:
+        return 0
+    return Int(ceil(1 / damage)) * 50
+
+
+def breaks_instantly(info: Optional[BreakInfo]) -> Bool:
+    """Reports whether a block has no hardness (Go `BreaksInstantly`)."""
+    return Bool(info) and info.value().hardness <= 0
+
+
+def tool_none_drops[
+    T: WorldTypes
+](rid: UInt32, mut tx: World[T]) -> List[Stack]:
+    """Returns what a block drops when broken without a tool (Go
+    `BreakInfo().Drops(item.ToolNone{}, nil)`): its `Dropper` drops, or
+    itself as an item."""
+    var br = tx.block_registry()
+    var kind = br[].kind(rid)
+    var hash = br[].state_hash(rid)
+    if case .Some(d) = T.Blocks.drops(kind, hash, ToolInfo.none(), False):
+        return d.copy()
+    var out = List[Stack]()
+    if case .Some(it) = T.Blocks.block_item(kind, hash):
+        out.append(Stack(it, 1))
+    return out^
+
+
+def drop_item[T: WorldTypes](mut tx: World[T], it: Stack, pos: Vec3):
+    """Drops a stack as an item entity (Go `dropItem`; Go picks the
+    velocity there, the world's owner picks it here)."""
+    tx.drop_item(pos, it)
+
+
+def break_block[T: WorldTypes](rid: UInt32, pos: Pos, mut tx: World[T]):
+    """Breaks a block as if without a tool and drops its drops (Go
+    `breakBlock`)."""
+    break_block_no_drops(rid, pos, tx)
+    var br = tx.block_registry()
+    if T.Blocks.break_info(br[].kind(rid), br[].state_hash(rid)):
+        for ref d in tool_none_drops(rid, tx):
+            drop_item(tx, d, pos.vec3_centre())
+
+
+def break_block_no_drops[
+    T: WorldTypes
+](rid: UInt32, pos: Pos, mut tx: World[T]):
+    """Removes a block with break particles (Go `breakBlockNoDrops`;
+    `BreakHandler` is not ported)."""
+    tx.set_block_runtime_id(pos, tx.block_registry()[].air_runtime_id())
+    var br = tx.block_registry()
+    tx.add_particle(
+        pos.vec3_centre(),
+        BlockBreak(
+            block=AnyBlock(kind=br[].kind(rid), state=br[].state_hash(rid))
+        ),
+    )
+
+
+def break_block[B: Block, T: WorldTypes](b: B, pos: Pos, mut tx: World[T]):
+    """Breaks a typed block as if without a tool and drops its drops (Go
+    `breakBlock`)."""
+    break_block(tx.block_registry()[].block_runtime_id(b), pos, tx)
+
+
+def break_block_no_drops[
+    B: Block, T: WorldTypes
+](b: B, pos: Pos, mut tx: World[T]):
+    """Removes a typed block with break particles (Go
+    `breakBlockNoDrops`)."""
+    break_block_no_drops(tx.block_registry()[].block_runtime_id(b), pos, tx)

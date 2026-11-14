@@ -1,10 +1,14 @@
 """`SugarCane`, ported from Dragonfly `server/block/sugar_cane.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RandomTick, BoneMeal,
-canGrowHere and the drops.
+TODO(world-runtime): UseOnBlock, BoneMeal and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    NeighbourUpdateTicker,
+    RandomTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -13,10 +17,19 @@ from .break_info import (
     BreakInfo,
     Breakable,
     NOTHING_EFFECTIVE,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
-from .hash import HASH_SUGAR_CANE
+from .hash import AnyBlock, HASH_SUGAR_CANE
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
+from .block import face_solid_at, is_air
+from .dirt import supports_vegetation
+from .water import Water
 
 
 struct SugarCane(
@@ -26,7 +39,10 @@ struct SugarCane(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
+    NeighbourUpdateTicker,
+    RandomTicker,
 ):
     """A plant block that generates naturally near water."""
 
@@ -91,3 +107,52 @@ struct SugarCane(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks where it cannot grow (Go `NeighbourUpdateTick`)."""
+        if not _sugar_cane_can_grow_here(pos, tx, True):
+            break_block(self, pos, tx)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Grows a block taller every 16 ticks while it can grow (Go
+        `RandomTick`)."""
+        if not _sugar_cane_can_grow_here(pos, tx, True):
+            break_block(self, pos, tx)
+            return
+        var c = self.copy()
+        if c.age < 15:
+            c.age += 1
+        elif c.age == 15:
+            c.age = 0
+            if _sugar_cane_can_grow_here(pos.side(Face.DOWN), tx, False):
+                for y in range(1, 3):
+                    var p = pos.add(Pos(0, y, 0))
+                    if is_air(tx, p):
+                        tx.set_block(p, SugarCane())
+                        break
+                    elif not tx.block_as[SugarCane](p):
+                        break
+        tx.set_block(pos, c)
+
+
+def _sugar_cane_can_grow_here[
+    T: WorldTypes
+](pos: Pos, mut tx: World[T], recursive: Bool) -> Bool:
+    # Go `SugarCane.canGrowHere`: soil below with water next to it.
+    if recursive and tx.block_as[SugarCane](pos.side(Face.DOWN)):
+        return _sugar_cane_can_grow_here(pos.side(Face.DOWN), tx, recursive)
+    if supports_vegetation(
+        AnyBlock(SugarCane()), tx.block(pos.side(Face.DOWN)), tx
+    ):
+        var br = tx.block_registry()
+        for face in [Face.NORTH, Face.EAST, Face.SOUTH, Face.WEST]:
+            var l = tx.liquid(pos.side(face).side(Face.DOWN))
+            if l and br[].is_block[Water](l.value()):
+                return True
+    return False

@@ -4,7 +4,7 @@ Go names the type `String`; here it is `StringBlock` so that it does not
 shadow the built-in `String` wherever it is imported.
 
 TODO(world-runtime): UseOnBlock, EntityInside, NeighbourUpdateTick, tripwire
-hook logic, HasLiquidDrops, Model and the drops.
+hook logic, Model and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
@@ -21,6 +21,7 @@ from .break_info import (
 from .connections import Connections, all_connections
 from .hash import HASH_STRING
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct StringBlock(
@@ -30,6 +31,7 @@ struct StringBlock(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidRemovable,
     ModelledBlock,
 ):
     """A tripwire: string placed as a block (Go `String`)."""
@@ -140,3 +142,7 @@ struct StringBlock(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True

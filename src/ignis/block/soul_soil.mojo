@@ -1,6 +1,6 @@
 """`SoulSoil`, ported from Dragonfly `server/block/soul_soil.go`.
 
-TODO(world-runtime): SoilFor and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.block import Block
@@ -14,8 +14,9 @@ from .break_info import (
     SHOVEL_EFFECTIVE,
     new_break_info,
 )
-from .hash import HASH_SOUL_SOIL
+from .hash import AnyBlock, HASH_NETHER_SPROUTS, HASH_SOUL_SOIL
 from .model.solid import Solid as SolidModel
+from .dirt import Soil
 
 
 struct SoulSoil(
@@ -25,6 +26,7 @@ struct SoulSoil(
     ImplicitlyCopyable,
     Item,
     ModelledBlock,
+    Soil,
 ):
     """A block naturally found only in the soul sand valley."""
 
@@ -75,3 +77,8 @@ struct SoulSoil(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def soil_for(self, b: AnyBlock) -> Bool:
+        """Grows nether sprouts (Go `SoilFor`)."""
+        var k = b.kind
+        return k == HASH_NETHER_SPROUTS

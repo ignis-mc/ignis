@@ -3,8 +3,8 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the viewer count, NewEnderChest, SideClosed, Activate,
-UseOnBlock, AddViewer, RemoveViewer, open/close and the drops.
+TODO(world-runtime): the viewer count, NewEnderChest, Activate, UseOnBlock,
+AddViewer, RemoveViewer, open/close and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree
@@ -23,6 +23,9 @@ from .break_info import (
 from .cube.direction import Direction, directions
 from .hash import HASH_ENDER_CHEST
 from .model.chest import Chest as ChestModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct EnderChest(
@@ -33,6 +36,7 @@ struct EnderChest(
     Item,
     LightDiffuser,
     LightEmitter,
+    LiquidDisplacer,
     ModelledBlock,
     NBTer,
 ):
@@ -116,3 +120,7 @@ struct EnderChest(
     def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
         """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
         return Self(facing=self.facing)
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

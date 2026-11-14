@@ -3,7 +3,7 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): SideClosed, UseOnBlock, Model and the drops.
+TODO(world-runtime): UseOnBlock, Model and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
@@ -20,6 +20,9 @@ from .break_info import (
 from .cube.axis import Axis, axes
 from .hash import HASH_IRON_CHAIN
 from .model.chain import Chain as ChainModel
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct IronChain(
@@ -29,6 +32,7 @@ struct IronChain(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
 ):
     """A metallic decoration block."""
@@ -96,3 +100,7 @@ struct IronChain(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

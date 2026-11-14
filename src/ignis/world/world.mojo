@@ -27,10 +27,12 @@ Fixed from Dragonfly: chunks holding entities are always saved, and an
 entity changing chunk marks both chunks modified (Dragonfly lost entities
 that moved into an unmodified chunk and saved stale positions).
 
-Not ported yet: liquids beyond keeping layer 1 consistent, block entities,
-redstone, particles and sounds, structures, lightning, sleeping, view
-layers, portals, and the disk provider. Errors Go logs (provider failures)
-are kept in `last_error` instead.
+Blocks drop items through `drop_item`, which queues them for the world's
+owner (`take_item_drops`): item entities need the item registry.
+
+Not ported yet: block entities, redstone, structures, lightning, sleeping,
+view layers and portals. Errors Go logs (provider failures) are kept in
+`last_error` instead.
 """
 
 from std.collections import Dict, Set
@@ -46,7 +48,9 @@ from ..block.cube.range import Range
 from ..block.cube.rotation import Rotation
 from ..internal.rand import Rand
 from ..mgl64 import Vec3
-from .block import Block
+from ..block.hash import AnyBlock
+from ..item.stack import Stack
+from .block import Block, LiquidInfo
 from .block_registry import BasicBlockRegistry
 from .block_set import BlockTypes
 from .block_source import BlockSource
@@ -57,7 +61,7 @@ from .chunk.column import ScheduledBlockUpdate
 from .chunk.light import relight
 from .chunk.light_area import ChunkPointer, LightArea, chunk_pointer
 from .difficulty import Difficulty
-from .dimension import END, NETHER, OVERWORLD, Dimension
+from .dimension import Dimension, END, NETHER, OVERWORLD
 from .entity import EntityHandle, EntityTypes
 from .game_mode import GameMode
 from .generator import Generator
@@ -73,7 +77,9 @@ from .tick import (
     ScheduledTickQueue,
     any_within_distance,
 )
-from .tx import SetOpts
+from .particle import Particle
+from .sound import Sound
+from .tx import Context, SetOpts
 from .viewer import Viewer
 from .weather import advance_weather, set_raining, set_thunder
 
@@ -110,6 +116,16 @@ trait WorldTypes:
     comptime Entities: EntityTypes
     """The entity types; the state of every entity is an
     `Entities.State`."""
+
+
+@fieldwise_init
+struct ItemDrop(Copyable):
+    """A stack dropped by a block, waiting to become an item entity."""
+
+    var pos: Vec3
+    """Where the item appears (Go passes `pos.Vec3Centre()`)."""
+    var stack: Stack
+    """The stack."""
 
 
 struct Column(Movable):
@@ -169,12 +185,14 @@ struct World[T: WorldTypes](Movable):
     var _handler: Optional[Self.T.Handler]
     var _set: Settings
     var _r: Rand
+    var _global_r: Rand
     var _cols: List[Column]
     var _col_index: Dict[ChunkPos, Int]
     var _ents: List[_EntityEntry[Self.T.Entities]]
     var _ent_index: Dict[UInt128, Int]
     var _scheduled: ScheduledTickQueue
     var _neighbour_updates: List[NeighbourUpdate]
+    var _item_drops: List[ItemDrop]
     var _loaders: List[Optional[Loader[Self.T.Viewer]]]
     var _loader_gens: List[UInt32]
     var _free_loaders: List[Int]
@@ -209,7 +227,10 @@ struct World[T: WorldTypes](Movable):
         if case .Some(ref saved) = provider.settings():
             s = saved.copy()
         else:
-            s = default_settings(r)
+            # Go draws these from the global source, so the world's own
+            # generator starts in step with Dragonfly's seeded one.
+            var sr = Rand(seed[0] ^ 0x9E3779B97F4A7C15, seed[1])
+            s = default_settings(sr)
             s.spawn = generator.default_spawn(dim)
         self._dim = dim
         self._ra = dim.range()
@@ -225,11 +246,13 @@ struct World[T: WorldTypes](Movable):
         self._scheduled = ScheduledTickQueue(s.current_tick)
         self._set = s^
         self._r = r^
+        self._global_r = Rand(seed[1] ^ 0x5851F42D4C957F2D, seed[0])
         self._cols = List[Column]()
         self._col_index = Dict[ChunkPos, Int]()
         self._ents = List[_EntityEntry[Self.T.Entities]]()
         self._ent_index = Dict[UInt128, Int]()
         self._neighbour_updates = List[NeighbourUpdate]()
+        self._item_drops = List[ItemDrop]()
         self._loaders = List[Optional[Loader[Self.T.Viewer]]]()
         self._loader_gens = List[UInt32]()
         self._free_loaders = List[Int]()
@@ -271,6 +294,13 @@ struct World[T: WorldTypes](Movable):
         """Returns the world's random generator (Go passes it to random and
         scheduled ticks)."""
         return self._r
+
+    def global_rand(mut self) -> ref[self._global_r] Rand:
+        """Returns a generator standing in for Go's global `math/rand`
+        source, which Dragonfly's blocks use for drops, bone meal and the
+        like. It is separate from `rand`, so those draws leave the world's
+        generator in step with Dragonfly's."""
+        return self._global_r
 
     def current_tick(self) -> Int64:
         """Returns the world's tick counter (Go `Tx.CurrentTick`)."""
@@ -347,6 +377,9 @@ struct World[T: WorldTypes](Movable):
         var z = UInt8(pos.z() & 0xF)
         var ci = self._chunk(chunk_pos_from_block_pos(pos))
         var air = self._br[].air_runtime_id()
+        var before = air
+        if rid != air and not opts.disable_liquid_displacement:
+            before = self._cols[ci].chunk.block(x, y, z, 0)
         var old_light = self._light_info(ci, x, y, z)
         var old_height = self._cols[ci].chunk.height_at(self._br[], x, z)
         self._cols[ci].modified = True
@@ -355,6 +388,7 @@ struct World[T: WorldTypes](Movable):
         var shown = rid
         if not opts.disable_liquid_displacement:
             var second_layer = False
+            var second = air
             var li = self._cols[ci].chunk.block(x, y, z, 1)
             if rid == air:
                 if li != air:
@@ -364,15 +398,22 @@ struct World[T: WorldTypes](Movable):
                     second_layer = True
                     shown = li
             elif self._br[].liquid_displacing_block(rid):
-                # TODO: keep the liquid that was here on layer 1 when the
-                # block `CanDisplace` it, once liquids are ported. No ported
-                # block displaces liquids.
-                pass
+                if before != air and self._br[].liquid_block(before):
+                    var l = AnyBlock(
+                        kind=self._br[].kind(before),
+                        state=self._br[].state_hash(before),
+                    )
+                    if Self.T.Blocks.can_displace(
+                        self._br[].kind(rid), self._br[].state_hash(rid), l
+                    ):
+                        self._cols[ci].chunk.set_block(x, y, z, 1, before)
+                        second_layer = True
+                        second = before
             elif li != air:
                 self._cols[ci].chunk.set_block(x, y, z, 1, air)
                 second_layer = True
             if second_layer:
-                self._notify_block(ci, pos, air, 1)
+                self._notify_block(ci, pos, second, 1)
         self._cols[ci].chunk.update_height_map_column(self._br[], x, z)
         var height = self._cols[ci].chunk.height_at(self._br[], x, z)
         if height != old_height or self._light_info(ci, x, y, z) != old_light:
@@ -550,6 +591,226 @@ struct World[T: WorldTypes](Movable):
         self._neighbour_updates.append(NeighbourUpdate(pos, pos))
         for n in pos.neighbours(self._ra):
             self._neighbour_updates.append(NeighbourUpdate(n, pos))
+
+    # ===------------------------------------------------------------------=== #
+    # Liquids (Go Tx.Liquid, Tx.SetLiquid)
+    # ===------------------------------------------------------------------=== #
+
+    def liquid(mut self, pos: Pos) -> Optional[UInt32]:
+        """Returns the liquid at a position, on either layer (Go
+        `Tx.Liquid`)."""
+        if pos.out_of_bounds(self._ra):
+            return None
+        var ci = self._chunk(chunk_pos_from_block_pos(pos))
+        var x = UInt8(pos.x() & 0xF)
+        var y = Int16(pos.y())
+        var z = UInt8(pos.z() & 0xF)
+        var rid = self._cols[ci].chunk.block(x, y, z, 0)
+        if self._br[].liquid_block(rid):
+            return rid
+        rid = self._cols[ci].chunk.block(x, y, z, 1)
+        if self._br[].liquid_block(rid):
+            return rid
+        return None
+
+    def liquid_info(mut self, pos: Pos) -> Optional[LiquidInfo]:
+        """Returns the `Liquid` methods of the liquid at a position."""
+        if case .Some(rid) = self.liquid(pos):
+            return Self.T.Blocks.liquid_info(
+                self._br[].kind(rid), self._br[].state_hash(rid)
+            )
+        return None
+
+    def set_liquid[B: Block](mut self, pos: Pos, b: B):
+        """Sets a liquid at a position (Go `Tx.SetLiquid`)."""
+        self.set_liquid_runtime_id(pos, self._br[].block_runtime_id(b))
+
+    def set_liquid_runtime_id(mut self, pos: Pos, rid: UInt32):
+        """Sets a liquid given its runtime ID (Go `Tx.SetLiquid`): it shares
+        the position with the block there if that block is replaceable by
+        it or can displace it, and replaces any liquid already there."""
+        if pos.out_of_bounds(self._ra):
+            return
+        var ci = self._chunk(chunk_pos_from_block_pos(pos))
+        var x = UInt8(pos.x() & 0xF)
+        var y = Int16(pos.y())
+        var z = UInt8(pos.z() & 0xF)
+        var cur = self._cols[ci].chunk.block(x, y, z, 0)
+        var kind = self._br[].kind(cur)
+        var hash = self._br[].state_hash(cur)
+        var l = AnyBlock(
+            kind=self._br[].kind(rid), state=self._br[].state_hash(rid)
+        )
+        if not Self.T.Blocks.replaceable_by(kind, hash, l):
+            if not self._br[].liquid_displacing_block(
+                cur
+            ) or not Self.T.Blocks.can_displace(kind, hash, l):
+                return
+        var old_light = self._light_info(ci, x, y, z)
+        var old_height = self._cols[ci].chunk.height_at(self._br[], x, z)
+        if self._remove_liquids(ci, pos):
+            self._cols[ci].chunk.set_block(x, y, z, 0, rid)
+            self._notify_block(ci, pos, rid, 0)
+        else:
+            self._cols[ci].chunk.set_block(x, y, z, 1, rid)
+            self._notify_block(ci, pos, rid, 1)
+        self._cols[ci].modified = True
+        self._relight_if_changed(ci, pos, old_light, old_height)
+        self._do_block_updates_around(pos)
+
+    def remove_liquid(mut self, pos: Pos):
+        """Removes any liquid at a position (Go `Tx.SetLiquid(pos, nil)`)."""
+        if pos.out_of_bounds(self._ra):
+            return
+        var ci = self._chunk(chunk_pos_from_block_pos(pos))
+        var x = UInt8(pos.x() & 0xF)
+        var y = Int16(pos.y())
+        var z = UInt8(pos.z() & 0xF)
+        var old_light = self._light_info(ci, x, y, z)
+        var old_height = self._cols[ci].chunk.height_at(self._br[], x, z)
+        _ = self._remove_liquids(ci, pos)
+        self._relight_if_changed(ci, pos, old_light, old_height)
+        self._do_block_updates_around(pos)
+
+    def _relight_if_changed(
+        mut self, ci: Int, pos: Pos, old_light: Int, old_height: Int16
+    ):
+        # Liquids change the light filtered at their position like blocks
+        # do in `set_block_runtime_id`.
+        var x = UInt8(pos.x() & 0xF)
+        var y = Int16(pos.y())
+        var z = UInt8(pos.z() & 0xF)
+        self._cols[ci].chunk.update_height_map_column(self._br[], x, z)
+        var height = self._cols[ci].chunk.height_at(self._br[], x, z)
+        if height != old_height or self._light_info(ci, x, y, z) != old_light:
+            self._relight(ci, pos, Int(old_height))
+
+    def _remove_liquids(mut self, ci: Int, pos: Pos) -> Bool:
+        # Go `removeLiquids`: True if layer 0 is left empty.
+        var air = self._br[].air_runtime_id()
+        var x = UInt8(pos.x() & 0xF)
+        var y = Int16(pos.y())
+        var z = UInt8(pos.z() & 0xF)
+        var none_left = False
+        var l0 = self._cols[ci].chunk.block(x, y, z, 0)
+        if self._br[].liquid_block(l0):
+            self._cols[ci].chunk.set_block(x, y, z, 0, air)
+            self._notify_block(ci, pos, air, 0)
+            none_left = True
+        elif l0 == air:
+            none_left = True
+        var l1 = self._cols[ci].chunk.block(x, y, z, 1)
+        if self._br[].liquid_block(l1):
+            self._cols[ci].chunk.set_block(x, y, z, 1, air)
+            self._notify_block(ci, pos, air, 1)
+        return none_left
+
+    # ===------------------------------------------------------------------=== #
+    # Handler events, sounds, particles and item drops
+    # ===------------------------------------------------------------------=== #
+
+    def handle_liquid_flow(
+        mut self,
+        mut ctx: Context,
+        from_: Pos,
+        into: Pos,
+        liquid: AnyBlock,
+        replaced: AnyBlock,
+    ):
+        """Calls the handler's `handle_liquid_flow`."""
+        if self._handler:
+            var h = self._handler.take()
+            h.handle_liquid_flow(self, ctx, from_, into, liquid, replaced)
+            self._handler = h^
+
+    def handle_liquid_decay(
+        mut self,
+        mut ctx: Context,
+        pos: Pos,
+        before: AnyBlock,
+        after: Optional[AnyBlock],
+    ):
+        """Calls the handler's `handle_liquid_decay`."""
+        if self._handler:
+            var h = self._handler.take()
+            h.handle_liquid_decay(self, ctx, pos, before, after)
+            self._handler = h^
+
+    def handle_liquid_harden(
+        mut self,
+        mut ctx: Context,
+        hardened_pos: Pos,
+        liquid_hardened: AnyBlock,
+        other_liquid: AnyBlock,
+        new_block: AnyBlock,
+    ):
+        """Calls the handler's `handle_liquid_harden`."""
+        if self._handler:
+            var h = self._handler.take()
+            h.handle_liquid_harden(
+                self,
+                ctx,
+                hardened_pos,
+                liquid_hardened,
+                other_liquid,
+                new_block,
+            )
+            self._handler = h^
+
+    def handle_leaves_decay(mut self, mut ctx: Context, pos: Pos):
+        """Calls the handler's `handle_leaves_decay`."""
+        if self._handler:
+            var h = self._handler.take()
+            h.handle_leaves_decay(self, ctx, pos)
+            self._handler = h^
+
+    def handle_fire_spread(mut self, mut ctx: Context, from_: Pos, to: Pos):
+        """Calls the handler's `handle_fire_spread`."""
+        if self._handler:
+            var h = self._handler.take()
+            h.handle_fire_spread(self, ctx, from_, to)
+            self._handler = h^
+
+    def handle_block_burn(mut self, mut ctx: Context, pos: Pos):
+        """Calls the handler's `handle_block_burn`."""
+        if self._handler:
+            var h = self._handler.take()
+            h.handle_block_burn(self, ctx, pos)
+            self._handler = h^
+
+    def handle_crop_trample(mut self, mut ctx: Context, pos: Pos):
+        """Calls the handler's `handle_crop_trample`."""
+        if self._handler:
+            var h = self._handler.take()
+            h.handle_crop_trample(self, ctx, pos)
+            self._handler = h^
+
+    def play_sound[S: Sound](mut self, pos: Vec3, s: S):
+        """Plays a sound to the viewers of a position (Go `Tx.PlaySound`;
+        the `HandleSound` event is not ported)."""
+        for id in self.viewers(pos):
+            self._loader(id).viewer.view_sound(pos, s)
+
+    def add_particle[P: Particle](mut self, pos: Vec3, p: P):
+        """Shows a particle to the viewers of a position (Go
+        `Tx.AddParticle`)."""
+        for id in self.viewers(pos):
+            self._loader(id).viewer.view_particle(pos, p)
+
+    def drop_item(mut self, pos: Vec3, s: Stack):
+        """Drops a stack as an item entity at a position (Go's `dropItem` in
+        `block`). The world cannot build item entities itself (their NBT
+        needs the item registry), so drops queue up until the owner of the
+        world takes them with `take_item_drops` and spawns them."""
+        if s.empty():
+            return
+        self._item_drops.append(ItemDrop(pos, s.copy()))
+
+    def take_item_drops(mut self) -> List[ItemDrop]:
+        """Returns and clears the queued item drops."""
+        var out = self._item_drops^
+        self._item_drops = List[ItemDrop]()
+        return out^
 
     # ===------------------------------------------------------------------=== #
     # Time, weather, spawn and settings
@@ -1377,7 +1638,10 @@ struct World[T: WorldTypes](Movable):
 
     def _tick_entity(mut self, key: UInt128, tick: Int64):
         # The entity leaves the world while it ticks, so that it can use
-        # the world mutably.
+        # the world mutably. It goes back to its slot afterwards, so that
+        # entities tick in a stable order (Go ranges over a map, in random
+        # order).
+        var slot = self._ent_index.get(key).value()
         var entry = self._take_entity(key)
         var cp = entry.chunk
         var h = entry^.into_handle()
@@ -1396,6 +1660,11 @@ struct World[T: WorldTypes](Movable):
         self._ent_index[key] = len(self._ents)
         var shown = h.copy()
         self._ents.append(_EntityEntry(h^, cp))
+        var last = len(self._ents) - 1
+        if slot < last:
+            self._ents.swap_elements(slot, last)
+            self._ent_index[uuid_key(self._ents[slot].handle.id)] = slot
+            self._ent_index[uuid_key(self._ents[last].handle.id)] = last
         if case .Some(mv) = m:
             # Go `Movement.Send`.
             for v in self.viewers_of_chunk(cp):

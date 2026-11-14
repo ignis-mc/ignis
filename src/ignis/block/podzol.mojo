@@ -1,6 +1,6 @@
 """`Podzol`, ported from Dragonfly `server/block/podzol.go`.
 
-TODO(world-runtime): SoilFor, Shovel and the drops.
+TODO(world-runtime): Shovel and the drops.
 """
 
 from ..world.block import Block
@@ -14,8 +14,24 @@ from .break_info import (
     SHOVEL_EFFECTIVE,
     new_break_info,
 )
-from .hash import HASH_PODZOL
+from .hash import (
+    AnyBlock,
+    HASH_BAMBOO,
+    HASH_BAMBOO_SAPLING,
+    HASH_DEAD_BUSH,
+    HASH_DOUBLE_FLOWER,
+    HASH_DOUBLE_TALL_GRASS,
+    HASH_FERN,
+    HASH_FLOWER,
+    HASH_NETHER_SPROUTS,
+    HASH_PODZOL,
+    HASH_RED_SHRUB,
+    HASH_SAPLING,
+    HASH_SHORT_GRASS,
+    HASH_SUGAR_CANE,
+)
 from .model.solid import Solid as SolidModel
+from .dirt import Soil
 
 
 struct Podzol(
@@ -25,6 +41,7 @@ struct Podzol(
     ImplicitlyCopyable,
     Item,
     ModelledBlock,
+    Soil,
 ):
     """A dirt-type block that naturally blankets the surface of giant tree taigas.
     """
@@ -76,3 +93,21 @@ struct Podzol(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def soil_for(self, b: AnyBlock) -> Bool:
+        """Grows plants, sugar cane, bamboo and saplings (Go `SoilFor`)."""
+        var k = b.kind
+        return (
+            k == HASH_SHORT_GRASS
+            or k == HASH_FERN
+            or k == HASH_DOUBLE_TALL_GRASS
+            or k == HASH_FLOWER
+            or k == HASH_DOUBLE_FLOWER
+            or k == HASH_NETHER_SPROUTS
+            or k == HASH_DEAD_BUSH
+            or k == HASH_SUGAR_CANE
+            or k == HASH_BAMBOO_SAPLING
+            or k == HASH_BAMBOO
+            or k == HASH_SAPLING
+            or k == HASH_RED_SHRUB
+        )

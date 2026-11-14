@@ -4,27 +4,36 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
+TODO(world-runtime): Activate, Model, Wax, Strip, EncodeItem and the drops.
+
 TODO(world-runtime): UseOnBlock, Activate, SideClosed, Model, Wax, Strip,
 RandomTick (attemptOxidation) and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from .cube.face import Face
+from .cube.pos import Pos
+from .cube.rotation import Rotation
+from ..mgl64 import Vec3
+from ..world.world import World, WorldTypes
+from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
+from .hash import AnyBlock, HASH_COPPER_TRAPDOOR
+from ..world.block import Block, LightDiffuser, LiquidDisplacer, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    HARVEST_LEVEL_STONE,
-    PICKAXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    HARVEST_LEVEL_STONE,
+    PICKAXE_EFFECTIVE,
     new_break_info,
     pickaxe_harvestable_from,
 )
 from .cube.direction import Direction, directions
-from .hash import HASH_COPPER_TRAPDOOR
 from .model.trapdoor import Trapdoor as TrapdoorModel
 from .oxidation_type import OxidationType, oxidation_types
-from .oxidizable import Oxidisable, copper_block_name
+from .oxidizable import Oxidisable, attempt_oxidation, copper_block_name
+from .liquid import source_water_can_displace
 
 
 struct CopperTrapdoor(
@@ -34,8 +43,11 @@ struct CopperTrapdoor(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
     Oxidisable,
+    RandomTicker,
+    UsableOnBlock,
 ):
     """A copper trapdoor, opened and closed by players."""
 
@@ -156,6 +168,31 @@ struct CopperTrapdoor(
         """Returns the model of the block (Go `Model`)."""
         return TrapdoorModel(facing=self.facing, open=self.open, top=self.top)
 
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: Rotation,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places the trapdoor facing the user, at the top when clicked on
+        the upper half of a side or under a block (Go `UseOnBlock`)."""
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var f = at.value()[1]
+        var b = self
+        b.facing = user.direction().opposite()
+        b.top = (click.y() > 0.5 and f != Face.UP) or f == Face.DOWN
+        return [
+            Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()), False)
+        ]
+
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""
         return EncodedItem(
@@ -170,3 +207,11 @@ struct CopperTrapdoor(
             out.append(Self(oxidation=o))
             out.append(Self(oxidation=o, waxed=True))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May oxidise (Go `RandomTick`)."""
+        attempt_oxidation(pos, tx, self)

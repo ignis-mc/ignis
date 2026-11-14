@@ -70,6 +70,10 @@ struct Rand(Copyable, Defaultable):
         """Returns a uniformly distributed 64-bit value (Go `Uint64`)."""
         return self._src.uint64()
 
+    def uint32(mut self) -> UInt32:
+        """Returns a uniformly distributed 32-bit value (Go `Uint32`)."""
+        return UInt32(self._src.uint64() >> 32)
+
     def int32(mut self) -> Int32:
         """Returns a non-negative 31-bit value (Go `Int32`)."""
         return Int32(self._src.uint64() >> 33)

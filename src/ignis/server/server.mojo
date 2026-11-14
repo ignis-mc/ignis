@@ -83,7 +83,21 @@ from ..world.provider import uuid_key
 from ..cmd.register import Registry
 from .builtin import register_builtin_commands
 from .command import CommandSource, execute_command
+from .interact import (
+    continue_breaking,
+    handle_block_action,
+    use_item_on_block,
+)
 from .provider import WorldProvider
+from ..item.register import vanilla_item_registry
+from ..item.nbt import read_disk_nbt, write_disk_nbt
+from ..entity.item import DEFAULT_PICKUP_DELAY_TICKS, ItemBehaviour
+from ..world.entity import EntityHandle, EntitySpawnOpts
+from ..block.cube.bbox import BBox
+from minecraft.nbt.tree import Tree
+from ..item.stack import Stack
+from ..player.playerdb.inventory import load_inventories, put_inventories
+from ..world.item import ItemRegistry
 
 from ..block.bedrock import Bedrock
 from ..block.dirt import Dirt
@@ -95,7 +109,7 @@ from ..item.creative.creative import load_creative_items
 from ..item.recipe.vanilla import load_vanilla_recipes
 from ..item.register import vanilla_item_registry
 from ..mgl64 import Vec3
-from ..player.player import EYE_HEIGHT, Player
+from ..player.player import BBOX_HEIGHT, BBOX_WIDTH, EYE_HEIGHT, Player
 from ..session.armour_trim import trim_data
 from ..session.conn import NetConn
 from ..session.creative import creative_content
@@ -188,11 +202,12 @@ def data_driven_block_entries(path: String) raises -> List[BlockEntry]:
 
 def item_packets(
     br: BasicBlockRegistry, vanilla_items_path: String
-) raises -> Tuple[List[UInt8], List[UInt8], List[UInt8]]:
+) raises -> Tuple[List[UInt8], List[UInt8], List[UInt8], List[Stack]]:
     """Encodes the `CreativeContent`, `CraftingData` and `TrimData` packets
-    every session gets on join. Go builds them per session, with new random
-    recipe IDs each time; Ignis builds them once, so the recipe IDs are
-    random per server start."""
+    every session gets on join, and returns the creative items in network
+    ID order (ID n is entry n - 1). Go builds the packets per session, with
+    new random recipe IDs each time; Ignis builds them once, so the recipe
+    IDs are random per server start."""
     var reg = vanilla_item_registry(vanilla_items_path)
     var creative = load_creative_items(br, reg)
     var recipes = load_vanilla_recipes(br, reg)
@@ -200,10 +215,14 @@ def item_packets(
     var creative_pk = creative_content(br, reg, creative)
     var crafting_pk = crafting_data(br, reg, recipes, ids)
     var trim_pk = trim_data()
+    var stacks = List[Stack]()
+    for ref i in creative.items():
+        stacks.append(i.stack.copy())
     return (
         encode_packet(creative_pk),
         encode_packet(crafting_pk),
         encode_packet(trim_pk),
+        stacks^,
     )
 
 
@@ -276,9 +295,16 @@ def open_world(conf: Config, now_ms: Int) raises -> World[ServerWorld]:
         provider = WorldProvider.open(folder, br)
     var gen = Flat(Plains(), layers^)
     var fallback = gen.default_spawn(OVERWORLD)
+    var tick_speed: Optional[Int] = None
+    if not new_world:
+        tick_speed = provider.random_tick_speed()
     var wc = WorldConfig[ServerWorld](gen^, provider^, br)
     # The server saves on its own schedule (`Server._save`).
     wc.save_interval_ms = -1
+    if case .Some(speed) = tick_speed:
+        # The world's `randomtickspeed` game rule; 0 turns random ticks off
+        # (the world config reads 0 as the default of 3).
+        wc.random_tick_speed = speed if speed > 0 else -1
     var w = wc^.new(now_ms)
     if new_world:
         # Go's world without a provider: the generator's spawn.
@@ -313,6 +339,11 @@ struct Server(Movable):
     var ui: ServerUI
     """The forms and dialogues players have open (`server.ui`)."""
     var _items: List[ItemEntry]
+    var item_registry: ArcPointer[ItemRegistry]
+    """The registered items, shared with the sessions."""
+    var creative_items: ArcPointer[List[Stack]]
+    """The creative inventory (Go `creative.Items`), in network ID
+    order."""
     var _biomes: List[UInt8]
     var _creative: List[UInt8]
     var _crafting: List[UInt8]
@@ -338,6 +369,7 @@ struct Server(Movable):
         if case .Some(folder) = conf.players_folder:
             players = PlayerProvider(folder)
         var items = item_entries(conf.vanilla_items_path)
+        var item_reg = vanilla_item_registry(conf.vanilla_items_path)
         var biomes = biome_definition_packet(vanilla_biome_registry())
         var item_pks = item_packets(
             world.block_registry()[], conf.vanilla_items_path
@@ -358,6 +390,8 @@ struct Server(Movable):
         register_ui_commands(self.commands)
         self.ui = ServerUI()
         self._items = items^
+        self.item_registry = ArcPointer(item_reg^)
+        self.creative_items = ArcPointer(item_pks[3].copy())
         self._biomes = biomes^
         self._creative = item_pks[0].copy()
         self._crafting = item_pks[1].copy()
@@ -459,6 +493,7 @@ struct Server(Movable):
 
         if now >= self.world.next_deadline_ms():
             _ = self.world.tick(now)
+            self._spawn_block_drops()
         var ticks = 0
         while now >= self._next_tick and ticks < _MAX_CATCH_UP_TICKS:
             self._tick()
@@ -567,6 +602,12 @@ struct Server(Movable):
         var key = uuid_key(p.uuid())
         var data = self._player_data.get(key).or_else(PlayerData())
         data.put_player(p, self.world.dimension().id)
+        put_inventories(
+            data,
+            self.world.block_registry()[],
+            self.item_registry[],
+            self.sessions[i].invs,
+        )
         try:
             self._players.value().save(p.uuid(), data)
         except e:
@@ -800,11 +841,16 @@ struct Server(Movable):
         sc.join_message = self.conf.join_quit_messages
         sc.quit_message = self.conf.join_quit_messages
         sc.biome_definitions = self._biomes.copy()
+        sc.blocks = self.world.block_registry()
+        sc.items = self.item_registry
+        sc.creative_items = self.creative_items
         sc.creative_content = self._creative.copy()
         sc.crafting_data = self._crafting.copy()
         sc.trim_data = self._trim.copy()
         self.sessions.append(Session(NetConn(conn^), player^, skin^, sc))
         var n = len(self.sessions) - 1
+        if case .Some(d) = self._player_data.get(uuid_key(uuid)):
+            load_inventories(d, self.item_registry[], self.sessions[n].invs)
         var me = self.sessions[n].player.copy()
         var my_skin = self.sessions[n].join_skin.copy()
         # sessionList.Add: everyone sees everyone in the player list.
@@ -823,10 +869,20 @@ struct Server(Movable):
             self.commands.commands(), CommandSource(self.sessions[n].player)
         )
         # World.AddEntity: viewers see the new player and it sees them.
+        var my_held = self.sessions[n].invs.held_item()
+        var my_off = self.sessions[n].invs.off_hand_item()
         for j in range(n):
-            self.sessions[j].view_entity(me)
+            self.sessions[j].view_entity(me, my_held)
+            self.sessions[j].view_entity_items(me, my_held, my_off)
             var other = self.sessions[j].player.copy()
-            self.sessions[n].view_entity(other)
+            self.sessions[n].view_entity(
+                other, self.sessions[j].invs.held_item()
+            )
+            self.sessions[n].view_entity_items(
+                other,
+                self.sessions[j].invs.held_item(),
+                self.sessions[j].invs.off_hand_item(),
+            )
         print(t"player joined name={name} uuid={uuid}")
         if self.conf.join_quit_messages:
             for _i in range(len(self.sessions)):
@@ -883,6 +939,15 @@ struct Server(Movable):
                 s.send_message(line)
         if case .Some(line) = res.command:
             self.execute_player_command(i, line)
+        if res.held_changed:
+            self._show_held_items(i)
+        for ref d in res.dropped:
+            self.drop_item(i, d)
+        for ref a in res.block_actions:
+            handle_block_action(self, i, a)
+        if case .Some(u) = res.use_on_block:
+            use_item_on_block(self, i, u)
+
         self._apply_ui(i, res)
 
     def _apply_ui(mut self, i: Int, res: HandleResult) raises:
@@ -899,12 +964,186 @@ struct Server(Movable):
                 if j != i:
                     self.sessions[j].view_skin(p, skin)
 
+    def _show_held_items(mut self, i: Int):
+        """Shows a player's held items to the others (Go `ViewEntityItems`
+        from the inventory slot functions)."""
+        var p = self.sessions[i].player.copy()
+        var main = self.sessions[i].invs.held_item()
+        var off = self.sessions[i].invs.off_hand_item()
+        for j in range(len(self.sessions)):
+            if j != i:
+                self.sessions[j].view_entity_items(p, main, off)
+
+    def drop_item(mut self, i: Int, s: Stack):
+        """Drops a stack from a player (Go `Player.Drop`): 1.4 blocks above
+        its feet, thrown where it looks, collectable after two seconds."""
+        ref p = self.sessions[i].player
+        var pos = p.position().add(Vec3(0, 1.4, 0))
+        var vel = p.rotation().vec3().mul(0.4)
+        self.spawn_item(pos, vel, s, 40)
+
+    def spawn_item(
+        mut self,
+        pos: Vec3,
+        vel: Vec3,
+        s: Stack,
+        pickup_delay_ticks: Int = DEFAULT_PICKUP_DELAY_TICKS,
+    ):
+        """Adds an item entity holding a stack (Go `entity.NewItem` and
+        `NewItemPickupDelay` with `Tx.AddEntity`)."""
+        if s.empty():
+            return
+        var nbt: Tree
+        try:
+            nbt = write_disk_nbt(
+                self.world.block_registry()[], self.item_registry[], s
+            )
+        except e:
+            print("spawn item:", e)
+            return
+        var opts = EntitySpawnOpts()
+        opts.position = pos
+        opts.velocity = vel
+        var h = EntityHandle[VanillaEntities](
+            opts,
+            VanillaEntities.wrap(ItemBehaviour(s, nbt^, pickup_delay_ticks)),
+        )
+        _ = self.world.add_entity(h^)
+
+    def _tick_items(mut self):
+        """Lets players pick up items and merges items lying together (Go
+        `ItemBehaviour.checkNearby`, `collect` and `merge`)."""
+        var done = List[UUID]()
+        for id in self.world.entities():
+            if id in done:
+                continue
+            var found = self.world.entity(id)
+            if not found:
+                continue
+            ref h = found.value()
+            if not h.state.isa[ItemBehaviour]():
+                continue
+            ref b = h.state[ItemBehaviour]
+            if not b.can_pick_up():
+                continue
+            var stack = self._item_stack(b)
+            if stack.empty():
+                continue
+            var pos = h.data.pos
+            var box = b.bbox(h.data)
+            var grown = box.grow_vec3(Vec3(1, 0.5, 1)).translate(pos)
+            if self._collect(id, stack, pos, grown):
+                done.append(id)
+                continue
+            for other in self.world.entities_within(box.translate(pos).grow(2)):
+                if other == id or other in done:
+                    continue
+                if self._merge(id, h, stack, other, grown):
+                    done.append(id)
+                    done.append(other)
+                    break
+
+    def _item_stack(self, b: ItemBehaviour) -> Stack:
+        """The stack of an item entity; a loaded one only has its NBT."""
+        if b.resolved():
+            return b.item.copy()
+        return read_disk_nbt(
+            self.item_registry[], b.item_nbt, b.item_nbt.root()
+        )
+
+    def _collect(
+        mut self, id: UUID, stack: Stack, pos: Vec3, grown: BBox
+    ) -> Bool:
+        """Go `collect` by the first player touching the item that has
+        room (Go `Player.Collect`)."""
+        for j in range(len(self.sessions)):
+            ref p = self.sessions[j].player
+            if not p.game_mode().allows_interaction():
+                continue
+            var pbox = BBox.box(
+                -BBOX_WIDTH / 2,
+                0,
+                -BBOX_WIDTH / 2,
+                BBOX_WIDTH / 2,
+                BBOX_HEIGHT,
+                BBOX_WIDTH / 2,
+            ).translate(p.position())
+            if not pbox.intersects_with(grown):
+                continue
+            var added = 0
+            var off = self.sessions[j].invs.off_hand_item()
+            if not off.empty() and off.comparable(stack):
+                added = self.sessions[j].invs.off_hand.add_item(stack.copy())
+            if added != stack.count():
+                added += self.sessions[j].invs.inv.add_item(stack.grow(-added))
+            if added == 0:
+                continue
+            var collector = self.sessions[j].player.copy()
+            for k in range(len(self.sessions)):
+                self.sessions[k].view_take_item(id, collector)
+            _ = self.world.remove_entity(id)
+            if added != stack.count():
+                self.spawn_item(pos, Vec3(), stack.grow(-added), 0)
+            return True
+        return False
+
+    def _merge(
+        mut self,
+        id: UUID,
+        h: EntityHandle[VanillaEntities],
+        stack: Stack,
+        other_id: UUID,
+        grown: BBox,
+    ) -> Bool:
+        """Go `merge`: two comparable items that are not full become one."""
+        var found = self.world.entity(other_id)
+        if not found:
+            return False
+        ref o = found.value()
+        if not o.state.isa[ItemBehaviour]():
+            return False
+        var obox = o.state[ItemBehaviour].bbox(o.data).translate(o.data.pos)
+        if not obox.intersects_with(grown):
+            return False
+        var other = self._item_stack(o.state[ItemBehaviour])
+        if (
+            other.empty()
+            or other.count() == other.max_count()
+            or stack.count() == stack.max_count()
+            or not stack.comparable(other)
+        ):
+            return False
+        var r = other.add_stack(stack)
+        var opos = o.data.pos
+        var ovel = o.data.vel
+        var pos = h.data.pos
+        var vel = h.data.vel
+        _ = self.world.remove_entity(id)
+        _ = self.world.remove_entity(other_id)
+        self.spawn_item(opos, ovel, r[0])
+        if not r[1].empty():
+            self.spawn_item(pos, vel, r[1])
+        return True
+
+    def _spawn_block_drops(mut self):
+        """Spawns the items blocks dropped during world ticks, thrown as Go's
+        `dropItem` throws them."""
+        for d in self.world.take_item_drops():
+            ref r = self.world.global_rand()
+            var x = r.float64() * 0.2 - 0.1
+            var z = r.float64() * 0.2 - 0.1
+            self.spawn_item(d.pos, Vec3(x, 0.2, z), d.stack)
+
     def _tick(mut self):
         """Runs the per-tick session work (each session's `background`
         loop in Go); the world ticks on its own deadline."""
         self._ticks += 1
+        self._tick_items()
         for i in range(len(self.sessions)):
+            continue_breaking(self, i)
             self.sessions[i].send_chunks(self.world)
+            if self.sessions[i].send_inventory_changes():
+                self._show_held_items(i)
             # Go `background`: enums every second, commands every 5 seconds.
             if self._ticks % 20 == 0 or self._ticks % 100 == 0:
                 var src = CommandSource(self.sessions[i].player)

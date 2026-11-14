@@ -3,7 +3,7 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): SideClosed, UseOnBlock, Model and the drops.
+TODO(world-runtime): UseOnBlock, Model and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree
@@ -32,6 +32,10 @@ from .cube.orientation import Orientation, orientation_from_yaw
 from .hash import HASH_SKULL
 from .model.skull import Skull as SkullModel
 from .skull_type import SkullType, skull_types
+from .liquid import LiquidRemovable
+from ..world.block import LiquidDisplacer
+from .hash import AnyBlock
+from .liquid import source_water_can_displace
 
 
 struct Skull(
@@ -42,6 +46,8 @@ struct Skull(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
+    LiquidRemovable,
     ModelledBlock,
     NBTer,
 ):
@@ -172,3 +178,11 @@ struct Skull(
     def knock_back_resistance(self) -> Float64:
         """Returns the knock-back resistance (Go `KnockBackResistance`)."""
         return 0
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns True (Go `HasLiquidDrops`)."""
+        return True
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

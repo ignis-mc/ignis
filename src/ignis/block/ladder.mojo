@@ -3,26 +3,36 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, UseOnBlock, EntityInside, SideClosed,
-Model and the drops.
+TODO(world-runtime): UseOnBlock, EntityInside, Model and the drops.
 """
 
 from ..item.smelting_info import Fuel, FuelInfo
-from ..world.block import Block, LightDiffuser
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    LiquidDisplacer,
+    NeighbourUpdateTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
-from .block import UNKNOWN_DIRECTION
+from .block import UNKNOWN_DIRECTION, face_solid_at, is_air, light_diffuser_at
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    break_block,
+    break_block_no_drops,
     new_break_info,
 )
 from .cube.direction import Direction, directions
-from .hash import HASH_LADDER
+from .hash import AnyBlock, HASH_LADDER
 from .model.ladder import Ladder as LadderModel
+from .liquid import source_water_can_displace
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
 
 
 struct Ladder(
@@ -33,7 +43,9 @@ struct Ladder(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
+    NeighbourUpdateTicker,
 ):
     """A wooden block used for climbing walls either vertically or horizontally.
     """
@@ -107,3 +119,15 @@ struct Ladder(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Breaks when the block behind it lets light through (Go
+        `NeighbourUpdateTick`)."""
+        if light_diffuser_at(tx, pos.side(self.facing.face().opposite())):
+            break_block(self, pos, tx)

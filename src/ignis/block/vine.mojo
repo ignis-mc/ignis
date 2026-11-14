@@ -1,16 +1,18 @@
 """`Vines`, ported from Dragonfly `server/block/vine.go`.
 
-Go's `replaceable` helper (ReplaceableBy) comes with `world.Tx`. Go's
+Go's `replaceable` helper is `Replaceable`. Go's
 `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes with
 liquids.
 
-TODO(world-runtime): EntityInside, SideClosed, UseOnBlock, NeighbourUpdateTick,
-RandomTick, FlammabilityInfo, WithAttachment, SetAttachment, Attachment,
-Attachments and the drops.
+TODO(world-runtime): EntityInside, UseOnBlock, NeighbourUpdateTick, RandomTick,
+FlammabilityInfo, WithAttachment, SetAttachment, Attachment, Attachments and
+the drops.
 """
 
 from ..item.item import Compostable
 from ..item.tool import TYPE_SHEARS
+from .block import Replaceable
+from .hash import AnyBlock
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
@@ -24,6 +26,9 @@ from .break_info import (
 )
 from .hash import HASH_VINES
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
+from ..world.block import LiquidDisplacer
+from .liquid import source_water_can_displace
 
 
 struct Vines(
@@ -34,7 +39,10 @@ struct Vines(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
+    LiquidRemovable,
     ModelledBlock,
+    Replaceable,
 ):
     """A climbable block that grows on walls and in the shade."""
 
@@ -132,6 +140,10 @@ struct Vines(
         """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
 
+    def replaceable_by(self, b: AnyBlock) -> Bool:
+        """Any block replaces it (Go's embedded `replaceable`)."""
+        return True
+
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""
         return EncodedItem("minecraft:vine", 0)
@@ -144,3 +156,11 @@ struct Vines(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns False (Go `HasLiquidDrops`)."""
+        return False
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)

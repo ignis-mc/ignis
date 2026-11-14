@@ -7,6 +7,8 @@ RandomTick, NeighbourUpdateTick, EntityInside, FireDamageSource, Start and
 the fire spread helpers.
 """
 
+from .block import Replaceable
+from .hash import AnyBlock
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
@@ -14,6 +16,7 @@ from .connections import FireConnections, all_fire_connections
 from .fire_type import FireType
 from .hash import HASH_FIRE
 from .model.empty import Empty as EmptyModel
+from .liquid import LiquidRemovable
 
 
 struct Fire(
@@ -22,7 +25,9 @@ struct Fire(
     ImplicitlyCopyable,
     LightDiffuser,
     LightEmitter,
+    LiquidRemovable,
     ModelledBlock,
+    Replaceable,
 ):
     """A non-solid block that can spread to nearby flammable blocks."""
 
@@ -107,3 +112,11 @@ struct Fire(
     def model(self) -> EmptyModel:
         """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
+
+    def replaceable_by(self, b: AnyBlock) -> Bool:
+        """Any block replaces it (Go's embedded `replaceable`)."""
+        return True
+
+    def has_liquid_drops(self) -> Bool:
+        """Returns False (Go `HasLiquidDrops`)."""
+        return False

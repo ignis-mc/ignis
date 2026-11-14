@@ -3,26 +3,29 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): SideClosed, UseOnBlock, Model, Wax, Strip, RandomTick
-(attemptOxidation) and the drops.
+TODO(world-runtime): UseOnBlock, Model, Wax, Strip and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, LiquidDisplacer, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .cube.axis import Axis, axes
-from .hash import HASH_COPPER_CHAIN
+from .hash import AnyBlock, HASH_COPPER_CHAIN
 from .model.chain import Chain as ChainModel
 from .oxidation_type import OxidationType, oxidation_types
-from .oxidizable import Oxidisable, copper_block_name
+from .oxidizable import Oxidisable, attempt_oxidation, copper_block_name
+from .liquid import source_water_can_displace
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
 
 
 struct CopperChain(
@@ -32,8 +35,10 @@ struct CopperChain(
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
+    LiquidDisplacer,
     ModelledBlock,
     Oxidisable,
+    RandomTicker,
 ):
     """A metallic decoration block made of copper."""
 
@@ -143,3 +148,11 @@ struct CopperChain(
             out.append(Self(oxidation=o))
             out.append(Self(oxidation=o, waxed=True))
         return out^
+
+    def can_displace(self, b: AnyBlock) -> Bool:
+        """Holds water sources (Go `sourceWaterDisplacer`)."""
+        return source_water_can_displace(b)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May oxidise (Go `RandomTick`)."""
+        attempt_oxidation(pos, tx, self)
