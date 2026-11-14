@@ -85,6 +85,10 @@ struct Inventory(Copyable, Writable):
         if slot not in self._changed:
             self._changed.append(slot)
 
+    def changed(self) -> Bool:
+        """Reports whether slots changed since the last `take_changes`."""
+        return len(self._changed) > 0
+
     def take_changes(mut self) -> List[Int]:
         """Returns the slots changed since the last call (Go's `SlotFunc`
         calls) and forgets them."""

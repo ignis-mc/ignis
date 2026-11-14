@@ -1,11 +1,35 @@
 """Horizontal connections of panes, bars and fences, ported from Dragonfly
 `server/block/connections.go`.
 
-`calculateConnections` and the `connector` interface need `world.Tx` and
-block models: TODO(world-runtime).
 """
 
+from ..world.block_source import BlockSource
 from ..world.block_state import Properties
+from .cube.face import Face
+from .cube.pos import Pos
+
+
+trait Connector:
+    """A block or block model that reports the sides it connects to (Go
+    `connector`)."""
+
+    def connects[S: BlockSource](self, pos: Pos, face: Face, src: S) -> Bool:
+        """Reports whether it connects to the block on `face` (Go
+        `Connects`)."""
+        ...
+
+
+def calculate_connections[
+    C: Connector, S: BlockSource
+](c: C, src: S, pos: Pos) -> Connections:
+    """Returns the connections of the connector at a position (Go
+    `calculateConnections`)."""
+    return Connections(
+        c.connects(pos, Face.NORTH, src),
+        c.connects(pos, Face.EAST, src),
+        c.connects(pos, Face.SOUTH, src),
+        c.connects(pos, Face.WEST, src),
+    )
 
 
 @fieldwise_init

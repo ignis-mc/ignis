@@ -22,8 +22,8 @@ from minecraft.nbt.nbt import (
 )
 from minecraft.nbt.tree import Tag, Tree
 
-from ..block.register import VanillaBlocks
 from ..world.block_registry import BasicBlockRegistry
+from ..world.block_set import BlockTypes
 from ..world.chunk.encoding import encode_disk_block_state
 from ..world.item import EncodedItem, ItemRegistry
 from .stack import Enchantment, Stack
@@ -114,6 +114,24 @@ def read_nbt(data: Tree, s: Stack) raises -> Stack:
     return out^
 
 
+def _own_nbt(tag: Tree) raises -> Tree:
+    """Returns the tags of an item's NBT that the stack itself does not
+    read: the item's own NBT."""
+    var out = Tree()
+    for c in tag.children(tag.root()):
+        var k = tag.name(c)
+        if (
+            k == "RepairCost"
+            or k == "Damage"
+            or k == "display"
+            or k == "ench"
+            or k == "Unbreakable"
+        ):
+            continue
+        _ = out.put_tree(out.root(), k, tag, c)
+    return out^
+
+
 def _int(data: Tree, t: Tag, key: StringSpan, tag_type: UInt8) raises -> Int64:
     """Reads an integer tag of exactly `tag_type`, or 0 (Go `nbtInt32`
     and friends)."""
@@ -129,9 +147,9 @@ def _int(data: Tree, t: Tag, key: StringSpan, tag_type: UInt8) raises -> Int64:
     return 0
 
 
-def write_disk_nbt(
-    br: BasicBlockRegistry, reg: ItemRegistry, s: Stack
-) raises -> Tree:
+def write_disk_nbt[
+    B: BlockTypes
+](br: BasicBlockRegistry, reg: ItemRegistry, s: Stack) raises -> Tree:
     """Encodes a stack for disk (Go `WriteNBT(s, true)`); an empty compound
     for an empty stack. Raises if the item has no name."""
     var t = Tree(TAG_COMPOUND)
@@ -140,7 +158,7 @@ def write_disk_nbt(
     var it = s.item().value()
     var enc: Optional[EncodedItem]
     if it.block:
-        enc = VanillaBlocks.encode_block_item(it.kind, it.hash)
+        enc = B.encode_block_item(it.kind, it.hash)
     else:
         enc = reg.encode_item(it)
     if not enc:
@@ -165,9 +183,10 @@ def write_disk_nbt(
     return t^
 
 
-def read_disk_nbt(reg: ItemRegistry, t: Tree, m: Tag) -> Stack:
+def read_disk_nbt[B: BlockTypes](reg: ItemRegistry, t: Tree, m: Tag) -> Stack:
     """Decodes a stack from disk (Go `ReadNBT(m, nil)`); an empty stack if
-    the item is unknown or the data is malformed."""
+    the item is unknown or the data is malformed. A block item with NBT
+    keeps its own tags (Go's `DecodeNBT` of an `NBTer` item)."""
     try:
         if t.type_of(m) != TAG_COMPOUND:
             return Stack()
@@ -200,6 +219,9 @@ def read_disk_nbt(reg: ItemRegistry, t: Tree, m: Tag) -> Stack:
                     _ = sub.remove(sr, "Damage")
                     _ = sub.put_int(sr, "Damage", Int32(v))
             s = read_nbt(sub, s)
+            if case .Some(it) = s.item():
+                if it.block and B.block_entity_nbt(it.kind, it.hash):
+                    s = s.with_item_nbt(_own_nbt(sub))
         return s^
     except:
         return Stack()

@@ -224,6 +224,15 @@ struct Stack(Copyable, Defaultable, Equatable, Writable):
         .EncodeNBT()`); an empty compound for other items."""
         return self._nbt.copy()
 
+    def with_item_of(self, other: Self) -> Self:
+        """Returns the stack holding `other`'s item instead, keeping its
+        count and properties (Go `WithItem`)."""
+        var s = self.copy()
+        s._item = other._item
+        s._info = other._info
+        s._nbt = other._nbt.copy()
+        return s^
+
     def with_item_nbt(self, var data: Tree) -> Self:
         """Returns the stack with the item's NBT replaced (Go: a stack of
         the item after `DecodeNBT`)."""

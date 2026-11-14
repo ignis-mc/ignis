@@ -14,9 +14,9 @@ permissions:
 
 jobs:
   check:
-    name: format, docs, build, test
+    name: format, docs, build
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
@@ -31,5 +31,24 @@ jobs:
         run: pixi run lint-docs
       - name: Precompile the package
         run: pixi run build
+
+  test:
+    name: test (shard ${{ matrix.shard }} of 4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+      - uses: prefix-dev/setup-pixi@v0.11.3
+        with:
+          locked: true
+          cache: true
       - name: Unit tests
+        env:
+          IGNIS_TEST_SHARD: ${{ matrix.shard }}/4
         run: pixi run test

@@ -10,12 +10,22 @@ TODO(world-runtime): UseOnBlock, Activate, SideClosed, Model, Wax, Strip,
 RandomTick (attemptOxidation) and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Activatable, Instrumented, UseContext
+from ..world.sound.block import TrapdoorClose, TrapdoorOpen
+
 from .cube.face import Face
 from .cube.pos import Pos
 from .cube.rotation import Rotation
 from ..mgl64 import Vec3
 from ..world.world import World, WorldTypes
-from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
+from .block import (
+    Placement,
+    UsableOnBlock,
+    User,
+    first_replaceable,
+    replaceable_with,
+)
 from .hash import AnyBlock, HASH_COPPER_TRAPDOOR
 from ..world.block import Block, LightDiffuser, LiquidDisplacer, RandomTicker
 from ..world.block_model import ModelledBlock
@@ -37,10 +47,12 @@ from .liquid import source_water_can_displace
 
 
 struct CopperTrapdoor(
+    Activatable,
     Block,
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     LiquidDisplacer,
@@ -86,6 +98,10 @@ struct CopperTrapdoor(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -175,7 +191,7 @@ struct CopperTrapdoor(
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> List[Placement]:
         """Places the trapdoor facing the user, at the top when clicked on
@@ -192,6 +208,21 @@ struct CopperTrapdoor(
         return [
             Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()), False)
         ]
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens or closes the trapdoor (Go `Activate`)."""
+        var t = self
+        t.open = not t.open
+        tx.set_block(pos, t)
+        if t.open:
+            tx.play_sound(pos.vec3_centre(), TrapdoorOpen(block=AnyBlock(t)))
+            return True
+        tx.play_sound(pos.vec3_centre(), TrapdoorClose(block=AnyBlock(t)))
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

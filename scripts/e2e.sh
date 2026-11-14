@@ -13,7 +13,9 @@
 #      speed of the block's break time, the drop, picking it up and placing
 #      it back; creative breaking at once without a drop; a creative
 #      inventory pick (CraftCreative + Take) placed in the world; adventure
-#      mode refused.
+#      mode refused. interop/bots/container_bot.mojo: a chest (items in and
+#      out, kept when reopened), crafting planks and a crafting table, and
+#      a furnace smelting raw iron.
 #   5. A copy of the world.mcdb fixture (test/data/mcdb/dragonfly-world)
 #      loads: spawn, game mode and time come from its level.dat and the
 #      spawn column's sub-chunks come from its database.
@@ -38,6 +40,7 @@ mojo build --fp-mode contract=off "${inc[@]}" cmd/ignis/main.mojo -o build/ignis
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/two_bots.mojo -o build/two_bots
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/persist_bot.mojo -o build/persist_bot
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/interact_bot.mojo -o build/interact_bot
+mojo build --fp-mode contract=off "${inc[@]}" interop/bots/container_bot.mojo -o build/container_bot
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/behaviour_bot.mojo -o build/behaviour_bot
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/entity_bot.mojo -o build/entity_bot
 mojo build --fp-mode contract=off "${inc[@]}" interop/bots/health_bot.mojo -o build/health_bot
@@ -133,6 +136,9 @@ if [[ $status -eq 0 ]]; then
     ./build/interact_bot creative "$addr" 6 -61 4 2>&1 | grep -v '^dial'
     ./build/interact_bot creative-item "$addr" 8 -61 4 2>&1 | grep -v '^dial'
     ./build/interact_bot adventure "$addr" 2 -61 6 2>&1 | grep -v '^dial'
+    # A chest and a furnace east of the interaction spots: items in and
+    # out, crafting planks and a crafting table, smelting raw iron.
+    ./build/container_bot "$addr" 10 -61 2 2>&1 | grep -v '^dial'
     stop TERM server2.log
 
     cp -r test/data/mcdb/dragonfly-world "$dir/fixture"

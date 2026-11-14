@@ -3,12 +3,21 @@
 TODO(world-runtime): Strip, FlammabilityInfo and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from .cube.face import Face
 from .cube.pos import Pos
 from .cube.rotation import Rotation
 from ..mgl64 import Vec3
 from ..world.world import World, WorldTypes
-from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
+from .block import (
+    Placement,
+    UsableOnBlock,
+    User,
+    first_replaceable,
+    replaceable_with,
+)
 from .hash import AnyBlock
 
 from ..item.charcoal import Charcoal
@@ -37,6 +46,7 @@ struct Log(
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
     Smeltable,
@@ -72,6 +82,10 @@ struct Log(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -131,7 +145,7 @@ struct Log(
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> List[Placement]:
         """Places the log along the clicked face's axis (Go `UseOnBlock`)."""

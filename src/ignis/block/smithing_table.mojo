@@ -3,6 +3,9 @@
 TODO(world-runtime): Activate and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -16,13 +19,22 @@ from .break_info import (
 )
 from .hash import HASH_SMITHING_TABLE
 from .model.solid import Solid as SolidModel
+from .block import (
+    Activatable,
+    UseContext,
+)
+from ..world.world import World, WorldTypes
+from .cube.face import Face
+from .cube.pos import Pos
 
 
 struct SmithingTable(
+    Activatable,
     Block,
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
 ):
@@ -40,6 +52,10 @@ struct SmithingTable(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -66,6 +82,15 @@ struct SmithingTable(
     def model(self) -> SolidModel:
         """Returns the model of the block (Go `Model`)."""
         return SolidModel()
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens the block's window (Go `Activate`)."""
+        ctx.open_container = True
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

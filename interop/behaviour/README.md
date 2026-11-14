@@ -31,6 +31,13 @@ runs Dragonfly's own ticks and records what happened:
   world whose features are placed while generating, after loading chunks
   -2..2. Checked by `test/ignis/world/chunk/test_light_features.mojo`
   (against the light engine of `feat/light`).
+- `derive_state.txt` (`derive.go`): `Stairs.DeriveState` (the corner from
+  `calculateCorner`) and the `DeriveState` of wood and nether brick fences,
+  glass panes, iron bars and string, for every combination of four
+  horizontal neighbours from a fixed list, read through a map-backed
+  `world.BlockSource`. Each line is `kind facing n e s w result` (the
+  corner index or the connection bits). Checked by
+  `test/ignis/block/test_stairs.mojo` and `test/ignis/block/test_connections.mojo`.
 
 Regenerate from the repository root:
 

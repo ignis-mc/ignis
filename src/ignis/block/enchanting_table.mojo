@@ -5,6 +5,9 @@
 TODO(world-runtime): Model, Activate and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from minecraft.nbt.tree import Tag, Tree
 
 from ..world.block import Block, LightDiffuser, LightEmitter, NBTer
@@ -23,13 +26,22 @@ from .model.enchanting_table import EnchantingTable as EnchantingTableModel
 from ..world.block import LiquidDisplacer
 from .hash import AnyBlock
 from .liquid import source_water_can_displace
+from .block import (
+    Activatable,
+    UseContext,
+)
+from ..world.world import World, WorldTypes
+from .cube.face import Face
+from .cube.pos import Pos
 
 
 struct EnchantingTable(
+    Activatable,
     Block,
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     LightEmitter,
@@ -52,6 +64,10 @@ struct EnchantingTable(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bassDrum`)."""
+        return Instrument.BASS_DRUM
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -89,6 +105,15 @@ struct EnchantingTable(
     def model(self) -> EnchantingTableModel:
         """Returns the model of the block (Go `Model`)."""
         return EnchantingTableModel()
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens the block's window (Go `Activate`)."""
+        ctx.open_container = True
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

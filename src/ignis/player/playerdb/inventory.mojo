@@ -8,6 +8,7 @@ from minecraft.nbt.decode import decode
 from minecraft.nbt.encode import encode
 from minecraft.nbt.nbt import LITTLE_ENDIAN
 
+from ...block.register import VanillaBlocks
 from ...item.nbt import read_disk_nbt, write_disk_nbt
 from ...item.stack import Stack
 from ...session.inventory import Inventories
@@ -24,7 +25,7 @@ def encode_item(
     if s.empty():
         return List[UInt8]()
     try:
-        return encode(write_disk_nbt(br, reg, s), LITTLE_ENDIAN)
+        return encode(write_disk_nbt[VanillaBlocks](br, reg, s), LITTLE_ENDIAN)
     except:
         return List[UInt8]()
 
@@ -36,7 +37,7 @@ def decode_item(reg: ItemRegistry, data: List[UInt8]) -> Stack:
         return Stack()
     try:
         var t = decode(Span(data), LITTLE_ENDIAN)
-        return read_disk_nbt(reg, t, t.root())
+        return read_disk_nbt[VanillaBlocks](reg, t, t.root())
     except:
         return Stack()
 

@@ -4,6 +4,9 @@
 TODO(world-runtime): the falling behaviour of `gravityAffected` and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..item.colour import Colour, colours
 from ..world.block import Block, NeighbourUpdateTicker
 from ..world.block_model import ModelledBlock
@@ -31,6 +34,7 @@ struct ConcretePowder(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
     NeighbourUpdateTicker,
@@ -53,6 +57,10 @@ struct ConcretePowder(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `snare`)."""
+        return Instrument.SNARE
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

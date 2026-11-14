@@ -1,18 +1,44 @@
 """`ShulkerBox`, ported from Dragonfly `server/block/shulker_box.go`.
 
-Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
-with liquids.
+Differences from Go:
 
-TODO(world-runtime): the inventory, viewer, animation fields, NewShulkerBox,
-Inventory, WithName, AddViewer, RemoveViewer, Activate, UseOnBlock, Tick,
-open/close, Model, SideClosed and the drops.
+- The contents live with the world's block entity; broken (outside
+  creative) the box drops as an item whose NBT holds them, and placed from
+  such an item it gets them back (Go keeps the inventory in the value).
+  The drop happens in `on_break`, so `Dropper.drops` is empty.
+- Go animates the lid with scheduled ticks that grow the model and push
+  entities, and plays the close sound once the lid is shut; Ignis opens
+  and closes the lid at once (the client animates it) and plays the close
+  sound on closing. The model keeps progress 0.
+- Go's slot validator (no shulker boxes inside) is checked by the item
+  stack request handler.
+- Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait
+  comes with liquids.
 """
 
 from minecraft.nbt.tree import Tag, Tree
 
 from ..item.item import MaxCounter
+from ..item.stack import Stack
+from ..item.tool import ToolInfo
+from ..mgl64 import Vec3
+from ..world.sound.block import ShulkerBoxClose, ShulkerBoxOpen
+from ..world.viewer import BLOCK_ACTION_CLOSE, BLOCK_ACTION_OPEN
+from ..world.world import World, WorldTypes
+from ..world.block_set import encode_block_nbt
+from .block import (
+    Activatable,
+    BreakHandler,
+    Openable,
+    Placement,
+    UsableOnBlock,
+    UseContext,
+    User,
+    first_replaceable,
+)
+from .cube.pos import Pos
 from ..item.optional_colour import OptionalColour, optional_colours
-from ..world.block import Block, LightDiffuser, NBTer
+from ..world.block import Block, Container, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
@@ -20,17 +46,22 @@ from .break_info import (
     ALWAYS_HARVESTABLE,
     BreakInfo,
     Breakable,
+    Dropper,
     PICKAXE_EFFECTIVE,
     new_break_info,
 )
 from .cube.face import Face
-from .hash import HASH_SHULKER_BOX
+from .hash import AnyBlock, HASH_SHULKER_BOX
 from .model.shulker import Shulker as ShulkerModel
 
 
 struct ShulkerBox(
+    Activatable,
     Block,
+    BreakHandler,
     Breakable,
+    Container,
+    Dropper,
     Equatable,
     ImplicitlyCopyable,
     Item,
@@ -38,6 +69,8 @@ struct ShulkerBox(
     MaxCounter,
     ModelledBlock,
     NBTer,
+    Openable,
+    UsableOnBlock,
 ):
     """A dye-able block that stores items; unlike other containers it keeps them when broken.
     """
@@ -118,9 +151,96 @@ struct ShulkerBox(
         """Returns the maximum count (Go `MaxCount`)."""
         return 1
 
+    def inventory_size(self) -> Int:
+        """Returns the box's 27 slots (Go `ContainerSize`)."""
+        return 27
+
+    def drops(self, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+        """Drops nothing here: `on_break` drops the box with its contents."""
+        return List[Stack]()
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens the box unless a block that diffuses light is in front of
+        its lid (Go `Activate`)."""
+        var br = tx.block_registry()
+        if br[].filtering_block(tx.block(pos.side(self.facing))) <= 2:
+            ctx.open_container = True
+        return True
+
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: User,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places the box with its lid on the clicked face, holding what the
+        item held (Go `UseOnBlock`)."""
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var s = self.copy()
+        s.facing = face
+        var nbt = user.held.item_nbt()
+        if not nbt.is_empty():
+            try:
+                s = s.decode_nbt(nbt, nbt.root())
+                s.facing = face
+            except:
+                pass
+        var t = encode_block_nbt(s)
+        if not nbt.is_empty():
+            if case .Some(items) = nbt.get(nbt.root(), "Items"):
+                try:
+                    _ = t.remove(t.root(), "Items")
+                    _ = t.put_tree(t.root(), "Items", nbt, items)
+                except:
+                    pass
+        return [
+            Placement(
+                at.value()[0],
+                AnyBlock(Self.BASE_HASH, s.hash()),
+                nbt=t^,
+                contents=True,
+            )
+        ]
+
+    def opened[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Opens the lid (Go `open`)."""
+        for v in tx.viewers(pos.vec3()):
+            tx.viewer(v).view_block_action(pos, BLOCK_ACTION_OPEN)
+        tx.play_sound(pos.vec3_centre(), ShulkerBoxOpen())
+
+    def closed[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Closes the lid (Go `close`; Go plays the sound once it is shut)."""
+        for v in tx.viewers(pos.vec3()):
+            tx.viewer(v).view_block_action(pos, BLOCK_ACTION_CLOSE)
+        tx.play_sound(pos.vec3_centre(), ShulkerBoxClose())
+
+    def on_break[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T], harvest: Bool):
+        """Drops the box as an item that keeps the contents (Go `oneOf(s)`
+        with the inventory in the value)."""
+        tx.close_container_viewers(pos)
+        if not harvest:
+            return
+        var it = Stack(ShulkerBox(colour=self.colour), 1)
+        if case .Some(t) = tx.item_nbt(pos):
+            it = it.with_item_nbt(t.copy())
+        tx.drop_item(pos.vec3_centre(), it)
+
     def encode_nbt(self, mut tag: Tree, root: Tag) raises:
-        """Writes the NBT (Go `EncodeNBT`)."""
-        # The inventory is not ported: Go writes a new box's, which is empty.
+        """Writes the NBT (Go `EncodeNBT`); the world adds the `Items`."""
         _ = tag.put_list(root, "Items")
         _ = tag.put_string(root, "id", "ShulkerBox")
         _ = tag.put_byte(root, "facing", UInt8(Int(self.facing)))
@@ -128,7 +248,7 @@ struct ShulkerBox(
             _ = tag.put_string(root, "CustomName", self.custom_name)
 
     def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
-        """Decodes the NBT (Go `DecodeNBT`); the items are not ported."""
+        """Decodes the NBT (Go `DecodeNBT`); the world reads the `Items`."""
         var s = self
         s.facing = Face(0)
         if case .Some(t) = tag.get(root, "facing"):

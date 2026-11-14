@@ -33,6 +33,7 @@ from .block import (
     LightEmitter,
     Liquid,
     LiquidDisplacer,
+    NBTer,
     RandomTicker,
 )
 from .block_state import (
@@ -245,7 +246,8 @@ struct BasicBlockRegistry(BlockRegistry, Copyable, Defaultable):
             info.set(_FLAG_LIQUID)
         comptime if conforms_to(T, LiquidDisplacer):
             info.set(_FLAG_LIQUID_DISPLACING)
-        # TODO: the NBTer flag once block entities are ported.
+        comptime if conforms_to(T, NBTer):
+            info.set(_FLAG_NBT)
         self._block_infos[rid] = info
 
     def finalize(mut self) raises:

@@ -4,6 +4,7 @@ Go `world.Block`s are runtime IDs here; the neighbour's model is found through `
 """
 
 from ...world.block_model import BlockModel
+from ..connections import Connector
 from ...world.block_source import BlockSource
 from ..cube.axis import Axis
 from ..cube.bbox import BBox
@@ -14,7 +15,7 @@ from .wall import Wall
 
 
 @fieldwise_init
-struct Thin(BlockModel, ImplicitlyCopyable):
+struct Thin(BlockModel, Connector, ImplicitlyCopyable):
     """The model of panes and bars, which connect to the blocks around them (Go `model.Thin`).
     """
 

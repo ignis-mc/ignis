@@ -125,6 +125,7 @@ from ..block.register import vanilla_block_registry
 from ..block.register import VanillaBlocks
 from ..entity.register import VanillaEntities
 from ..item.creative.creative import load_creative_items
+from ..item.recipe.register import Recipes
 from ..item.recipe.vanilla import load_vanilla_recipes
 from ..item.register import vanilla_item_registry
 from ..mgl64 import Vec3
@@ -218,10 +219,11 @@ def data_driven_block_entries(path: String) raises -> List[BlockEntry]:
 
 def item_packets(
     br: BasicBlockRegistry, vanilla_items_path: String
-) raises -> Tuple[List[UInt8], List[UInt8], List[UInt8], List[Stack]]:
+) raises -> Tuple[List[UInt8], List[UInt8], List[UInt8], List[Stack], Recipes]:
     """Encodes the `CreativeContent`, `CraftingData` and `TrimData` packets
     every session gets on join, and returns the creative items in network
-    ID order (ID n is entry n - 1). Go builds the packets per session, with
+    ID order (ID n is entry n - 1) and the recipes (recipe n is entry
+    n - 1). Go builds the packets per session, with
     new random recipe IDs each time; Ignis builds them once, so the recipe
     IDs are random per server start."""
     var reg = vanilla_item_registry(vanilla_items_path)
@@ -239,6 +241,7 @@ def item_packets(
         encode_packet(crafting_pk),
         encode_packet(trim_pk),
         stacks^,
+        recipes^,
     )
 
 
@@ -341,7 +344,11 @@ def termination_signals() raises -> SignalFD:
     return SignalFD([SIGINT, SIGTERM])
 
 
-def open_world(conf: Config, now_ms: Int) raises -> World[ServerWorld]:
+def open_world(
+    conf: Config,
+    now_ms: Int,
+    items: Optional[ArcPointer[ItemRegistry]] = None,
+) raises -> World[ServerWorld]:
     """Opens the world in `conf.world_folder` (or one in memory) with
     Dragonfly's default flat generator of grass, two dirt layers and
     bedrock for chunks that are not stored (Go `createWorld`)."""
@@ -363,6 +370,8 @@ def open_world(conf: Config, now_ms: Int) raises -> World[ServerWorld]:
     if not new_world:
         tick_speed = provider.random_tick_speed()
     var wc = WorldConfig[ServerWorld](gen^, provider^, br)
+    if items:
+        wc.items = items.value()
     # The server saves on its own schedule (`Server._save`).
     wc.save_interval_ms = -1
     if case .Some(speed) = tick_speed:
@@ -413,6 +422,8 @@ struct Server(Movable):
     var _items: List[ItemEntry]
     var item_registry: ArcPointer[ItemRegistry]
     """The registered items, shared with the sessions."""
+    var recipes: ArcPointer[Recipes]
+    """The crafting recipes sessions craft with (Go `recipe.Recipes`)."""
     var creative_items: ArcPointer[List[Stack]]
     """The creative inventory (Go `creative.Items`), in network ID
     order."""
@@ -440,12 +451,14 @@ struct Server(Movable):
     def __init__(out self, var conf: Config) raises:
         """Loads the world data and starts listening (Go `Config.New` and
         `Listen`)."""
-        var world = open_world(conf, monotonic_ms())
+        var item_reg = ArcPointer(
+            vanilla_item_registry(conf.vanilla_items_path)
+        )
+        var world = open_world(conf, monotonic_ms(), item_reg)
         var players = Optional[PlayerProvider](None)
         if case .Some(folder) = conf.players_folder:
             players = PlayerProvider(folder)
         var items = item_entries(conf.vanilla_items_path)
-        var item_reg = vanilla_item_registry(conf.vanilla_items_path)
         var biome_reg = vanilla_biome_registry()
         var biomes = biome_definition_packet(biome_reg)
         var item_pks = item_packets(
@@ -465,8 +478,9 @@ struct Server(Movable):
         self.commands = Registry[CommandSource]()
         register_builtin_commands(self.commands)
         self._items = items^
-        self.item_registry = ArcPointer(item_reg^)
+        self.item_registry = item_reg^
         self.creative_items = ArcPointer(item_pks[3].copy())
+        self.recipes = ArcPointer(item_pks[4].copy())
         self._biomes = biomes^
         self._creative = item_pks[0].copy()
         self._crafting = item_pks[1].copy()
@@ -714,6 +728,7 @@ struct Server(Movable):
         self._close_requested = True
         print("server closing")
         while len(self.sessions) > 0:
+            self.sessions[0].close_windows(self.world)
             self._save_player(0)
             var gone = self.sessions.pop(0)
             gone.close(self.world)
@@ -927,6 +942,8 @@ struct Server(Movable):
         sc.blocks = self.world.block_registry()
         sc.items = self.item_registry
         sc.creative_items = self.creative_items
+        sc.stack_ids = self.world.stack_ids()
+        sc.recipes = self.recipes
         sc.creative_content = self._creative.copy()
         sc.crafting_data = self._crafting.copy()
         sc.trim_data = self._trim.copy()
@@ -1078,7 +1095,7 @@ struct Server(Movable):
             return
         var nbt: Tree
         try:
-            nbt = write_disk_nbt(
+            nbt = write_disk_nbt[VanillaBlocks](
                 self.world.block_registry()[], self.item_registry[], s
             )
         except e:
@@ -1130,7 +1147,7 @@ struct Server(Movable):
         """The stack of an item entity; a loaded one only has its NBT."""
         if b.resolved():
             return b.item.copy()
-        return read_disk_nbt(
+        return read_disk_nbt[VanillaBlocks](
             self.item_registry[], b.item_nbt, b.item_nbt.root()
         )
 
@@ -1254,6 +1271,7 @@ struct Server(Movable):
             var reason = s.conn.conn.close_reason()
             if s.write_error():
                 reason = s.write_error().value()
+            self.sessions[i].close_windows(self.world)
             self._save_player(i)
             var gone = self.sessions.pop(i)
             gone.close(self.world)
