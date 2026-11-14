@@ -10,6 +10,7 @@ become traits, and their dispatchers loop over `Ts` with
 
 from ..world.item import AnyItem, Item, ItemRegistry
 from .item import item_info
+from .tool import Tool, ToolInfo, tool_info
 
 
 struct ItemSet[*Ts: Item]:
@@ -49,3 +50,18 @@ struct ItemSet[*Ts: Item]:
             if kind == Self.Ts[i].BASE_HASH:
                 return True
         return False
+
+    @staticmethod
+    def tool(kind: UInt64, hash: UInt64, block_kind: UInt64) -> ToolInfo:
+        """Returns an item's tool info for breaking a block of type
+        `block_kind`, or Go's `ToolNone` for items that are not tools."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Tool):
+                if kind == T.BASE_HASH:
+                    return _tool[T](T.from_hash(hash), block_kind)
+        return ToolInfo.none()
+
+
+def _tool[T: Tool](t: T, block_kind: UInt64) -> ToolInfo:
+    return tool_info(t, block_kind)

@@ -1,3 +1,7 @@
+from ignis.item.register import VanillaItems
+from ignis.item.shears import Shears
+from ignis.item.stick import Stick
+from ignis.item.tool import TYPE_SHEARS, ToolInfo
 from ignis.item.beef import Beef
 from ignis.item.item_set import ItemSet
 from ignis.item.stick import Stick
@@ -17,6 +21,14 @@ def test_register_all() raises:
     ItemSet[Beef, Stick].register_all(reg)
     assert_equal(len(reg.items()), 3)
     assert_true(reg.item_by_name("minecraft:cooked_beef", 0))
+
+
+def test_tool_dispatch() raises:
+    var t = VanillaItems.tool(Shears.BASE_HASH, Shears().hash(), 0)
+    assert_true(t.tool_type == TYPE_SHEARS)
+    assert_equal(t.efficiency, 1.5)
+    var none = VanillaItems.tool(Stick.BASE_HASH, Stick().hash(), 0)
+    assert_true(none == ToolInfo.none())
 
 
 def main() raises:
