@@ -201,13 +201,6 @@ struct ToolInfo(Equatable, ImplicitlyCopyable, Writable):
         )
 
 
-def tool_info[T: Tool](t: T, block_kind: UInt64) -> ToolInfo:
-    """Returns a tool's info for breaking a block of a type."""
-    return ToolInfo(
-        t.tool_type(), t.harvest_level(), t.base_mining_efficiency(block_kind)
-    )
-
-
 struct ToolNone(Defaultable, ImplicitlyCopyable, Tool):
     """The tool used when nothing that is a tool is held (Go `ToolNone`)."""
 

@@ -185,7 +185,9 @@ struct ItemStackRequestHandler(Defaultable, Movable):
             ):
                 pass
             else:
-                raise Error("unhandled stack request action")
+                raise Error(
+                    t"unhandled stack request action {action.type_id()}"
+                )
 
     def _transfer(
         mut self,

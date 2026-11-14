@@ -11,8 +11,9 @@
 #      stops it again.
 #   4. interop/bots/interact_bot.mojo: survival breaking with the crack
 #      speed of the block's break time, the drop, picking it up and placing
-#      it back; creative breaking at once without a drop; adventure mode
-#      refused.
+#      it back; creative breaking at once without a drop; a creative
+#      inventory pick (CraftCreative + Take) placed in the world; adventure
+#      mode refused.
 #   5. A copy of the world.mcdb fixture (test/data/mcdb/dragonfly-world)
 #      loads: spawn, game mode and time come from its level.dat and the
 #      spawn column's sub-chunks come from its database.
@@ -126,6 +127,7 @@ if [[ $status -eq 0 ]]; then
     # 18 ticks: crack data 65535 / 18.
     ./build/interact_bot survival "$addr" 4 -61 4 3640 2>&1 | grep -v '^dial'
     ./build/interact_bot creative "$addr" 6 -61 4 2>&1 | grep -v '^dial'
+    ./build/interact_bot creative-item "$addr" 8 -61 4 2>&1 | grep -v '^dial'
     ./build/interact_bot adventure "$addr" 2 -61 6 2>&1 | grep -v '^dial'
     stop TERM server2.log
 
