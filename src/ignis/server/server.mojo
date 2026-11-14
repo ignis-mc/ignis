@@ -69,11 +69,12 @@ from ..session.session import Config as SessionConfig
 from ..session.session import (
     HandleResult,
     Session,
-    load_biome_definitions,
+    biome_definition_packet,
     vec64_to32,
 )
 from ..session.viewer import SessionViewer
 from ..world.biome.plains import Plains
+from ..world.biome.register import vanilla_biome_registry
 from ..world.block_registry import BasicBlockRegistry
 from ..world.conf import Config as WorldConfig
 from ..world.game_mode import GAME_MODE_SPECTATOR
@@ -306,7 +307,7 @@ struct Server(Movable):
         """
         var world = flat_world(conf, monotonic_ms())
         var items = item_entries(conf.vanilla_items_path)
-        var biomes = load_biome_definitions(conf.biome_definitions_path)
+        var biomes = biome_definition_packet(vanilla_biome_registry())
         var blocks = data_driven_block_entries(conf.data_driven_blocks_path)
         var lc = ListenConfig()
         lc.authentication_disabled = conf.auth_disabled

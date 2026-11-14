@@ -5,7 +5,8 @@ from ignis.server.server import (
     item_entries,
     parse_skin,
 )
-from ignis.session.session import load_biome_definitions
+from ignis.session.session import biome_definition_packet
+from ignis.world.biome.register import vanilla_biome_registry
 from minecraft.protocol.login.data import ClientData
 from minecraft.protocol.packet.packet import PacketData
 from minecraft.protocol.packet.biome_definition_list import (
@@ -13,7 +14,9 @@ from minecraft.protocol.packet.biome_definition_list import (
 )
 from minecraft.protocol.packet.id import ID_BIOME_DEFINITION_LIST
 from nethernet.crypto.base64 import base64_encode
+from nethernet.wire import hex_encode
 from std.testing import TestSuite, assert_equal, assert_true
+from support.go_values import read_lines
 
 
 def test_item_entries() raises:
@@ -38,11 +41,18 @@ def test_data_driven_blocks() raises:
 
 
 def test_biome_definitions() raises:
-    var raw = load_biome_definitions()
+    var raw = biome_definition_packet(vanilla_biome_registry())
     var pk = PacketData.parse(Span(raw))
     assert_equal(pk.id(), ID_BIOME_DEFINITION_LIST)
     var list = pk.decode[BiomeDefinitionList](0, False)
     assert_equal(len(list.biome_definitions), 89)
+    # The payload is Dragonfly's packet (test/data/world/defs.txt, from
+    # interop/world).
+    var want = String()
+    for line in read_lines("test/data/world/defs.txt"):
+        if line.startswith("biome_definition_list\t"):
+            want = String(line.split("\t")[1])
+    assert_equal(hex_encode(Span(pk.payload)), want)
 
 
 def test_parse_skin() raises:

@@ -223,8 +223,6 @@ struct Config(Copyable, Defaultable):
     """Where `block_states.nbt` is."""
     var vanilla_items_path: String
     """Where `vanilla_items.nbt` is."""
-    var biome_definitions_path: String
-    """Where `biome_definitions.bin` is."""
     var data_driven_blocks_path: String
     """Where `data_driven_blocks.nbt` is."""
 
@@ -242,7 +240,6 @@ struct Config(Copyable, Defaultable):
         self.default_game_mode = GAME_MODE_SURVIVAL
         self.block_states_path = "resources/block_states.nbt"
         self.vanilla_items_path = "resources/vanilla_items.nbt"
-        self.biome_definitions_path = "resources/biome_definitions.bin"
         self.data_driven_blocks_path = "resources/data_driven_blocks.nbt"
 
 
