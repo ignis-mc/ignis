@@ -16,6 +16,7 @@ from ..block.cube.pos import Pos
 from ..block.cube.rotation import Rotation
 from ..mgl64 import Vec3, approx_equal, float_equal
 from ..world.game_mode import GAME_MODE_SURVIVAL, GameMode
+from .living import Living
 
 
 comptime EYE_HEIGHT = 1.62
@@ -58,6 +59,8 @@ struct Player(Copyable):
     """Ticks spent breaking, for the sound every 5 (Go `breakCounter`)."""
     var last_break_duration_ms: Int
     """The break time last shown to viewers (Go `lastBreakDuration`)."""
+    var living: Living
+    """Health, hunger, experience and effects."""
 
     def __init__(
         out self,
@@ -88,6 +91,7 @@ struct Player(Copyable):
         self.breaking_face = Face.UP
         self.break_counter = 0
         self.last_break_duration_ms = 0
+        self.living = Living()
 
     def name(self) -> String:
         """Returns the display name (Go `Name`)."""
@@ -129,6 +133,10 @@ struct Player(Copyable):
     def on_ground(self) -> Bool:
         """Reports whether the player stands on the ground (Go `OnGround`)."""
         return self._on_ground
+
+    def set_on_ground(mut self, on_ground: Bool):
+        """Sets the result of Go `checkOnGround`."""
+        self._on_ground = on_ground
 
     def game_mode(self) -> GameMode:
         """Returns the game mode (Go `GameMode`)."""
@@ -180,9 +188,9 @@ struct Player(Copyable):
     def move(
         mut self, delta_pos: Vec3, delta_yaw: Float64, delta_pitch: Float64
     ) -> Bool:
-        """Moves and rotates the player (Go `Move`, without the handler,
-        block collisions and fall damage, which are not ported yet)."""
-        if (
+        """Moves and rotates the player (Go `Move`, without the handler);
+        the server checks the ground and the fall afterwards."""
+        if self.living.dead() or (
             approx_equal(delta_pos, Vec3())
             and float_equal(delta_yaw, 0)
             and float_equal(delta_pitch, 0)
@@ -197,6 +205,7 @@ struct Player(Copyable):
         """Moves the player to a position (Go `teleport`); the server shows it
         to the viewers."""
         self._pos = pos
+        self.living.fall_distance = 0
 
     def eye_position(self) -> Vec3:
         """Returns the position of the eyes (Go `entity.EyePosition`)."""

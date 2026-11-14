@@ -31,7 +31,7 @@ moving the player 1.62 blocks down; Ignis substitutes the eye position.
 
 from std.collections import Dict, Set
 from std.memory import ArcPointer
-from std.math import isinf, isnan
+from std.math import ceil, isinf, isnan
 
 from minecraft.nbt.encode import encode as encode_nbt
 from minecraft.nbt.nbt import NETWORK_LITTLE_ENDIAN, TAG_COMPOUND
@@ -63,6 +63,12 @@ from minecraft.protocol.command import (
     CommandOrigin,
 )
 from minecraft.protocol.entity_metadata import (
+    ENTITY_DATA_FLAG_INVISIBLE,
+    ENTITY_DATA_FLAG_ON_FIRE,
+    ENTITY_DATA_KEY_PLAYER_HAS_DIED,
+    ENTITY_DATA_KEY_PLAYER_LAST_DEATH_DIMENSION,
+    ENTITY_DATA_KEY_PLAYER_LAST_DEATH_POSITION,
+    ENTITY_DATA_KEY_VISIBLE_MOB_EFFECTS,
     ENTITY_DATA_FLAG_ALWAYS_SHOW_NAME,
     ENTITY_DATA_FLAG_BREATHING,
     ENTITY_DATA_FLAG_CLIMB,
@@ -86,7 +92,18 @@ from minecraft.protocol.entity_metadata import (
     new_entity_metadata,
 )
 from minecraft.protocol.os import DEVICE_UNKNOWN
+from minecraft.protocol.packet.actor_event import ActorEvent
 from minecraft.protocol.packet.add_player import AddPlayer
+from minecraft.protocol.packet.mob_effect import (
+    MOB_EFFECT_ADD,
+    MOB_EFFECT_REMOVE,
+    MobEffect,
+)
+from minecraft.protocol.packet.respawn import (
+    RESPAWN_STATE_CLIENT_READY_TO_SPAWN,
+    RESPAWN_STATE_READY_TO_SPAWN,
+    Respawn,
+)
 from minecraft.protocol.packet.adventure_settings import (
     PERMISSION_LEVEL_MEMBER,
 )
@@ -172,6 +189,7 @@ from minecraft.protocol.packet.id import (
     ID_MOB_EQUIPMENT,
     ID_PLAYER_AUTH_INPUT,
     ID_REQUEST_CHUNK_RADIUS,
+    ID_RESPAWN,
     ID_SUB_CHUNK_REQUEST,
     ID_TEXT,
 )
@@ -238,6 +256,7 @@ from ..block.cube.rotation import Rotation
 from ..cmd.command import Command, ParamKind
 from ..cmd.output import Output
 from ..cmd.source import Source
+from ..entity.effect import SECOND, Effect
 from ..mgl64 import Vec3, float_equal
 from ..player.player import BBOX_HEIGHT, BBOX_WIDTH, EYE_HEIGHT, Player
 from ..world.biome import BiomeRegistry
@@ -387,6 +406,11 @@ struct HandleResult(Copyable, Defaultable):
     `AbortBreaking`, `FinishBreaking`, `BreakBlock`)."""
     var use_on_block: Optional[UseOnBlock]
     """An item used on a block (Go `UseItemOnBlock`)."""
+    var movement: Optional[Vec3]
+    """The position change of a movement packet, even a zero one, for the
+    ground and fall checks of Go `Move`."""
+    var respawn: Bool
+    """The client asked to respawn (Go `Respawn`)."""
 
     def __init__(out self):
         """Creates a result in which nothing changed."""
@@ -398,6 +422,8 @@ struct HandleResult(Copyable, Defaultable):
         self.dropped = List[Stack]()
         self.block_actions = List[BlockAction]()
         self.use_on_block = None
+        self.movement = None
+        self.respawn = False
 
 
 def uuid_key(id: UUID) -> String:
@@ -415,9 +441,13 @@ def game_type_from_mode(mode: GameMode) -> Int32:
     return GAME_TYPE_SURVIVAL
 
 
-def player_metadata(p: Player) raises -> EntityMetadata:
+def player_metadata(
+    p: Player, is_self: Bool = False, dimension: Int32 = 0
+) raises -> EntityMetadata:
     """Builds the metadata of a player (Go `parseEntityMetadata` and
-    `addSpecificMetadata` for the player properties ported so far)."""
+    `addSpecificMetadata` for the player properties ported so far);
+    `is_self` adds the death position only the player itself sees."""
+    ref l = p.living
     var m = new_entity_metadata()
     m.set(ENTITY_DATA_KEY_WIDTH, Float32(BBOX_WIDTH))
     m.set(ENTITY_DATA_KEY_HEIGHT, Float32(BBOX_HEIGHT))
@@ -430,10 +460,15 @@ def player_metadata(p: Player) raises -> EntityMetadata:
         m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_SNEAKING)
     if p.sprinting():
         m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_SPRINTING)
-    # breather: a player out of water has full air and is breathing.
-    m.set(ENTITY_DATA_KEY_AIR_SUPPLY, Int16(300))
-    m.set(ENTITY_DATA_KEY_AIR_SUPPLY_MAX, Int16(300))
-    m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_BREATHING)
+    # breather
+    m.set(ENTITY_DATA_KEY_AIR_SUPPLY, Int16(l.air_supply_ticks))
+    m.set(ENTITY_DATA_KEY_AIR_SUPPLY_MAX, Int16(l.max_air_supply_ticks))
+    if l.breathing_shown(p.game_mode().allows_taking_damage()):
+        m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_BREATHING)
+    if l.invisible:
+        m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_INVISIBLE)
+    if l.fire_ticks > 0:
+        m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_ON_FIRE)
     if p.game_mode().has_collision():
         m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_HAS_COLLISION)
     m.set(ENTITY_DATA_KEY_SCALE, Float32(1))
@@ -445,6 +480,22 @@ def player_metadata(p: Player) raises -> EntityMetadata:
     if show:
         m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_SHOW_NAME)
         m.set_flag(ENTITY_DATA_KEY_FLAGS, ENTITY_DATA_FLAG_ALWAYS_SHOW_NAME)
+    if is_self:
+        if case .Some(d) = l.death_pos:
+            m.set(ENTITY_DATA_KEY_PLAYER_LAST_DEATH_POSITION, vec64_to32(d))
+            m.set(ENTITY_DATA_KEY_PLAYER_LAST_DEATH_DIMENSION, dimension)
+        m.set(
+            ENTITY_DATA_KEY_PLAYER_HAS_DIED,
+            UInt8(1) if l.death_pos else UInt8(0),
+        )
+    # effectBearer
+    var packed = Int64(0)
+    for e in l.effects:
+        if not e.particles_hidden():
+            packed = (packed << 7) | Int64(e.type_id() << 1)
+            if e.ambient():
+                packed |= 1
+    m.set(ENTITY_DATA_KEY_VISIBLE_MOB_EFFECTS, packed)
     return m^
 
 
@@ -615,6 +666,7 @@ struct Session[C: Conn](Movable):
         """Shows the player its world (Go `Spawn`): starts the chunk
         loader, the entity identifiers, the game mode and the player's own
         metadata."""
+        self.send_living_state()
         var pos = self.player.position()
         self._dimension = Int32(w.dimension().id)
         self._loader = loader
@@ -722,6 +774,20 @@ struct Session[C: Conn](Movable):
             return self._handle_player_auth_input(pk.decode[PlayerAuthInput]())
         if id == ID_TEXT:
             return self._handle_text(pk.decode[Text]())
+        if id == ID_RESPAWN:
+            # Go `RespawnHandler`.
+            var r = pk.decode[Respawn]()
+            if r.entity_runtime_id != SELF_ENTITY_RUNTIME_ID:
+                raise Error("invalid entity runtime ID: not self")
+            if r.state != RESPAWN_STATE_CLIENT_READY_TO_SPAWN:
+                raise Error(
+                    t"respawn state must always be"
+                    t" {RESPAWN_STATE_CLIENT_READY_TO_SPAWN}, but got"
+                    t" {r.state}"
+                )
+            var res = HandleResult()
+            res.respawn = True
+            return res^
         if id == ID_ITEM_STACK_REQUEST:
             var res = HandleResult()
             var held = self.invs.held_item()
@@ -1000,7 +1066,8 @@ struct Session[C: Conn](Movable):
     ) raises -> HandleResult:
         """Go `PlayerAuthInputHandler.Handle`: movement and input flags."""
         var res = HandleResult()
-        res.moved = self._handle_movement(pk)
+        var moved = self._handle_movement(pk, res)
+        res.moved = moved
         # Go handleActions: item interaction, block actions, input flags,
         # then the item stack request.
         if pk.input_data.load(INPUT_FLAG_PERFORM_ITEM_INTERACTION):
@@ -1051,7 +1118,9 @@ struct Session[C: Conn](Movable):
             res.held_changed = held != self.invs.held_item()
         return res^
 
-    def _handle_movement(mut self, mut pk: PlayerAuthInput) -> Bool:
+    def _handle_movement(
+        mut self, mut pk: PlayerAuthInput, mut res: HandleResult
+    ) -> Bool:
         """Go `handleMovement`."""
         var rot = self.player.rotation()
         var pos = self.player.position()
@@ -1086,6 +1155,7 @@ struct Session[C: Conn](Movable):
                     return False
                 self._teleport_pos = None
         self._moving = True
+        res.movement = delta_pos
         return self.player.move(delta_pos, delta_yaw, delta_pitch)
 
     def _handle_input_flags(mut self, pk: PlayerAuthInput) raises -> Bool:
@@ -1144,6 +1214,132 @@ struct Session[C: Conn](Movable):
         var pk = UpdateAttributes()
         pk.entity_runtime_id = SELF_ENTITY_RUNTIME_ID
         pk.attributes.append(a^)
+        self.write_packet(pk)
+
+    def _attribute(
+        self,
+        name: String,
+        value: Float32,
+        max: Float32,
+        default_max: Float32,
+        default: Float32 = 0,
+    ) -> Attribute:
+        var a = Attribute()
+        a.name = name
+        a.value = value
+        a.max = max
+        a.default_max = default_max
+        a.default = default
+        return a^
+
+    def send_health(
+        mut self, health: Float64, max: Float64, absorption: Float64
+    ):
+        """Sends health and absorption (Go `SendHealth`)."""
+        var pk = UpdateAttributes()
+        pk.entity_runtime_id = SELF_ENTITY_RUNTIME_ID
+        pk.attributes.append(
+            self._attribute(
+                "minecraft:health",
+                Float32(ceil(health)),
+                Float32(ceil(max)),
+                20,
+                20,
+            )
+        )
+        pk.attributes.append(
+            self._attribute(
+                "minecraft:absorption",
+                Float32(ceil(absorption)),
+                _MAX_FLOAT32,
+                _MAX_FLOAT32,
+            )
+        )
+        self.write_packet(pk)
+
+    def send_food(
+        mut self, food: Int, saturation: Float64, exhaustion: Float64
+    ):
+        """Sends food, saturation and exhaustion (Go `SendFood`)."""
+        var pk = UpdateAttributes()
+        pk.entity_runtime_id = SELF_ENTITY_RUNTIME_ID
+        pk.attributes.append(
+            self._attribute(
+                "minecraft:player.hunger", Float32(food), 20, 20, 20
+            )
+        )
+        pk.attributes.append(
+            self._attribute(
+                "minecraft:player.saturation", Float32(saturation), 20, 20, 20
+            )
+        )
+        pk.attributes.append(
+            self._attribute(
+                "minecraft:player.exhaustion", Float32(exhaustion), 5, 5
+            )
+        )
+        self.write_packet(pk)
+
+    def send_experience(mut self, level: Int, progress: Float64):
+        """Sends the level and progress (Go `SendExperience`)."""
+        var pk = UpdateAttributes()
+        pk.entity_runtime_id = SELF_ENTITY_RUNTIME_ID
+        var max_int = Float32(Int32.MAX)
+        pk.attributes.append(
+            self._attribute(
+                "minecraft:player.level", Float32(level), max_int, max_int
+            )
+        )
+        pk.attributes.append(
+            self._attribute(
+                "minecraft:player.experience", Float32(progress), 1, 1
+            )
+        )
+        self.write_packet(pk)
+
+    def send_living_state(mut self):
+        """Sends health, experience and food as Go `Spawn` does."""
+        ref l = self.player.living
+        var h = l.health.health
+        var m = l.health.max
+        var a = l.absorption
+        var lvl = l.experience.level()
+        var prog = l.experience.progress()
+        var food = l.hunger.food_level
+        self.send_health(h, m, a)
+        self.send_experience(lvl, prog)
+        self.send_food(food, 0, 0)
+
+    def send_effect(mut self, e: Effect):
+        """Sends an effect, removing the old one first (Go `SendEffect`)."""
+        self.send_effect_removal(e.type_id())
+        var dur = Int32(e.duration() // (SECOND // 20))
+        if e.infinite():
+            dur = -1
+        var pk = MobEffect()
+        pk.entity_runtime_id = SELF_ENTITY_RUNTIME_ID
+        pk.operation = MOB_EFFECT_ADD
+        pk.effect_type = Int32(e.type_id())
+        pk.amplifier = Int32(e.level() - 1)
+        pk.particles = not e.particles_hidden()
+        pk.duration = dur
+        pk.ambient = e.ambient()
+        self.write_packet(pk)
+
+    def send_effect_removal(mut self, id: Int):
+        """Sends the removal of an effect type (Go `SendEffectRemoval`)."""
+        var pk = MobEffect()
+        pk.entity_runtime_id = SELF_ENTITY_RUNTIME_ID
+        pk.operation = MOB_EFFECT_REMOVE
+        pk.effect_type = Int32(id)
+        self.write_packet(pk)
+
+    def send_respawn(mut self, pos: Vec3):
+        """Spawns the dead player again client-side (Go `SendRespawn`)."""
+        var pk = Respawn()
+        pk.position = vec64_to32(pos.add(Vec3(0, EYE_HEIGHT, 0)))
+        pk.state = RESPAWN_STATE_READY_TO_SPAWN
+        pk.entity_runtime_id = SELF_ENTITY_RUNTIME_ID
         self.write_packet(pk)
 
     def send_game_mode(mut self):
@@ -1622,6 +1818,29 @@ struct Session[C: Conn](Movable):
         pk.taker_entity_runtime_id = taker_id.value()
         self.write_packet(pk)
 
+    def view_entity_event(mut self, p: Player, event: UInt8, data: Int32 = 0):
+        """Sends an actor event of a player, its own included (Go
+        `ViewEntityAction` with `HurtAction`, `DeathAction`,
+        `TotemUseAction` and the like)."""
+        var known = self.entity_runtime_id(p)
+        if not known:
+            return
+        var pk = ActorEvent()
+        pk.entity_runtime_id = known.value()
+        pk.event_type = event
+        pk.event_data = data
+        self.write_packet(pk)
+
+    def view_entity_velocity(mut self, p: Player, vel: Vec3):
+        """Sends a player's velocity (Go `ViewEntityVelocity`)."""
+        var known = self.entity_runtime_id(p)
+        if not known:
+            return
+        var pk = SetActorMotion()
+        pk.entity_runtime_id = known.value()
+        pk.velocity = vec64_to32(vel)
+        self.write_packet(pk)
+
     def view_entity_game_mode(mut self, p: Player):
         """Shows another player's game mode (Go `ViewEntityGameMode`)."""
         var known = self.entity_runtime_id(p)
@@ -1640,7 +1859,9 @@ struct Session[C: Conn](Movable):
         var pk = SetActorData()
         pk.entity_runtime_id = known.value()
         try:
-            pk.entity_metadata = player_metadata(p)
+            pk.entity_metadata = player_metadata(
+                p, known.value() == SELF_ENTITY_RUNTIME_ID, self._dimension
+            )
         except:
             pass
         self.write_packet(pk)

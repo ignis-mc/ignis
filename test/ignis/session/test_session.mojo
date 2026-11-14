@@ -3,6 +3,8 @@ from ignis.block.dirt import Dirt
 from ignis.block.grass import Grass
 from ignis.block.register import vanilla_block_registry
 from ignis.block.register import VanillaBlocks
+from ignis.entity.effect import SECOND, new
+from ignis.entity.effect.poison import Poison
 from ignis.entity.register import VanillaEntities
 from ignis.item.stack import Stack
 from ignis.item.stick import Stick
@@ -32,6 +34,17 @@ from std.memory import ArcPointer
 from minecraft.protocol.block_pos import SubChunkPos as ProtocolSubChunkPos
 from minecraft.protocol.math import Vec3 as ProtocolVec3
 from minecraft.protocol.packet.add_player import AddPlayer
+from minecraft.protocol.packet.mob_effect import (
+    MOB_EFFECT_ADD,
+    MOB_EFFECT_REMOVE,
+    MobEffect,
+)
+from minecraft.protocol.packet.respawn import (
+    RESPAWN_STATE_CLIENT_READY_TO_SPAWN,
+    RESPAWN_STATE_READY_TO_SPAWN,
+    Respawn,
+)
+from minecraft.protocol.packet.update_attributes import UpdateAttributes
 from minecraft.protocol.packet.chunk_radius_updated import ChunkRadiusUpdated
 from minecraft.protocol.packet.container_close import ContainerClose
 from minecraft.protocol.packet.container_open import ContainerOpen
@@ -164,15 +177,83 @@ def test_spawn_packets() raises:
     s.conn.clear()
     _spawn(s, w)
     var ids = s.conn.ids()
-    assert_equal(ids[0], ID_NETWORK_CHUNK_PUBLISHER_UPDATE)
-    assert_equal(ids[1], ID_AVAILABLE_ACTOR_IDENTIFIERS)
-    assert_equal(ids[2], ID_SET_PLAYER_GAME_TYPE)
-    assert_equal(ids[3], ID_UPDATE_ABILITIES)
-    assert_equal(ids[4], ID_SET_ACTOR_DATA)
+    # Go `Spawn`: health, experience and food first.
+    for i in range(3):
+        assert_equal(ids[i], ID_UPDATE_ATTRIBUTES)
+    assert_equal(ids[3], ID_NETWORK_CHUNK_PUBLISHER_UPDATE)
+    assert_equal(ids[4], ID_AVAILABLE_ACTOR_IDENTIFIERS)
+    assert_equal(ids[5], ID_SET_PLAYER_GAME_TYPE)
+    assert_equal(ids[6], ID_UPDATE_ABILITIES)
+    assert_equal(ids[7], ID_SET_ACTOR_DATA)
     # Go's sendInv: inventory, UI, off-hand, armour.
-    for i in range(5, 9):
+    for i in range(8, 12):
         assert_equal(ids[i], ID_INVENTORY_CONTENT)
     assert_equal(s.conn.last[SetPlayerGameType]().game_type, GAME_TYPE_CREATIVE)
+
+
+def test_living_attributes() raises:
+    # Go `SendHealth`, `SendFood` and `SendExperience`.
+    var s = _session("Steve", 1)
+    s.conn.clear()
+    s.send_health(12.25, 20, 3.5)
+    var h = s.conn.last[UpdateAttributes]()
+    assert_equal(h.entity_runtime_id, 1)
+    assert_equal(h.attributes[0].name, "minecraft:health")
+    assert_equal(h.attributes[0].value, 13)
+    assert_equal(h.attributes[0].max, 20)
+    assert_equal(h.attributes[0].default, 20)
+    assert_equal(h.attributes[1].name, "minecraft:absorption")
+    assert_equal(h.attributes[1].value, 4)
+    s.send_food(17, 2.5, 1.25)
+    var f = s.conn.last[UpdateAttributes]()
+    assert_equal(f.attributes[0].name, "minecraft:player.hunger")
+    assert_equal(f.attributes[0].value, 17)
+    assert_equal(f.attributes[1].name, "minecraft:player.saturation")
+    assert_equal(f.attributes[1].value, 2.5)
+    assert_equal(f.attributes[2].name, "minecraft:player.exhaustion")
+    assert_equal(f.attributes[2].value, 1.25)
+    assert_equal(f.attributes[2].max, 5)
+    s.send_experience(5, 0.5)
+    var x = s.conn.last[UpdateAttributes]()
+    assert_equal(x.attributes[0].name, "minecraft:player.level")
+    assert_equal(x.attributes[0].value, 5)
+    assert_equal(x.attributes[1].name, "minecraft:player.experience")
+    assert_equal(x.attributes[1].value, 0.5)
+
+
+def test_effect_packets() raises:
+    # Go `SendEffect`: the removal first, the duration in ticks.
+    var s = _session("Steve", 1)
+    s.conn.clear()
+    s.send_effect(new(Poison(), 2, 3 * SECOND))
+    var all = s.conn.all[MobEffect]()
+    assert_equal(len(all), 2)
+    assert_equal(all[0].operation, MOB_EFFECT_REMOVE)
+    assert_equal(all[0].effect_type, 19)
+    assert_equal(all[1].operation, MOB_EFFECT_ADD)
+    assert_equal(all[1].effect_type, 19)
+    assert_equal(all[1].amplifier, 1)
+    assert_equal(all[1].duration, 60)
+    assert_true(all[1].particles)
+
+
+def test_respawn() raises:
+    var w = _world()
+    var s = _session("Steve", 1)
+    s.conn.clear()
+    s.send_respawn(Vec3(0.5, -60, 0.5))
+    var r = s.conn.last[Respawn]()
+    assert_equal(r.state, RESPAWN_STATE_READY_TO_SPAWN)
+    assert_equal(r.entity_runtime_id, 1)
+    assert_almost_equal(r.position.y, Float32(-60 + 1.62))
+    # Go `RespawnHandler`.
+    var req = Respawn()
+    req.entity_runtime_id = 1
+    req.state = RESPAWN_STATE_CLIENT_READY_TO_SPAWN
+    assert_true(s.handle_packet(_packet(req), w).respawn)
+    req.state = RESPAWN_STATE_READY_TO_SPAWN
+    with assert_raises():
+        _ = s.handle_packet(_packet(req), w)
 
 
 def test_send_chunks_and_sub_chunks() raises:
@@ -238,6 +319,7 @@ def test_player_auth_input_moves() raises:
     pk.head_yaw = 90
     var res = s.handle_packet(_packet(pk), w)
     assert_true(res.moved)
+    assert_almost_equal(res.movement.value().x(), 3.0)
     assert_almost_equal(s.player.position().x(), 3.5)
     assert_almost_equal(s.player.position().y(), -59, atol=1e-5)
     assert_almost_equal(s.player.position().z(), -2.25)

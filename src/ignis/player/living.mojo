@@ -27,26 +27,27 @@ from ..entity.damage import (
 )
 from ..entity.effect import SECOND, Effect, new
 from ..entity.effect.absorption import Absorption
+from ..entity.effect.conduit_power import ConduitPower
 from ..entity.effect.fatal_poison import FatalPoison
 from ..entity.effect.fire_resistance import FireResistance
 from ..entity.effect.health_boost import HealthBoost
 from ..entity.effect.hunger import Hunger
 from ..entity.effect.instant_damage import InstantDamage
 from ..entity.effect.instant_health import InstantHealth
+from ..entity.effect.invisibility import Invisibility
 from ..entity.effect.jump_boost import JumpBoost
 from ..entity.effect.poison import Poison
 from ..entity.effect.regeneration import Regeneration
 from ..entity.effect.resistance import Resistance
 from ..entity.effect.saturation import Saturation
+from ..entity.effect.water_breathing import WaterBreathing
 from ..entity.effect.wither import Wither
 from ..entity.experience import ExperienceManager
 from ..entity.health import HealthManager
 from ..item.inventory.armour import Armour
-from ..mgl64 import Vec3
+from ..mgl64 import EPSILON, Vec3
 from .hunger import HungerManager
 
-comptime EPSILON = 1e-6
-"""Go `mgl64.Epsilon`."""
 
 comptime EVENT_HEALTH = 0
 """The health, maximum or absorption changed (Go `SendHealth`)."""
@@ -104,11 +105,15 @@ struct SurvivalContext(Copyable, Defaultable):
     var inside_solid: Bool
     """Go `insideOfSolid`."""
     var can_breathe: Bool
-    """Go `canBreathe`, apart from the effects this state knows."""
+    """Neither the eyes are under water nor the player is inside a solid
+    block (Go `canBreathe` without the game mode and effects)."""
     var raining: Bool
     """Go `RainingAt` the player's position."""
     var totem_held: Bool
     """A totem of undying is in either hand (Go checks the held items)."""
+    var respiration_saves: Bool
+    """The helmet's Respiration skips this tick's air loss (Go rolls
+    `Respiration.Chance` on its global source)."""
 
     def __init__(out self):
         """Creates a context of survival in an easy world."""
@@ -121,6 +126,7 @@ struct SurvivalContext(Copyable, Defaultable):
         self.can_breathe = True
         self.raining = False
         self.totem_held = False
+        self.respiration_saves = False
 
 
 struct Living(Copyable, Defaultable):
@@ -152,6 +158,12 @@ struct Living(Copyable, Defaultable):
     """Go `breathing`."""
     var death_pos: Optional[Vec3]
     """Where the player last died (Go `deathPos`)."""
+    var last_source: AnyDamageSource
+    """The source of the last damage taken, which `kill` reports."""
+    var invisible: Bool
+    """Go `invisible`."""
+    var eyes_in_liquid: Bool
+    """The eyes are in a liquid block, for Go `Breathing`."""
     var events: List[LivingEvent]
     """What happened since the server last took the events."""
 
@@ -172,10 +184,17 @@ struct Living(Copyable, Defaultable):
         self.max_air_supply_ticks = 300
         self.breathing = True
         self.death_pos = None
+        self.last_source = AnyDamageSource(DAMAGE_VOID)
+        self.invisible = False
+        self.eyes_in_liquid = False
         self.events = List[LivingEvent]()
 
     def _event(mut self, kind: Int):
         self.events.append(LivingEvent(kind, None, Vec3()))
+
+    def push_event(mut self, kind: Int):
+        """Records an event of a kind without an effect or velocity."""
+        self._event(kind)
 
     def take_events(mut self) -> List[LivingEvent]:
         """Returns and clears the events."""
@@ -264,6 +283,7 @@ struct Living(Copyable, Defaultable):
         ):
             self.apply_totem_effects(ctx)
             return (0.0, False)
+        self.last_source = src
         self.add_health(-left)
         if src.reduced_by_armour():
             self.exhaust(0.1, ctx)
@@ -530,6 +550,8 @@ struct Living(Copyable, Defaultable):
             self.set_absorption(4 * Float64(e.level()))
         elif id == HealthBoost.ID:
             self.set_max_health(self.health.max + 4 * Float64(e.level()))
+        elif id == Invisibility.ID:
+            self.set_invisible()
 
     def _end(mut self, e: Effect):
         # The `End` methods of lasting effect types.
@@ -538,6 +560,32 @@ struct Living(Copyable, Defaultable):
             self.set_absorption(0)
         elif id == HealthBoost.ID:
             self.set_max_health(self.health.max - 4 * Float64(e.level()))
+        elif id == Invisibility.ID:
+            self.set_visible()
+
+    def set_invisible(mut self):
+        """Go `SetInvisible`."""
+        if self.invisible:
+            return
+        self.invisible = True
+        self._event(EVENT_STATE)
+
+    def set_visible(mut self):
+        """Go `SetVisible`; the caller checks that the game mode is
+        visible."""
+        if self.effect(Invisibility.ID) or not self.invisible:
+            return
+        self.invisible = False
+        self._event(EVENT_STATE)
+
+    def breathing_shown(self, takes_damage: Bool) -> Bool:
+        """Go `Breathing`, as the entity metadata shows it."""
+        return (
+            not takes_damage
+            or not self.eyes_in_liquid
+            or Bool(self.effect(WaterBreathing.ID))
+            or Bool(self.effect(ConduitPower.ID))
+        )
 
     # Fire and air
 
@@ -550,8 +598,16 @@ struct Living(Copyable, Defaultable):
             self._event(EVENT_STATE)
 
     def tick_air_supply(mut self, mut armour: Armour, ctx: SurvivalContext):
-        """Go `tickAirSupply`; Respiration is not taken into account."""
-        if not ctx.can_breathe and ctx.takes_damage:
+        """Go `tickAirSupply`."""
+        var can_breathe = (
+            not ctx.takes_damage
+            or Bool(self.effect(WaterBreathing.ID))
+            or Bool(self.effect(ConduitPower.ID))
+            or ctx.can_breathe
+        )
+        if not can_breathe:
+            if ctx.respiration_saves:
+                return
             self.air_supply_ticks -= 1
             if self.air_supply_ticks <= -20:
                 self.air_supply_ticks = 0

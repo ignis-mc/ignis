@@ -97,6 +97,12 @@ from .interact import (
     use_item_on_block,
 )
 from .provider import WorldProvider
+from .survival import (
+    finish_dying,
+    handle_movement,
+    respawn_player,
+    tick_survival,
+)
 from ..item.register import vanilla_item_registry
 from ..item.nbt import read_disk_nbt, write_disk_nbt
 from ..entity.item import DEFAULT_PICKUP_DELAY_TICKS, ItemBehaviour
@@ -132,6 +138,7 @@ from ..session.session import (
 )
 from ..session.viewer import SessionViewer
 from ..world.biome.plains import Plains
+from ..world.biome import BiomeRegistry
 from ..world.biome.register import vanilla_biome_registry
 from ..world.block_registry import BasicBlockRegistry
 from ..world.conf import Config as WorldConfig
@@ -373,6 +380,16 @@ def open_world(conf: Config, now_ms: Int) raises -> World[ServerWorld]:
     return w^
 
 
+@fieldwise_init
+struct DyingPlayer(Copyable):
+    """A dead player waiting for Go's `finishDying`."""
+
+    var uuid: UUID
+    """The player."""
+    var at_ms: Int
+    """When its death finishes."""
+
+
 struct Server(Movable):
     """A Minecraft server: one listener, one world and its sessions (Go
     `server.Server`)."""
@@ -410,6 +427,10 @@ struct Server(Movable):
     var _close_requested: Bool
     var _closed: Bool
     var _ticks: Int
+    var biomes: BiomeRegistry
+    """The vanilla biomes, for the weather at a position."""
+    var dying: List[DyingPlayer]
+    """Dead players waiting for Go's `finishDying`."""
 
     def __init__(out self, var conf: Config) raises:
         """Loads the world data and starts listening (Go `Config.New` and
@@ -420,7 +441,8 @@ struct Server(Movable):
             players = PlayerProvider(folder)
         var items = item_entries(conf.vanilla_items_path)
         var item_reg = vanilla_item_registry(conf.vanilla_items_path)
-        var biomes = biome_definition_packet(vanilla_biome_registry())
+        var biome_reg = vanilla_biome_registry()
+        var biomes = biome_definition_packet(biome_reg)
         var item_pks = item_packets(
             world.block_registry()[], conf.vanilla_items_path
         )
@@ -456,6 +478,8 @@ struct Server(Movable):
         self._close_requested = False
         self._closed = False
         self._ticks = 0
+        self.biomes = biome_reg^
+        self.dying = List[DyingPlayer]()
 
     def addr(mut self) raises -> SocketAddr:
         """Returns the address the listener is bound to."""
@@ -967,6 +991,10 @@ struct Server(Movable):
 
     def _apply(mut self, i: Int, res: HandleResult):
         """Shows what a handled packet changed to the other sessions."""
+        if case .Some(delta) = res.movement:
+            handle_movement(self, i, delta, res.moved)
+        if res.respawn:
+            respawn_player(self, i)
         if res.moved or res.state_changed:
             var p = self.sessions[i].player.copy()
             var pos = p.position()
@@ -1171,7 +1199,9 @@ struct Server(Movable):
         loop in Go); the world ticks on its own deadline."""
         self._ticks += 1
         self._tick_items()
+        finish_dying(self, monotonic_ms())
         for i in range(len(self.sessions)):
+            tick_survival(self, i)
             continue_breaking(self, i)
             self.sessions[i].send_chunks(self.world)
             if self.sessions[i].send_inventory_changes():
