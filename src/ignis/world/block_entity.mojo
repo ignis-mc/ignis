@@ -63,9 +63,9 @@ def inv_to_nbt[
         _ = tree.append_tree(l, data, data.root())
 
 
-def inv_from_nbt(
-    reg: ItemRegistry, tree: Tree, parent: Tag, mut inv: Inventory
-) raises:
+def inv_from_nbt[
+    B: BlockTypes
+](reg: ItemRegistry, tree: Tree, parent: Tag, mut inv: Inventory) raises:
     """Fills an inventory from `Items` (Go `nbtconv.InvFromNBT`); unknown
     items and slots out of range are skipped."""
     var items = tree.get(parent, "Items")
@@ -74,7 +74,7 @@ def inv_from_nbt(
     for c in tree.children(items.value()):
         if tree.type_of(c) != TAG_COMPOUND:
             continue
-        var it = read_disk_nbt(reg, tree, c)
+        var it = read_disk_nbt[B](reg, tree, c)
         if it.empty():
             continue
         var slot = 0

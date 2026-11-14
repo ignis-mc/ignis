@@ -38,6 +38,7 @@ from .block import (
     Placement,
     UsableOnBlock,
     UseContext,
+    User,
     first_replaceable,
 )
 from .break_info import (
@@ -216,7 +217,7 @@ struct Chest(
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> List[Placement]:
         """Places a chest facing the user, paired with a chest facing the

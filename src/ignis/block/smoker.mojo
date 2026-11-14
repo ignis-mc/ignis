@@ -1,13 +1,31 @@
 """`Smoker`, ported from Dragonfly `server/block/smoker.go`.
 
-TODO(world-runtime): the `*smelter` (smelter.go: inventory, fuel, progress,
-Experience, the XP the break info drops), NewFurnace, Tick, Activate,
-UseOnBlock, the break handler dropping the inventory and the drops.
+The smelting (Go's embedded `*smelter`) is `block/smelter.mojo`: the
+inventory lives with the world's block entity, the durations are NBT fields
+of the value. The experience the break info drops (Go `withXPDropRange`)
+is kept but not dropped: experience orbs are not ported.
 """
 
 from minecraft.nbt.tree import Tag, Tree
 
-from ..world.block import Block, LightEmitter, NBTer
+from ..mgl64 import Vec3
+from ..world.block import Block, Container, LightEmitter, NBTer, TickerBlock
+from ..world.block_set import encode_block_nbt
+from ..world.sound.block import SmokerCrackle
+from ..world.world import World, WorldTypes
+from .block import (
+    Activatable,
+    BreakHandler,
+    Placement,
+    UsableOnBlock,
+    UseContext,
+    User,
+    first_replaceable,
+)
+from .container import drop_contents
+from .cube.face import Face
+from .cube.pos import Pos
+from .smelter import SMELT_FOOD, Smelter, tick_smelting
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -19,19 +37,24 @@ from .break_info import (
     new_break_info,
 )
 from .cube.direction import Direction, directions
-from .hash import HASH_SMOKER
+from .hash import AnyBlock, HASH_SMOKER
 from .model.solid import Solid as SolidModel
 
 
 struct Smoker(
+    Activatable,
     Block,
+    BreakHandler,
     Breakable,
+    Container,
     Equatable,
     ImplicitlyCopyable,
     Item,
     LightEmitter,
     ModelledBlock,
     NBTer,
+    TickerBlock,
+    UsableOnBlock,
 ):
     """A type of furnace that cooks food items, similar to a furnace, but twice as fast.
     """
@@ -45,6 +68,8 @@ struct Smoker(
     """The direction the front of the block faces."""
     var lit: Bool
     """Whether the block is lit."""
+    var smelter: Smelter
+    """The smelting progress (Go's `*smelter` durations)."""
 
     def __init__(
         out self, *, facing: Direction = Direction.NORTH, lit: Bool = False
@@ -52,10 +77,11 @@ struct Smoker(
         """Creates the block; omitted fields take Go zero values."""
         self.facing = facing
         self.lit = lit
+        self.smelter = Smelter()
 
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
-        return self.hash() == other.hash()
+        return self.hash() == other.hash() and self.smelter == other.smelter
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -107,18 +133,72 @@ struct Smoker(
         return EncodedItem("minecraft:smoker", 0)
 
     def encode_nbt(self, mut tag: Tree, root: Tag) raises:
-        """Writes the NBT (Go `EncodeNBT`)."""
-        # The smelter is not ported: Go writes a new smoker's (idle, empty).
-        _ = tag.put_short(root, "BurnTime", 0)
-        _ = tag.put_short(root, "CookTime", 0)
-        _ = tag.put_short(root, "BurnDuration", 0)
-        _ = tag.put_short(root, "StoredXPInt", 0)
+        """Writes the block entity NBT (Go `EncodeNBT`); the world adds the
+        `Items`."""
+        self.smelter.encode(tag, root)
         _ = tag.put_list(root, "Items")
         _ = tag.put_string(root, "id", "Smoker")
 
     def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
-        """Decodes the NBT (Go `DecodeNBT`); the smelter is not ported."""
-        return self
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        var f = Self(facing=self.facing, lit=self.lit)
+        f.smelter = Smelter.decode(tag, root)
+        return f^
+
+    def inventory_size(self) -> Int:
+        """Returns the input, fuel and product slots (Go `ContainerSize`)."""
+        return 3
+
+    def tick[
+        T: WorldTypes
+    ](self, current_tick: Int64, pos: Pos, mut tx: World[T]):
+        """Smelts (Go `Tick`), crackling now and then while lit."""
+        if self.lit and tx.global_rand().float64() <= 0.016:
+            tx.play_sound(pos.vec3_centre(), SmokerCrackle())
+        var f = self.copy()
+        var lit = tick_smelting(
+            f.smelter, pos, tx, 5000, 200, self.lit, SMELT_FOOD
+        )
+        if lit != self.lit:
+            f.lit = lit
+            tx.set_block(pos, f)
+        elif f.smelter != self.smelter:
+            tx.set_block_entity_nbt(pos, encode_block_nbt(f), notify=False)
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens the window (Go `Activate`)."""
+        ctx.open_container = True
+        return True
+
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: User,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places it facing the user (Go `UseOnBlock`)."""
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var f = Self(facing=user.direction().opposite())
+        return [Placement(at.value()[0], AnyBlock(Self.BASE_HASH, f.hash()))]
+
+    def on_break[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T], harvest: Bool):
+        """Drops the contents (Go's break handler)."""
+        tx.close_container_viewers(pos)
+        drop_contents(pos, tx, pos.vec3())
 
     @staticmethod
     def all_items() -> List[Self]:

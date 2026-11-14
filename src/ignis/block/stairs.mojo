@@ -12,7 +12,13 @@ from .cube.pos import Pos
 from .cube.rotation import Rotation
 from ..mgl64 import Vec3
 from ..world.world import World, WorldTypes
-from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
+from .block import (
+    Placement,
+    UsableOnBlock,
+    User,
+    first_replaceable,
+    replaceable_with,
+)
 from .hash import AnyBlock
 
 from ..item.smelting_info import Fuel, FuelInfo
@@ -161,7 +167,7 @@ struct Stairs(
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> List[Placement]:
         """Places the stairs facing away from the user, upside down when

@@ -32,6 +32,7 @@ from ..block.block import (
     StateDeriver,
     UsableOnBlock,
     UseContext,
+    User,
 )
 from ..block.cube.rotation import Rotation
 from ..mgl64 import Vec3
@@ -164,7 +165,7 @@ trait BlockTypes:
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> Optional[List[Placement]]:
         """Returns what a `UsableOnBlock` block item places (possibly
@@ -408,7 +409,7 @@ struct BlockSet[*Ts: Block](BlockTypes):
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> Optional[List[Placement]]:
         """Returns what a `UsableOnBlock` block item places, or None."""
@@ -797,7 +798,7 @@ def _drops[B: Dropper](b: B, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
 def _use_on_block[
     B: UsableOnBlock, T: WorldTypes
 ](
-    b: B, pos: Pos, face: Face, click: Vec3, user: Rotation, mut tx: World[T]
+    b: B, pos: Pos, face: Face, click: Vec3, user: User, mut tx: World[T]
 ) -> List[Placement]:
     return b.use_on_block(pos, face, click, user, tx)
 

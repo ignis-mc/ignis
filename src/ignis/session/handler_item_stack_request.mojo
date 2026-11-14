@@ -57,11 +57,13 @@ from minecraft.protocol.packet.item_stack_response import (
 from ..item.stack import Stack
 from .inventory import (
     INV_OFF_HAND,
+    INV_OPENED,
     Inventories,
     inventory_kind,
     window_inventory_kind,
 )
 from .window import Window
+from ..block.hash import HASH_SHULKER_BOX
 
 comptime CRAFTING_RESULT = 50
 """The UI slot of a crafting result (Go `craftingResult`)."""
@@ -389,6 +391,13 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         the response and for later requests that refer to it."""
         var kind = self._kind(slot)
         var index = self._index(kind, slot)
+        if (
+            kind == INV_OPENED
+            and self._window.block == HASH_SHULKER_BOX
+            and _is_shulker_box(it)
+        ):
+            # Go's slot validator `canStoreInShulkerBox`.
+            raise Error("shulker boxes cannot hold shulker boxes")
         ref inv = invs.get(kind)
         var before = inv.item(index)
         inv.set_item(index, it)
@@ -454,3 +463,9 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         self._change_order = List[Int]()
         self._pending_results = List[Stack]()
         return resp^
+
+
+def _is_shulker_box(it: Stack) -> Bool:
+    if case .Some(i) = it.item():
+        return i.block and i.kind == HASH_SHULKER_BOX
+    return False

@@ -1088,7 +1088,7 @@ struct Server(Movable):
         """The stack of an item entity; a loaded one only has its NBT."""
         if b.resolved():
             return b.item.copy()
-        return read_disk_nbt(
+        return read_disk_nbt[VanillaBlocks](
             self.item_registry[], b.item_nbt, b.item_nbt.root()
         )
 
