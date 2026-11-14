@@ -9,7 +9,9 @@ from minecraft.protocol.uuid import UUID
 from ..block.cube.bbox import BBox
 from ..world.entity import (
     EntityData,
+    EntityHandle,
     EntityMovement,
+    EntitySpawnOpts,
     ExplodableEntity,
     TickerEntity,
 )
@@ -18,7 +20,7 @@ from .projectile import ProjectileBehaviour
 from ..block.cube.pos import Pos
 from ..internal.nbtconv.read import get_bool, get_float32, get_int32, get_uint8
 from ..item.arrow import Arrow as ArrowItem
-from ..item.potion.potion import from_id
+from ..item.potion.potion import Potion, from_id
 from ..item.stack import Stack
 from ..world.sound.item import ArrowHit
 from ..mgl64 import Vec3
@@ -134,3 +136,52 @@ struct Arrow(
         """Is pushed away (Go `ProjectileBehaviour.Explode`)."""
         data.vel = data.vel.add(data.pos.sub(src).normalize().mul(impact))
         return False
+
+
+@fieldwise_init
+struct ArrowSpawnConfig(Copyable):
+    """How a bow or crossbow shoots an arrow (Go `world.ArrowSpawnConfig`)."""
+
+    var damage: Float64
+    """Go `Damage`."""
+    var owner: UUID
+    """Go `Owner`."""
+    var critical: Bool
+    """Go `Critical`."""
+    var disable_pickup: Bool
+    """Go `DisablePickup`."""
+    var obtain_arrow_on_pickup: Bool
+    """Go `ObtainArrowOnPickup`."""
+    var punch_level: Int
+    """Go `PunchLevel`."""
+    var piercing_level: Int
+    """Go `PiercingLevel`."""
+    var tip: Potion
+    """Go `Tip`."""
+
+
+def spawn_arrow[
+    T: WorldTypes
+](mut tx: World[T], pos: Vec3, vel: Vec3, conf: ArrowSpawnConfig):
+    """Shoots an arrow (Go's `EntityRegistryConfig.Arrow` in
+    `entity/register.go`). TODO(player): bows and crossbows call it when
+    released."""
+    var a = Arrow()
+    a.proj.damage = conf.damage
+    a.proj.potion = conf.tip
+    a.proj.owner = conf.owner
+    a.proj.knock_back_force_addend = (
+        Float64(conf.punch_level) * PUNCH_KNOCK_BACK_MULTIPLIER
+    )
+    a.proj.disable_pickup = conf.disable_pickup
+    if conf.obtain_arrow_on_pickup:
+        a.proj.pickup_item = Stack(ArrowItem(tip=conf.tip), 1)
+    a.proj.critical = conf.critical
+    a.proj.piercing_level = conf.piercing_level
+    var state = T.Entities.try_wrap(a^)
+    if not state:
+        return
+    var opts = EntitySpawnOpts()
+    opts.position = pos
+    opts.velocity = vel
+    _ = tx.add_entity(EntityHandle[T.Entities](opts, state.take()))
