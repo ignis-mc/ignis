@@ -10,18 +10,12 @@ enchants enchanted books, which Go's `WithEnchantments` never filters.
 """
 
 from minecraft.nbt.decode import decode
-from minecraft.nbt.nbt import (
-    NETWORK_LITTLE_ENDIAN,
-    TAG_BYTE,
-    TAG_COMPOUND,
-    TAG_INT,
-    TAG_STRING,
-)
+from minecraft.nbt.nbt import NETWORK_LITTLE_ENDIAN, TAG_COMPOUND
 from minecraft.nbt.tree import Tag, Tree
 
 from ...block.register import VanillaBlocks
 from ...world.block_registry import BasicBlockRegistry
-from ...world.block_state import Properties, PropertyValue
+from ...world.block_state import decode_properties
 from ...world.item import ItemRegistry, RegisteredItem
 from ..enchantment.register import VanillaEnchantments
 from ..register import VanillaBlockItems, VanillaItems
@@ -144,22 +138,6 @@ def _sub_tree(tree: Tree, t: Tag) raises -> Tree:
     return sub^
 
 
-def _properties(tree: Tree, t: Tag) raises -> Properties:
-    var p = Properties()
-    for c in tree.children(t):
-        var key = tree.name(c)
-        var tag = tree.type_of(c)
-        if tag == TAG_BYTE:
-            p.set(key^, PropertyValue(byte=tree.as_byte(c)))
-        elif tag == TAG_INT:
-            p.set(key^, PropertyValue(int32=tree.as_int(c)))
-        elif tag == TAG_STRING:
-            p.set(key^, PropertyValue(string=tree.as_string(c)))
-        else:
-            raise Error(t"creative item: property {key} has tag {tag}")
-    return p^
-
-
 def _stack_from_entry(
     tree: Tree, e: Tag, br: BasicBlockRegistry, reg: ItemRegistry
 ) raises -> Optional[Stack]:
@@ -172,7 +150,7 @@ def _stack_from_entry(
     var found: Optional[RegisteredItem]
     var props = tree.get(e, "block_properties")
     if props and len(tree.children(props.value())) > 0:
-        var rid = br.block_by_name(name, _properties(tree, props.value()))
+        var rid = br.block_by_name(name, decode_properties(tree, props.value()))
         if not rid:
             return None
         found = VanillaBlocks.block_item(
