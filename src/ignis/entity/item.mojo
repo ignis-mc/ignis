@@ -11,7 +11,10 @@ Differences from Go:
   get: the entity keeps the stack's disk NBT (`item_nbt`) next to the
   stack. A loaded item entity has only the NBT until the server resolves
   the stack (`ItemBehaviour.resolved`).
-- Hoppers, explosions and portals are not ported.
+- A hopper below collects the item (Go `ItemBehaviour.Tick`); what does
+  not fit is dropped as a new item through the world's drop queue, so it
+  gets Go's `dropItem` velocity instead of none.
+- Explosions and portals are not ported.
 """
 
 from minecraft.nbt.nbt import TAG_COMPOUND, TAG_LONG
@@ -19,6 +22,10 @@ from minecraft.nbt.tree import Tag, Tree
 from minecraft.protocol.uuid import UUID
 
 from ..block.cube.bbox import BBox
+from ..block.cube.face import Face
+from ..block.cube.pos import pos_from_vec3
+from ..block.hopper import Hopper
+from ..world.block_set import encode_block_nbt
 from ..item.stack import Stack
 from ..world.entity import (
     EntityData,
@@ -128,6 +135,35 @@ struct ItemBehaviour(
                 delay = Int(tree.as_long(d))
         return Self(Stack(), nbt^, delay)
 
+    def _collected_by_hopper[
+        T: WorldTypes
+    ](self, id: UUID, data: EntityData, mut tx: World[T]) -> Bool:
+        # Go `ItemBehaviour.Tick`: an unpowered hopper below takes the item.
+        if not self.resolved():
+            return False
+        var pos = pos_from_vec3(data.pos)
+        var below = pos.side(Face.DOWN)
+        var found = tx.block_as[Hopper](below)
+        if not found:
+            return False
+        var h = found.value().copy()
+        if h.powered or h.collect_cooldown > 0:
+            return False
+        var inv_found = tx.inventory(below)
+        if not inv_found:
+            return False
+        var inv = inv_found.value().copy()
+        var added = inv.add_item(self.item.copy())
+        if added == 0:
+            return False
+        if added < self.item.count():
+            tx.drop_item(pos.vec3_centre(), self.item.grow(-added))
+        tx.set_inventory(below, inv^)
+        _ = tx.remove_entity(id)
+        h.collect_cooldown = 8
+        tx.set_block(below, h)
+        return True
+
     def tick[
         T: WorldTypes
     ](
@@ -143,6 +179,8 @@ struct ItemBehaviour(
         world."""
         if data.pos.y() < Float64(tx.range().min()) and current % 10 == 0:
             _ = tx.remove_entity(id)
+            return None
+        if self._collected_by_hopper(id, data, tx):
             return None
         data.fire_duration_ms = max(data.fire_duration_ms - 50, 0)
         if self.close:

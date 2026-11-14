@@ -23,7 +23,20 @@ where `_random_tick[T: RandomTicker]` is a plain generic function. Inside the
 a type to the set is all a new block needs.
 """
 
-from ..block.block import Placement, Replaceable, UsableOnBlock
+from ..block.block import (
+    Activatable,
+    Instrumented,
+    BreakHandler,
+    HopperExtractable,
+    HopperInsertable,
+    Openable,
+    Placement,
+    Replaceable,
+    StateDeriver,
+    UsableOnBlock,
+    UseContext,
+    User,
+)
 from ..block.cube.rotation import Rotation
 from ..mgl64 import Vec3
 from ..block.break_info import BreakInfo, Breakable, Dropper
@@ -40,8 +53,15 @@ from ..block.dirt import Soil
 from ..block.liquid import LiquidRemovable
 from ..block.oxidation_type import OxidationType
 from ..block.oxidizable import Oxidisable
+from minecraft.nbt.tree import Tree
+
+from .sound.instrument import Instrument
+
+from ..item.inventory.inventory import Inventory
 from .block import (
     Block,
+    Container,
+    NBTer,
     LightDiffuser,
     Liquid,
     LiquidDisplacer,
@@ -49,6 +69,7 @@ from .block import (
     NeighbourUpdateTicker,
     RandomTicker,
     ScheduledTicker,
+    TickerBlock,
     liquid_info,
 )
 from .block_model import ModelledBlock, UnknownModel
@@ -150,7 +171,7 @@ trait BlockTypes:
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> Optional[List[Placement]]:
         """Returns what a `UsableOnBlock` block item places (possibly
@@ -246,6 +267,95 @@ trait BlockTypes:
         """Encodes a block as an item."""
         ...
 
+    @staticmethod
+    def block_entity_nbt(kind: UInt64, hash: UInt64) -> Optional[Tree]:
+        """Returns the NBT a new block entity of an `NBTer` block starts
+        with (Go `EncodeNBT` of the block value); None for other blocks."""
+        ...
+
+    @staticmethod
+    def is_activatable(kind: UInt64) -> Bool:
+        """Reports whether blocks of a type are `Activatable`."""
+        ...
+
+    @staticmethod
+    def instrument(kind: UInt64, hash: UInt64) -> Optional[Instrument]:
+        """Returns the note block instrument of an `Instrumented` block."""
+        ...
+
+    @staticmethod
+    def activate[
+        T: WorldTypes
+    ](
+        kind: UInt64,
+        pos: Pos,
+        face: Face,
+        mut tx: World[T],
+        mut ctx: UseContext,
+    ) -> Bool:
+        """Activates the block at `pos` (Go `Activate`), reading it with
+        its block entity NBT; False for other blocks."""
+        ...
+
+    @staticmethod
+    def derive_state[
+        T: WorldTypes
+    ](kind: UInt64, hash: UInt64, pos: Pos, mut tx: World[T]) -> AnyBlock:
+        """Returns the state a `StateDeriver` block takes at `pos` (Go
+        `DeriveState`); other blocks unchanged."""
+        ...
+
+    @staticmethod
+    def opened[T: WorldTypes](kind: UInt64, pos: Pos, mut tx: World[T]):
+        """Calls `Openable.opened` of the block at `pos`."""
+        ...
+
+    @staticmethod
+    def tick_block[
+        T: WorldTypes
+    ](kind: UInt64, current_tick: Int64, pos: Pos, mut tx: World[T]):
+        """Calls `TickerBlock.tick` of the block at `pos`."""
+        ...
+
+    @staticmethod
+    def handle_break[
+        T: WorldTypes
+    ](kind: UInt64, pos: Pos, mut tx: World[T], harvest: Bool):
+        """Calls `BreakHandler.on_break` of the block at `pos`."""
+        ...
+
+    @staticmethod
+    def hopper_insert[
+        T: WorldTypes
+    ](
+        kind: UInt64,
+        mut hopper: Inventory,
+        facing: Face,
+        pos: Pos,
+        mut tx: World[T],
+    ) -> Optional[Bool]:
+        """Calls `HopperInsertable.insert_item`; None for other blocks."""
+        ...
+
+    @staticmethod
+    def hopper_extract[
+        T: WorldTypes
+    ](
+        kind: UInt64, mut hopper: Inventory, pos: Pos, mut tx: World[T]
+    ) -> Optional[Bool]:
+        """Calls `HopperExtractable.extract_item`; None for other blocks."""
+        ...
+
+    @staticmethod
+    def closed[T: WorldTypes](kind: UInt64, pos: Pos, mut tx: World[T]):
+        """Calls `Openable.closed` of the block at `pos`."""
+        ...
+
+    @staticmethod
+    def inventory_size(kind: UInt64, hash: UInt64) -> Int:
+        """Returns the slots a `Container` block stores; 0 for others."""
+        ...
+
 
 struct BlockSet[*Ts: Block](BlockTypes):
     """Static dispatch over the block types `Ts`."""
@@ -332,7 +442,7 @@ struct BlockSet[*Ts: Block](BlockTypes):
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> Optional[List[Placement]]:
         """Returns what a `UsableOnBlock` block item places, or None."""
@@ -505,6 +615,163 @@ struct BlockSet[*Ts: Block](BlockTypes):
         return None
 
     @staticmethod
+    def block_entity_nbt(kind: UInt64, hash: UInt64) -> Optional[Tree]:
+        """Returns the NBT a new block entity starts with, or None."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, NBTer):
+                if kind == T.BASE_HASH:
+                    return encode_block_nbt(T.from_hash(hash))
+        return None
+
+    @staticmethod
+    def is_activatable(kind: UInt64) -> Bool:
+        """Reports whether blocks of a type are `Activatable`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Activatable):
+                if kind == T.BASE_HASH:
+                    return True
+        return False
+
+    @staticmethod
+    def instrument(kind: UInt64, hash: UInt64) -> Optional[Instrument]:
+        """Returns the note block instrument of an `Instrumented` block."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Instrumented):
+                if kind == T.BASE_HASH:
+                    return _instrument(T.from_hash(hash))
+        return None
+
+    @staticmethod
+    def activate[
+        W: WorldTypes
+    ](
+        kind: UInt64,
+        pos: Pos,
+        face: Face,
+        mut tx: World[W],
+        mut ctx: UseContext,
+    ) -> Bool:
+        """Activates the block at `pos`, read with its block entity NBT."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Activatable):
+                if kind == T.BASE_HASH:
+                    var b = tx.block_as[T](pos)
+                    if not b:
+                        return False
+                    return _activate(b.value(), pos, face, tx, ctx)
+        return False
+
+    @staticmethod
+    def derive_state[
+        W: WorldTypes
+    ](kind: UInt64, hash: UInt64, pos: Pos, mut tx: World[W]) -> AnyBlock:
+        """Returns the state a `StateDeriver` block takes at `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, StateDeriver):
+                if kind == T.BASE_HASH:
+                    return _derive_state(T.from_hash(hash), pos, tx)
+        return AnyBlock(kind=kind, state=hash)
+
+    @staticmethod
+    def hopper_insert[
+        W: WorldTypes
+    ](
+        kind: UInt64,
+        mut hopper: Inventory,
+        facing: Face,
+        pos: Pos,
+        mut tx: World[W],
+    ) -> Optional[Bool]:
+        """Calls `HopperInsertable.insert_item`; None for other blocks."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, HopperInsertable):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        return _insert(b, hopper, facing, pos, tx)
+                    return False
+        return None
+
+    @staticmethod
+    def hopper_extract[
+        W: WorldTypes
+    ](
+        kind: UInt64, mut hopper: Inventory, pos: Pos, mut tx: World[W]
+    ) -> Optional[Bool]:
+        """Calls `HopperExtractable.extract_item`; None for other blocks."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, HopperExtractable):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        return _extract(b, hopper, pos, tx)
+                    return False
+        return None
+
+    @staticmethod
+    def handle_break[
+        W: WorldTypes
+    ](kind: UInt64, pos: Pos, mut tx: World[W], harvest: Bool):
+        """Calls `BreakHandler.on_break` of the block at `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, BreakHandler):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        _on_break(b, pos, tx, harvest)
+                    return
+
+    @staticmethod
+    def tick_block[
+        W: WorldTypes
+    ](kind: UInt64, current_tick: Int64, pos: Pos, mut tx: World[W]):
+        """Calls `TickerBlock.tick` of the block at `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, TickerBlock):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        _tick_block(b, current_tick, pos, tx)
+                    return
+
+    @staticmethod
+    def opened[W: WorldTypes](kind: UInt64, pos: Pos, mut tx: World[W]):
+        """Calls `Openable.opened` of the block at `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Openable):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        _opened(b, pos, tx)
+                    return
+
+    @staticmethod
+    def closed[W: WorldTypes](kind: UInt64, pos: Pos, mut tx: World[W]):
+        """Calls `Openable.closed` of the block at `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Openable):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        _closed(b, pos, tx)
+                    return
+
+    @staticmethod
+    def inventory_size(kind: UInt64, hash: UInt64) -> Int:
+        """Returns the slots a `Container` block stores; 0 for others."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Container):
+                if kind == T.BASE_HASH:
+                    return _inventory_size(T.from_hash(hash))
+        return 0
+
+    @staticmethod
     def scheduled_tick[
         T: WorldTypes
     ](kind: UInt64, hash: UInt64, pos: Pos, mut tx: World[T]) -> Bool:
@@ -610,9 +877,85 @@ def _drops[B: Dropper](b: B, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
 def _use_on_block[
     B: UsableOnBlock, T: WorldTypes
 ](
-    b: B, pos: Pos, face: Face, click: Vec3, user: Rotation, mut tx: World[T]
+    b: B, pos: Pos, face: Face, click: Vec3, user: User, mut tx: World[T]
 ) -> List[Placement]:
     return b.use_on_block(pos, face, click, user, tx)
+
+
+def encode_block_nbt[B: NBTer](b: B) -> Tree:
+    """Returns a block's NBT (Go `EncodeNBT`); empty if encoding fails."""
+    var t = Tree()
+    try:
+        b.encode_nbt(t, t.root())
+    except:
+        return Tree()
+    return t^
+
+
+def decode_block_nbt[B: NBTer](b: B, t: Tree) -> B:
+    """Returns a block with NBT decoded into it (Go `DecodeNBT`); the block
+    unchanged if the NBT is malformed."""
+    if t.is_empty():
+        return b.copy()
+    try:
+        return b.decode_nbt(t, t.root())
+    except:
+        return b.copy()
+
+
+def _instrument[B: Instrumented](b: B) -> Instrument:
+    return b.instrument()
+
+
+def _inventory_size[B: Container](b: B) -> Int:
+    return b.inventory_size()
+
+
+def _activate[
+    B: Activatable, W: WorldTypes
+](b: B, pos: Pos, face: Face, mut tx: World[W], mut ctx: UseContext) -> Bool:
+    return b.activate(pos, face, tx, ctx)
+
+
+def _insert[
+    B: HopperInsertable, W: WorldTypes
+](
+    b: B, mut hopper: Inventory, facing: Face, pos: Pos, mut tx: World[W]
+) -> Bool:
+    return b.insert_item(hopper, facing, pos, tx)
+
+
+def _extract[
+    B: HopperExtractable, W: WorldTypes
+](b: B, mut hopper: Inventory, pos: Pos, mut tx: World[W]) -> Bool:
+    return b.extract_item(hopper, pos, tx)
+
+
+def _on_break[
+    B: BreakHandler, W: WorldTypes
+](b: B, pos: Pos, mut tx: World[W], harvest: Bool):
+    b.on_break(pos, tx, harvest)
+
+
+def _tick_block[
+    B: TickerBlock, W: WorldTypes
+](b: B, current_tick: Int64, pos: Pos, mut tx: World[W]):
+    b.tick(current_tick, pos, tx)
+
+
+def _opened[B: Openable, W: WorldTypes](b: B, pos: Pos, mut tx: World[W]):
+    b.opened(pos, tx)
+
+
+def _closed[B: Openable, W: WorldTypes](b: B, pos: Pos, mut tx: World[W]):
+    b.closed(pos, tx)
+
+
+def _derive_state[
+    B: StateDeriver, W: WorldTypes
+](b: B, pos: Pos, mut tx: World[W]) -> AnyBlock:
+    var d = b.derive_state(pos, tx.source())
+    return AnyBlock(kind=B.BASE_HASH, state=d.hash())
 
 
 def _liquid_info[B: Liquid](b: B) -> LiquidInfo:

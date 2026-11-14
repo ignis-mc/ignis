@@ -1,7 +1,18 @@
 """`RedstoneOre`, ported from Dragonfly `server/block/redstone_ore.go`.
 
-TODO(world-runtime): Activate, Punch, EntityStepOn and the drops.
+TODO(world-runtime): Punch, EntityStepOn and the drops.
 """
+
+from ..internal.color import RGBA
+from ..mgl64 import Vec3
+from ..world.particle.block import Dust
+from .block import Activatable, UseContext
+from .cube.face import Face
+from .cube.pos import Pos
+
+
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
 
 from ..item.smelting_info import SmeltInfo, Smeltable
 from ..item.stack import Stack
@@ -27,10 +38,12 @@ from .cube.face import Face
 
 
 struct RedstoneOre(
+    Activatable,
     Block,
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightEmitter,
     ModelledBlock,
@@ -57,6 +70,41 @@ struct RedstoneOre(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bassDrum`)."""
+        return Instrument.BASS_DRUM
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Lights up unless the user sneaks; never counts as used (Go
+        `Activate`)."""
+        if ctx.sneaking:
+            return False
+        self.light(pos, tx)
+        return False
+
+    def light[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Emits particles and starts glowing (Go `light`)."""
+        self.emit_particles(pos, tx)
+        if self.lit:
+            return
+        var r = self
+        r.lit = True
+        tx.set_block(pos, r)
+
+    def emit_particles[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Emits the red particles of disturbed redstone ore (Go
+        `emitParticles`)."""
+        for _ in range(5):
+            var offset = redstone_ore_particle_offset(tx)
+            tx.add_particle(
+                pos.vec3().add(offset),
+                Dust(colour=REDSTONE_ORE_PARTICLE_COLOUR),
+            )
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -133,3 +181,30 @@ struct RedstoneOre(
         var r = self.copy()
         r.lit = False
         tx.set_block(pos, r)
+
+
+comptime REDSTONE_ORE_PARTICLE_COLOUR = RGBA(255, 0, 0, 255)
+"""The colour of redstone ore particles (Go `redstoneOreParticleColour`)."""
+
+
+def redstone_ore_particle_offset[T: WorldTypes](mut tx: World[T]) -> Vec3:
+    """Returns a random offset on or just outside one face of the block (Go
+    `redstoneOreParticleOffset`, drawing from the global source)."""
+    var x = tx.global_rand().float64()
+    var y = tx.global_rand().float64()
+    var z = tx.global_rand().float64()
+    comptime edge = 0.05
+    var side = tx.global_rand().int_n(6)
+    if side == 0:
+        x = -edge
+    elif side == 1:
+        x = 1 + edge
+    elif side == 2:
+        y = -edge
+    elif side == 3:
+        y = 1 + edge
+    elif side == 4:
+        z = -edge
+    elif side == 5:
+        z = 1 + edge
+    return Vec3(x, y, z)

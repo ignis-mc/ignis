@@ -4,12 +4,22 @@ TODO(world-runtime): Instrument, FlammabilityInfo, CanRedstoneWireStepDown,
 Model and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+from .block import slab_instrument
+
 from .cube.face import Face
 from .cube.pos import Pos
 from .cube.rotation import Rotation
 from ..mgl64 import Vec3
 from ..world.world import World, WorldTypes
-from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
+from .block import (
+    Placement,
+    UsableOnBlock,
+    User,
+    first_replaceable,
+    replaceable_with,
+)
 from .hash import AnyBlock
 
 from ..item.smelting_info import Fuel, FuelInfo
@@ -54,6 +64,7 @@ struct Slab(
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     LiquidDisplacer,
@@ -86,6 +97,11 @@ struct Slab(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `Instrument`: by the block it is made of).
+        """
+        return slab_instrument(self.block)
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -170,7 +186,7 @@ struct Slab(
         pos: Pos,
         face: Face,
         click: Vec3,
-        user: Rotation,
+        user: User,
         mut tx: World[T],
     ) -> List[Placement]:
         """Places a top or bottom slab, or completes a half slab of the same

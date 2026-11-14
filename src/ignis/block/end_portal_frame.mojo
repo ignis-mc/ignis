@@ -4,6 +4,9 @@
 TODO(world-runtime): Model, UseOnBlock.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from minecraft.nbt.tree import Tag, Tree
 
 from ..world.block import Block, LightEmitter, NBTer
@@ -19,6 +22,7 @@ struct EndPortalFrame(
     Block,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightEmitter,
     ModelledBlock,
@@ -46,6 +50,10 @@ struct EndPortalFrame(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bassDrum`)."""
+        return Instrument.BASS_DRUM
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

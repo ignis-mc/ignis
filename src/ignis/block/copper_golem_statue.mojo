@@ -4,9 +4,12 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): UseOnBlock, Activate (pose changes), Model, Wax, Strip and
-the drops.
+TODO(world-runtime): UseOnBlock, Model, Wax, Strip and the drops.
 """
+
+from .block import Activatable, UseContext
+from .copper_golem_pose import copper_golem_poses
+
 
 from minecraft.nbt.tree import Tag, Tree
 
@@ -34,6 +37,7 @@ from .cube.face import Face
 
 
 struct CopperGolemStatue(
+    Activatable,
     Block,
     Breakable,
     Equatable,
@@ -78,6 +82,24 @@ struct CopperGolemStatue(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash() and self.pose == other.pose
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Moves the statue to its next pose with an empty hand (Go
+        `Activate`)."""
+        if not ctx.held.empty():
+            return False
+        var poses = copper_golem_poses()
+        var next = Int(self.pose.uint8()) + 1
+        if next >= len(poses):
+            next = 0
+        var c = self
+        c.pose = poses[next]
+        tx.set_block(pos, c)
+        return True
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

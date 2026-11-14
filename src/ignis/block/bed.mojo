@@ -3,8 +3,14 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the `Sleeper` entity handle, Model, UseOnBlock, Activate,
-EntityLand, bounce, head, the break handler waking the sleeper and the drops.
+`activate` sets the user's spawn with Go's checks and messages but does not
+put the user to sleep (sleeping is not ported). Outside the overworld Go
+removes the bed and explodes; explosions are not ported, so the bed is only
+removed.
+
+TODO(world-runtime): the `Sleeper` entity handle, sleeping, UseOnBlock (the
+colour needs placement NBT), EntityLand, bounce, the break handler waking the
+sleeper and the drops.
 """
 
 from minecraft.nbt.tree import Tag, Tree
@@ -22,7 +28,19 @@ from ..world.block import (
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item, ItemHasher
-from .block import face_solid_at, horizontal_direction, is_air
+from .air import Air
+from .block import (
+    Activatable,
+    UseContext,
+    face_solid_at,
+    horizontal_direction,
+    is_air,
+    light_diffuser_at,
+)
+from .model.empty import Empty as EmptyModel
+from .model.solid import Solid as SolidModel
+from .register import block_model_as
+from ..world.dimension import OVERWORLD
 from .break_info import (
     ALWAYS_HARVESTABLE,
     BreakInfo,
@@ -42,6 +60,7 @@ from .cube.face import Face
 
 
 struct Bed(
+    Activatable,
     Block,
     Breakable,
     Equatable,
@@ -185,6 +204,101 @@ struct Bed(
         b.colour = Colour(c)
         return b^
 
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Sets the user's spawn at the bed (Go `Activate` up to `Sleep`)."""
+        if tx.dimension() != OVERWORLD:
+            # Go also explodes here (ExplosionConfig.Explode).
+            tx.set_block(pos, Air())
+            return True
+        var side = self.side(pos, tx)
+        if not side:
+            return False
+        var side_pos = side.value()[1]
+        var user_pos = ctx.user_pos
+        if (
+            side_pos.vec3_middle().sub(user_pos).len() > 2
+            and pos.vec3_middle().sub(user_pos).len() > 2
+        ):
+            ctx.messages.append(MESSAGE_BED_TOO_FAR)
+            return True
+        var head = self.head_side(pos, tx)
+        if not head:
+            return False
+        var head_side = head.value()[0]
+        var head_pos = head.value()[1]
+        if not self.safe_spawn(pos, tx):
+            ctx.messages.append(MESSAGE_BED_OBSTRUCTED)
+            return False
+        if tx.liquid(head_pos):
+            return False
+        if tx.player_spawn(ctx.user) != head_pos:
+            tx.set_player_spawn(ctx.user, head_pos)
+            ctx.messages.append(MESSAGE_RESPAWN_POINT_SET)
+        var time = tx.time() % TIME_FULL
+        if not tx.thundering():
+            if not tx.raining() and (time <= TIME_SLEEP or time >= TIME_WAKE):
+                ctx.messages.append(MESSAGE_NO_SLEEP)
+                return True
+            if time <= TIME_SLEEP_WITH_RAIN or time >= TIME_WAKE_WITH_RAIN:
+                ctx.messages.append(MESSAGE_NO_SLEEP)
+                return True
+        if head_side.occupied:
+            ctx.messages.append(MESSAGE_BED_IS_OCCUPIED)
+            return True
+        # TODO(world-runtime): s.Sleep(headPos) once players can sleep.
+        return True
+
+    def head_side[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T]) -> Optional[Tuple[Bed, Pos]]:
+        """Returns the head half of the bed and its position (Go `head`)."""
+        var side = self.side(pos, tx)
+        if not side:
+            return None
+        if self.head:
+            return (self, pos)
+        return side
+
+    def side[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T]) -> Optional[Tuple[Bed, Pos]]:
+        """Returns the other half of the bed and its position (Go `side`)."""
+        var side_pos = bed_side(pos, self.facing, self.head)
+        if case .Some(o) = tx.block_as[Bed](side_pos):
+            return (o, side_pos)
+        return None
+
+    def safe_spawn[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T]) -> Optional[Pos]:
+        """Returns a free position next to the bed to spawn at (Go
+        `SafeSpawn`)."""
+        var head = self.head_side(pos, tx)
+        if not head:
+            return None
+        var heel_pos = head.value()[1].side(self.facing.opposite().face())
+        var br = tx.block_registry()
+        for offset in bed_offsets(self.facing):
+            var p = heel_pos.add(offset)
+            var rid = tx.block(p)
+            if block_model_as[SolidModel](
+                AnyBlock(br[].kind(rid), br[].state_hash(rid))
+            ):
+                var d = light_diffuser_at(tx, p)
+                if not d or d.value() != 0:
+                    continue
+            var below = tx.block(p.side(Face.DOWN))
+            if block_model_as[EmptyModel](
+                AnyBlock(br[].kind(below), br[].state_hash(below))
+            ):
+                continue
+            return p
+        return None
+
     def can_displace(self, b: AnyBlock) -> Bool:
         """Holds water sources (Go `sourceWaterDisplacer`)."""
         return source_water_can_displace(b)
@@ -198,3 +312,101 @@ struct Bed(
             face = face.opposite()
         if not tx.block_as[Bed](pos.side(face)):
             break_block_no_drops(self, pos, tx)
+
+
+comptime TIME_SLEEP = 12542
+"""The time from which players may sleep (Go `world.TimeSleep`)."""
+comptime TIME_WAKE = 23459
+"""The time players wake up (Go `world.TimeWake`)."""
+comptime TIME_SLEEP_WITH_RAIN = 12010
+"""The time from which players may sleep when it rains (Go
+`world.TimeSleepWithRain`)."""
+comptime TIME_WAKE_WITH_RAIN = 23991
+"""The time players wake up when it rains (Go `world.TimeWakeWithRain`)."""
+comptime TIME_FULL = 24000
+"""The length of a day (Go `world.TimeFull`)."""
+
+comptime MESSAGE_BED_TOO_FAR = "§7%tile.bed.tooFar§r"
+"""Go `chat.MessageBedTooFar` as `Messaget` sends it."""
+comptime MESSAGE_BED_OBSTRUCTED = "§7%tile.bed.obstructed§r"
+"""Go `chat.MessageBedObstructed`."""
+comptime MESSAGE_RESPAWN_POINT_SET = "§7%tile.bed.respawnSet§r"
+"""Go `chat.MessageRespawnPointSet`."""
+comptime MESSAGE_NO_SLEEP = "§7%tile.bed.noSleep§r"
+"""Go `chat.MessageNoSleep`."""
+comptime MESSAGE_BED_IS_OCCUPIED = "§7%tile.bed.occupied§r"
+"""Go `chat.MessageBedIsOccupied`."""
+
+
+def bed_side(pos: Pos, facing: Direction, head: Bool) -> Pos:
+    """Returns the position of the other half of a bed (Go `bedSide`)."""
+    var face = facing.face()
+    if head:
+        face = face.opposite()
+    return pos.side(face)
+
+
+def bed_offsets(facing: Direction) -> List[Pos]:
+    """Returns the spawn candidates around a bed relative to its heel, in
+    Go's order (Go `bedOffsets`)."""
+    if facing == Direction.NORTH:
+        return [
+            Pos(-1, 0, 0),
+            Pos(-1, 0, 1),
+            Pos(0, 0, 1),
+            Pos(1, 0, 1),
+            Pos(1, 0, 0),
+            Pos(1, 0, -1),
+            Pos(1, 0, -2),
+            Pos(0, 0, -2),
+            Pos(-1, 0, -2),
+            Pos(-1, 0, -1),
+            Pos(0, 1, -1),
+            Pos(0, 1, 0),
+        ]
+    if facing == Direction.EAST:
+        return [
+            Pos(0, 0, -1),
+            Pos(-1, 0, -1),
+            Pos(-1, 0, 0),
+            Pos(-1, 0, 1),
+            Pos(-1, 0, 1),
+            Pos(0, 0, 1),
+            Pos(1, 0, 1),
+            Pos(2, 0, 1),
+            Pos(2, 0, 0),
+            Pos(2, 0, -1),
+            Pos(1, 0, -1),
+            Pos(1, 1, 0),
+            Pos(0, 1, 0),
+        ]
+    if facing == Direction.SOUTH:
+        return [
+            Pos(1, 0, 0),
+            Pos(1, 0, -1),
+            Pos(0, 0, -1),
+            Pos(-1, 0, -1),
+            Pos(-1, 0, 0),
+            Pos(-1, 0, 1),
+            Pos(-1, 0, 2),
+            Pos(0, 0, 2),
+            Pos(1, 0, 2),
+            Pos(1, 0, 1),
+            Pos(0, 1, 1),
+            Pos(0, 1, 0),
+        ]
+    return [
+        Pos(0, 0, 1),
+        Pos(1, 0, 1),
+        Pos(1, 0, 0),
+        Pos(1, 0, -1),
+        Pos(1, 0, -1),
+        Pos(0, 0, -1),
+        Pos(-1, 0, -1),
+        Pos(-2, 0, -1),
+        Pos(-2, 0, 0),
+        Pos(-2, 0, 1),
+        Pos(-1, 0, 1),
+        Pos(-1, 1, 0),
+        Pos(0, 1, 0),
+    ]

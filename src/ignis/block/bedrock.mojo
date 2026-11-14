@@ -1,5 +1,8 @@
 """Bedrock, ported from Dragonfly `server/block/bedrock.go`."""
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
@@ -9,7 +12,14 @@ from .model.solid import Solid as SolidModel
 
 
 @fieldwise_init
-struct Bedrock(Block, Equatable, ImplicitlyCopyable, Item, ModelledBlock):
+struct Bedrock(
+    Block,
+    Equatable,
+    ImplicitlyCopyable,
+    Instrumented,
+    Item,
+    ModelledBlock,
+):
     """A block that is indestructible in survival."""
 
     comptime BASE_HASH: UInt64 = HASH_BEDROCK
@@ -24,6 +34,10 @@ struct Bedrock(Block, Equatable, ImplicitlyCopyable, Item, ModelledBlock):
     def __init__(out self):
         """Creates bedrock that does not burn (Go `Bedrock{}`)."""
         self.infinite_burning = False
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bassDrum`)."""
+        return Instrument.BASS_DRUM
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

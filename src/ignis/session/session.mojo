@@ -213,6 +213,7 @@ from minecraft.protocol.packet.sub_chunk import SubChunk
 from minecraft.protocol.packet.sub_chunk_request import SubChunkRequest
 from minecraft.protocol.packet.text import (
     TEXT_TYPE_CHAT,
+    TEXT_TYPE_JUKEBOX_POPUP,
     TEXT_TYPE_RAW,
     TEXT_TYPE_TRANSLATION,
     Text,
@@ -262,12 +263,30 @@ from .inventory import (
     window_id,
 )
 from .item import stack_to_item
+from ..item.inventory.inventory import Inventory, StackIDs
+from ..item.recipe.register import Recipes
 from ..item.stack import Stack
 from ..world.block_registry import BasicBlockRegistry
 from ..world.item import ItemRegistry
 from nethernet.os.time import monotonic_ms
 from .conn import Conn
-from .viewer import PacketQueue
+from ..block.container import (
+    container_positions,
+    read_container,
+    write_container,
+)
+from ..block.hash import HASH_CHEST
+from ..entity.experience_orb import spawn_experience_orbs
+from .handler_item_stack_request import grindstone_experience
+from .viewer import OpenedWindow, PacketQueue
+from .window import (
+    WINDOW_ENDER_CHEST,
+    WINDOW_STORED,
+    WINDOW_UI,
+    Window,
+    window_container_type,
+    window_kind,
+)
 
 
 comptime SELF_ENTITY_RUNTIME_ID: UInt64 = 1
@@ -299,6 +318,10 @@ struct Config(Copyable, Defaultable):
     """The item registry stacks are encoded with."""
     var creative_items: ArcPointer[List[Stack]]
     """The creative inventory, in network ID order (Go `creative.Items`)."""
+    var stack_ids: ArcPointer[StackIDs]
+    """The stack network ID source, shared with the world's containers."""
+    var recipes: ArcPointer[Recipes]
+    """The crafting recipes, numbered from 1 as `CraftingData` sends them."""
 
     var creative_content: List[UInt8]
     """The encoded `CreativeContent` packet sent next (Go
@@ -320,6 +343,8 @@ struct Config(Copyable, Defaultable):
         self.blocks = ArcPointer(BasicBlockRegistry())
         self.items = ArcPointer(ItemRegistry())
         self.creative_items = ArcPointer(List[Stack]())
+        self.stack_ids = ArcPointer(StackIDs())
+        self.recipes = ArcPointer(Recipes())
 
         self.creative_content = List[UInt8]()
         self.crafting_data = List[UInt8]()
@@ -534,8 +559,9 @@ struct Session[C: Conn](Movable):
         self._runnables = Dict[String, List[Int]]()
         self._enum_values = Dict[String, List[String]]()
         self._soft_enums = Set[String]()
-        self.invs = Inventories()
+        self.invs = Inventories(conf.stack_ids)
         self._stack_requests = ItemStackRequestHandler()
+        self._stack_requests.use_recipes(conf.recipes, conf.items)
         self._inv_opened = False
         self._queue[].entity_ids[
             uuid_key(self.player.uuid())
@@ -629,6 +655,15 @@ struct Session[C: Conn](Movable):
         self.view_entity_state(self.player.copy())
         self.send_inventories()
 
+    def close_windows[T: WorldTypes](mut self, mut w: World[T]):
+        """Puts the UI items back into the inventory, dropping what does not
+        fit, and closes the open block window (the start of Go `close`)."""
+        for it in self.invs.ui.clear():
+            var n = self.invs.inv.add_item(it.copy())
+            if n < it.count():
+                w.drop_item(self.player.position(), it.grow(-n))
+        self.close_container(w, True)
+
     def close[T: WorldTypes](mut self, mut w: World[T]):
         """Stops loading chunks (the world part of Go `close`)."""
         if case .Some(id) = self._loader:
@@ -703,8 +738,11 @@ struct Session[C: Conn](Movable):
                 e.offset = offset
                 pk.sub_chunk_entries.append(e^)
                 continue
+            var bes = w.network_block_entities(col_pos, Int(ind.value()))
             pk.sub_chunk_entries.append(
-                sub_chunk_entry(offset, ind.value(), w.chunk(col_pos), br[])
+                sub_chunk_entry(
+                    offset, ind.value(), w.chunk(col_pos), br[], bes
+                )
             )
         self.write_packet(pk)
 
@@ -724,8 +762,13 @@ struct Session[C: Conn](Movable):
             return self._handle_text(pk.decode[Text]())
         if id == ID_ITEM_STACK_REQUEST:
             var res = HandleResult()
+            # Changes made outside requests go out first: discarding the
+            # request's own changes below must not lose them (Go sends them
+            # from the slot funcs at once).
+            var outside = self.send_inventory_changes()
             var held = self.invs.held_item()
             var off = self.invs.off_hand_item()
+            self._load_window(w)
             var resp = self._stack_requests.handle(
                 pk.decode[ItemStackRequest](),
                 self.invs,
@@ -735,10 +778,13 @@ struct Session[C: Conn](Movable):
                 res.dropped,
             )
             self.write_packet(resp)
+            self._store_window(w)
+            self._spawn_grindstone_experience(w)
             # Go's inTransaction: the response already told the client.
             self._discard_inventory_changes()
             res.held_changed = (
-                held != self.invs.held_item()
+                outside
+                or held != self.invs.held_item()
                 or off != self.invs.off_hand_item()
             )
             return res^
@@ -752,7 +798,7 @@ struct Session[C: Conn](Movable):
             self._handle_interact(pk.decode[Interact]())
             return HandleResult()
         if id == ID_CONTAINER_CLOSE:
-            return self._handle_container_close(pk.decode[ContainerClose]())
+            return self._handle_container_close(pk.decode[ContainerClose](), w)
         if id == ID_COMMAND_REQUEST:
             # Go `CommandRequestHandler`: the origin is kept for the output.
             var req = pk.decode[CommandRequest]()
@@ -935,11 +981,10 @@ struct Session[C: Conn](Movable):
         open.container_position.z = Int32(Int(pos.z()))
         self.write_packet(open)
 
-    def _handle_container_close(
-        mut self, pk: ContainerClose
-    ) raises -> HandleResult:
-        """Go `ContainerCloseHandler`; only the player's own inventory opens
-        here, so other windows are acknowledged with their type."""
+    def _handle_container_close[
+        T: WorldTypes
+    ](mut self, pk: ContainerClose, mut w: World[T]) raises -> HandleResult:
+        """Go `ContainerCloseHandler`."""
         var res = HandleResult()
         # Go `MoveItemsToInventory`: UI items go back or are dropped.
         for it in self.invs.ui.clear():
@@ -950,15 +995,146 @@ struct Session[C: Conn](Movable):
         if pk.window_id == 0:
             self._inv_opened = False
             container_type = 0
+        elif pk.window_id == self._queue[].last_window_id:
+            if case .Some(ref o) = self._queue[].opened:
+                container_type = o.container_type
+            self.close_container(w, True)
         elif pk.window_id == 0xFF:
             # Sent when a window opens together with the chat.
             self._inv_opened = False
+            if self._queue[].opened:
+                self.close_container(w, False)
             return res^
         var close = ContainerClose()
         close.window_id = pk.window_id
         close.container_type = container_type
         self.write_packet(close)
         return res^
+
+    # ===------------------------------------------------------------------=== #
+    # Container windows (Go world.go OpenBlockContainer, player.go)
+    # ===------------------------------------------------------------------=== #
+
+    def open_block_container[
+        T: WorldTypes
+    ](mut self, pos: Pos, mut w: World[T]):
+        """Opens the window of the block at `pos` (Go `OpenBlockContainer`
+        and `openNormalContainer`): containers show the inventory they
+        keep, ender chests the player's, other blocks the UI inventory."""
+        if case .Some(ref o) = self._queue[].opened:
+            if o.pos == pos:
+                return
+        self.close_container(w, False)
+        var br = w.block_registry()
+        var rid = w.block(pos)
+        var kind = br[].kind(rid)
+        var stored = T.Blocks.inventory_size(kind, br[].state_hash(rid)) > 0
+        var wk = window_kind(kind, stored)
+        if wk != WINDOW_UI:
+            if case .Some(l) = self._loader:
+                # Go `AddViewer`; the first viewer opens the lid. Both
+                # halves of a double chest share their viewers.
+                var first = w.add_container_viewer(pos, l) == 0
+                for other in _window_positions(pos, kind, w):
+                    if other != pos:
+                        _ = w.add_container_viewer(other, l)
+                if first:
+                    T.Blocks.opened(kind, pos, w)
+        var id = self._queue[].next_window_id()
+        var ctype = window_container_type(kind)
+        self._queue[].opened = OpenedWindow(id, ctype, pos, stored)
+        self.invs.window = Window(wk, kind)
+        var pk = ContainerOpen()
+        pk.window_id = id
+        pk.container_type = ctype
+        pk.container_position = _block_pos_of(pos)
+        pk.container_entity_unique_id = -1
+        self.write_packet(pk)
+        if wk == WINDOW_STORED:
+            var inv = self.window_inventory(w)
+            var content = inventory_content(
+                self._conf.blocks[], self._conf.items[], inv, UInt32(id)
+            )
+            self.write_packet(content)
+        elif wk == WINDOW_ENDER_CHEST:
+            var content = inventory_content(
+                self._conf.blocks[],
+                self._conf.items[],
+                self.invs.ender_chest,
+                UInt32(id),
+            )
+            self.write_packet(content)
+
+    def close_container[
+        T: WorldTypes
+    ](mut self, mut w: World[T], client_requested: Bool):
+        """Closes the open block window (Go `closeCurrentContainer`); the
+        server tells the client unless it asked itself."""
+        if not self._queue[].opened:
+            self.invs.window = Window.none()
+            return
+        var o = self._queue[].opened.take()
+        var block = self.invs.window.block
+        self.invs.window = Window.none()
+        if not client_requested:
+            var pk = ContainerClose()
+            pk.window_id = o.window_id
+            pk.container_type = o.container_type
+            pk.server_side = True
+            self.write_packet(pk)
+        if case .Some(l) = self._loader:
+            # Go `RemoveViewer`; the last viewer closes the lid.
+            for other in _window_positions(o.pos, block, w):
+                if other != o.pos:
+                    _ = w.remove_container_viewer(other, l)
+            if w.remove_container_viewer(o.pos, l) == 0:
+                T.Blocks.closed(block, o.pos, w)
+
+    def opened_window(self) -> Optional[OpenedWindow]:
+        """Returns the block window the client has open."""
+        return self._queue[].opened.copy()
+
+    def window_inventory[T: WorldTypes](mut self, mut w: World[T]) -> Inventory:
+        """Returns the inventory the open window shows (Go `openedWindow`):
+        the block's, both halves of a paired chest, or an empty one."""
+        if case .Some(ref o) = self._queue[].opened:
+            if o.stored:
+                var at = _window_positions(o.pos, self.invs.window.block, w)
+                if case .Some(inv) = read_container(at, w):
+                    return inv.copy()
+        return Inventory(1, self.invs.ids)
+
+    def _spawn_grindstone_experience[T: WorldTypes](mut self, mut w: World[T]):
+        # Go's grindstone craft adds the orbs at the player's eyes.
+        for cost in self._stack_requests.experience_costs:
+            var half = (cost + 1) // 2
+            var roll = w.global_rand().int_n(half)
+            spawn_experience_orbs(
+                w, self.player.eye_position(), grindstone_experience(cost, roll)
+            )
+        self._stack_requests.experience_costs.clear()
+
+    def _load_window[T: WorldTypes](mut self, mut w: World[T]):
+        # Copies the opened block's inventory in for a stack request.
+        if case .Some(ref o) = self._queue[].opened:
+            if o.stored:
+                w.flush_container_changes()
+                var inv = self.window_inventory(w)
+                _ = inv.take_changes()
+                self.invs.opened = inv^
+                return
+        if self.invs.window.kind == WINDOW_STORED:
+            self.invs.window = Window.none()
+
+    def _store_window[T: WorldTypes](mut self, mut w: World[T]):
+        # Writes the request's changes back and shows them to the other
+        # viewers (Go's slot funcs, skipping the requester: inTransaction).
+        if case .Some(ref o) = self._queue[].opened:
+            if o.stored and self.invs.opened.changed():
+                var at = _window_positions(o.pos, self.invs.window.block, w)
+                write_container(at, self.invs.opened, w)
+                w.flush_container_changes(exclude=self._loader)
+        _ = self.invs.opened.take_changes()
 
     def _handle_mob_equipment(
         mut self, pk: MobEquipment
@@ -1037,6 +1213,7 @@ struct Session[C: Conn](Movable):
                 )
             var req = ItemStackRequest()
             req.requests.append(pk.item_stack_request.value().copy())
+            var outside = self.send_inventory_changes()
             var held = self.invs.held_item()
             var resp = self._stack_requests.handle(
                 req,
@@ -1048,7 +1225,7 @@ struct Session[C: Conn](Movable):
             )
             self.write_packet(resp)
             self._discard_inventory_changes()
-            res.held_changed = held != self.invs.held_item()
+            res.held_changed = outside or held != self.invs.held_item()
         return res^
 
     def _handle_movement(mut self, mut pk: PlayerAuthInput) -> Bool:
@@ -1226,6 +1403,13 @@ struct Session[C: Conn](Movable):
         """Sends a raw chat message (Go `SendMessage`)."""
         var pk = Text()
         pk.text_type = TEXT_TYPE_RAW
+        pk.message = message.copy()
+        self.write_packet(pk)
+
+    def send_jukebox_popup(mut self, message: String):
+        """Shows a jukebox popup (Go `SendJukeboxPopup`)."""
+        var pk = Text()
+        pk.text_type = TEXT_TYPE_JUKEBOX_POPUP
         pk.message = message.copy()
         self.write_packet(pk)
 
@@ -1663,6 +1847,16 @@ def _enum_values[
 
 def _pos(b: BlockPos) -> Pos:
     return Pos(Int(b.x), Int(b.y), Int(b.z))
+
+
+def _window_positions[
+    T: WorldTypes
+](pos: Pos, block: UInt64, mut w: World[T]) -> List[Pos]:
+    """Returns the blocks a window shows: both halves of a double chest,
+    else just `pos`."""
+    if block == HASH_CHEST:
+        return container_positions(pos, w)
+    return [pos]
 
 
 def _block_pos_of(p: Pos) -> BlockPos:

@@ -4,6 +4,9 @@ TODO(world-runtime): Instrument, EntityLand, UseOnBlock, FlammabilityInfo and
 the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..item.item import Compostable
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
@@ -27,6 +30,7 @@ struct HayBale(
     Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
 ):
@@ -48,6 +52,10 @@ struct HayBale(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `Instrument`)."""
+        return Instrument.BANJO
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

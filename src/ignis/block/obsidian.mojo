@@ -3,6 +3,9 @@
 TODO(world-runtime): Frame, SupportsEndCrystal and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..world.block import Block, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -24,6 +27,7 @@ struct Obsidian(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightEmitter,
     ModelledBlock,
@@ -46,6 +50,10 @@ struct Obsidian(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bassDrum`)."""
+        return Instrument.BASS_DRUM
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

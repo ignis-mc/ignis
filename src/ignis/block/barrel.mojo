@@ -1,18 +1,34 @@
 """`Barrel`, ported from Dragonfly `server/block/barrel.go`.
 
-TODO(world-runtime): the inventory and viewer fields, NewBarrel, Inventory,
-WithName, open/close, AddViewer, RemoveViewer, Activate, UseOnBlock, the break
-handler, FlammabilityInfo and the drops.
+The inventory and viewers live with the world's block entity (see
+`block/container.mojo`). `FlammabilityInfo` is not ported.
 """
+
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
 
 from minecraft.nbt.tree import Tag, Tree
 
 from ..internal.nbtconv.read import get_string
 from ..item.smelting_info import Fuel, FuelInfo
-from ..world.block import Block, NBTer
+from ..mgl64 import Vec3
+from ..world.block import Block, Container, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
+from ..world.sound.block import BarrelClose, BarrelOpen
+from ..world.world import World, WorldTypes
+from .block import (
+    Activatable,
+    BreakHandler,
+    Openable,
+    Placement,
+    UsableOnBlock,
+    UseContext,
+    User,
+    calculate_face,
+    first_replaceable,
+)
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -20,20 +36,28 @@ from .break_info import (
     Breakable,
     new_break_info,
 )
+from .container import drop_contents
 from .cube.face import Face
-from .hash import HASH_BARREL
+from .cube.pos import Pos
+from .hash import AnyBlock, HASH_BARREL
 from .model.solid import Solid as SolidModel
 
 
 struct Barrel(
+    Activatable,
     Block,
+    BreakHandler,
     Breakable,
+    Container,
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     ModelledBlock,
     NBTer,
+    Openable,
+    UsableOnBlock,
 ):
     """A fisherman's job site block, used to store items."""
 
@@ -67,6 +91,10 @@ struct Barrel(
             self.hash() == other.hash()
             and self.custom_name == other.custom_name
         )
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -119,17 +147,71 @@ struct Barrel(
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
 
+    def inventory_size(self) -> Int:
+        """Returns the barrel's 27 slots (Go `ContainerSize`)."""
+        return 27
+
+    def opened[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Opens the barrel (Go `open`)."""
+        var b = self.copy()
+        b.open = True
+        tx.play_sound(pos.vec3_centre(), BarrelOpen())
+        tx.set_block(pos, b)
+
+    def closed[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Closes the barrel (Go `close`)."""
+        var b = self.copy()
+        b.open = False
+        tx.play_sound(pos.vec3_centre(), BarrelClose())
+        tx.set_block(pos, b)
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens the barrel's window (Go `Activate`)."""
+        ctx.open_container = True
+        return True
+
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: User,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places the barrel facing the user (Go `UseOnBlock`)."""
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var p = at.value()[0]
+        var b = Barrel(facing=calculate_face(user, p))
+        return [Placement(p, AnyBlock(Self.BASE_HASH, b.hash()))]
+
+    def on_break[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T], harvest: Bool):
+        """Drops the contents (Go's break handler)."""
+        tx.close_container_viewers(pos)
+        drop_contents(pos, tx, pos.vec3())
+
     def encode_nbt(self, mut tag: Tree, root: Tag) raises:
-        """Writes the block entity NBT (Go `EncodeNBT`)."""
-        # TODO(world-runtime): the inventory; Go writes an empty one as an
-        # empty list.
+        """Writes the block entity NBT (Go `EncodeNBT`); the world adds the
+        `Items`."""
         _ = tag.put_list(root, "Items")
         _ = tag.put_string(root, "id", "Barrel")
         if self.custom_name.byte_length() != 0:
             _ = tag.put_string(root, "CustomName", self.custom_name)
 
     def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
-        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`,
+        which does not keep `Open`)."""
         return Self(
             facing=self.facing, custom_name=get_string(tag, root, "CustomName")
         )

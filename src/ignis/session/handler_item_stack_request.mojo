@@ -8,9 +8,11 @@ drops are handed back for the server to spawn as item entities (Go
 `Controllable.Drop`).
 
 Ported actions: take, place, swap, drop, destroy, create, mine block,
-craft creative; consume and the deprecated craft results are ignored as in
-Go. Crafting, beacons, smithing, stonecutting, enchanting, looms and
-grindstones need containers and recipes and reject the request.
+craft creative, craft recipe and auto craft (with the dynamic decorated
+pot recipe, `handler_crafting.go`); consume and the deprecated craft
+results are ignored as in Go. Go's auto craft takes ingredients from the
+crafting grid and the inventory in random map order; Ignis takes them from
+the grid first.
 
 Fixed Dragonfly bug: when a request is rejected, a slot it changed twice
 is restored to its state before the request; Go restores the state before
@@ -24,15 +26,30 @@ come in the order they were first changed.
 from std.collections import Dict
 
 from minecraft.protocol.container import (
+    CONTAINER_COMBINED_HOT_BAR_AND_INVENTORY,
+    CONTAINER_CRAFTING_INPUT,
     CONTAINER_CREATED_OUTPUT,
+    CONTAINER_GRINDSTONE_ADDITIONAL,
+    CONTAINER_GRINDSTONE_INPUT,
     CONTAINER_INVENTORY,
+    CONTAINER_LOOM_DYE,
+    CONTAINER_LOOM_INPUT,
+    CONTAINER_LOOM_MATERIAL,
+    CONTAINER_SMITHING_TABLE_INPUT,
+    CONTAINER_SMITHING_TABLE_MATERIAL,
+    CONTAINER_SMITHING_TABLE_TEMPLATE,
+    CONTAINER_STONECUTTER_INPUT,
     FullContainerName,
 )
 from minecraft.protocol.item_stack import (
     ITEM_STACK_RESPONSE_STATUS_ERROR,
     ITEM_STACK_RESPONSE_STATUS_OK,
+    AutoCraftRecipeStackRequestAction,
     ConsumeStackRequestAction,
     CraftCreativeStackRequestAction,
+    CraftGrindstoneRecipeStackRequestAction,
+    CraftLoomRecipeStackRequestAction,
+    CraftRecipeStackRequestAction,
     CraftResultsDeprecatedStackRequestAction,
     CreateStackRequestAction,
     DestroyStackRequestAction,
@@ -54,11 +71,83 @@ from minecraft.protocol.packet.item_stack_response import (
     ItemStackResponse as ItemStackResponsePacket,
 )
 
+from std.memory import ArcPointer
+
+from minecraft.nbt.nbt import TAG_STRING
+from minecraft.nbt.tree import Tree
+
+from ..block.decorated_pot import DecoratedPot
+from ..block.hash import (
+    HASH_CRAFTING_TABLE,
+    HASH_GRINDSTONE,
+    HASH_LOOM,
+    HASH_SMITHING_TABLE,
+    HASH_STONECUTTER,
+)
+from ..block.banner import Banner
+from ..block.banner_pattern_layer import BannerPatternLayer
+from ..block.banner_pattern_type import (
+    BannerPatternType as BlockPatternType,
+    banner_pattern_by_id,
+)
+from ..item.banner_pattern import BannerPattern
+from ..item.banner_pattern_type import BannerPatternType
+from ..item.boots import Boots
+from ..item.dye import Dye
+from ..world.block_set import encode_block_nbt
+from ..item.enchantment.register import VanillaEnchantments
+from ..item.stack import Enchantment
+from ..item.chestplate import Chestplate
+from ..item.helmet import Helmet
+from ..item.leggings import Leggings
+from ..item.register import VanillaItems
+from ..item.smithing_template import SmithingTemplate
+from ..block.register import VanillaBlocks
+from ..item.brick import Brick
+from ..item.pottery_sherd import PotterySherd
+from ..item.recipe.item import Item as RecipeItem
+from ..item.recipe.recipe import Recipe, RecipeKind
+from ..item.recipe.register import Recipes
 from ..item.stack import Stack
-from .inventory import INV_OFF_HAND, Inventories, inventory_kind
+from ..world.item import ItemRegistry
+from .inventory import (
+    INV_OFF_HAND,
+    INV_OPENED,
+    Inventories,
+    inventory_kind,
+    window_inventory_kind,
+)
+from .window import Window
+from ..block.hash import HASH_SHULKER_BOX
 
 comptime CRAFTING_RESULT = 50
 """The UI slot of a crafting result (Go `craftingResult`)."""
+comptime CRAFTING_GRID_SIZE_SMALL = 4
+"""The 2x2 grid of the inventory screen (Go `craftingGridSizeSmall`)."""
+comptime CRAFTING_GRID_SIZE_LARGE = 9
+"""The 3x3 grid of a crafting table (Go `craftingGridSizeLarge`)."""
+comptime CRAFTING_GRID_SMALL_OFFSET = 28
+"""The UI slot of the 2x2 grid (Go `craftingGridSmallOffset`)."""
+comptime CRAFTING_GRID_LARGE_OFFSET = 32
+"""The UI slot of the 3x3 grid (Go `craftingGridLargeOffset`)."""
+comptime STONECUTTER_INPUT_SLOT = 0x03
+"""Go `stonecutterInputSlot`."""
+comptime SMITHING_INPUT_SLOT = 0x33
+"""Go `smithingInputSlot`."""
+comptime SMITHING_MATERIAL_SLOT = 0x34
+"""Go `smithingMaterialSlot`."""
+comptime SMITHING_TEMPLATE_SLOT = 0x35
+"""Go `smithingTemplateSlot`."""
+comptime LOOM_INPUT_SLOT = 0x09
+"""Go `loomInputSlot`."""
+comptime LOOM_DYE_SLOT = 0x0A
+"""Go `loomDyeSlot`."""
+comptime LOOM_PATTERN_SLOT = 0x0B
+"""Go `loomPatternSlot`."""
+comptime GRINDSTONE_FIRST_INPUT_SLOT = 0x10
+"""Go `grindstoneFirstInputSlot`."""
+comptime GRINDSTONE_SECOND_INPUT_SLOT = 0x11
+"""Go `grindstoneSecondInputSlot`."""
 comptime _ACK_TIMEOUT_MS = 5000
 comptime _MAX_RESPONSE_CHANGES = 256
 
@@ -102,6 +191,13 @@ struct ItemStackRequestHandler(Defaultable, Movable):
     var _current: Int
     var _ignore_destroy: Bool
     var _creative: Bool
+    var _window: Window
+    var _recipes: ArcPointer[Recipes]
+    var _items: ArcPointer[ItemRegistry]
+    var experience_costs: List[Int]
+    """The enchantment costs of grindstone crafts (Go
+    `experienceFromEnchantments` before its random part), for the caller to
+    turn into experience orbs."""
 
     def __init__(out self):
         """Creates a handler with no pending changes."""
@@ -113,6 +209,18 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         self._current = 0
         self._ignore_destroy = False
         self._creative = False
+        self._window = Window.none()
+        self._recipes = ArcPointer(Recipes())
+        self._items = ArcPointer(ItemRegistry())
+        self.experience_costs = List[Int]()
+
+    def use_recipes(
+        mut self, recipes: ArcPointer[Recipes], items: ArcPointer[ItemRegistry]
+    ):
+        """Sets the recipes crafting requests use (Go `s.recipes`, numbered
+        from 1) and the items their names come from."""
+        self._recipes = recipes
+        self._items = items
 
     def handle(
         mut self,
@@ -129,6 +237,7 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         dropped stacks are appended to `drops`."""
         self._current = now_ms
         self._creative = creative_inventory
+        self._window = invs.window
         var out = ItemStackResponsePacket()
         for ref req in pk.requests:
             self._current_request = req.request_id
@@ -171,6 +280,29 @@ struct ItemStackRequestHandler(Defaultable, Movable):
                 ref a = v[CraftCreativeStackRequestAction]
                 self._creative_craft(
                     a.creative_item_network_id, invs, creative_items
+                )
+            elif v.isa[CraftRecipeStackRequestAction]():
+                ref a = v[CraftRecipeStackRequestAction]
+                # Go: the opened block picks a special craft first.
+                if self._window.block == HASH_SMITHING_TABLE:
+                    self._smithing(a.recipe_network_id, invs)
+                elif self._window.block == HASH_STONECUTTER:
+                    self._stonecutting(
+                        a.recipe_network_id, Int(a.number_of_crafts), invs
+                    )
+                else:
+                    self._craft(
+                        a.recipe_network_id, Int(a.number_of_crafts), invs
+                    )
+            elif v.isa[CraftLoomRecipeStackRequestAction]():
+                ref a = v[CraftLoomRecipeStackRequestAction]
+                self._loom(a.pattern, Int(a.times_crafted), invs)
+            elif v.isa[CraftGrindstoneRecipeStackRequestAction]():
+                self._grindstone(invs)
+            elif v.isa[AutoCraftRecipeStackRequestAction]():
+                ref a = v[AutoCraftRecipeStackRequestAction]
+                self._auto_craft(
+                    a.recipe_network_id, Int(a.number_of_crafts), invs
                 )
             elif v.isa[MineBlockStackRequestAction]():
                 ref a = v[MineBlockStackRequestAction]
@@ -271,8 +403,417 @@ struct ItemStackRequestHandler(Defaultable, Movable):
             raise Error(t"creative item with network ID {network_id}")
         var it = creative_items[index].copy()
         it = it.grow(it.max_count() - it.count())
-        self._pending_results.append(it^)
-        self._create(len(self._pending_results) - 1, invs)
+        self._create_results([it^], invs)
+
+    def _create_results(
+        mut self, var results: List[Stack], mut invs: Inventories
+    ) raises:
+        """Go `createResults`: a single result goes to the created output at
+        once; with several, the client asks for each with a create."""
+        var n = len(results)
+        self._pending_results.extend(results^)
+        if n > 1:
+            return
+        self._create(0, invs)
+
+    # --- Crafting (Go handler_crafting.go) ----------------------------------
+
+    def _crafting_table_recipe(
+        self, network_id: UInt32, times: Int
+    ) raises -> Optional[Int]:
+        # The checks shared by handleCraft and handleAutoCraft; None means
+        # no recipe has the ID (a dynamic craft).
+        var index = Int(network_id) - 1
+        if index < 0 or index >= len(self._recipes[].recipes()):
+            return None
+        ref r = self._recipes[].recipes()[index]
+        if r.kind != RecipeKind.SHAPED and r.kind != RecipeKind.SHAPELESS:
+            raise Error(
+                t"recipe with network id {network_id} is not a shaped or"
+                t" shapeless recipe"
+            )
+        if r.block() != "crafting_table":
+            raise Error(
+                t"recipe with network id {network_id} is not a crafting"
+                t" table recipe"
+            )
+        if times < 1:
+            raise Error("times crafted must be at least 1")
+        return index
+
+    def _grid(self) -> Tuple[Int, Int]:
+        # Go `craftingSize` and `craftingOffset`.
+        if self._window.block == HASH_CRAFTING_TABLE:
+            return (CRAFTING_GRID_SIZE_LARGE, CRAFTING_GRID_LARGE_OFFSET)
+        return (CRAFTING_GRID_SIZE_SMALL, CRAFTING_GRID_SMALL_OFFSET)
+
+    def _craft(
+        mut self, network_id: UInt32, times: Int, mut invs: Inventories
+    ) raises:
+        """Go `handleCraft`: takes each input from the crafting grid."""
+        var found = self._crafting_table_recipe(network_id, times)
+        if not found:
+            self._dynamic_craft(times, invs)
+            return
+        var r = self._recipes[].recipes()[found.value()].copy()
+        var grid = self._grid()
+        var size = grid[0]
+        var offset = grid[1]
+        var consumed = List[Bool](length=size, fill=False)
+        for ref expected in r.input():
+            var processed = False
+            for slot in range(offset, offset + size):
+                if consumed[slot - offset]:
+                    continue
+                var has = invs.ui.item(slot)
+                if (
+                    has.empty() != expected.empty()
+                    or has.count() < expected.count() * times
+                ):
+                    continue
+                if not self._matches(has, expected):
+                    continue
+                processed = True
+                consumed[slot - offset] = True
+                self._set(
+                    _slot(CONTAINER_CRAFTING_INPUT, slot),
+                    has.grow(-expected.count() * times),
+                    invs,
+                )
+                break
+            if not processed:
+                raise Error(
+                    t"recipe {network_id}: could not consume expected item"
+                )
+        self._create_results(repeat_stacks(r.output(), times), invs)
+
+    def _auto_craft(
+        mut self, network_id: UInt32, times: Int, mut invs: Inventories
+    ) raises:
+        """Go `handleAutoCraft`: takes the inputs, merged, from the grid and
+        then the inventory."""
+        var found = self._crafting_table_recipe(network_id, times)
+        if not found:
+            self._dynamic_craft(times, invs)
+            return
+        var r = self._recipes[].recipes()[found.value()].copy()
+        var flattened = List[RecipeItem]()
+        var counts = List[Int]()
+        for ref i in r.input():
+            if i.empty():
+                continue
+            var merged = False
+            for k in range(len(flattened)):
+                if self._same_input(flattened[k], i):
+                    counts[k] += i.count()
+                    merged = True
+                    break
+            if not merged:
+                flattened.append(i.copy())
+                counts.append(i.count())
+        for k in range(len(flattened)):
+            var remaining = counts[k] * times
+            for container in [
+                CONTAINER_CRAFTING_INPUT,
+                CONTAINER_COMBINED_HOT_BAR_AND_INVENTORY,
+            ]:
+                var kind = inventory_kind(container).value()
+                for slot in range(invs.get(kind).size()):
+                    var has = invs.get(kind).item(slot)
+                    if has.empty() or not self._matches(has, flattened[k]):
+                        continue
+                    var removal = min(has.count(), remaining)
+                    remaining -= removal
+                    self._set(_slot(container, slot), has.grow(-removal), invs)
+                    if remaining == 0:
+                        break
+                if remaining == 0:
+                    break
+            if remaining != 0:
+                raise Error(
+                    t"recipe {network_id}: could not consume expected item"
+                )
+        self._create_results(repeat_stacks(r.output(), times), invs)
+
+    def _recipe(self, network_id: UInt32) raises -> Recipe:
+        var index = Int(network_id) - 1
+        if index < 0 or index >= len(self._recipes[].recipes()):
+            raise Error(t"recipe with network id {network_id} does not exist")
+        return self._recipes[].recipes()[index].copy()
+
+    def _stonecutting(
+        mut self, network_id: UInt32, times: Int, mut invs: Inventories
+    ) raises:
+        """Go `handleStonecutting`."""
+        var r = self._recipe(network_id)
+        if r.kind != RecipeKind.SHAPELESS:
+            raise Error(t"recipe {network_id} is not a shapeless recipe")
+        if r.block() != "stonecutter":
+            raise Error(t"recipe {network_id} is not a stonecutter recipe")
+        if times < 1:
+            raise Error("times crafted must be at least 1")
+        var at = _slot(CONTAINER_STONECUTTER_INPUT, STONECUTTER_INPUT_SLOT)
+        var input = self._item(at, invs)
+        if input.count() < times:
+            raise Error("input item count is less than number of crafts")
+        if not self._matches(input, r.input()[0]):
+            raise Error("input item is not the same as expected input")
+        self._set(at, input.grow(-times), invs)
+        self._create_results(repeat_stacks(r.output(), times), invs)
+
+    def _smithing(mut self, network_id: UInt32, mut invs: Inventories) raises:
+        """Go `handleSmithing`: upgrades (transform) and armour trims."""
+        var r = self._recipe(network_id)
+        if r.block() != "smithing_table":
+            raise Error(t"recipe {network_id} is not a smithing table recipe")
+        var trim = r.kind == RecipeKind.SMITHING_TRIM
+        if r.kind != RecipeKind.SMITHING_TRANSFORM and not trim:
+            raise Error(t"recipe {network_id} is not a smithing recipe")
+        var at_input = _slot(
+            CONTAINER_SMITHING_TABLE_INPUT, SMITHING_INPUT_SLOT
+        )
+        var at_material = _slot(
+            CONTAINER_SMITHING_TABLE_MATERIAL, SMITHING_MATERIAL_SLOT
+        )
+        var at_template = _slot(
+            CONTAINER_SMITHING_TABLE_TEMPLATE, SMITHING_TEMPLATE_SLOT
+        )
+        var input = self._item(at_input, invs)
+        if not self._matches(input, r.input()[0]):
+            raise Error("input item is not the same as expected input")
+        var material = self._item(at_material, invs)
+        if not self._matches(material, r.input()[1]):
+            raise Error("material item is not the same as expected material")
+        var template = self._item(at_template, invs)
+        if not self._matches(template, r.input()[2]):
+            raise Error("template item is not the same as expected template")
+        self._set(at_input, input.grow(-1), invs)
+        self._set(at_material, material.grow(-1), invs)
+        self._set(at_template, template.grow(-1), invs)
+        var result = input.grow(1 - input.count())
+        if not trim:
+            self._create_results([result.with_item_of(r.output()[0])], invs)
+            return
+        var t = template.item_as[SmithingTemplate]()
+        if not t:
+            raise Error("template item is not a smithing template")
+        var m = material.item().value()
+        var mname: Optional[StaticString] = None
+        if not m.block:
+            mname = VanillaItems.trim_material(m.kind, m.hash)
+        if not mname:
+            raise Error("material item is not an armour trim material")
+        var k = input.item().value().kind
+        if (
+            k != Helmet.BASE_HASH
+            and k != Chestplate.BASE_HASH
+            and k != Leggings.BASE_HASH
+            and k != Boots.BASE_HASH
+        ):
+            raise Error("input item is not trimmable")
+        # Go `Trimmable.WithTrim`, written as the armour's `Trim` NBT.
+        var nbt = result.item_nbt()
+        _ = nbt.remove(nbt.root(), "Trim")
+        var c = nbt.put_compound(nbt.root(), "Trim")
+        _ = nbt.put_string(c, "Material", String(mname.value()))
+        _ = nbt.put_string(c, "Pattern", t.value().template.name())
+        self._create_results([result.with_item_nbt(nbt^)], invs)
+
+    def _loom(
+        mut self, pattern_id: String, times: Int, mut invs: Inventories
+    ) raises:
+        """Go `handleLoomCraft`: adds a pattern layer in the dye's colour to
+        a banner."""
+        if self._window.block != HASH_LOOM:
+            raise Error("no loom container opened")
+        if times < 1:
+            raise Error("times crafted must be least 1")
+        var at_input = _slot(CONTAINER_LOOM_INPUT, LOOM_INPUT_SLOT)
+        var input = self._item(at_input, invs)
+        if input.count() < times:
+            raise Error("input item count is less than times crafted")
+        var it = input.item().value()
+        if not it.block or it.kind != Banner.BASE_HASH:
+            raise Error("input item is not a banner")
+        var b = Banner.from_item_hash(it.hash)
+        var own = input.item_nbt()
+        if not own.is_empty():
+            b = b.decode_nbt(own, own.root())
+        if b.illager:
+            raise Error("input item is an illager banner")
+        var at_dye = _slot(CONTAINER_LOOM_DYE, LOOM_DYE_SLOT)
+        var dye = self._item(at_dye, invs)
+        if dye.count() < times:
+            raise Error("dye item count is less than times crafted")
+        var d = dye.item_as[Dye]()
+        if not d:
+            raise Error("dye item is not a dye")
+        var expected = banner_pattern_by_id(pattern_id)
+        if not expected:
+            raise Error(t"unknown banner pattern id {pattern_id}")
+        var pattern = self._item(
+            _slot(CONTAINER_LOOM_MATERIAL, LOOM_PATTERN_SLOT), invs
+        )
+        if case .Some(need) = _pattern_item(expected.value()):
+            if pattern.empty():
+                raise Error("pattern item is empty but the pattern is required")
+            var p = pattern.item_as[BannerPattern]()
+            if not p:
+                raise Error("pattern item is not a banner pattern")
+            if p.value().type != need:
+                raise Error("pattern item does not match the expected pattern")
+        var layer = BannerPatternLayer()
+        layer.type = expected.value()
+        layer.colour = d.value().colour
+        b.patterns.append(layer)
+        self._set(at_input, input.grow(-times), invs)
+        self._set(at_dye, dye.grow(-times), invs)
+        self._create_results(
+            [
+                input.grow(times - input.count()).with_item_nbt(
+                    encode_block_nbt(b)
+                )
+            ],
+            invs,
+        )
+
+    def _grindstone(mut self, mut invs: Inventories) raises:
+        """Go `handleGrindstoneCraft`: removes the enchantments that are not
+        curses, joining two damaged items of the same type."""
+        if self._window.block != HASH_GRINDSTONE:
+            raise Error("no grindstone container opened")
+        var at_first = _slot(
+            CONTAINER_GRINDSTONE_INPUT, GRINDSTONE_FIRST_INPUT_SLOT
+        )
+        var at_second = _slot(
+            CONTAINER_GRINDSTONE_ADDITIONAL, GRINDSTONE_SECOND_INPUT_SLOT
+        )
+        var first = self._item(at_first, invs)
+        var second = self._item(at_second, invs)
+        if first.empty() and second.empty():
+            raise Error("input item(s) are empty")
+        if first.count() > 1 or second.count() > 1:
+            raise Error("input item(s) are not single items")
+        var result = second.copy() if first.empty() else first.copy()
+        if not first.empty() and not second.empty():
+            if first.item().value() != second.item().value():
+                raise Error("input items must be the same type")
+            if not first.info().durable():
+                raise Error("input items must be durable")
+            result = _with_enchantments(first, second.enchantments())
+            var max_durability = first.max_durability()
+            result = result.with_durability(
+                first.durability()
+                + second.durability()
+                + max_durability * 5 // 100
+            )
+        var cost = 0
+        for e in result.enchantments():
+            if VanillaEnchantments.curse(Int(e.id)):
+                continue
+            if case .Some(c) = VanillaEnchantments.cost(Int(e.id), e.level):
+                cost += c[0]
+        if cost > 0:
+            self.experience_costs.append(cost)
+        self._set(at_first, Stack(), invs)
+        self._set(at_second, Stack(), invs)
+        self._create_results([_strip_enchantments(result)], invs)
+
+    def _dynamic_craft(mut self, times_in: Int, mut invs: Inventories) raises:
+        """Go `tryDynamicCraft`: the decorated pot from four decorations."""
+        var times = times_in
+        if times < 1:
+            raise Error("times crafted must be at least 1")
+        var grid = self._grid()
+        var size = grid[0]
+        var offset = grid[1]
+        var input = List[Stack]()
+        for i in range(size):
+            input.append(invs.ui.item(offset + i))
+        if len(self._recipes[].dynamic_recipes()) == 0:
+            raise Error("no matching recipe found for crafting grid")
+        var output = self._decorated_pot(input)
+        if not output:
+            raise Error("no matching recipe found for crafting grid")
+        var least = Int.MAX
+        for ref it in input:
+            if not it.empty() and it.count() < least:
+                least = it.count()
+        if least < times:
+            times = least
+        for i in range(size):
+            var it = invs.ui.item(offset + i)
+            if not it.empty():
+                self._set(
+                    _slot(CONTAINER_CRAFTING_INPUT, offset + i),
+                    it.grow(-times),
+                    invs,
+                )
+        self._create_results(
+            repeat_stacks([output.value().copy()], times), invs
+        )
+
+    def _decorated_pot(self, input: List[Stack]) -> Optional[Stack]:
+        # Go `DecoratedPotRecipe.Match`.
+        if len(input) != 9:
+            return None
+        var names = List[String]()
+        for i in range(9):
+            ref it = input[i]
+            if i % 2 == 0:
+                if not it.empty():
+                    return None
+                continue
+            if it.empty():
+                return None
+            var k = it.item().value().kind
+            if k != Brick.BASE_HASH and k != PotterySherd.BASE_HASH:
+                return None
+            names.append(self._name(it))
+        var nbt = Tree()
+        try:
+            _ = nbt.put_string(nbt.root(), "id", "DecoratedPot")
+            var l = nbt.put_list(nbt.root(), "sherds", TAG_STRING)
+            for idx in [0, 1, 3, 2]:  # top, left, bottom, right
+                _ = nbt.append_string(l, names[idx])
+        except:
+            return None
+        return Stack(DecoratedPot(), 1).with_item_nbt(nbt^)
+
+    def _name(self, s: Stack) -> String:
+        # Go `s.Item().EncodeItem()`'s name.
+        if case .Some(it) = s.item():
+            if it.block:
+                if case .Some(e) = VanillaBlocks.encode_block_item(
+                    it.kind, it.hash
+                ):
+                    return e.name
+                return String()
+            if case .Some(e) = self._items[].encode_item(it):
+                return e.name
+        return String()
+
+    def _matches(self, has: Stack, expected: RecipeItem) -> Bool:
+        # Go `matchingStacks` with a stack from the inventory.
+        if case .Some(t) = expected.tag():
+            return t.contains(self._name(has))
+        var e = expected.stack().value().copy()
+        if not expected.variants():
+            return has.comparable(e)
+        return self._name(has) == self._name(e)
+
+    def _same_input(self, has: RecipeItem, expected: RecipeItem) -> Bool:
+        # Go `matchingStacks` between two recipe inputs.
+        if case .Some(t) = expected.tag():
+            if case .Some(h) = has.tag():
+                return h.tag() == t.tag()
+            return t.contains(self._name(has.stack().value()))
+        var e = expected.stack().value().copy()
+        if case .Some(h) = has.tag():
+            return h.contains(self._name(e))
+        if not expected.variants():
+            return has.stack().value().comparable(e)
+        return self._name(has.stack().value()) == self._name(e)
 
     def _mine_block(
         mut self, a: MineBlockStackRequestAction, mut invs: Inventories
@@ -304,6 +845,10 @@ struct ItemStackRequestHandler(Defaultable, Movable):
 
     def _kind(self, slot: StackRequestSlotInfo) raises -> Int:
         var kind = inventory_kind(slot.container.container_id)
+        if not kind:
+            kind = window_inventory_kind(
+                slot.container.container_id, self._window
+            )
         if not kind:
             raise Error(
                 t"unable to find container with ID"
@@ -376,6 +921,13 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         the response and for later requests that refer to it."""
         var kind = self._kind(slot)
         var index = self._index(kind, slot)
+        if (
+            kind == INV_OPENED
+            and self._window.block == HASH_SHULKER_BOX
+            and _is_shulker_box(it)
+        ):
+            # Go's slot validator `canStoreInShulkerBox`.
+            raise Error("shulker boxes cannot hold shulker boxes")
         ref inv = invs.get(kind)
         var before = inv.item(index)
         inv.set_item(index, it)
@@ -441,3 +993,101 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         self._change_order = List[Int]()
         self._pending_results = List[Stack]()
         return resp^
+
+
+def _is_shulker_box(it: Stack) -> Bool:
+    if case .Some(i) = it.item():
+        return i.block and i.kind == HASH_SHULKER_BOX
+    return False
+
+
+def _slot(container: UInt8, slot: Int) -> StackRequestSlotInfo:
+    var info = StackRequestSlotInfo()
+    info.container = FullContainerName()
+    info.container.container_id = container
+    info.slot = UInt8(slot)
+    return info^
+
+
+def repeat_stacks(items: List[Stack], repetitions: Int) -> List[Stack]:
+    """Returns the outputs of crafting `repetitions` times, split into full
+    stacks (Go `repeatStacks`)."""
+    var out = List[Stack]()
+    for ref o in items:
+        var count = o.count()
+        var max_count = o.max_count()
+        var total = count * repetitions
+        var stacks = (total + max_count - 1) // max_count
+        for _ in range(stacks):
+            var inc = min(total, max_count)
+            total -= inc
+            out.append(o.grow(inc - count))
+    return out^
+
+
+def _with_enchantments(s: Stack, enchants: List[Enchantment]) -> Stack:
+    """Go `WithEnchantments` for two stacks of one type: an enchantment
+    that clashes with one already there is skipped; the same type takes the
+    new level."""
+    var out = s.copy()
+    for e in enchants:
+        var fits = True
+        for o in out.enchantments():
+            if o.id == e.id:
+                continue
+            var a = Int(e.id)
+            var b = Int(o.id)
+            if not VanillaEnchantments.compatible(
+                a, b
+            ) or not VanillaEnchantments.compatible(b, a):
+                fits = False
+                break
+        if fits:
+            out = out.with_forced_enchantments([e])
+    return out^
+
+
+def _strip_enchantments(s: Stack) -> Stack:
+    """Go `stripPossibleEnchantments`: drops all but the curses and resets
+    the anvil cost."""
+    var ids = List[Int16]()
+    for e in s.enchantments():
+        if not VanillaEnchantments.curse(Int(e.id)):
+            ids.append(e.id)
+    return s.without_enchantments(ids).with_anvil_cost(0)
+
+
+def grindstone_experience(cost: Int, roll: Int) -> Int:
+    """Returns the experience of a grindstone craft whose enchantments cost
+    `cost` (Go `experienceFromEnchantments`): half the cost, rounded up,
+    plus `roll`, a random number below that half."""
+    if cost == 0:
+        return 0
+    return (cost + 1) // 2 + roll
+
+
+def _pattern_item(p: BlockPatternType) -> Optional[BannerPatternType]:
+    """Returns the banner pattern item a pattern needs in the loom (Go
+    `bannerPatternType.Item`)."""
+    var v = Int(p.uint8())
+    if v == 1:
+        return BannerPatternType.FIELD_MASONED
+    if v == 3:
+        return BannerPatternType.CREEPER
+    if v == 5:
+        return BannerPatternType.BORDURE_INDENTED
+    if v == 10:
+        return BannerPatternType.FLOWER
+    if v == 17:
+        return BannerPatternType.MOJANG
+    if v == 19:
+        return BannerPatternType.SKULL
+    if v == 38:
+        return BannerPatternType.GLOBE
+    if v == 39:
+        return BannerPatternType.PIGLIN
+    if v == 40:
+        return BannerPatternType.FLOW
+    if v == 41:
+        return BannerPatternType.GUSTER
+    return None

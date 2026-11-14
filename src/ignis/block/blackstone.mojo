@@ -3,6 +3,9 @@
 TODO(world-runtime): the drops (gilded blackstone drops gold nuggets).
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -20,7 +23,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct Blackstone(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Instrumented,
+    Item,
+    ModelledBlock,
 ):
     """A naturally generating block in the nether, similar to cobblestone."""
 
@@ -39,6 +48,10 @@ struct Blackstone(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bassDrum`)."""
+        return Instrument.BASS_DRUM
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

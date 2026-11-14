@@ -3,6 +3,9 @@
 TODO(world-runtime): the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..item.colour import Colour, colours
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
@@ -20,7 +23,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct Concrete(
-    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Instrumented,
+    Item,
+    ModelledBlock,
 ):
     """A solid block which comes in the 16 regular dye colours, created by placing concrete
     powder adjacent to water."""
@@ -40,6 +49,10 @@ struct Concrete(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bassDrum`)."""
+        return Instrument.BASS_DRUM
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
