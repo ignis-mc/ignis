@@ -35,6 +35,9 @@ from minecraft.protocol.packet.block_event import (
 )
 from minecraft.protocol.packet.container_close import ContainerClose
 from minecraft.protocol.packet.container_set_data import (
+    CONTAINER_DATA_BREWING_STAND_BREW_TIME,
+    CONTAINER_DATA_BREWING_STAND_FUEL_AMOUNT,
+    CONTAINER_DATA_BREWING_STAND_FUEL_TOTAL,
     CONTAINER_DATA_FURNACE_LIT_DURATION,
     CONTAINER_DATA_FURNACE_LIT_TIME,
     CONTAINER_DATA_FURNACE_TICK_COUNT,
@@ -265,6 +268,39 @@ struct SessionViewer(Viewer):
             )
         if prev_max_ms != max_ms:
             self._set_data(window, CONTAINER_DATA_FURNACE_LIT_DURATION, max_ms)
+
+    def view_brewing_update(
+        mut self,
+        prev_brew_ms: Int,
+        brew_ms: Int,
+        prev_fuel: Int,
+        fuel: Int,
+        prev_fuel_total: Int,
+        fuel_total: Int,
+    ):
+        """Sends the brewing progress (Go `ViewBrewingUpdate`)."""
+        if not self.queue[].opened:
+            return
+        var window = self.queue[].opened.value().window_id
+        if prev_brew_ms != brew_ms:
+            self._set_data(
+                window, CONTAINER_DATA_BREWING_STAND_BREW_TIME, brew_ms
+            )
+        if prev_fuel != fuel:
+            self._set_value(
+                window, CONTAINER_DATA_BREWING_STAND_FUEL_AMOUNT, fuel
+            )
+        if prev_fuel_total != fuel_total:
+            self._set_value(
+                window, CONTAINER_DATA_BREWING_STAND_FUEL_TOTAL, fuel_total
+            )
+
+    def _set_value(mut self, window: UInt8, key: Int32, value: Int):
+        var pk = ContainerSetData()
+        pk.window_id = window
+        pk.key = key
+        pk.value = Int32(value)
+        self.queue[].push(pk)
 
     def _set_data(mut self, window: UInt8, key: Int32, ms: Int):
         var pk = ContainerSetData()

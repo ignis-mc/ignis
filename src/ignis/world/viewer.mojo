@@ -16,7 +16,7 @@ Containers add Go's `ContainerViewer.ViewSlotChange`, and
 sub-chunks they request (`World.network_block_entities`).
 
 Not ported yet (they need unported types): `ViewEntityGameMode`,
-`ViewEntityDisplacement`, `ViewBrewingUpdate`, `ViewEntityAction`,
+`ViewEntityDisplacement`, `ViewEntityAction`,
 `ViewEntityState`, `ViewEntityAnimation`, `ViewEmote`, `ViewSkin` and
 `ViewEntityWake`.
 """
@@ -122,6 +122,19 @@ trait Viewer(Deinitable, Movable):
     ):
         """Views the progress of the smelter the viewer opened (Go
         `ViewFurnaceUpdate`)."""
+        pass
+
+    def view_brewing_update(
+        mut self,
+        prev_brew_ms: Int,
+        brew_ms: Int,
+        prev_fuel: Int,
+        fuel: Int,
+        prev_fuel_total: Int,
+        fuel_total: Int,
+    ):
+        """Views the progress of the brewing stand the viewer opened (Go
+        `ViewBrewingUpdate`)."""
         pass
 
     def view_container_removed(mut self):

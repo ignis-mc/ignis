@@ -74,7 +74,8 @@ from .entity import EntityData, EntityHandle, EntityTypes
 from .game_mode import GameMode
 from .generator import Generator
 from .handler import Handler
-from .item import ItemRegistry
+from .item import EncodedItem, ItemRegistry
+from ..item.recipe.register import Recipes
 from .loader import Loader, LoaderID
 from .position import ChunkPos, chunk_pos_from_block_pos, chunk_pos_from_vec3
 from .provider import Provider, uuid_key
@@ -193,6 +194,7 @@ struct World[T: WorldTypes](Movable):
     var _chunk_unload_interval_ms: Int
     var _br: ArcPointer[BasicBlockRegistry]
     var _items: ArcPointer[ItemRegistry]
+    var _recipes: ArcPointer[Recipes]
     var _stack_ids: ArcPointer[StackIDs]
     var _changed_containers: List[Pos]
     var _generator: Self.T.Generator
@@ -257,6 +259,7 @@ struct World[T: WorldTypes](Movable):
         self._chunk_unload_interval_ms = chunk_unload_interval_ms
         self._br = blocks
         self._items = items
+        self._recipes = ArcPointer(Recipes())
         self._stack_ids = ArcPointer(StackIDs())
         self._changed_containers = List[Pos]()
         self._generator = generator^
@@ -309,6 +312,24 @@ struct World[T: WorldTypes](Movable):
         """Returns the item registry block entities encode their items
         with."""
         return self._items
+
+    def recipes(self) -> ArcPointer[Recipes]:
+        """Returns the recipes blocks such as brewing stands use (Go's
+        global `recipe` registry)."""
+        return self._recipes
+
+    def set_recipes(mut self, recipes: ArcPointer[Recipes]):
+        """Sets the recipes blocks use."""
+        self._recipes = recipes
+
+    def encode_stack(self, s: Stack) -> Optional[EncodedItem]:
+        """Returns the name and meta of a stack's item (Go `EncodeItem`),
+        block items included; None for an empty stack."""
+        if case .Some(it) = s.item():
+            if it.block:
+                return Self.T.Blocks.encode_block_item(it.kind, it.hash)
+            return self._items[].encode_item(it)
+        return None
 
     def stack_ids(self) -> ArcPointer[StackIDs]:
         """Returns the stack network ID source of container inventories;

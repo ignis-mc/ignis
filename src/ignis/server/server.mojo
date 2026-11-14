@@ -481,6 +481,7 @@ struct Server(Movable):
         self.item_registry = item_reg^
         self.creative_items = ArcPointer(item_pks[3].copy())
         self.recipes = ArcPointer(item_pks[4].copy())
+        self.world.set_recipes(self.recipes)
         self._biomes = biomes^
         self._creative = item_pks[0].copy()
         self._crafting = item_pks[1].copy()

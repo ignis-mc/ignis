@@ -3,14 +3,35 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the `*brewer` (brewer.go: inventory, fuel, brewing
-progress), NewBrewingStand, Tick, Model, Activate, UseOnBlock, the break
-handler and the drops.
+The brewing (Go's embedded `*brewer`) is `block/brewer.mojo`: the
+inventory lives with the world's block entity, the brew time and fuel are
+NBT fields of the value. Go's `DecodeNBT` returns a stand without its slot
+bits and keeps the value, so `Tick` sets them once; Ignis decodes the NBT
+every tick, so `decode_nbt` keeps the bits of the state.
 """
 
 from minecraft.nbt.tree import Tag, Tree
 
-from ..world.block import Block, LightDiffuser, NBTer
+from ..item.inventory.inventory import Inventory
+from ..mgl64 import Vec3
+from ..world.block import Block, Container, LightDiffuser, NBTer, TickerBlock
+from ..world.block_set import encode_block_nbt
+from ..world.world import World, WorldTypes
+from .block import (
+    Activatable,
+    BreakHandler,
+    HopperExtractable,
+    HopperInsertable,
+    Placement,
+    UsableOnBlock,
+    UseContext,
+    User,
+    first_replaceable,
+)
+from .brewer import Brewer, brewer_extract, brewer_insert, tick_brewing
+from .container import drop_contents
+from .cube.face import Face
+from .cube.pos import Pos
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -29,15 +50,22 @@ from .liquid import source_water_can_displace
 
 
 struct BrewingStand(
+    Activatable,
     Block,
+    BreakHandler,
     Breakable,
+    Container,
     Equatable,
+    HopperExtractable,
+    HopperInsertable,
     ImplicitlyCopyable,
     Item,
     LightDiffuser,
     LiquidDisplacer,
     ModelledBlock,
     NBTer,
+    TickerBlock,
+    UsableOnBlock,
 ):
     """A block used for brewing potions, splash potions, and lingering potions.
     """
@@ -53,6 +81,8 @@ struct BrewingStand(
     """Whether the middle slot holds a potion."""
     var right_slot: Bool
     """Whether the right slot holds a potion."""
+    var brewer: Brewer
+    """The brew time and fuel (Go's `*brewer`)."""
 
     def __init__(
         out self,
@@ -65,10 +95,11 @@ struct BrewingStand(
         self.left_slot = left_slot
         self.middle_slot = middle_slot
         self.right_slot = right_slot
+        self.brewer = Brewer()
 
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
-        return self.hash() == other.hash()
+        return self.hash() == other.hash() and self.brewer == other.brewer
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -136,20 +167,96 @@ struct BrewingStand(
         return [Self()]
 
     def encode_nbt(self, mut tag: Tree, root: Tag) raises:
-        """Writes the block entity NBT (Go `EncodeNBT`)."""
-        # TODO(world-runtime): the brewer's state and inventory; these are a
-        # new brewing stand's.
+        """Writes the block entity NBT (Go `EncodeNBT`); the world adds the
+        `Items`."""
         _ = tag.put_string(root, "id", "BrewingStand")
         _ = tag.put_list(root, "Items")
-        _ = tag.put_short(root, "CookTime", 0)
-        _ = tag.put_short(root, "FuelTotal", 0)
-        _ = tag.put_short(root, "FuelAmount", 0)
+        self.brewer.encode(tag, root)
 
     def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
         """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
-        # TODO(world-runtime): the brewer's state. Go returns a new brewing
-        # stand, without the slot state.
-        return Self()
+        var b = Self(
+            left_slot=self.left_slot,
+            middle_slot=self.middle_slot,
+            right_slot=self.right_slot,
+        )
+        b.brewer = Brewer.decode(tag, root)
+        return b^
+
+    def inventory_size(self) -> Int:
+        """Returns the ingredient, three bottle and fuel slots (Go
+        `ContainerSize`)."""
+        return 5
+
+    def tick[
+        T: WorldTypes
+    ](self, current_tick: Int64, pos: Pos, mut tx: World[T]):
+        """Shows which bottle slots are filled and brews (Go `Tick`)."""
+        var found = tx.inventory(pos)
+        if not found:
+            return
+        var b = self.copy()
+        try:
+            b.left_slot = not found.value().item(1).empty()
+            b.middle_slot = not found.value().item(2).empty()
+            b.right_slot = not found.value().item(3).empty()
+        except:
+            return
+        if b.hash() != self.hash():
+            tx.set_block(pos, b)
+        tick_brewing(b.brewer, "brewing_stand", pos, tx)
+        if b.brewer != self.brewer:
+            tx.set_block_entity_nbt(pos, encode_block_nbt(b), notify=False)
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens the window (Go `Activate`)."""
+        ctx.open_container = True
+        return True
+
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: User,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places a new brewing stand (Go `UseOnBlock`)."""
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        return [
+            Placement(at.value()[0], AnyBlock(Self.BASE_HASH, Self().hash()))
+        ]
+
+    def on_break[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T], harvest: Bool):
+        """Drops the contents (Go's break handler)."""
+        tx.close_container_viewers(pos)
+        drop_contents(pos, tx, pos.vec3_centre())
+
+    def insert_item[
+        T: WorldTypes
+    ](
+        self, mut hopper: Inventory, facing: Face, pos: Pos, mut tx: World[T]
+    ) -> Bool:
+        """Takes an item from a hopper (Go `brewer.InsertItem`)."""
+        return brewer_insert(hopper, facing, pos, tx)
+
+    def extract_item[
+        T: WorldTypes
+    ](self, mut hopper: Inventory, pos: Pos, mut tx: World[T]) -> Bool:
+        """Gives a hopper a bottle (Go `brewer.ExtractItem`)."""
+        return brewer_extract(hopper, pos, tx)
 
     def can_displace(self, b: AnyBlock) -> Bool:
         """Holds water sources (Go `sourceWaterDisplacer`)."""
