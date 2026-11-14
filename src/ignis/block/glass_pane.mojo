@@ -10,6 +10,7 @@ TODO(world-runtime): NeighbourUpdateTick, DeriveState, SideClosed, the
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NOTHING_EFFECTIVE,
@@ -27,6 +28,7 @@ struct GlassPane(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -126,3 +128,12 @@ struct GlassPane(
             The model.
         """
         return ThinModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:glass_pane", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

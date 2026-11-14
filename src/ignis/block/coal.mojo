@@ -1,12 +1,13 @@
 """`Coal`, ported from Dragonfly `server/block/coal.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the drops, FlammabilityInfo,
-FuelInfo.
+TODO(world-runtime): the drops, FlammabilityInfo.
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -18,7 +19,9 @@ from .hash import HASH_COAL
 from .model.solid import Solid as SolidModel
 
 
-struct Coal(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Coal(
+    Block, Breakable, Equatable, Fuel, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A precious mineral block made from 9 coal."""
 
     comptime BASE_HASH: UInt64 = HASH_COAL
@@ -95,3 +98,16 @@ struct Coal(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 800 s."""
+        return FuelInfo(800000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:coal_block", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

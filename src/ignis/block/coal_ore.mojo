@@ -1,11 +1,15 @@
 """`CoalOre`, ported from Dragonfly `server/block/coal_ore.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
+TODO(world-runtime): the drops.
 """
 
+from ..item.coal import Coal
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -18,7 +22,15 @@ from .model.solid import Solid as SolidModel
 from .ore_type import OreType, ore_types
 
 
-struct CoalOre(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct CoalOre(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
+):
     """A common ore."""
 
     comptime BASE_HASH: UInt64 = HASH_COAL_ORE
@@ -109,3 +121,19 @@ struct CoalOre(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns what smelting the block gives (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(Coal(), 1), 0.1, ores=True)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.type.prefix()}coal_ore"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for o in ore_types():
+            out.append(Self(type=o))
+        return out^

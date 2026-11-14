@@ -4,13 +4,15 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the viewer count, NewEnderChest, SideClosed, Activate,
-UseOnBlock, AddViewer, RemoveViewer, open/close, EncodeNBT, DecodeNBT,
-EncodeItem and the drops.
+UseOnBlock, AddViewer, RemoveViewer, open/close and the drops.
 """
 
-from ..world.block import Block, LightDiffuser, LightEmitter
+from minecraft.nbt.tree import Tag, Tree
+
+from ..world.block import Block, LightDiffuser, LightEmitter, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -28,9 +30,11 @@ struct EnderChest(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
+    NBTer,
 ):
     """A type of chest whose contents are exclusive to each player, and can be accessed from
     anywhere."""
@@ -141,3 +145,20 @@ struct EnderChest(
             The model.
         """
         return ChestModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:ender_chest", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        _ = tag.put_string(root, "id", "EnderChest")
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        return Self(facing=self.facing)

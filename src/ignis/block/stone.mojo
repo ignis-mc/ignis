@@ -4,6 +4,8 @@
 TODO(world-runtime): the `oneOf` drops.
 """
 
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -17,8 +19,6 @@ from .break_info import (
 )
 from .hash import HASH_ANDESITE, HASH_DIORITE, HASH_GRANITE, HASH_STONE
 from .model.solid import Solid as SolidModel
-from ..item.smelting_info import Smeltable, SmeltInfo
-from ..item.stack import Stack
 
 
 struct Stone(
@@ -148,7 +148,9 @@ struct Stone(
         return SolidModel()
 
 
-struct Granite(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Granite(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A type of igneous rock."""
 
     comptime BASE_HASH: UInt64 = HASH_GRANITE
@@ -235,8 +237,21 @@ struct Granite(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
         """
         return SolidModel()
 
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.polished:
+            return EncodedItem("minecraft:polished_granite", 0)
+        return EncodedItem("minecraft:granite", 0)
 
-struct Diorite(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self(polished=True), Self()]
+
+
+struct Diorite(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A type of igneous rock."""
 
     comptime BASE_HASH: UInt64 = HASH_DIORITE
@@ -323,8 +338,21 @@ struct Diorite(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
         """
         return SolidModel()
 
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.polished:
+            return EncodedItem("minecraft:polished_diorite", 0)
+        return EncodedItem("minecraft:diorite", 0)
 
-struct Andesite(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self(polished=True), Self()]
+
+
+struct Andesite(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A type of igneous rock."""
 
     comptime BASE_HASH: UInt64 = HASH_ANDESITE
@@ -410,3 +438,14 @@ struct Andesite(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.polished:
+            return EncodedItem("minecraft:polished_andesite", 0)
+        return EncodedItem("minecraft:andesite", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self(polished=True), Self()]

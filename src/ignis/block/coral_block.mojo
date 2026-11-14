@@ -1,12 +1,12 @@
 """`CoralBlock`, ported from Dragonfly `server/block/coral_block.go`.
 
-TODO(world-runtime): NeighbourUpdateTick, ScheduledTick, EncodeItem and the
-drops.
+TODO(world-runtime): NeighbourUpdateTick, ScheduledTick and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -20,7 +20,7 @@ from .model.solid import Solid as SolidModel
 
 
 struct CoralBlock(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
 ):
     """A solid block that comes in 5 variants."""
 
@@ -121,3 +121,20 @@ struct CoralBlock(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.dead:
+            return EncodedItem(
+                String(t"minecraft:dead_{self.type}_coral_block"), 0
+            )
+        return EncodedItem(String(t"minecraft:{self.type}_coral_block"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for dead in [True, False]:
+            for t in coral_types():
+                out.append(Self(type=t, dead=dead))
+        return out^

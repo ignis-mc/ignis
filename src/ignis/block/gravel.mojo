@@ -1,12 +1,13 @@
 """`Gravel`, ported from Dragonfly `server/block/gravel.go`.
 
-TODO(world-runtime): SoilFor, NeighbourUpdateTick and the falling behaviour
-of `gravityAffected`, EncodeItem and the drops (flint).
+TODO(world-runtime): SoilFor, NeighbourUpdateTick and the falling behaviour of
+`gravityAffected` and the drops (flint).
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     SHOVEL_EFFECTIVE,
@@ -18,7 +19,9 @@ from .hash import HASH_GRAVEL
 from .model.solid import Solid as SolidModel
 
 
-struct Gravel(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Gravel(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A block affected by gravity."""
 
     comptime BASE_HASH: UInt64 = HASH_GRAVEL
@@ -93,3 +96,12 @@ struct Gravel(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:gravel", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

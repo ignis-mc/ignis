@@ -1,11 +1,13 @@
 """`Bookshelf`, ported from Dragonfly `server/block/bookshelf.go`.
 
-TODO(world-runtime): FlammabilityInfo, FuelInfo, EncodeItem and the drops.
+TODO(world-runtime): FlammabilityInfo and the drops.
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -18,7 +20,7 @@ from .model.solid import Solid as SolidModel
 
 
 struct Bookshelf(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block, Breakable, Equatable, Fuel, ImplicitlyCopyable, Item, ModelledBlock
 ):
     """A decorative block that primarily serves to enhance enchanting with an enchanting table.
     """
@@ -95,3 +97,16 @@ struct Bookshelf(
             The model.
         """
         return SolidModel()
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
+        return FuelInfo(15000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:bookshelf", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

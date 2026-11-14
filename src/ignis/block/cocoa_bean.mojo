@@ -1,12 +1,14 @@
 """`CocoaBean`, ported from Dragonfly `server/block/cocoa_bean.go`.
 
-TODO(world-runtime): BoneMeal, HasLiquidDrops, NeighbourUpdateTick,
-UseOnBlock, RandomTick, Model, EncodeItem and the drops.
+TODO(world-runtime): BoneMeal, HasLiquidDrops, NeighbourUpdateTick, UseOnBlock,
+RandomTick, Model and the drops.
 """
 
+from ..item.item import Compostable
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .block import horizontal_direction
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -23,8 +25,10 @@ from .model.cocoa_bean import CocoaBean as CocoaBeanModel
 struct CocoaBean(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -139,3 +143,16 @@ struct CocoaBean(
             The model.
         """
         return CocoaBeanModel(facing=self.facing, age=self.age)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.65
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:cocoa_beans", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

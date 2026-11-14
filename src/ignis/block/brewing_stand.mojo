@@ -4,13 +4,16 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the `*brewer` (brewer.go: inventory, fuel, brewing
-progress), NewBrewingStand, Tick, Model, SideClosed, Activate, UseOnBlock,
-EncodeNBT, DecodeNBT, the break handler, EncodeItem and the drops.
+progress), NewBrewingStand, Tick, Model, SideClosed, Activate, UseOnBlock, the
+break handler and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from minecraft.nbt.tree import Tag, Tree
+
+from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     PICKAXE_EFFECTIVE,
@@ -27,8 +30,10 @@ struct BrewingStand(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
+    NBTer,
 ):
     """A block used for brewing potions, splash potions, and lingering potions.
     """
@@ -160,3 +165,28 @@ struct BrewingStand(
             The model.
         """
         return BrewingStandModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:brewing_stand", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        # TODO(world-runtime): the brewer's state and inventory; these are a
+        # new brewing stand's.
+        _ = tag.put_string(root, "id", "BrewingStand")
+        _ = tag.put_list(root, "Items")
+        _ = tag.put_short(root, "CookTime", 0)
+        _ = tag.put_short(root, "FuelTotal", 0)
+        _ = tag.put_short(root, "FuelAmount", 0)
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        # TODO(world-runtime): the brewer's state. Go returns a new brewing
+        # stand, without the slot state.
+        return Self()

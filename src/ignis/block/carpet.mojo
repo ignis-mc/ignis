@@ -4,13 +4,14 @@ Go's `sourceWaterDisplacer` makes carpets a `LiquidDisplacer`; that trait
 comes with liquids.
 
 TODO(world-runtime): SideClosed, HasLiquidDrops, NeighbourUpdateTick,
-UseOnBlock, FlammabilityInfo, EncodeItem and the drops.
+UseOnBlock, FlammabilityInfo and the drops.
 """
 
 from ..item.colour import Colour, colours
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NOTHING_EFFECTIVE,
@@ -27,6 +28,7 @@ struct Carpet(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -123,3 +125,15 @@ struct Carpet(
             The model.
         """
         return CarpetModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.colour}_carpet"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for c in colours():
+            out.append(Self(colour=c))
+        return out^

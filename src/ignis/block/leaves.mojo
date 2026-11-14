@@ -4,14 +4,16 @@ Go's `sourceWaterDisplacer` makes leaves a `LiquidDisplacer`; that trait
 comes with liquids.
 
 TODO(world-runtime): UseOnBlock, RandomTick (with findLog),
-NeighbourUpdateTick, FlammabilityInfo, CompostChance, SideClosed, the drops
-(saplings, sticks, apples).
+NeighbourUpdateTick, FlammabilityInfo, SideClosed, the drops (saplings, sticks,
+apples).
 """
 
+from ..item.item import Compostable
 from ..item.tool import TYPE_HOE, TYPE_SHEARS
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     BreakInfo,
@@ -20,15 +22,18 @@ from .break_info import (
     new_break_info,
 )
 from .hash import HASH_LEAVES
-from .leaves_type import LeavesType, leaves_types
+from .leaves_type import LeavesType, leaves_types, poplar_leaves_types
 from .model.leaves import Leaves as LeavesModel
+from .wood_type import wood_types
 
 
 struct Leaves(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -163,3 +168,24 @@ struct Leaves(
             The model.
         """
         return LeavesModel()
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.3
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.type}"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for w in wood_types():
+            if case .Some(t) = w.leaves():
+                out.append(Self(type=t, persistent=True))
+        out.append(Self(type=LeavesType.AZALEA, persistent=True))
+        out.append(Self(type=LeavesType.FLOWERING_AZALEA, persistent=True))
+        for t in poplar_leaves_types():
+            out.append(Self(type=t, persistent=True))
+        return out^

@@ -1,12 +1,12 @@
 """`Blackstone`, ported from Dragonfly `server/block/blackstone.go`.
 
-TODO(world-runtime): EncodeItem and the drops (gilded blackstone drops gold
-nuggets).
+TODO(world-runtime): the drops (gilded blackstone drops gold nuggets).
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .blackstone_type import BlackstoneType, blackstone_types
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -20,7 +20,7 @@ from .model.solid import Solid as SolidModel
 
 
 struct Blackstone(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
 ):
     """A naturally generating block in the nether, similar to cobblestone."""
 
@@ -111,3 +111,15 @@ struct Blackstone(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.type}"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for t in blackstone_types():
+            out.append(Self(type=t))
+        return out^

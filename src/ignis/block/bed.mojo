@@ -4,15 +4,19 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the `Sleeper` entity handle, Model, SideClosed,
-UseOnBlock, Activate, EntityLand, bounce, NeighbourUpdateTick, head, the
-break handler waking the sleeper, EncodeItem and the drops, DecodeNBT,
-EncodeNBT.
+UseOnBlock, Activate, EntityLand, bounce, NeighbourUpdateTick, head, the break
+handler waking the sleeper and the drops.
 """
 
-from ..item.colour import Colour
-from ..world.block import Block, LightDiffuser
+from minecraft.nbt.tree import Tag, Tree
+
+from ..internal.nbtconv.read import get_uint8
+from ..item.colour import Colour, colours
+from ..item.item import MaxCounter
+from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .block import horizontal_direction
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -31,8 +35,11 @@ struct Bed(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
+    MaxCounter,
     ModelledBlock,
+    NBTer,
 ):
     """A block that allows players to sleep to set their spawn point and skip the night.
     """
@@ -165,3 +172,34 @@ struct Bed(
             The model.
         """
         return BedModel()
+
+    def max_count(self) -> Int:
+        """Returns the maximum stack count (Go `MaxCount`)."""
+        return 1
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:bed", Int16(self.colour.uint8()))
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for c in colours():
+            out.append(Self(colour=c))
+        return out^
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        _ = tag.put_string(root, "id", "Bed")
+        _ = tag.put_byte(root, "color", self.colour.uint8())
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        var c = Int(get_uint8(tag, root, "color"))
+        if c > 15:
+            # Go indexes Colours() and panics.
+            raise Error(t"bed: invalid colour {c}")
+        var b = self.copy()
+        b.colour = Colour(c)
+        return b^

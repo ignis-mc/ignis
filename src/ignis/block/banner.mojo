@@ -1,13 +1,20 @@
 """`Banner`, ported from Dragonfly `server/block/banner.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, SideClosed, DecodeNBT,
-EncodeNBT, FlammabilityInfo, FuelInfo, EncodeItem and the drops.
+TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, SideClosed,
+FlammabilityInfo and the drops.
 """
 
-from ..item.colour import Colour
-from ..world.block import Block, LightDiffuser
+from minecraft.nbt.nbt import TAG_COMPOUND
+from minecraft.nbt.tree import Tag, Tree
+
+from ..internal.nbtconv.read import get_int32, get_slice
+from ..item.colour import Colour, colours
+from ..item.item import MaxCounter
+from ..item.smelting_info import Fuel, FuelInfo
+from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .attachment import (
     Attachment,
     attachment_from_uint8,
@@ -29,7 +36,16 @@ from .model.empty import Empty as EmptyModel
 
 
 struct Banner(
-    Block, Breakable, Copyable, Equatable, LightDiffuser, ModelledBlock
+    Block,
+    Breakable,
+    Copyable,
+    Equatable,
+    Fuel,
+    Item,
+    LightDiffuser,
+    MaxCounter,
+    ModelledBlock,
+    NBTer,
 ):
     """A tall decorative block that can be customised."""
 
@@ -162,3 +178,58 @@ struct Banner(
             The model.
         """
         return EmptyModel()
+
+    def max_count(self) -> Int:
+        """Returns the maximum stack count (Go `MaxCount`)."""
+        return 16
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
+        return FuelInfo(15000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        # Go invertColour.
+        return EncodedItem(
+            "minecraft:banner", ~Int16(self.colour.uint8()) & 0xF
+        )
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for c in colours():
+            out.append(Self(colour=c))
+        return out^
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the block entity NBT (Go `EncodeNBT`)."""
+        _ = tag.put_string(root, "id", "Banner")
+        var patterns = tag.put_list(root, "Patterns", TAG_COMPOUND)
+        for p in self.patterns:
+            p.encode_nbt(tag, tag.append_compound(patterns))
+        _ = tag.put_int(root, "Type", Int32(1) if self.illager else Int32(0))
+        _ = tag.put_int(root, "Base", Int32(invert_colour(self.colour)))
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the block with the NBT decoded into it (Go `DecodeNBT`)."""
+        var b = self.copy()
+        if tag.has(root, "Base"):
+            # Banner items do not have the Base NBT.
+            b.colour = invert_colour_id(Int16(get_int32(tag, root, "Base")))
+        b.illager = get_int32(tag, root, "Type") == 1
+        if case .Some(patterns) = get_slice(tag, root, "Patterns"):
+            b.patterns = List[BannerPatternLayer]()
+            for p in tag.children(patterns):
+                b.patterns.append(BannerPatternLayer().decode_nbt(tag, p))
+        return b^
+
+
+def invert_colour(c: Colour) -> Int16:
+    """Returns the inverted colour ID banners use (Go `invertColour`)."""
+    return ~Int16(c.uint8()) & 0xF
+
+
+def invert_colour_id(id: Int16) -> Colour:
+    """Returns the colour of an inverted colour ID (Go `invertColourID`)."""
+    return Colour(Int(~id & 0xF))

@@ -1,13 +1,14 @@
 """`LilyPad`, ported from Dragonfly `server/block/lily_pad.go`.
 
-TODO(world-runtime): CanDisplace, SideClosed, UseOnBlock,
-NeighbourUpdateTick, HasLiquidDrops, EntityInside, Model, CompostChance,
-EncodeItem and the drops.
+TODO(world-runtime): CanDisplace, SideClosed, UseOnBlock, NeighbourUpdateTick,
+HasLiquidDrops, EntityInside, Model and the drops.
 """
 
+from ..item.item import Compostable
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NOTHING_EFFECTIVE,
@@ -22,8 +23,10 @@ from .model.lily_pad import LilyPad as LilyPadModel
 struct LilyPad(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -110,3 +113,16 @@ struct LilyPad(
             The model.
         """
         return LilyPadModel()
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.65
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:waterlily", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]
