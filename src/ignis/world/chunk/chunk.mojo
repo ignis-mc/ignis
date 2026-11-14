@@ -4,8 +4,9 @@ Differences from Go:
 
 - A chunk does not hold the block registry; `height_map` and
   `highest_light_blocker` take it as an argument.
-- The light accessors (`Light`, `SkyLight`, `BlockLight`) come with the light
-  engine; see `sub_chunk.mojo`.
+- `height_at` and `update_height_map_column` keep the height map current
+  for one column, so that relighting after a block change does not
+  recompute all 256 (Ignis relights on block changes; Dragonfly does not).
 """
 
 from ...block.cube.range import Range
@@ -149,6 +150,31 @@ struct Chunk(Copyable, Movable):
                         )
         self._biomes[Int(self.sub_index(y))] = storage^
 
+    def light(self, x: UInt8, y: Int16, z: UInt8) -> UInt8:
+        """Returns the higher of the sky and block light at a position (Go
+        `Light`)."""
+        ref sub = self.sub_chunk(y)
+        var ux = x & 0xF
+        var uy = UInt8(y & 0xF)
+        var uz = z & 0xF
+        var sky = sub.sky_light(ux, uy, uz)
+        if sky == 15:
+            return sky
+        return max(sub.block_light(ux, uy, uz), sky)
+
+    def sky_light(self, x: UInt8, y: Int16, z: UInt8) -> UInt8:
+        """Returns the sky light at a position (Go `SkyLight`)."""
+        return self.sub_chunk(y).sky_light(x & 15, UInt8(y & 15), z & 15)
+
+    def block_light(self, x: UInt8, y: Int16, z: UInt8) -> UInt8:
+        """Returns the block light at a position (Go `BlockLight`)."""
+        return self.sub_chunk(y).block_light(x & 15, UInt8(y & 15), z & 15)
+
+    def clear_light(mut self):
+        """Drops the light of every sub-chunk."""
+        for i in range(len(self._sub)):
+            self._sub[i].clear_light()
+
     def highest_light_blocker[
         R: BlockRegistry
     ](self, br: R, x: UInt8, z: UInt8) -> Int16:
@@ -202,29 +228,23 @@ struct Chunk(Copyable, Movable):
             self._recalculate_height_map = False
         return self._height_map.copy()
 
-    def light(self, x: UInt8, y: Int16, z: UInt8) -> UInt8:
-        """Returns the higher of the sky and block light at a position (Go
-        `Light`)."""
-        ref sub = self._sub[Int(self.sub_index(y))]
-        var ux = x & 0xF
-        var uy = UInt8(y & 0xF)
-        var uz = z & 0xF
-        var sky = sub.sky_light(ux, uy, uz)
-        if sky == 15:
-            return sky
-        return max(sky, sub.block_light(ux, uy, uz))
+    def height_at[
+        R: BlockRegistry
+    ](mut self, br: R, x: UInt8, z: UInt8) -> Int16:
+        """Returns the height map value of one column, recalculating the
+        map first if blocks changed."""
+        if self._recalculate_height_map:
+            _ = self.height_map(br)
+        return self._height_map.at(x, z)
 
-    def sky_light(self, x: UInt8, y: Int16, z: UInt8) -> UInt8:
-        """Returns the sky light at a position (Go `SkyLight`)."""
-        return self._sub[Int(self.sub_index(y))].sky_light(
-            x & 15, UInt8(y & 15), z & 15
-        )
-
-    def block_light(self, x: UInt8, y: Int16, z: UInt8) -> UInt8:
-        """Returns the block light at a position (Go `BlockLight`)."""
-        return self._sub[Int(self.sub_index(y))].block_light(
-            x & 15, UInt8(y & 15), z & 15
-        )
+    def update_height_map_column[
+        R: BlockRegistry
+    ](mut self, br: R, x: UInt8, z: UInt8):
+        """Recalculates one column of the height map after a block in it
+        changed; the map must have been current before the change."""
+        var h = self._highest_light_blocker(br, x, z, True)
+        self._height_map.set(x, z, h)
+        self._recalculate_height_map = False
 
     def compact(mut self):
         """Compacts every sub-chunk (Go `Compact`). Meant to run before the

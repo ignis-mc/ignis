@@ -29,7 +29,8 @@ runs Dragonfly's own ticks and records what happened:
   chunk (0, 0).
 - `light.txt` (`light.go`, `features.go`): the sky and block light of a
   world whose features are placed while generating, after loading chunks
-  -2..2. Checked by `test/ignis/world/chunk/test_light.mojo`.
+  -2..2. Checked by `test/ignis/world/chunk/test_light_features.mojo`
+  (against the light engine of `feat/light`).
 
 Regenerate from the repository root:
 

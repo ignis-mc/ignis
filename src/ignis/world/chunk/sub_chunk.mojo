@@ -1,21 +1,64 @@
 """Sub-chunks, ported from Dragonfly `server/world/chunk/sub_chunk.go`.
 
-The light arrays are filled by the light engine (`light.mojo`). Go starts
-them as shared all-dark or all-lit arrays and copies one on its first write;
-here a sub-chunk keeps a flag for that state and allocates its own array on
-the first write.
+Go shares two 2048-byte slices, `fullLight` and `noLight`, between every
+sub-chunk whose light is uniform and copies one on the first write. Here a
+`LightArray` with no bytes stands for such a shared slice and keeps the
+byte it repeats.
 """
 
 from .paletted_storage import PalettedStorage
 
-comptime LIGHT_UNSET: UInt8 = 0
-"""The light was never calculated (Go's empty slice)."""
-comptime LIGHT_NONE: UInt8 = 1
-"""Every value is 0 (Go's shared `noLight`)."""
-comptime LIGHT_FULL: UInt8 = 2
-"""Every value is 15 (Go's shared `fullLight`)."""
-comptime LIGHT_OWN: UInt8 = 3
-"""The sub-chunk has its own array."""
+
+struct LightArray(Copyable, Movable):
+    """The light levels of a sub-chunk as 4096 nibbles (Go `[]uint8` of
+    2048 bytes), indexed by `x << 8 | z << 4 | y`."""
+
+    var _data: List[UInt8]
+    var _fill: UInt8
+
+    def __init__(out self, fill: UInt8 = 0):
+        """Creates a uniform array repeating a byte (0x00 or 0xFF)."""
+        self._data = List[UInt8]()
+        self._fill = fill
+
+    def shared(self) -> Bool:
+        """Reports whether the array still stands for a shared uniform slice
+        (Go `&light[0] == noLightPtr` or `fullLightPtr`)."""
+        return len(self._data) == 0
+
+    def same_shared(self, other: Self) -> Bool:
+        """Reports whether both arrays stand for the same shared slice."""
+        return self.shared() and other.shared() and self._fill == other._fill
+
+    @always_inline
+    def get(self, index: Int) -> UInt8:
+        """Returns the level at an index."""
+        if len(self._data) == 0:
+            return self._fill & 0xF
+        var b = self._data.unsafe_get(index >> 1)
+        return (b >> UInt8((index & 1) << 2)) & 0xF
+
+    @always_inline
+    def set(mut self, index: Int, level: UInt8):
+        """Sets the level at an index, copying a shared array first."""
+        if len(self._data) == 0:
+            self._data = List[UInt8](length=2048, fill=self._fill)
+        var i = index >> 1
+        var bit = UInt8((index & 1) << 2)
+        ref b = self._data.unsafe_get(i)
+        b = (b & (0xF0 >> bit)) | (level << bit)
+
+    def bytes(self) -> List[UInt8]:
+        """Returns the 2048 bytes of the array."""
+        if len(self._data) == 0:
+            return List[UInt8](length=2048, fill=self._fill)
+        return self._data.copy()
+
+
+@always_inline
+def light_index(x: UInt8, y: UInt8, z: UInt8) -> Int:
+    """Returns the index of a position in a `LightArray`."""
+    return (Int(x) << 8) | (Int(z) << 4) | Int(y)
 
 
 struct SubChunk(Copyable, Movable):
@@ -24,48 +67,16 @@ struct SubChunk(Copyable, Movable):
 
     var _air: UInt32
     var _storages: List[PalettedStorage]
-    var _block_light: List[UInt8]
-    var _sky_light: List[UInt8]
-    var _block_kind: UInt8
-    var _sky_kind: UInt8
+    var _block_light: LightArray
+    var _sky_light: LightArray
 
     def __init__(out self, air: UInt32):
-        """Creates an empty sub-chunk (Go `NewSubChunk`)."""
+        """Creates an empty sub-chunk (Go `NewSubChunk`); its light is 0
+        until the chunk is lit."""
         self._air = air
         self._storages = List[PalettedStorage]()
-        self._block_light = List[UInt8]()
-        self._sky_light = List[UInt8]()
-        self._block_kind = LIGHT_UNSET
-        self._sky_kind = LIGHT_UNSET
-
-    def reset_light(mut self, sky: UInt8, block: UInt8):
-        """Sets both light arrays to a uniform state (`LIGHT_NONE` or
-        `LIGHT_FULL`), as Go assigns its shared arrays."""
-        self._sky_kind = sky
-        self._block_kind = block
-        self._sky_light = List[UInt8]()
-        self._block_light = List[UInt8]()
-
-    def light_kind(self, sky: Int) -> UInt8:
-        """Returns the state of the sky light (`sky == 0`) or block light
-        array."""
-        return self._sky_kind if sky == 0 else self._block_kind
-
-    def block_light(self, x: UInt8, y: UInt8, z: UInt8) -> UInt8:
-        """Returns the block light at a position (Go `BlockLight`)."""
-        return _get_light(self._block_light, self._block_kind, x, y, z)
-
-    def set_block_light(mut self, x: UInt8, y: UInt8, z: UInt8, level: UInt8):
-        """Sets the block light at a position (Go `SetBlockLight`)."""
-        _set_light(self._block_light, self._block_kind, x, y, z, level)
-
-    def sky_light(self, x: UInt8, y: UInt8, z: UInt8) -> UInt8:
-        """Returns the sky light at a position (Go `SkyLight`)."""
-        return _get_light(self._sky_light, self._sky_kind, x, y, z)
-
-    def set_sky_light(mut self, x: UInt8, y: UInt8, z: UInt8, level: UInt8):
-        """Sets the sky light at a position (Go `SetSkyLight`)."""
-        _set_light(self._sky_light, self._sky_kind, x, y, z, level)
+        self._block_light = LightArray()
+        self._sky_light = LightArray()
 
     def equals(self, s: Self) -> Bool:
         """Reports whether two sub-chunks are equal (Go `Equals`), using
@@ -110,6 +121,36 @@ struct SubChunk(Copyable, Movable):
         """Sets the runtime ID at a position (coordinates 0 to 15)."""
         self.layer(layer).set(x, y, z, block)
 
+    def set_block_light(mut self, x: UInt8, y: UInt8, z: UInt8, level: UInt8):
+        """Sets the block light at a position (coordinates 0 to 15)."""
+        self._block_light.set(light_index(x, y, z), level)
+
+    def block_light(self, x: UInt8, y: UInt8, z: UInt8) -> UInt8:
+        """Returns the block light at a position (coordinates 0 to 15)."""
+        return self._block_light.get(light_index(x, y, z))
+
+    def set_sky_light(mut self, x: UInt8, y: UInt8, z: UInt8, level: UInt8):
+        """Sets the sky light at a position (coordinates 0 to 15)."""
+        self._sky_light.set(light_index(x, y, z), level)
+
+    def sky_light(self, x: UInt8, y: UInt8, z: UInt8) -> UInt8:
+        """Returns the sky light at a position (coordinates 0 to 15)."""
+        return self._sky_light.get(light_index(x, y, z))
+
+    def block_light_array(ref self) -> ref[self._block_light] LightArray:
+        """Returns the block light array."""
+        return self._block_light
+
+    def sky_light_array(ref self) -> ref[self._sky_light] LightArray:
+        """Returns the sky light array."""
+        return self._sky_light
+
+    def clear_light(mut self):
+        """Drops the light arrays, leaving every level 0 (for chunks handed
+        to a provider, which does not store light)."""
+        self._block_light = LightArray()
+        self._sky_light = LightArray()
+
     def compact(mut self):
         """Compacts every layer and drops layers holding only air (Go
         `compact`)."""
@@ -121,33 +162,3 @@ struct SubChunk(Copyable, Movable):
                 continue
             kept.append(self._storages[i].copy())
         self._storages = kept^
-
-
-def _get_light(
-    light: List[UInt8], kind: UInt8, x: UInt8, y: UInt8, z: UInt8
-) -> UInt8:
-    if kind == LIGHT_OWN:
-        var index = (Int(x) << 8) | (Int(z) << 4) | Int(y)
-        return (light[index >> 1] >> UInt8((index & 1) << 2)) & 0xF
-    if kind == LIGHT_FULL:
-        return 15
-    return 0
-
-
-def _set_light(
-    mut light: List[UInt8],
-    mut kind: UInt8,
-    x: UInt8,
-    y: UInt8,
-    z: UInt8,
-    level: UInt8,
-):
-    if kind != LIGHT_OWN:
-        # Copy on the first write.
-        var fill = UInt8(0xFF) if kind == LIGHT_FULL else UInt8(0)
-        light = List[UInt8](length=2048, fill=fill)
-        kind = LIGHT_OWN
-    var index = (Int(x) << 8) | (Int(z) << 4) | Int(y)
-    var i = index >> 1
-    var bit = UInt8((index & 1) << 2)
-    light[i] = (light[i] & (0xF0 >> bit)) | (level << bit)

@@ -1,217 +1,100 @@
-"""The light engine, ported from Dragonfly `server/world/chunk/light.go`,
-`light_area.go` and `light_type.go`.
+"""Light propagation, ported from Dragonfly `server/world/chunk/light.go`.
 
-Go's `lightArea` holds pointers to the chunks it lights; here the functions
-take the chunks as a list the caller moves in and out (`fill_light`,
-`spread_light`). Go shares two 2048-byte arrays for sub-chunks that are fully
-lit or fully dark and copies them on the first write; a sub-chunk here
-records that state in a flag instead (`LIGHT_NONE`, `LIGHT_FULL`), which is
-what `nodesNeeded` compares.
+Go's `lightArea` methods in `light.go` are free functions here taking the
+area first (`propagate(a, queue)` for Go `a.propagate(queue)`), since a Mojo
+struct keeps all its methods in one place (`light_area.mojo`).
+
+`relight` is Ignis's: Dragonfly v0.11.6 computes light only when a chunk is
+loaded and leaves it stale when blocks change until the chunk is loaded
+again. `relight` updates the light around a changed block incrementally
+(removing the light that depended on the old block, then spreading again
+from what is left and from the new sources) and gives exactly what
+Dragonfly's `Fill` and `Spread` compute when the chunks are loaded afresh,
+including one Dragonfly quirk: `insert_sky_light_nodes` sets the block at a
+column's height map value to 15 without queueing it, so that block never
+lights its neighbours in the same chunk (`spread` still carries it into
+other chunks). `relight` leaves out the same edges.
 """
 
-from ...block.cube.pos import Pos
 from ...block.cube.range import Range
 from .block_registry import BlockRegistry
-from .chunk import Chunk
-from .sub_chunk import LIGHT_FULL, LIGHT_NONE, LIGHT_OWN, SubChunk
-
-comptime SKY_LIGHT = 0
-"""Go `SkyLight`."""
-comptime BLOCK_LIGHT = 1
-"""Go `BlockLight`."""
+from .light_area import LightArea, LightQueue
+from .light_type import BLOCK_LIGHT, SKY_LIGHT
+from .sub_chunk import SubChunk
 
 
 @fieldwise_init
-struct _LightNode(ImplicitlyCopyable):
-    # Go `lightNode`.
-    var pos: Pos
-    var lt: Int
+struct LightNode(ImplicitlyCopyable, Movable):
+    """A node queued to propagate light (Go `lightNode`)."""
+
+    var x: Int32
+    """The block X."""
+    var y: Int32
+    """The block Y."""
+    var z: Int32
+    """The block Z."""
     var level: UInt8
+    """The light level to spread."""
+    var lt: UInt8
+    """`SKY_LIGHT` or `BLOCK_LIGHT`."""
 
 
-struct _LightQueue(Movable):
-    # Go `lightQueue`: a FIFO; Go's ring buffer is a list with a head index.
-    var nodes: List[_LightNode]
-    var head: Int
-
-    def __init__(out self):
-        self.nodes = List[_LightNode](capacity=1024)
-        self.head = 0
-
-    def push(mut self, n: _LightNode):
-        self.nodes.append(n)
-
-    def pop(mut self) -> _LightNode:
-        var n = self.nodes[self.head]
-        self.head += 1
-        if self.head == len(self.nodes):
-            self.nodes.clear()
-            self.head = 0
-        return n
-
-    def empty(self) -> Bool:
-        return self.head == len(self.nodes)
+@always_inline
+def node(x: Int, y: Int, z: Int, level: UInt8, lt: UInt8) -> LightNode:
+    """Creates a light node (Go `node`)."""
+    return LightNode(Int32(x), Int32(y), Int32(z), level, lt)
 
 
-struct _Area:
-    # Go `lightArea` without the chunks.
-    var base_x: Int
-    var base_z: Int
-    var w: Int
-    var r: Range
-
-    def __init__(out self, n: Int, base_x: Int, base_z: Int, r: Range):
-        var w = 1
-        while w * w < n:
-            w += 1
-        self.w = w
-        self.base_x = base_x << 4
-        self.base_z = base_z << 4
-        self.r = r
-
-    def chunk_index(self, pos: Pos) -> Int:
-        var x = (pos.x() - self.base_x) >> 4
-        var z = (pos.z() - self.base_z) >> 4
-        return x + z * self.w
-
-
-def _sub(ref c: List[Chunk], a: _Area, pos: Pos) -> ref[c[0]._sub[0]] SubChunk:
-    ref ch = c[a.chunk_index(pos)]
-    return ch._sub[Int(ch.sub_index(Int16(pos.y())))]
-
-
-def _light(ref c: List[Chunk], a: _Area, pos: Pos, lt: Int) -> UInt8:
-    ref sub = _sub(c, a, pos)
-    var x = UInt8(pos.x() & 0xF)
-    var y = UInt8(pos.y() & 0xF)
-    var z = UInt8(pos.z() & 0xF)
-    if lt == SKY_LIGHT:
-        return sub.sky_light(x, y, z)
-    return sub.block_light(x, y, z)
-
-
-def _set_light(mut c: List[Chunk], a: _Area, pos: Pos, lt: Int, v: UInt8):
-    ref sub = _sub(c, a, pos)
-    var x = UInt8(pos.x() & 0xF)
-    var y = UInt8(pos.y() & 0xF)
-    var z = UInt8(pos.z() & 0xF)
-    if lt == SKY_LIGHT:
-        sub.set_sky_light(x, y, z, v)
-    else:
-        sub.set_block_light(x, y, z, v)
-
-
-def _highest[
-    R: BlockRegistry, filtering: Bool
-](br: R, ref c: List[Chunk], a: _Area, pos: Pos) -> UInt8:
-    # Go `highest`: the highest light filter (or emission) of both layers.
-    ref sub = _sub(c, a, pos)
-    var x = UInt8(pos.x() & 0xF)
-    var y = UInt8(pos.y() & 0xF)
-    var z = UInt8(pos.z() & 0xF)
-    ref storages = sub.layers()
-    var n = len(storages)
-    if n == 0:
-        return 0
-    var level = _block_value[R, filtering](br, storages[0].at(x, y, z))
-    if n == 1:
-        return level
-    return max(level, _block_value[R, filtering](br, storages[1].at(x, y, z)))
-
-
-def _block_value[
-    R: BlockRegistry, filtering: Bool
-](br: R, rid: UInt32) -> UInt8:
-    comptime if filtering:
-        return br.filtering_block(rid)
-    else:
-        return br.light_block(rid)
-
-
-def fill_light[
+def insert_block_light_nodes[
     R: BlockRegistry
-](br: R, mut c: List[Chunk], base_x: Int, base_z: Int):
-    """Calculates the light of one chunk on its own (Go
-    `LightArea(...).Fill`)."""
-    var a = _Area(len(c), base_x, base_z, c[0].range())
-    _initialise_light_slices(c)
-    var queue = _LightQueue()
-    _insert_block_light_nodes(br, c, a, queue)
-    _insert_sky_light_nodes(br, c, a, queue)
-    while not queue.empty():
-        _propagate(br, c, a, queue)
-
-
-def spread_light[
-    R: BlockRegistry
-](br: R, mut c: List[Chunk], base_x: Int, base_z: Int):
-    """Spreads light between the chunks of a 3x3 area, listed row by row
-    from (`base_x`, `base_z`) (Go `LightArea(...).Spread`)."""
-    var a = _Area(len(c), base_x, base_z, c[0].range())
-    var queue = _LightQueue()
-    _insert_light_spreading_nodes(br, c, a, queue, BLOCK_LIGHT)
-    _insert_light_spreading_nodes(br, c, a, queue, SKY_LIGHT)
-    while not queue.empty():
-        _propagate(br, c, a, queue)
-
-
-def _initialise_light_slices(mut c: List[Chunk]):
-    # Go `initialiseLightSlices`: empty sub-chunks above the highest filled
-    # one are fully sky-lit, everything else starts dark.
-    for i in range(len(c)):
-        var index = len(c[i]._sub) - 1
-        while index >= 0:
-            if not c[i]._sub[index].empty():
-                break
-            c[i]._sub[index].reset_light(LIGHT_FULL, LIGHT_NONE)
-            index -= 1
-        while index >= 0:
-            c[i]._sub[index].reset_light(LIGHT_NONE, LIGHT_NONE)
-            index -= 1
-
-
-def _insert_block_light_nodes[
-    R: BlockRegistry
-](br: R, mut c: List[Chunk], a: _Area, mut queue: _LightQueue):
-    # Go `insertBlockLightNodes`, with `iterSubChunks`.
+](mut a: LightArea[R], mut queue: LightQueue):
+    """Queues a node for every block in the area that emits light (Go
+    `insertBlockLightNodes`)."""
     for cx in range(a.w):
         for cz in range(a.w):
             var base_x = a.base_x + (cx << 4)
             var base_z = a.base_z + (cz << 4)
-            var ci = cx + cz * a.w
-            for index in range(len(c[ci]._sub)):
-                if not _any_light_blocks(br, c[ci]._sub[index]):
+            ref c = a.chunk_at(a.chunk_index(cx, cz))
+            for index in range(len(c._sub)):
+                if not any_light_blocks(a, c._sub[index]):
                     continue
-                var base_y = Int(c[ci].sub_y(Int16(index)))
+                var base_y = Int(c.sub_y(Int16(index)))
                 for y in range(16):
                     for x in range(16):
                         for z in range(16):
-                            var pos = Pos(x + base_x, y + base_y, z + base_z)
-                            var level = _highest[R, False](br, c, a, pos)
+                            var px = x + base_x
+                            var py = y + base_y
+                            var pz = z + base_z
+                            var level = a.highest[True](px, py, pz)
                             if level > 0:
-                                queue.push(_LightNode(pos, BLOCK_LIGHT, level))
+                                queue.push(node(px, py, pz, level, BLOCK_LIGHT))
 
 
-def _any_light_blocks[R: BlockRegistry](br: R, sub: SubChunk) -> Bool:
-    # Go `anyLightBlocks`.
-    for ref layer in sub.layers():
-        for id in layer._palette._values:
-            if br.light_block(id) != 0:
+def any_light_blocks[R: BlockRegistry](a: LightArea[R], sub: SubChunk) -> Bool:
+    """Reports whether any block in a sub-chunk's palettes emits light (Go
+    `anyLightBlocks`)."""
+    for i in range(len(sub._storages)):
+        ref values = sub._storages[i]._palette._values
+        for j in range(len(values)):
+            if a.br().light_block(values[j]) != 0:
                 return True
     return False
 
 
-def _insert_sky_light_nodes[
+def insert_sky_light_nodes[
     R: BlockRegistry
-](br: R, mut c: List[Chunk], a: _Area, mut queue: _LightQueue):
-    # Go `insertSkyLightNodes`, with `iterHeightmap`.
-    var m = c[0].height_map(br)
-    var highest_y = c[0].range().min()
+](mut a: LightArea[R], mut queue: LightQueue):
+    """Sets full sky light above the height map of the area's first chunk
+    and queues nodes where it can spread sideways (Go
+    `insertSkyLightNodes`)."""
+    ref c = a.chunk_at(0)
+    var m = c.height_map(a.br())
+    var highest_y = a.r.min()
     var lowest_y = highest_y
-    for index in range(len(c[0]._sub)):
-        if c[0]._sub[index].empty():
+    for index in range(len(c._sub)):
+        if c._sub[index].empty():
             continue
-        highest_y = Int(c[0].sub_y(Int16(index))) + 15
+        highest_y = Int(c.sub_y(Int16(index))) + 15
     for ux in range(16):
         for uz in range(16):
             var x = ux + a.base_x
@@ -220,50 +103,50 @@ def _insert_sky_light_nodes[
             var highest_neighbour = Int(
                 m.highest_neighbour(UInt8(ux), UInt8(uz))
             )
-            var pos = Pos(x, height, z)
+            var y = height
             if height <= a.r.max():
-                # Only set light below the top of the world.
-                _set_light(c, a, pos, SKY_LIGHT, 15)
-                if pos.y() > lowest_y:
-                    var level = _highest[R, True](
-                        br, c, a, Pos(x, height - 1, z)
-                    )
+                # Only set light if we're not at the top of the world.
+                a.set_light(x, y, z, SKY_LIGHT, 15)
+                if y > lowest_y:
+                    var level = a.highest[False](x, y - 1, z)
                     if level != 15 and level != 0:
-                        # A block like water or leaves diffuses but does
-                        # not block light: it needs a node above it.
-                        queue.push(_LightNode(pos, SKY_LIGHT, 15))
-            var y = pos.y()
-            while y < highest_y:
+                        # Water or leaves below: queue a node regardless of
+                        # the neighbours.
+                        queue.push(node(x, y, z, 15, SKY_LIGHT))
+            for _ in range(height, highest_y):
+                # Neighbours lower than this column, or one higher, cannot
+                # take light from it; only queue nodes below the highest.
                 y += 1
-                var p = Pos(x, y, z)
                 if y < highest_neighbour:
-                    queue.push(_LightNode(p, SKY_LIGHT, 15))
+                    queue.push(node(x, y, z, 15, SKY_LIGHT))
                     continue
-                # Fill the rest with full skylight.
-                _set_light(c, a, p, SKY_LIGHT, 15)
+                a.set_light(x, y, z, SKY_LIGHT, 15)
 
 
-def _insert_light_spreading_nodes[
+def insert_light_spreading_nodes[
     R: BlockRegistry
-](br: R, mut c: List[Chunk], a: _Area, mut queue: _LightQueue, lt: Int):
-    # Go `insertLightSpreadingNodes`, with `iterEdges` and `nodesNeeded`.
+](mut a: LightArea[R], mut queue: LightQueue, lt: UInt8):
+    """Queues nodes at chunk borders inside the area where light of type
+    `lt` spreads into the neighbouring chunk (Go
+    `insertLightSpreadingNodes`, with `iterEdges` inlined)."""
     var min_y = a.r.min() >> 4
     var max_y = a.r.max() >> 4
     for cu in range(1, a.w):
         var u = cu << 4
         for cv in range(a.w):
             var v = cv << 4
-            for cy in range(min_y, max_y):
+            # Go stops at max_y - 1 and never visits the top sub-chunk.
+            for cy in range(min_y, max_y + 1):
                 var base_y = cy << 4
-                var xa = Pos(a.base_x + u, base_y, a.base_z + v)
-                var za = Pos(a.base_x + v, base_y, a.base_z + u)
-                var xb = Pos(xa.x() - 1, xa.y(), xa.z())
-                var zb = Pos(za.x(), za.y(), za.z() - 1)
-                var add_x = _nodes_needed(
-                    _sub(c, a, xa).light_kind(lt), _sub(c, a, xb).light_kind(lt)
+                var xax = a.base_x + u
+                var xaz = a.base_z + v
+                var zax = a.base_x + v
+                var zaz = a.base_z + u
+                var add_x = nodes_needed(
+                    a.sub(xax, base_y, xaz), a.sub(xax - 1, base_y, xaz), lt
                 )
-                var add_z = _nodes_needed(
-                    _sub(c, a, za).light_kind(lt), _sub(c, a, zb).light_kind(lt)
+                var add_z = nodes_needed(
+                    a.sub(zax, base_y, zaz), a.sub(zax, base_y, zaz - 1), lt
                 )
                 if not add_x and not add_z:
                     continue
@@ -271,94 +154,101 @@ def _insert_light_spreading_nodes[
                     for y in range(16):
                         if add_x:
                             _spread_edge(
-                                br,
-                                c,
                                 a,
                                 queue,
                                 lt,
-                                xa.add(Pos(0, y, add_v)),
-                                xb.add(Pos(0, y, add_v)),
+                                xax,
+                                base_y + y,
+                                xaz + add_v,
+                                xax - 1,
+                                xaz + add_v,
                             )
                         if add_z:
                             _spread_edge(
-                                br,
-                                c,
                                 a,
                                 queue,
                                 lt,
-                                za.add(Pos(add_v, y, 0)),
-                                zb.add(Pos(add_v, y, 0)),
+                                zax + add_v,
+                                base_y + y,
+                                zaz,
+                                zax + add_v,
+                                zaz - 1,
                             )
 
 
-def _nodes_needed(ka: UInt8, kb: UInt8) -> Bool:
-    # Go `nodesNeeded`: two sub-chunks still sharing the same uniform array
-    # cannot spread light into each other.
-    return ka == LIGHT_OWN or ka != kb
-
-
+@always_inline
 def _spread_edge[
     R: BlockRegistry
 ](
-    br: R,
-    mut c: List[Chunk],
-    a: _Area,
-    mut queue: _LightQueue,
-    lt: Int,
-    pa: Pos,
-    pb: Pos,
+    mut a: LightArea[R],
+    mut queue: LightQueue,
+    lt: UInt8,
+    ax: Int,
+    y: Int,
+    az: Int,
+    bx: Int,
+    bz: Int,
 ):
-    # The function `insertLightSpreadingNodes` passes to `iterEdges`.
-    var la = _light(c, a, pa, lt)
-    var lb = _light(c, a, pb, lt)
+    var la = a.light(ax, y, az, lt)
+    var lb = a.light(bx, y, bz, lt)
     if la == lb or la - 1 == lb or lb - 1 == la:
         # No chance for this to spread.
         return
-    var filter = _highest[R, True](br, c, a, pb) + 1
+    var filter = a.highest[False](bx, y, bz) + 1
     if la > filter and la - filter > lb:
-        queue.push(_LightNode(pb, lt, la - filter))
+        queue.push(node(bx, y, bz, la - filter, lt))
         return
-    filter = _highest[R, True](br, c, a, pa) + 1
+    filter = a.highest[False](ax, y, az) + 1
     if lb > filter and lb - filter > la:
-        queue.push(_LightNode(pa, lt, lb - filter))
+        queue.push(node(ax, y, az, lb - filter, lt))
 
 
-def _propagate[
-    R: BlockRegistry
-](br: R, mut c: List[Chunk], a: _Area, mut queue: _LightQueue):
-    # Go `propagate`.
+def nodes_needed(sa: SubChunk, sb: SubChunk, lt: UInt8) -> Bool:
+    """Reports whether light of type `lt` may spread between two
+    neighbouring sub-chunks: not if both still share the same uniform array
+    (Go `nodesNeeded`)."""
+    if lt == SKY_LIGHT:
+        return not sa._sky_light.same_shared(sb._sky_light)
+    return not sa._block_light.same_shared(sb._block_light)
+
+
+def propagate[R: BlockRegistry](mut a: LightArea[R], mut queue: LightQueue):
+    """Spreads the next node in the queue, queueing its neighbours for as
+    long as light keeps spreading (Go `propagate`)."""
+    if queue.empty():
+        return
     var n = queue.pop()
-    if _light(c, a, n.pos, n.lt) >= n.level:
+    var x = Int(n.x)
+    var y = Int(n.y)
+    var z = Int(n.z)
+    if a.light(x, y, z, n.lt) >= n.level:
         return
-    _set_light(c, a, n.pos, n.lt, n.level)
+    a.set_light(x, y, z, n.lt, n.level)
     if n.level == 1:
-        # Every neighbour takes at least one level away.
+        # Every neighbour attenuates light by at least one.
         return
-    var x = n.pos.x()
-    var y = n.pos.y()
-    var z = n.pos.z()
-    _propagate_neighbour(br, c, a, queue, n.lt, n.level, x + 1, y, z)
-    _propagate_neighbour(br, c, a, queue, n.lt, n.level, x - 1, y, z)
-    _propagate_neighbour(br, c, a, queue, n.lt, n.level, x, y + 1, z)
-    _propagate_neighbour(br, c, a, queue, n.lt, n.level, x, y - 1, z)
-    _propagate_neighbour(br, c, a, queue, n.lt, n.level, x, y, z + 1)
-    _propagate_neighbour(br, c, a, queue, n.lt, n.level, x, y, z - 1)
+    propagate_neighbour(a, queue, n.lt, n.level, x + 1, y, z)
+    propagate_neighbour(a, queue, n.lt, n.level, x - 1, y, z)
+    propagate_neighbour(a, queue, n.lt, n.level, x, y + 1, z)
+    propagate_neighbour(a, queue, n.lt, n.level, x, y - 1, z)
+    propagate_neighbour(a, queue, n.lt, n.level, x, y, z + 1)
+    propagate_neighbour(a, queue, n.lt, n.level, x, y, z - 1)
 
 
-def _propagate_neighbour[
+@always_inline
+def propagate_neighbour[
     R: BlockRegistry
 ](
-    br: R,
-    mut c: List[Chunk],
-    a: _Area,
-    mut queue: _LightQueue,
-    lt: Int,
+    mut a: LightArea[R],
+    mut queue: LightQueue,
+    lt: UInt8,
     level: UInt8,
     x: Int,
     y: Int,
     z: Int,
 ):
-    # Go `propagateNeighbour`.
+    """Queues a neighbour of a node if light spreads into it (Go
+    `propagateNeighbour`)."""
     if (
         y < a.r.min()
         or y > a.r.max()
@@ -368,7 +258,202 @@ def _propagate_neighbour[
         or z >= a.base_z + a.w * 16
     ):
         return
-    var pos = Pos(x, y, z)
-    var filter = _highest[R, True](br, c, a, pos) + 1
-    if level > filter and _light(c, a, pos, lt) < level - filter:
-        queue.push(_LightNode(pos, lt, level - filter))
+    var filter = a.highest[False](x, y, z) + 1
+    if level > filter and a.light(x, y, z, lt) < level - filter:
+        queue.push(node(x, y, z, level - filter, lt))
+
+
+# ===----------------------------------------------------------------------=== #
+# Incremental relighting (Ignis)
+# ===----------------------------------------------------------------------=== #
+
+
+# The six neighbours in Go's order: +X, -X, +Y, -Y, +Z, -Z.
+def _dx(i: Int) -> Int:
+    return 1 if i == 0 else (-1 if i == 1 else 0)
+
+
+def _dy(i: Int) -> Int:
+    return 1 if i == 2 else (-1 if i == 3 else 0)
+
+
+def _dz(i: Int) -> Int:
+    return 1 if i == 4 else (-1 if i == 5 else 0)
+
+
+def relight[
+    R: BlockRegistry
+](mut a: LightArea[R], x: Int, y: Int, z: Int, old_height: Int):
+    """Updates the light after the block at a position changed, given the
+    column's height map value before the change (the chunk's height map
+    must already hold the new one).
+
+    The area must reach at least 15 blocks around the position (the 3x3
+    chunks around it); chunks not loaded can be marked absent.
+    """
+    _relight_block(a, x, y, z)
+    _relight_sky(a, x, y, z, old_height)
+
+
+def _relight_block[
+    R: BlockRegistry
+](mut a: LightArea[R], x: Int, y: Int, z: Int):
+    var removal = LightQueue(64)
+    var add = LightQueue(64)
+    var old = a.light(x, y, z, BLOCK_LIGHT)
+    if old > 0:
+        a.set_light(x, y, z, BLOCK_LIGHT, 0)
+        removal.push(node(x, y, z, old, BLOCK_LIGHT))
+    var sources = List[LightNode]()
+    sources.append(node(x, y, z, a.highest[True](x, y, z), BLOCK_LIGHT))
+    _unspread(a, removal, add, sources, BLOCK_LIGHT)
+    for n in sources:
+        var sx = Int(n.x)
+        var sy = Int(n.y)
+        var sz = Int(n.z)
+        if n.level > a.light(sx, sy, sz, BLOCK_LIGHT):
+            a.set_light(sx, sy, sz, BLOCK_LIGHT, n.level)
+            add.push(n)
+    _queue_neighbours(a, add, x, y, z, BLOCK_LIGHT)
+    _respread(a, add)
+
+
+def _relight_sky[
+    R: BlockRegistry
+](mut a: LightArea[R], x: Int, y: Int, z: Int, old_height: Int):
+    var removal = LightQueue(64)
+    var add = LightQueue(64)
+    var height = a.height(x, z)
+    var top = a.r.max()
+    if y < height:
+        # No longer (or still not) open to the sky.
+        var old = a.light(x, y, z, SKY_LIGHT)
+        if old > 0:
+            a.set_light(x, y, z, SKY_LIGHT, 0)
+            removal.push(node(x, y, z, old, SKY_LIGHT))
+    if height > old_height:
+        # The column is covered higher up: everything from the old height
+        # map value to the new one loses its full sky light.
+        for cy in range(old_height, min(height, top + 1)):
+            if cy == y:
+                continue
+            var old = a.light(x, cy, z, SKY_LIGHT)
+            if old > 0:
+                a.set_light(x, cy, z, SKY_LIGHT, 0)
+                removal.push(node(x, cy, z, old, SKY_LIGHT))
+        if height <= top:
+            # The block at the new height map value no longer lights its
+            # neighbours in the same chunk.
+            _unspread_from_height(a, removal, x, height, z)
+    var sources = List[LightNode]()
+    _unspread(a, removal, add, sources, SKY_LIGHT)
+    if height < old_height:
+        # The column opened up: full sky light down to the new height map
+        # value, and the block at the old one now spreads it sideways.
+        for cy in range(height, min(old_height, top) + 1):
+            a.set_light(x, cy, z, SKY_LIGHT, 15)
+            add.push(node(x, cy, z, 15, SKY_LIGHT))
+    elif y >= height:
+        a.set_light(x, y, z, SKY_LIGHT, 15)
+        add.push(node(x, y, z, 15, SKY_LIGHT))
+    _queue_neighbours(a, add, x, y, z, SKY_LIGHT)
+    _respread(a, add)
+
+
+def _unspread_from_height[
+    R: BlockRegistry
+](mut a: LightArea[R], mut removal: LightQueue, x: Int, y: Int, z: Int):
+    # Removes what the neighbours in the same chunk took from a block that
+    # is now at its column's height map value.
+    comptime for i in range(6):
+        comptime if _dy(i) == 0:
+            var nx = x + _dx(i)
+            var nz = z + _dz(i)
+            if (nx >> 4) == (x >> 4) and (nz >> 4) == (z >> 4):
+                var ln = a.light(nx, y, nz, SKY_LIGHT)
+                if ln > 0 and ln < 15:
+                    a.set_light(nx, y, nz, SKY_LIGHT, 0)
+                    removal.push(node(nx, y, nz, ln, SKY_LIGHT))
+
+
+def _unspread[
+    R: BlockRegistry
+](
+    mut a: LightArea[R],
+    mut removal: LightQueue,
+    mut add: LightQueue,
+    mut sources: List[LightNode],
+    lt: UInt8,
+):
+    # Clears every level that may have come from a removed one: neighbours
+    # with less light than it. Neighbours with as much or more light keep it
+    # and are queued to spread again into what was cleared; cleared blocks
+    # that emit light are added to sources.
+    while not removal.empty():
+        var n = removal.pop()
+        var x = Int(n.x)
+        var y = Int(n.y)
+        var z = Int(n.z)
+        comptime for i in range(6):
+            var nx = x + _dx(i)
+            var ny = y + _dy(i)
+            var nz = z + _dz(i)
+            if a.contains(nx, ny, nz):
+                var ln = a.light(nx, ny, nz, lt)
+                if ln != 0:
+                    if ln < n.level:
+                        a.set_light(nx, ny, nz, lt, 0)
+                        removal.push(node(nx, ny, nz, ln, lt))
+                        if lt == BLOCK_LIGHT:
+                            var level = a.highest[True](nx, ny, nz)
+                            if level > 0:
+                                sources.append(node(nx, ny, nz, level, lt))
+                    else:
+                        add.push(node(nx, ny, nz, ln, lt))
+
+
+def _queue_neighbours[
+    R: BlockRegistry
+](mut a: LightArea[R], mut add: LightQueue, x: Int, y: Int, z: Int, lt: UInt8):
+    comptime for i in range(6):
+        var nx = x + _dx(i)
+        var ny = y + _dy(i)
+        var nz = z + _dz(i)
+        if a.contains(nx, ny, nz):
+            var ln = a.light(nx, ny, nz, lt)
+            if ln > 0:
+                add.push(node(nx, ny, nz, ln, lt))
+
+
+def _respread[R: BlockRegistry](mut a: LightArea[R], mut add: LightQueue):
+    # Spreads light from the queued nodes. A node's level is set when it is
+    # queued; a node whose level has changed since (cleared, or raised and
+    # queued again) is skipped.
+    while not add.empty():
+        var n = add.pop()
+        var x = Int(n.x)
+        var y = Int(n.y)
+        var z = Int(n.z)
+        if a.light(x, y, z, n.lt) != n.level or n.level <= 1:
+            continue
+        var at_height = n.lt == SKY_LIGHT and y == a.height(x, z)
+        comptime for i in range(6):
+            var nx = x + _dx(i)
+            var ny = y + _dy(i)
+            var nz = z + _dz(i)
+            var skip = False
+            comptime if _dy(i) == 0:
+                # Fill never spreads the block at a column's height map
+                # value to the same chunk.
+                skip = (
+                    at_height
+                    and (nx >> 4) == (x >> 4)
+                    and (nz >> 4) == (z >> 4)
+                )
+            if not skip and a.contains(nx, ny, nz):
+                var filter = a.highest[False](nx, ny, nz) + 1
+                if n.level > filter:
+                    var level = n.level - filter
+                    if a.light(nx, ny, nz, n.lt) < level:
+                        a.set_light(nx, ny, nz, n.lt, level)
+                        add.push(node(nx, ny, nz, level, n.lt))
