@@ -9,8 +9,8 @@ from .item import MaxCounter
 
 @fieldwise_init
 struct EnderPearl(Equatable, ImplicitlyCopyable, Item, MaxCounter):
-    """A smooth, greenish-blue item used to teleport and to make an eye of ender.
-    """
+    """A smooth, greenish-blue item used to teleport and to make an eye of
+    ender."""
 
     comptime BASE_HASH: UInt64 = item_hash("EnderPearl")
     """`item_hash("EnderPearl")`."""

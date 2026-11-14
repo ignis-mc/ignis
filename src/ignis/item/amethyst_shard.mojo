@@ -8,8 +8,8 @@ from ..world.item import EncodedItem, Item, item_hash
 
 @fieldwise_init
 struct AmethystShard(Equatable, ImplicitlyCopyable, Item):
-    """A crystalline mineral obtained from mining a fully grown amethyst cluster.
-    """
+    """A crystalline mineral obtained from mining a fully grown amethyst
+    cluster."""
 
     comptime BASE_HASH: UInt64 = item_hash("AmethystShard")
     """`item_hash("AmethystShard")`."""

@@ -57,7 +57,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def max_count(kind: UInt64, hash: UInt64) -> Optional[Int]:
-        """Returns `MaxCounter.max_count` of the item (Go `it.(MaxCounter)`)."""
+        """Returns `MaxCounter.max_count` (Go `it.(MaxCounter)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, MaxCounter):
@@ -67,7 +67,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def durability_info(kind: UInt64, hash: UInt64) -> Optional[DurabilityInfo]:
-        """Returns `Durable.durability_info` of the item (Go `it.(Durable)`)."""
+        """Returns `Durable.durability_info` (Go `it.(Durable)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Durable):
@@ -77,7 +77,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def tool_type(kind: UInt64, hash: UInt64) -> Optional[ToolType]:
-        """Returns `Tool.tool_type` of the item (Go `it.(Tool)`)."""
+        """Returns `Tool.tool_type` (Go `it.(Tool)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Tool):
@@ -87,7 +87,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def harvest_level(kind: UInt64, hash: UInt64) -> Optional[Int]:
-        """Returns `Tool.harvest_level` of the item (Go `it.(Tool)`)."""
+        """Returns `Tool.harvest_level` (Go `it.(Tool)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Tool):
@@ -97,7 +97,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def defence_points(kind: UInt64, hash: UInt64) -> Optional[Float64]:
-        """Returns `Armour.defence_points` of the item (Go `it.(Armour)`)."""
+        """Returns `Armour.defence_points` (Go `it.(Armour)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Armour):
@@ -107,7 +107,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def toughness(kind: UInt64, hash: UInt64) -> Optional[Float64]:
-        """Returns `Armour.toughness` of the item (Go `it.(Armour)`)."""
+        """Returns `Armour.toughness` (Go `it.(Armour)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Armour):
@@ -117,8 +117,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def knock_back_resistance(kind: UInt64, hash: UInt64) -> Optional[Float64]:
-        """Returns `Armour.knock_back_resistance` of the item (Go `it.(Armour)`).
-        """
+        """Returns `Armour.knock_back_resistance` (Go `it.(Armour)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Armour):
@@ -128,8 +127,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def always_consumable(kind: UInt64, hash: UInt64) -> Optional[Bool]:
-        """Returns `Consumable.always_consumable` of the item (Go `it.(Consumable)`).
-        """
+        """Returns `Consumable.always_consumable` (Go `it.(Consumable)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Consumable):
@@ -139,8 +137,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def consume_duration(kind: UInt64, hash: UInt64) -> Optional[Int]:
-        """Returns `Consumable.consume_duration` of the item (Go `it.(Consumable)`).
-        """
+        """Returns `Consumable.consume_duration` (Go `it.(Consumable)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Consumable):
@@ -150,8 +147,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def consume_info(kind: UInt64, hash: UInt64) -> Optional[ConsumeInfo]:
-        """Returns `Consumable.consume_info` of the item (Go `it.(Consumable)`).
-        """
+        """Returns `Consumable.consume_info` (Go `it.(Consumable)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Consumable):
@@ -161,7 +157,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def fuel_info(kind: UInt64, hash: UInt64) -> Optional[FuelInfo]:
-        """Returns `Fuel.fuel_info` of the item (Go `it.(Fuel)`)."""
+        """Returns `Fuel.fuel_info` (Go `it.(Fuel)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Fuel):
@@ -171,7 +167,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def smelt_info(kind: UInt64, hash: UInt64) -> Optional[SmeltInfo]:
-        """Returns `Smeltable.smelt_info` of the item (Go `it.(Smeltable)`)."""
+        """Returns `Smeltable.smelt_info` (Go `it.(Smeltable)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Smeltable):
@@ -181,8 +177,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def enchantment_value(kind: UInt64, hash: UInt64) -> Optional[Int]:
-        """Returns `Enchantable.enchantment_value` of the item (Go `it.(Enchantable)`).
-        """
+        """Returns `Enchantable.enchantment_value` (Go `it.(Enchantable)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Enchantable):
@@ -192,8 +187,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def compost_chance(kind: UInt64, hash: UInt64) -> Optional[Float64]:
-        """Returns `Compostable.compost_chance` of the item (Go `it.(Compostable)`).
-        """
+        """Returns `Compostable.compost_chance` (Go `it.(Compostable)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Compostable):
@@ -203,7 +197,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def off_hand(kind: UInt64, hash: UInt64) -> Optional[Bool]:
-        """Returns `OffHand.off_hand` of the item (Go `it.(OffHand)`)."""
+        """Returns `OffHand.off_hand` (Go `it.(OffHand)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, OffHand):
@@ -213,7 +207,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def payable_for_beacon(kind: UInt64, hash: UInt64) -> Optional[Bool]:
-        """Returns `BeaconPayment.payable_for_beacon` of the item (Go `it.(BeaconPayment)`).
+        """Returns `BeaconPayment.payable_for_beacon` (Go `it.(BeaconPayment)`).
         """
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
@@ -224,7 +218,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def attack_damage(kind: UInt64, hash: UInt64) -> Optional[Float64]:
-        """Returns `Weapon.attack_damage` of the item (Go `it.(Weapon)`)."""
+        """Returns `Weapon.attack_damage` (Go `it.(Weapon)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Weapon):
@@ -234,7 +228,7 @@ struct ItemSet[*Ts: Item]:
 
     @staticmethod
     def cooldown(kind: UInt64, hash: UInt64) -> Optional[Int]:
-        """Returns `Cooldown.cooldown` of the item (Go `it.(Cooldown)`)."""
+        """Returns `Cooldown.cooldown` (Go `it.(Cooldown)`)."""
         comptime for i in range(len(Self.Ts)):
             comptime T = Self.Ts[i]
             comptime if conforms_to(T, Cooldown):

@@ -5,8 +5,8 @@ from ..world.item import EncodedItem, Item, item_hash
 
 @fieldwise_init
 struct CopperNugget(Equatable, ImplicitlyCopyable, Item):
-    """A piece of copper that can be obtained by smelting copper tools/weapons or armour.
-    """
+    """A piece of copper that can be obtained by smelting copper tools/weapons
+    or armour."""
 
     comptime BASE_HASH: UInt64 = item_hash("CopperNugget")
     """`item_hash("CopperNugget")`."""

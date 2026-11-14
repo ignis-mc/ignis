@@ -8,8 +8,8 @@ from ..world.item import EncodedItem, Item, item_hash
 
 @fieldwise_init
 struct FireCharge(Equatable, ImplicitlyCopyable, Item):
-    """An item that can be used to place fire when used on a block, or shot from a dispenser to create a small fireball.
-    """
+    """An item that can be used to place fire when used on a block, or shot from
+    a dispenser to create a small fireball."""
 
     comptime BASE_HASH: UInt64 = item_hash("FireCharge")
     """`item_hash("FireCharge")`."""

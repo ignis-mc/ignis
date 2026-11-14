@@ -1,12 +1,13 @@
-"""PoppedChorusFruit, ported from Dragonfly `server/item/popped_chorus_fruit.go`."""
+"""PoppedChorusFruit, ported from Dragonfly
+`server/item/popped_chorus_fruit.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
 
 
 @fieldwise_init
 struct PoppedChorusFruit(Equatable, ImplicitlyCopyable, Item):
-    """An item obtained by smelting chorus fruit, and used to craft end rods and purpur blocks.
-    """
+    """An item obtained by smelting chorus fruit, and used to craft end rods and
+    purpur blocks."""
 
     comptime BASE_HASH: UInt64 = item_hash("PoppedChorusFruit")
     """`item_hash("PoppedChorusFruit")`."""

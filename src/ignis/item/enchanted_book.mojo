@@ -6,8 +6,8 @@ from .item import MaxCounter
 
 @fieldwise_init
 struct EnchantedBook(Equatable, ImplicitlyCopyable, Item, MaxCounter):
-    """An item that lets players add enchantments to certain items using an anvil.
-    """
+    """An item that lets players add enchantments to certain items using an
+    anvil."""
 
     comptime BASE_HASH: UInt64 = item_hash("EnchantedBook")
     """`item_hash("EnchantedBook")`."""

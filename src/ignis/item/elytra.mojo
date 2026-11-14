@@ -9,8 +9,8 @@ from .item import MaxCounter
 
 @fieldwise_init
 struct Elytra(Equatable, ImplicitlyCopyable, Item, MaxCounter):
-    """A pair of rare wings found in end ships that are the only single-item source of flight in Survival mode.
-    """
+    """A pair of rare wings found in end ships that are the only single-item
+    source of flight in Survival mode."""
 
     comptime BASE_HASH: UInt64 = item_hash("Elytra")
     """`item_hash("Elytra")`."""

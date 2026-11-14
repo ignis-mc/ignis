@@ -5,8 +5,8 @@ from ..world.item import EncodedItem, Item, item_hash
 
 @fieldwise_init
 struct Slimeball(Equatable, ImplicitlyCopyable, Item):
-    """A crafting ingredient commonly dropped by slimes, and can be sneezed out by pandas.
-    """
+    """A crafting ingredient commonly dropped by slimes, and can be sneezed out
+    by pandas."""
 
     comptime BASE_HASH: UInt64 = item_hash("Slimeball")
     """`item_hash("Slimeball")`."""

@@ -12,8 +12,8 @@ from .item import MaxCounter
 struct TurtleShell(
     Enchantable, Equatable, ImplicitlyCopyable, Item, MaxCounter
 ):
-    """Items that are used for brewing or as a helmet to give the player the Water Breathing status effect.
-    """
+    """Items that are used for brewing or as a helmet to give the player the
+    Water Breathing status effect."""
 
     comptime BASE_HASH: UInt64 = item_hash("TurtleShell")
     """`item_hash("TurtleShell")`."""

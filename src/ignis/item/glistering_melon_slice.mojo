@@ -1,4 +1,5 @@
-"""GlisteringMelonSlice, ported from Dragonfly `server/item/glistering_melon_slice.go`."""
+"""GlisteringMelonSlice, ported from Dragonfly
+`server/item/glistering_melon_slice.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
 

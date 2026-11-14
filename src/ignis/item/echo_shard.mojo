@@ -5,8 +5,8 @@ from ..world.item import EncodedItem, Item, item_hash
 
 @fieldwise_init
 struct EchoShard(Equatable, ImplicitlyCopyable, Item):
-    """An item found in ancient cities which can be used to craft recovery compasses.
-    """
+    """An item found in ancient cities which can be used to craft recovery
+    compasses."""
 
     comptime BASE_HASH: UInt64 = item_hash("EchoShard")
     """`item_hash("EchoShard")`."""

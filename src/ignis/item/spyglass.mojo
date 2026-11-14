@@ -6,8 +6,8 @@ from .item import MaxCounter
 
 @fieldwise_init
 struct Spyglass(Equatable, ImplicitlyCopyable, Item, MaxCounter):
-    """An item that zooms in on an area the player is looking at, like a telescope.
-    """
+    """An item that zooms in on an area the player is looking at, like a
+    telescope."""
 
     comptime BASE_HASH: UInt64 = item_hash("Spyglass")
     """`item_hash("Spyglass")`."""

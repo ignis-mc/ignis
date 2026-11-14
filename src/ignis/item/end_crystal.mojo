@@ -8,8 +8,8 @@ from ..world.item import EncodedItem, Item, item_hash
 
 @fieldwise_init
 struct EndCrystal(Equatable, ImplicitlyCopyable, Item):
-    """An item that can be placed on obsidian or bedrock to spawn an End crystal entity.
-    """
+    """An item that can be placed on obsidian or bedrock to spawn an End crystal
+    entity."""
 
     comptime BASE_HASH: UInt64 = item_hash("EndCrystal")
     """`item_hash("EndCrystal")`."""

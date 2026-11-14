@@ -1,4 +1,5 @@
-"""PrismarineCrystals, ported from Dragonfly `server/item/prismarine_crystal.go`."""
+"""PrismarineCrystals, ported from Dragonfly
+`server/item/prismarine_crystal.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
 

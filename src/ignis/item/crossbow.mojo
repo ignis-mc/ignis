@@ -13,8 +13,8 @@ from .smelting_info import Fuel, FuelInfo
 struct Crossbow(
     Enchantable, Equatable, Fuel, ImplicitlyCopyable, Item, MaxCounter
 ):
-    """A ranged weapon similar to a bow that uses arrows or fireworks as ammunition.
-    """
+    """A ranged weapon similar to a bow that uses arrows or fireworks as
+    ammunition."""
 
     comptime BASE_HASH: UInt64 = item_hash("Crossbow")
     """`item_hash("Crossbow")`."""

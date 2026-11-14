@@ -5,8 +5,8 @@ from ..world.item import EncodedItem, Item, item_hash
 
 @fieldwise_init
 struct Feather(Equatable, ImplicitlyCopyable, Item):
-    """Items dropped by chickens and parrots, as well as tamed cats as morning gifts.
-    """
+    """Items dropped by chickens and parrots, as well as tamed cats as morning
+    gifts."""
 
     comptime BASE_HASH: UInt64 = item_hash("Feather")
     """`item_hash("Feather")`."""

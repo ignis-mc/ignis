@@ -9,8 +9,8 @@ from .item import Compostable
 
 @fieldwise_init
 struct Cookie(Compostable, Equatable, ImplicitlyCopyable, Item):
-    """A food item that can be obtained in large quantities, but do not restore hunger or saturation significantly.
-    """
+    """A food item that can be obtained in large quantities, but do not restore
+    hunger or saturation significantly."""
 
     comptime BASE_HASH: UInt64 = item_hash("Cookie")
     """`item_hash("Cookie")`."""

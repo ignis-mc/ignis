@@ -1,4 +1,5 @@
-"""FermentedSpiderEye, ported from Dragonfly `server/item/fermented_spider_eye.go`."""
+"""FermentedSpiderEye, ported from Dragonfly
+`server/item/fermented_spider_eye.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
 

@@ -5,8 +5,8 @@ from ..world.item import EncodedItem, Item, item_hash
 
 @fieldwise_init
 struct MagmaCream(Equatable, ImplicitlyCopyable, Item):
-    """An item used in brewing to create potions of Fire Resistance, and to build magma blocks.
-    """
+    """An item used in brewing to create potions of Fire Resistance, and to
+    build magma blocks."""
 
     comptime BASE_HASH: UInt64 = item_hash("MagmaCream")
     """`item_hash("MagmaCream")`."""

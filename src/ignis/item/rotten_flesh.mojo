@@ -8,8 +8,8 @@ from ..world.item import EncodedItem, Item, item_hash
 
 @fieldwise_init
 struct RottenFlesh(Equatable, ImplicitlyCopyable, Item):
-    """A food item that can be eaten by the player, at the high risk of inflicting hunger.
-    """
+    """A food item that can be eaten by the player, at the high risk of
+    inflicting hunger."""
 
     comptime BASE_HASH: UInt64 = item_hash("RottenFlesh")
     """`item_hash("RottenFlesh")`."""

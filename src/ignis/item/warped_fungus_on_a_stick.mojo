@@ -1,4 +1,5 @@
-"""WarpedFungusOnAStick, ported from Dragonfly `server/item/warped_fungus_on_a_stick.go`."""
+"""WarpedFungusOnAStick, ported from Dragonfly
+`server/item/warped_fungus_on_a_stick.go`."""
 
 from ..world.item import EncodedItem, Item, item_hash
 from .item import MaxCounter

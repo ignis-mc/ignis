@@ -9,8 +9,8 @@ from .item import OffHand
 
 @fieldwise_init
 struct Firework(Equatable, ImplicitlyCopyable, Item, OffHand):
-    """An item (and entity) used for creating decorative explosions, boosting when flying with elytra, and loading into a crossbow as ammunition.
-    """
+    """An item (and entity) used for creating decorative explosions, boosting
+    when flying with elytra, and loading into a crossbow as ammunition."""
 
     comptime BASE_HASH: UInt64 = item_hash("Firework")
     """`item_hash("Firework")`."""

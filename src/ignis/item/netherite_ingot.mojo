@@ -9,8 +9,8 @@ from .item import BeaconPayment
 
 @fieldwise_init
 struct NetheriteIngot(BeaconPayment, Equatable, ImplicitlyCopyable, Item):
-    """A rare mineral crafted with 4 pieces of netherite scrap and 4 gold ingots.
-    """
+    """A rare mineral crafted with 4 pieces of netherite scrap and 4 gold
+    ingots."""
 
     comptime BASE_HASH: UInt64 = item_hash("NetheriteIngot")
     """`item_hash("NetheriteIngot")`."""

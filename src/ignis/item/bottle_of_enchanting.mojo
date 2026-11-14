@@ -1,4 +1,5 @@
-"""BottleOfEnchanting, ported from Dragonfly `server/item/bottle_of_enchanting.go`.
+"""BottleOfEnchanting, ported from Dragonfly
+`server/item/bottle_of_enchanting.go`.
 
 TODO(port): `Use`.
 """

@@ -9,8 +9,8 @@ from .item import MaxCounter
 
 @fieldwise_init
 struct Egg(Equatable, ImplicitlyCopyable, Item, MaxCounter):
-    """An item that can be used to craft food items, or as a throwable entity to spawn chicks.
-    """
+    """An item that can be used to craft food items, or as a throwable entity to
+    spawn chicks."""
 
     comptime BASE_HASH: UInt64 = item_hash("Egg")
     """`item_hash("Egg")`."""
