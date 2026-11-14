@@ -2,13 +2,14 @@
 
 TODO(world-runtime): the `*smelter` (smelter.go: inventory, fuel, progress,
 Experience and the XP the break info drops), NewFurnace, Tick, EncodeNBT,
-DecodeNBT, Activate, UseOnBlock, the break handler dropping the inventory,
-EncodeItem and the drops.
+DecodeNBT, Activate, UseOnBlock, the break handler dropping the inventory and
+the drops.
 """
 
 from ..world.block import Block, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     PICKAXE_EFFECTIVE,
@@ -22,7 +23,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct BlastFurnace(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    LightEmitter,
+    ModelledBlock,
 ):
     """A block that smelts ores, raw metals, iron and gold armour and tools, similar to a
     furnace, but at twice the speed."""
@@ -137,3 +144,12 @@ struct BlastFurnace(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:blast_furnace", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

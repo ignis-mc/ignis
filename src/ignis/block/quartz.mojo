@@ -1,13 +1,13 @@
 """`Quartz`, `ChiseledQuartz`, `QuartzPillar`, ported from Dragonfly
 `server/block/quartz.go`.
 
-TODO(world-runtime): QuartzPillar.UseOnBlock, EncodeItem, SmeltInfo and the
-drops.
+TODO(world-runtime): QuartzPillar.UseOnBlock,  and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -112,7 +112,7 @@ struct Quartz(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
 
 
 struct ChiseledQuartz(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
 ):
     """A chiseled variant of quartz."""
 
@@ -191,6 +191,15 @@ struct ChiseledQuartz(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:chiseled_quartz_block", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]
 
 
 struct QuartzPillar(

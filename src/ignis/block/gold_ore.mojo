@@ -1,11 +1,15 @@
 """`GoldOre`, ported from Dragonfly `server/block/gold_ore.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
+TODO(world-runtime): and the drops.
 """
 
+from ..item.gold_ingot import GoldIngot
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     HARVEST_LEVEL_IRON,
     PICKAXE_EFFECTIVE,
@@ -19,7 +23,15 @@ from .model.solid import Solid as SolidModel
 from .ore_type import OreType, ore_types
 
 
-struct GoldOre(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct GoldOre(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
+):
     """A rare mineral block found underground."""
 
     comptime BASE_HASH: UInt64 = HASH_GOLD_ORE
@@ -108,3 +120,19 @@ struct GoldOre(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns what smelting the block gives (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(GoldIngot(), 1), 1, ores=True)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.type.prefix()}gold_ore"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for o in ore_types():
+            out.append(Self(type=o))
+        return out^

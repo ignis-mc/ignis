@@ -1,12 +1,12 @@
 """`Basalt`, ported from Dragonfly `server/block/basalt.go`.
 
-TODO(world-runtime): UseOnBlock, EncodeItem, SmeltInfo and the `oneOf`
-drops.
+TODO(world-runtime): UseOnBlock,  and the `oneOf` drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -19,7 +19,9 @@ from .hash import HASH_BASALT
 from .model.solid import Solid as SolidModel
 
 
-struct Basalt(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Basalt(
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A type of igneous rock found in the nether."""
 
     comptime BASE_HASH: UInt64 = HASH_BASALT
@@ -120,3 +122,14 @@ struct Basalt(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.polished:
+            return EncodedItem("minecraft:polished_basalt", 0)
+        return EncodedItem("minecraft:basalt", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self(polished=True), Self()]

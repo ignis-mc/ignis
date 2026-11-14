@@ -1,13 +1,16 @@
 """`Banner`, ported from Dragonfly `server/block/banner.go`.
 
 TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, SideClosed, DecodeNBT,
-EncodeNBT, FlammabilityInfo, FuelInfo, EncodeItem and the drops.
+EncodeNBT, FlammabilityInfo and the drops.
 """
 
-from ..item.colour import Colour
+from ..item.colour import Colour, colours
+from ..item.item import MaxCounter
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .attachment import (
     Attachment,
     attachment_from_uint8,
@@ -29,7 +32,15 @@ from .model.empty import Empty as EmptyModel
 
 
 struct Banner(
-    Block, Breakable, Copyable, Equatable, LightDiffuser, ModelledBlock
+    Block,
+    Breakable,
+    Copyable,
+    Equatable,
+    Fuel,
+    Item,
+    LightDiffuser,
+    MaxCounter,
+    ModelledBlock,
 ):
     """A tall decorative block that can be customised."""
 
@@ -162,3 +173,26 @@ struct Banner(
             The model.
         """
         return EmptyModel()
+
+    def max_count(self) -> Int:
+        """Returns the maximum stack count (Go `MaxCount`)."""
+        return 16
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
+        return FuelInfo(15000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        # Go invertColour.
+        return EncodedItem(
+            "minecraft:banner", ~Int16(self.colour.uint8()) & 0xF
+        )
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for c in colours():
+            out.append(Self(colour=c))
+        return out^

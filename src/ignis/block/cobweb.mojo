@@ -1,12 +1,12 @@
 """`Cobweb`, ported from Dragonfly `server/block/cobweb.go`.
 
-TODO(world-runtime): Cobweb, EntityInside, EncodeItem and the drops (string
-with shears).
+TODO(world-runtime): Cobweb, EntityInside and the drops (string with shears).
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     SHEARS_EFFECTIVE,
@@ -24,6 +24,7 @@ struct Cobweb(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -112,3 +113,12 @@ struct Cobweb(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:web", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

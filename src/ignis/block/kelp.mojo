@@ -4,12 +4,17 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): BoneMeal, UseOnBlock, NeighbourUpdateTick, RandomTick,
-SmeltInfo, CompostChance, EncodeItem and the drops.
+and the drops.
 """
 
+from ..item.dried_kelp import DriedKelp
+from ..item.item import Compostable
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NOTHING_EFFECTIVE,
@@ -24,10 +29,13 @@ from .model.empty import Empty as EmptyModel
 struct Kelp(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
+    Smeltable,
 ):
     """An underwater block that can grow on top of itself."""
 
@@ -125,3 +133,20 @@ struct Kelp(
             The model.
         """
         return EmptyModel()
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns what smelting the block gives (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(DriedKelp(), 1), 0.1, food=True)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.3
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:kelp", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

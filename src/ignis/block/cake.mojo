@@ -4,13 +4,14 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, Activate, Ignite,
-SideClosed, Model, HasLiquidDrops, EncodeItem and the drops.
+SideClosed, Model, HasLiquidDrops and the drops.
 """
 
 from ..item.optional_colour import OptionalColour, optional_colours
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NEVER_HARVESTABLE,
@@ -28,6 +29,7 @@ struct Cake(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
@@ -175,3 +177,15 @@ struct Cake(
             The model.
         """
         return CakeModel(bites=self.bites)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.candle:
+            var name = self.candle_colour.prepend("candle_cake")
+            return EncodedItem("minecraft:" + name, 0)
+        return EncodedItem("minecraft:cake", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

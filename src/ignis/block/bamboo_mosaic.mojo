@@ -1,12 +1,13 @@
 """`BambooMosaic`, ported from Dragonfly `server/block/bamboo_mosaic.go`.
 
-TODO(world-runtime): EncodeItem, FlammabilityInfo, FuelInfo and the drops,
-RepairsWoodTools.
+TODO(world-runtime): FlammabilityInfo and the drops, RepairsWoodTools.
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -19,7 +20,7 @@ from .model.solid import Solid as SolidModel
 
 
 struct BambooMosaic(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block, Breakable, Equatable, Fuel, ImplicitlyCopyable, Item, ModelledBlock
 ):
     """A decorative wooden block crafted from bamboo slabs."""
 
@@ -97,3 +98,16 @@ struct BambooMosaic(
             The model.
         """
         return SolidModel()
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
+        return FuelInfo(15000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:bamboo_mosaic", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

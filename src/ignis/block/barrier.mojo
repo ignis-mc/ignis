@@ -3,18 +3,19 @@
 Go's `sourceWaterDisplacer` makes barriers a `LiquidDisplacer`; that trait
 comes with liquids.
 
-TODO(world-runtime): SideClosed, EncodeItem.
+TODO(world-runtime): SideClosed.
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .hash import HASH_BARRIER
 from .model.solid import Solid as SolidModel
 
 
 struct Barrier(
-    Block, Equatable, ImplicitlyCopyable, LightDiffuser, ModelledBlock
+    Block, Equatable, ImplicitlyCopyable, Item, LightDiffuser, ModelledBlock
 ):
     """A transparent solid block used to create invisible boundaries."""
 
@@ -91,3 +92,12 @@ struct Barrier(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:barrier", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

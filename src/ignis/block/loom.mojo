@@ -1,12 +1,13 @@
 """`Loom`, ported from Dragonfly `server/block/loom.go`.
 
-TODO(world-runtime): Activate, UseOnBlock, FlammabilityInfo, FuelInfo,
-EncodeItem and the drops.
+TODO(world-runtime): Activate, UseOnBlock, FlammabilityInfo and the drops.
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .block import horizontal_direction
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -20,7 +21,9 @@ from .hash import HASH_LOOM
 from .model.solid import Solid as SolidModel
 
 
-struct Loom(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Loom(
+    Block, Breakable, Equatable, Fuel, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A block used to apply patterns on banners."""
 
     comptime BASE_HASH: UInt64 = HASH_LOOM
@@ -110,3 +113,16 @@ struct Loom(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
+        return FuelInfo(15000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:loom", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

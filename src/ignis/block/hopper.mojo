@@ -4,14 +4,15 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the inventory and viewer fields, NewHopper, Model,
-SideClosed, Inventory, WithName, AddViewer, RemoveViewer, Activate,
-UseOnBlock, Tick, insertItem, extractItem, RedstoneUpdate, EncodeNBT,
-DecodeNBT, the break handler, EncodeItem and the drops.
+SideClosed, Inventory, WithName, AddViewer, RemoveViewer, Activate, UseOnBlock,
+Tick, insertItem, extractItem, RedstoneUpdate, EncodeNBT, DecodeNBT, the break
+handler and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -29,6 +30,7 @@ struct Hopper(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -168,3 +170,12 @@ struct Hopper(
             The model.
         """
         return HopperModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:hopper", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

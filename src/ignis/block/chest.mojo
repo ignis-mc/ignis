@@ -3,16 +3,17 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the inventory, pairing (paired, pairX, pairZ, pairInv)
-and viewer fields, NewChest, Inventory, WithName, SideClosed, AddViewer,
+TODO(world-runtime): the inventory, pairing (paired, pairX, pairZ, pairInv) and
+viewer fields, NewChest, Inventory, WithName, SideClosed, AddViewer,
 RemoveViewer, Activate, UseOnBlock, open/close, Paired, pair, unpair,
-DecodeNBT, EncodeNBT, the break handler, FlammabilityInfo, FuelInfo,
-EncodeItem and the drops.
+DecodeNBT, EncodeNBT, the break handler, FlammabilityInfo and the drops.
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -29,7 +30,9 @@ struct Chest(
     Block,
     Breakable,
     Equatable,
+    Fuel,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -143,3 +146,16 @@ struct Chest(
             The model.
         """
         return ChestModel()
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
+        return FuelInfo(15000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:chest", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

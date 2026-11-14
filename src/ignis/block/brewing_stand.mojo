@@ -5,12 +5,13 @@ with liquids.
 
 TODO(world-runtime): the `*brewer` (brewer.go: inventory, fuel, brewing
 progress), NewBrewingStand, Tick, Model, SideClosed, Activate, UseOnBlock,
-EncodeNBT, DecodeNBT, the break handler, EncodeItem and the drops.
+EncodeNBT, DecodeNBT, the break handler and the drops.
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     PICKAXE_EFFECTIVE,
@@ -27,6 +28,7 @@ struct BrewingStand(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -160,3 +162,12 @@ struct BrewingStand(
             The model.
         """
         return BrewingStandModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:brewing_stand", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

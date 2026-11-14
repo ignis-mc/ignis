@@ -1,12 +1,14 @@
 """`DriedKelp`, ported from Dragonfly `server/block/dried_kelp.go`.
 
-TODO(world-runtime): CompostChance, FuelInfo, FlammabilityInfo, EncodeItem
-and the drops.
+TODO(world-runtime): FlammabilityInfo and the drops.
 """
 
+from ..item.item import Compostable
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     HOE_EFFECTIVE,
@@ -19,7 +21,14 @@ from .model.solid import Solid as SolidModel
 
 
 struct DriedKelp(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Compostable,
+    Equatable,
+    Fuel,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A block made from dried kelp."""
 
@@ -97,3 +106,20 @@ struct DriedKelp(
             The model.
         """
         return SolidModel()
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 200 s."""
+        return FuelInfo(200000)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.5
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:dried_kelp_block", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

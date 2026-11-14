@@ -1,13 +1,14 @@
 """`Anvil`, ported from Dragonfly `server/block/anvil.go`.
 
 TODO(world-runtime): Model, SideClosed, Activate, UseOnBlock,
-NeighbourUpdateTick and the falling behaviour of `gravityAffected`, Damage,
-EncodeItem and the drops.
+NeighbourUpdateTick and the falling behaviour of `gravityAffected`, Damage and
+the drops.
 """
 
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .anvil_type import AnvilType, anvil_types
 from .break_info import (
     PICKAXE_EFFECTIVE,
@@ -26,6 +27,7 @@ struct Anvil(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -143,3 +145,15 @@ struct Anvil(
             The model.
         """
         return AnvilModel(facing=self.facing)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.type}"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for t in anvil_types():
+            out.append(Self(type=t))
+        return out^

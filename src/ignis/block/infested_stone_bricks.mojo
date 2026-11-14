@@ -7,6 +7,7 @@ TODO(world-runtime): the `silkTouchOnlyDrop` drops and the silverfish spawn.
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     PICKAXE_EFFECTIVE,
     PICKAXE_HARVESTABLE,
@@ -20,7 +21,7 @@ from .stone_bricks_type import StoneBricksType, stone_bricks_types
 
 
 struct InfestedStoneBricks(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block, Breakable, Equatable, ImplicitlyCopyable, Item, ModelledBlock
 ):
     """A stone bricks block that hides a silverfish."""
 
@@ -108,3 +109,15 @@ struct InfestedStoneBricks(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:infested_{self.type}"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for t in stone_bricks_types():
+            out.append(Self(type=t))
+        return out^

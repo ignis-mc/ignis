@@ -1,14 +1,15 @@
 """`Barrel`, ported from Dragonfly `server/block/barrel.go`.
 
 TODO(world-runtime): the inventory and viewer fields, NewBarrel, Inventory,
-WithName, open/close, AddViewer, RemoveViewer, Activate, UseOnBlock,
-DecodeNBT, EncodeNBT, the break handler, FlammabilityInfo, FuelInfo,
-EncodeItem and the drops.
+WithName, open/close, AddViewer, RemoveViewer, Activate, UseOnBlock, DecodeNBT,
+EncodeNBT, the break handler, FlammabilityInfo and the drops.
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -21,7 +22,9 @@ from .hash import HASH_BARREL
 from .model.solid import Solid as SolidModel
 
 
-struct Barrel(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Barrel(
+    Block, Breakable, Equatable, Fuel, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A fisherman's job site block, used to store items."""
 
     comptime BASE_HASH: UInt64 = HASH_BARREL
@@ -132,3 +135,16 @@ struct Barrel(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
+        return FuelInfo(15000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:barrel", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

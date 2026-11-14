@@ -5,13 +5,14 @@ with liquids.
 
 TODO(world-runtime): the `Items [4]CampfireItem` field, Model, SideClosed,
 Activate, UseOnBlock, Splash, Ignite, Extinguish, Tick, NeighbourUpdateTick,
-EntityInside, DecodeNBT, EncodeNBT, the drops (charcoal or soul soil) and
-break handler, FlammabilityInfo, EncodeItem.
+EntityInside, DecodeNBT, EncodeNBT, the drops (charcoal or soul soil) and break
+handler, FlammabilityInfo.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -30,6 +31,7 @@ struct Campfire(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
@@ -170,3 +172,17 @@ struct Campfire(
             The model.
         """
         return CampfireModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.type == FireType.SOUL:
+            return EncodedItem("minecraft:soul_campfire", 0)
+        return EncodedItem("minecraft:campfire", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for f in fire_types():
+            out.append(Self(type=f))
+        return out^

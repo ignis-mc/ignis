@@ -1,12 +1,13 @@
 """`CopperTorch`, ported from Dragonfly `server/block/copper_torch.go`.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, HasLiquidDrops,
-EncodeItem and the drops.
+TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, HasLiquidDrops and the
+drops.
 """
 
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .block import UNKNOWN_FACE
 from .break_info import (
     ALWAYS_HARVESTABLE,
@@ -25,6 +26,7 @@ struct CopperTorch(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
@@ -143,3 +145,12 @@ struct CopperTorch(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:copper_torch", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

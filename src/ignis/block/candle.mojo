@@ -3,15 +3,15 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): UseOnBlock, Activate, Ignite, Splash,
-NeighbourUpdateTick, SideClosed, HasLiquidDrops, Model, EncodeItem and the
-drops.
+TODO(world-runtime): UseOnBlock, Activate, Ignite, Splash, NeighbourUpdateTick,
+SideClosed, HasLiquidDrops, Model and the drops.
 """
 
 from ..item.optional_colour import OptionalColour, optional_colours
 from ..world.block import Block, LightDiffuser, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     NOTHING_EFFECTIVE,
@@ -28,6 +28,7 @@ struct Candle(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     LightEmitter,
     ModelledBlock,
@@ -164,3 +165,15 @@ struct Candle(
             The model.
         """
         return CandleModel(count=self.additional_candles + 1)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:" + self.colour.prepend("candle"), 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for c in optional_colours():
+            out.append(Self(colour=c))
+        return out^

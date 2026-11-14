@@ -1,11 +1,15 @@
 """`DiamondOre`, ported from Dragonfly `server/block/diamond_ore.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
+TODO(world-runtime): and the drops.
 """
 
+from ..item.diamond import Diamond
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     HARVEST_LEVEL_IRON,
     PICKAXE_EFFECTIVE,
@@ -20,7 +24,13 @@ from .ore_type import OreType, ore_types
 
 
 struct DiamondOre(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
 ):
     """A rare ore that generates underground."""
 
@@ -114,3 +124,21 @@ struct DiamondOre(
             The model.
         """
         return SolidModel()
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns what smelting the block gives (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(Diamond(), 1), 1, ores=True)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(
+            String(t"minecraft:{self.type.prefix()}diamond_ore"), 0
+        )
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for o in ore_types():
+            out.append(Self(type=o))
+        return out^

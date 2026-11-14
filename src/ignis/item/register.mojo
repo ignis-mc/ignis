@@ -8,10 +8,125 @@ types and `VanillaBlockItems` the block types that are items.
 """
 
 from ..block.air import Air
+from ..block.amethyst import Amethyst
+from ..block.ancient_debris import AncientDebris
+from ..block.anvil import Anvil
+from ..block.bamboo import Bamboo
+from ..block.bamboo_block import BambooBlock
+from ..block.bamboo_mosaic import BambooMosaic
+from ..block.banner import Banner
+from ..block.barrel import Barrel
+from ..block.barrier import Barrier
+from ..block.basalt import Basalt
+from ..block.beacon import Beacon
+from ..block.bed import Bed
 from ..block.bedrock import Bedrock
+from ..block.beetroot_seeds import BeetrootSeeds
+from ..block.blackstone import Blackstone
+from ..block.blast_furnace import BlastFurnace
+from ..block.blue_ice import BlueIce
+from ..block.bone import Bone as BoneBlock
+from ..block.bookshelf import Bookshelf
+from ..block.brewing_stand import BrewingStand
+from ..block.bricks import Bricks
+from ..block.cactus import Cactus
+from ..block.cake import Cake
+from ..block.calcite import Calcite
+from ..block.campfire import Campfire
+from ..block.candle import Candle
+from ..block.carpet import Carpet
+from ..block.carrot import Carrot
+from ..block.chest import Chest
+from ..block.cinnabar import Cinnabar
+from ..block.cinnabar_bricks import CinnabarBricks
+from ..block.clay import Clay
+from ..block.coal import Coal as CoalBlock
+from ..block.coal_ore import CoalOre
+from ..block.cobblestone import Cobblestone
+from ..block.cobweb import Cobweb
+from ..block.cocoa_bean import CocoaBean
+from ..block.composter import Composter
+from ..block.concrete import Concrete
+from ..block.concrete_powder import ConcretePowder
+from ..block.copper import Copper
+from ..block.copper_bars import CopperBars
+from ..block.copper_chain import CopperChain
+from ..block.copper_door import CopperDoor
+from ..block.copper_golem_statue import CopperGolemStatue
+from ..block.copper_grate import CopperGrate
+from ..block.copper_lantern import CopperLantern
+from ..block.copper_ore import CopperOre
+from ..block.copper_torch import CopperTorch
+from ..block.copper_trapdoor import CopperTrapdoor
+from ..block.coral import Coral
+from ..block.coral_block import CoralBlock
+from ..block.crafting_table import CraftingTable
+from ..block.deadbush import DeadBush
+from ..block.decorated_pot import DecoratedPot
+from ..block.deepslate import Deepslate
+from ..block.deepslate_bricks import DeepslateBricks
+from ..block.deepslate_tiles import DeepslateTiles
+from ..block.diamond import Diamond as DiamondBlock
+from ..block.diamond_ore import DiamondOre
 from ..block.dirt import Dirt
+from ..block.dirt_path import DirtPath
+from ..block.double_flower import DoubleFlower
+from ..block.double_tall_grass import DoubleTallGrass
+from ..block.dragon_egg import DragonEgg
+from ..block.dried_kelp import DriedKelp as DriedKelpBlock
+from ..block.dripstone import Dripstone
+from ..block.emerald import Emerald as EmeraldBlock
+from ..block.emerald_ore import EmeraldOre
+from ..block.enchanting_table import EnchantingTable
+from ..block.end_bricks import EndBricks
+from ..block.end_portal_frame import EndPortalFrame
+from ..block.end_rod import EndRod
+from ..block.end_stone import EndStone
+from ..block.ender_chest import EnderChest
+from ..block.farmland import Farmland
+from ..block.fern import Fern
+from ..block.fletching_table import FletchingTable
+from ..block.flower import Flower
+from ..block.froglight import Froglight
+from ..block.furnace import Furnace
+from ..block.glass_pane import GlassPane
+from ..block.glowstone import Glowstone
+from ..block.gold import Gold
+from ..block.gold_ore import GoldOre
 from ..block.grass import Grass
-from ..block.stone import Stone
+from ..block.gravel import Gravel
+from ..block.grindstone import Grindstone
+from ..block.hay_bale import HayBale
+from ..block.honeycomb import Honeycomb as HoneycombBlock
+from ..block.hopper import Hopper
+from ..block.ice import Ice
+from ..block.infested_cobblestone import InfestedCobblestone
+from ..block.infested_deepslate import InfestedDeepslate
+from ..block.infested_stone import InfestedStone
+from ..block.infested_stone_bricks import InfestedStoneBricks
+from ..block.invisible_bedrock import InvisibleBedrock
+from ..block.iron import Iron
+from ..block.iron_bars import IronBars
+from ..block.iron_chain import IronChain
+from ..block.iron_ore import IronOre
+from ..block.item_frame import ItemFrame
+from ..block.jukebox import Jukebox
+from ..block.kelp import Kelp
+from ..block.ladder import Ladder
+from ..block.lantern import Lantern
+from ..block.lapis import Lapis
+from ..block.lapis_ore import LapisOre
+from ..block.leaves import Leaves
+from ..block.lectern import Lectern
+from ..block.lever import Lever
+from ..block.light import Light
+from ..block.lily_pad import LilyPad
+from ..block.lit_pumpkin import LitPumpkin
+from ..block.log import Log
+from ..block.loom import Loom
+from ..block.quartz import ChiseledQuartz
+from ..block.stone import Andesite, Diorite, Granite, Stone
+from ..block.terracotta import Terracotta
 from ..world.item import ItemRegistry
 from .amethyst_shard import AmethystShard
 from .apple import Apple
@@ -225,7 +340,131 @@ comptime VanillaItems = ItemSet[
 ]
 """Every item type Ignis implements, sorted by name."""
 
-comptime VanillaBlockItems = ItemSet[Air, Bedrock, Dirt, Grass, Stone]
+comptime VanillaBlockItems = ItemSet[
+    Air,
+    Amethyst,
+    AncientDebris,
+    Andesite,
+    Anvil,
+    Bamboo,
+    BambooBlock,
+    BambooMosaic,
+    Banner,
+    Barrel,
+    Barrier,
+    Basalt,
+    Beacon,
+    Bed,
+    Bedrock,
+    BeetrootSeeds,
+    Blackstone,
+    BlastFurnace,
+    BlueIce,
+    BoneBlock,
+    Bookshelf,
+    BrewingStand,
+    Bricks,
+    Cactus,
+    Cake,
+    Calcite,
+    Campfire,
+    Candle,
+    Carpet,
+    Carrot,
+    Chest,
+    ChiseledQuartz,
+    Cinnabar,
+    CinnabarBricks,
+    Clay,
+    CoalBlock,
+    CoalOre,
+    Cobblestone,
+    Cobweb,
+    CocoaBean,
+    Composter,
+    Concrete,
+    ConcretePowder,
+    Copper,
+    CopperBars,
+    CopperChain,
+    CopperDoor,
+    CopperGolemStatue,
+    CopperGrate,
+    CopperLantern,
+    CopperOre,
+    CopperTorch,
+    CopperTrapdoor,
+    Coral,
+    CoralBlock,
+    CraftingTable,
+    DeadBush,
+    DecoratedPot,
+    Deepslate,
+    DeepslateBricks,
+    DeepslateTiles,
+    DiamondBlock,
+    DiamondOre,
+    Diorite,
+    Dirt,
+    DirtPath,
+    DoubleFlower,
+    DoubleTallGrass,
+    DragonEgg,
+    DriedKelpBlock,
+    Dripstone,
+    EmeraldBlock,
+    EmeraldOre,
+    EnchantingTable,
+    EndBricks,
+    EndPortalFrame,
+    EndRod,
+    EndStone,
+    EnderChest,
+    Farmland,
+    Fern,
+    FletchingTable,
+    Flower,
+    Froglight,
+    Furnace,
+    GlassPane,
+    Glowstone,
+    Gold,
+    GoldOre,
+    Granite,
+    Grass,
+    Gravel,
+    Grindstone,
+    HayBale,
+    HoneycombBlock,
+    Hopper,
+    Ice,
+    InfestedCobblestone,
+    InfestedDeepslate,
+    InfestedStone,
+    InfestedStoneBricks,
+    InvisibleBedrock,
+    Iron,
+    IronBars,
+    IronChain,
+    IronOre,
+    ItemFrame,
+    Jukebox,
+    Kelp,
+    Ladder,
+    Lantern,
+    Lapis,
+    LapisOre,
+    Leaves,
+    Lectern,
+    Lever,
+    Light,
+    LilyPad,
+    LitPumpkin,
+    Log,
+    Loom,
+    Stone,
+    Terracotta,
+]
 """Every block type registered as an item, sorted by name."""
 
 comptime VANILLA_ITEMS_PATH = "resources/vanilla_items.nbt"

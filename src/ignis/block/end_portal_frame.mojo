@@ -1,19 +1,20 @@
 """`EndPortalFrame`, ported from Dragonfly
 `server/block/end_portal_frame.go`.
 
-TODO(world-runtime): Model, UseOnBlock, EncodeItem.
+TODO(world-runtime): Model, UseOnBlock.
 """
 
 from ..world.block import Block, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .cube.direction import Direction, directions
 from .hash import HASH_END_PORTAL_FRAME
 from .model.end_portal_frame import EndPortalFrame as EndPortalFrameModel
 
 
 struct EndPortalFrame(
-    Block, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+    Block, Equatable, ImplicitlyCopyable, Item, LightEmitter, ModelledBlock
 ):
     """A block that makes up an end portal."""
 
@@ -115,3 +116,12 @@ struct EndPortalFrame(
             The model.
         """
         return EndPortalFrameModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:end_portal_frame", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

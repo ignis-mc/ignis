@@ -4,13 +4,15 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the `Book item.Stack` field, Model, SideClosed,
-UseOnBlock, Activate, Punch, TurnPage, EncodeNBT, DecodeNBT,
-FlammabilityInfo, FuelInfo, EncodeItem and the drops (the book).
+UseOnBlock, Activate, Punch, TurnPage, EncodeNBT, DecodeNBT, FlammabilityInfo
+and the drops (the book).
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -23,7 +25,9 @@ from .hash import HASH_LECTERN
 from .model.lectern import Lectern as LecternModel
 
 
-struct Lectern(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Lectern(
+    Block, Breakable, Equatable, Fuel, ImplicitlyCopyable, Item, ModelledBlock
+):
     """A librarian's job site block found in villages, used to hold books for multiple players to
     read in multiplayer."""
 
@@ -120,3 +124,16 @@ struct Lectern(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return LecternModel()
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`): burns 15 s."""
+        return FuelInfo(15000)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:lectern", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]
