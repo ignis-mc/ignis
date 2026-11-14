@@ -1,16 +1,19 @@
 """`Sandstone`, ported from Dragonfly `server/block/sandstone.go`.
 
-TODO(world-runtime): SmeltInfo, EncodeItem and the drops.
+TODO(world-runtime): the drops.
 """
 
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .hash import HASH_SANDSTONE
@@ -19,7 +22,13 @@ from .sandstone_type import SandstoneType, sandstone_types
 
 
 struct Sandstone(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
 ):
     """A solid block commonly found in deserts and beaches underneath sand."""
 
@@ -128,3 +137,30 @@ struct Sandstone(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        var prefix = String()
+        if self.type != SandstoneType.NORMAL:
+            prefix = String(t"{self.type}_")
+        if self.red:
+            return EncodedItem(String(t"minecraft:{prefix}red_sandstone"), 0)
+        return EncodedItem(String(t"minecraft:{prefix}sandstone"), 0)
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        if self.type == SandstoneType.NORMAL:
+            return SmeltInfo(
+                Stack(Sandstone(type=SandstoneType.SMOOTH, red=self.red), 1),
+                0.1,
+            )
+        return SmeltInfo()
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in sandstone_types():
+            out.append(Sandstone(type=v, red=True))
+            out.append(Sandstone(type=v))
+        return out^

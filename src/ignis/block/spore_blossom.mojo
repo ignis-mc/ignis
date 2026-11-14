@@ -1,17 +1,19 @@
 """`SporeBlossom`, ported from Dragonfly `server/block/spore_blossom.go`.
 
-TODO(world-runtime): HasLiquidDrops, NeighbourUpdateTick, UseOnBlock,
-CompostChance, EncodeItem and the drops.
+TODO(world-runtime): HasLiquidDrops, NeighbourUpdateTick, UseOnBlock and the
+drops.
 """
 
+from ..item.item import Compostable
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_SPORE_BLOSSOM
@@ -21,8 +23,10 @@ from .model.empty import Empty as EmptyModel
 struct SporeBlossom(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -109,3 +113,16 @@ struct SporeBlossom(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:spore_blossom", 0)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.65
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

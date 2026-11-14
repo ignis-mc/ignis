@@ -4,7 +4,7 @@
 Go's `sourceWaterDisplacer` makes panes a `LiquidDisplacer`; that trait
 comes with liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, DeriveState, SideClosed, the
+TODO(world-runtime): NeighbourUpdateTick, DeriveState, SideClosed and the
 `silkTouchOnlyDrop` drops.
 """
 
@@ -12,11 +12,12 @@ from ..item.colour import Colour, colours
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .connections import Connections, all_connections
@@ -29,6 +30,7 @@ struct StainedGlassPane(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -146,3 +148,17 @@ struct StainedGlassPane(
             The model.
         """
         return ThinModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(
+            String(t"minecraft:{self.colour}_stained_glass_pane"), 0
+        )
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in colours():
+            out.append(StainedGlassPane(colour=v))
+        return out^

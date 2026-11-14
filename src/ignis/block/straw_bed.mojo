@@ -4,18 +4,22 @@ Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
 TODO(world-runtime): the `Sleeper` entity handle, Model, SideClosed,
-UseOnBlock, Activate, EntityLand, bounce, NeighbourUpdateTick, head, the
-break handler waking the sleeper, EncodeItem and the drops.
+UseOnBlock, Activate, EntityLand, bounce, NeighbourUpdateTick, head, the break
+handler waking the sleeper and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from minecraft.nbt.tree import Tag, Tree
+
+from ..item.item import MaxCounter
+from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    HOE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    HOE_EFFECTIVE,
     new_break_info,
 )
 from .cube.direction import Direction, directions
@@ -28,8 +32,11 @@ struct StrawBed(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
+    MaxCounter,
     ModelledBlock,
+    NBTer,
 ):
     """A bed made of straw."""
 
@@ -156,3 +163,24 @@ struct StrawBed(
             The model.
         """
         return BedModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:straw_bed", 0)
+
+    def max_count(self) -> Int:
+        """Returns the maximum count (Go `MaxCount`)."""
+        return 16
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes no NBT (Go `EncodeNBT`)."""
+        pass
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Returns the bed unchanged (Go `DecodeNBT`)."""
+        return self
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

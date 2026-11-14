@@ -2,18 +2,20 @@
 
 Go's `replaceable` helper (ReplaceableBy) comes with `world.Tx`.
 
-TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock,
-BoneMeal, CompostChance, FlammabilityInfo, EncodeItem and the drops.
+TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
+FlammabilityInfo and the drops.
 """
 
+from ..item.item import Compostable
 from ..item.tool import TYPE_SHEARS
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     ToolFilter,
     new_break_info,
 )
@@ -24,8 +26,10 @@ from .model.empty import Empty as EmptyModel
 struct NetherSprouts(
     Block,
     Breakable,
+    Compostable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
     ModelledBlock,
 ):
@@ -112,3 +116,16 @@ struct NetherSprouts(
             The model.
         """
         return EmptyModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:nether_sprouts", 0)
+
+    def compost_chance(self) -> Float64:
+        """Returns the compost chance (Go `CompostChance`)."""
+        return 0.5
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

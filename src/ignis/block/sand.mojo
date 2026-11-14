@@ -1,24 +1,36 @@
 """`Sand`, ported from Dragonfly `server/block/sand.go`.
 
-TODO(world-runtime): SoilFor, NeighbourUpdateTick and the falling behaviour
-of `gravityAffected`, SmeltInfo, EncodeItem and the drops.
+TODO(world-runtime): SoilFor, NeighbourUpdateTick, the falling behaviour of
+`gravityAffected` and the drops.
 """
 
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    SHOVEL_EFFECTIVE,
     BreakInfo,
     Breakable,
+    SHOVEL_EFFECTIVE,
     new_break_info,
 )
+from .glass import Glass
 from .hash import HASH_SAND
 from .model.solid import Solid as SolidModel
 
 
-struct Sand(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Sand(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
+):
     """A block affected by gravity, found in deserts and beaches."""
 
     comptime BASE_HASH: UInt64 = HASH_SAND
@@ -102,3 +114,18 @@ struct Sand(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.red:
+            return EncodedItem("minecraft:red_sand", 0)
+        return EncodedItem("minecraft:sand", 0)
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(Glass(), 1), 0.1)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Sand(red=True), Sand()]

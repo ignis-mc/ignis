@@ -10,8 +10,102 @@ types and `VanillaBlockItems` the block types that are items.
 from ..block.air import Air
 from ..block.bedrock import Bedrock
 from ..block.dirt import Dirt
+from ..block.glass import Glass
+from ..block.glazed_terracotta import GlazedTerracotta
 from ..block.grass import Grass
+from ..block.magma import Magma
+from ..block.melon import Melon
+from ..block.melon_seeds import MelonSeeds
+from ..block.moss_carpet import MossCarpet
+from ..block.mud import Mud
+from ..block.mud_bricks import MudBricks
+from ..block.muddy_mangrove_roots import MuddyMangroveRoots
+from ..block.mycelium import Mycelium
+from ..block.nether_brick_fence import NetherBrickFence
+from ..block.nether_bricks import NetherBricks
+from ..block.nether_gold_ore import NetherGoldOre
+from ..block.nether_sprouts import NetherSprouts
+from ..block.nether_wart import NetherWart
+from ..block.nether_wart_block import NetherWartBlock
+from ..block.netherite import Netherite
+from ..block.netherrack import Netherrack
+from ..block.note import Note
+from ..block.obsidian import Obsidian
+from ..block.packed_ice import PackedIce
+from ..block.packed_mud import PackedMud
+from ..block.pink_petals import PinkPetals
+from ..block.planks import Planks
+from ..block.podzol import Podzol
+from ..block.polished_blackstone_brick import PolishedBlackstoneBrick
+from ..block.polished_cinnabar import PolishedCinnabar
+from ..block.polished_sulfur import PolishedSulfur
+from ..block.polished_tuff import PolishedTuff
+from ..block.potato import Potato
+from ..block.prismarine import Prismarine
+from ..block.pumpkin import Pumpkin
+from ..block.pumpkin_seeds import PumpkinSeeds
+from ..block.purpur import Purpur, PurpurPillar
+from ..block.quartz import Quartz, QuartzPillar
+from ..block.quartz_bricks import QuartzBricks
+from ..block.quartz_ore import NetherQuartzOre
+from ..block.raw_copper import RawCopper as RawCopperBlock
+from ..block.raw_gold import RawGold as RawGoldBlock
+from ..block.raw_iron import RawIron as RawIronBlock
+from ..block.red_shrub import RedShrub
+from ..block.redstone_block import RedstoneBlock
+from ..block.redstone_ore import RedstoneOre
+from ..block.redstone_torch import RedstoneTorch
+from ..block.redstone_wire import RedstoneWire
+from ..block.reinforced_deepslate import ReinforcedDeepslate
+from ..block.resin import Resin
+from ..block.resin_bricks import ResinBricks
+from ..block.sand import Sand
+from ..block.sandstone import Sandstone
+from ..block.sapling import Sapling
+from ..block.sea_lantern import SeaLantern
+from ..block.sea_pickle import SeaPickle
+from ..block.shelf_mushroom import ShelfMushroom
+from ..block.short_grass import ShortGrass
+from ..block.shroomlight import Shroomlight
+from ..block.shulker_box import ShulkerBox
+from ..block.sign import Sign
+from ..block.skull import Skull
+from ..block.slab import Slab
+from ..block.slime import Slime
+from ..block.smithing_table import SmithingTable
+from ..block.smoker import Smoker
+from ..block.smooth_basalt import SmoothBasalt
+from ..block.snow import Snow
+from ..block.soul_sand import SoulSand
+from ..block.soul_soil import SoulSoil
+from ..block.sponge import Sponge
+from ..block.spore_blossom import SporeBlossom
+from ..block.stained_glass import StainedGlass
+from ..block.stained_glass_pane import StainedGlassPane
+from ..block.stained_terracotta import StainedTerracotta
+from ..block.stairs import Stairs
 from ..block.stone import Stone
+from ..block.stone_bricks import StoneBricks
+from ..block.stonecutter import Stonecutter
+from ..block.straw_bed import StrawBed
+from ..block.string import StringBlock
+from ..block.sugar_cane import SugarCane
+from ..block.sulfur import Sulfur
+from ..block.sulfur_bricks import SulfurBricks
+from ..block.tinted_glass import TintedGlass
+from ..block.tnt import TNT
+from ..block.torch import Torch
+from ..block.tuff import Tuff
+from ..block.tuff_bricks import TuffBricks
+from ..block.vine import Vines
+from ..block.wall import Wall
+from ..block.wheat_seeds import WheatSeeds
+from ..block.wood import Wood
+from ..block.wood_door import WoodDoor
+from ..block.wood_fence import WoodFence
+from ..block.wood_fence_gate import WoodFenceGate
+from ..block.wood_trapdoor import WoodTrapdoor
+from ..block.wool import Wool
 from ..world.item import ItemRegistry
 from .amethyst_shard import AmethystShard
 from .apple import Apple
@@ -44,6 +138,7 @@ from .diamond import Diamond
 from .disc_fragment import DiscFragment
 from .dragon_breath import DragonBreath
 from .dried_kelp import DriedKelp
+from .dye import Dye
 from .echo_shard import EchoShard
 from .egg import Egg
 from .elytra import Elytra
@@ -73,6 +168,7 @@ from .honey_bottle import HoneyBottle
 from .honeycomb import Honeycomb
 from .iron_ingot import IronIngot
 from .iron_nugget import IronNugget
+from .item_set import ItemSet
 from .lapis_lazuli import LapisLazuli
 from .leather import Leather
 from .magma_cream import MagmaCream
@@ -116,7 +212,6 @@ from .turtle_shell import TurtleShell
 from .warped_fungus_on_a_stick import WarpedFungusOnAStick
 from .wheat import Wheat
 from .written_book import WrittenBook
-from .item_set import ItemSet
 
 comptime VanillaItems = ItemSet[
     AmethystShard,
@@ -150,6 +245,7 @@ comptime VanillaItems = ItemSet[
     DiscFragment,
     DragonBreath,
     DriedKelp,
+    Dye,
     EchoShard,
     Egg,
     Elytra,
@@ -225,7 +321,109 @@ comptime VanillaItems = ItemSet[
 ]
 """Every item type Ignis implements, sorted by name."""
 
-comptime VanillaBlockItems = ItemSet[Air, Bedrock, Dirt, Grass, Stone]
+comptime VanillaBlockItems = ItemSet[
+    Air,
+    Bedrock,
+    Dirt,
+    Glass,
+    GlazedTerracotta,
+    Grass,
+    Magma,
+    Melon,
+    MelonSeeds,
+    MossCarpet,
+    Mud,
+    MudBricks,
+    MuddyMangroveRoots,
+    Mycelium,
+    NetherBrickFence,
+    NetherBricks,
+    NetherGoldOre,
+    NetherQuartzOre,
+    NetherSprouts,
+    NetherWart,
+    NetherWartBlock,
+    Netherite,
+    Netherrack,
+    Note,
+    Obsidian,
+    PackedIce,
+    PackedMud,
+    PinkPetals,
+    Planks,
+    Podzol,
+    PolishedBlackstoneBrick,
+    PolishedCinnabar,
+    PolishedSulfur,
+    PolishedTuff,
+    Potato,
+    Prismarine,
+    Pumpkin,
+    PumpkinSeeds,
+    Purpur,
+    PurpurPillar,
+    Quartz,
+    QuartzBricks,
+    QuartzPillar,
+    RawCopperBlock,
+    RawGoldBlock,
+    RawIronBlock,
+    RedShrub,
+    RedstoneBlock,
+    RedstoneOre,
+    RedstoneTorch,
+    RedstoneWire,
+    ReinforcedDeepslate,
+    Resin,
+    ResinBricks,
+    Sand,
+    Sandstone,
+    Sapling,
+    SeaLantern,
+    SeaPickle,
+    ShelfMushroom,
+    ShortGrass,
+    Shroomlight,
+    ShulkerBox,
+    Sign,
+    Skull,
+    Slab,
+    Slime,
+    SmithingTable,
+    Smoker,
+    SmoothBasalt,
+    Snow,
+    SoulSand,
+    SoulSoil,
+    Sponge,
+    SporeBlossom,
+    StainedGlass,
+    StainedGlassPane,
+    StainedTerracotta,
+    Stairs,
+    Stone,
+    StoneBricks,
+    Stonecutter,
+    StrawBed,
+    StringBlock,
+    SugarCane,
+    Sulfur,
+    SulfurBricks,
+    TNT,
+    TintedGlass,
+    Torch,
+    Tuff,
+    TuffBricks,
+    Vines,
+    Wall,
+    WheatSeeds,
+    Wood,
+    WoodDoor,
+    WoodFence,
+    WoodFenceGate,
+    WoodTrapdoor,
+    Wool,
+]
 """Every block type registered as an item, sorted by name."""
 
 comptime VANILLA_ITEMS_PATH = "resources/vanilla_items.nbt"

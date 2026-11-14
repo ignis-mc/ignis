@@ -1,12 +1,16 @@
 """`Note`, ported from Dragonfly `server/block/note.go`.
 
-TODO(world-runtime): playNote, instrument, DecodeNBT, EncodeNBT, Punch,
-Activate, RedstoneUpdate, FuelInfo, EncodeItem and the drops.
+TODO(world-runtime): playNote, instrument, Punch, Activate, RedstoneUpdate and
+the drops.
 """
 
-from ..world.block import Block
+from minecraft.nbt.tree import Tag, Tree
+
+from ..item.smelting_info import Fuel, FuelInfo
+from ..world.block import Block, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -18,7 +22,16 @@ from .hash import HASH_NOTE
 from .model.solid import Solid as SolidModel
 
 
-struct Note(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Note(
+    Block,
+    Breakable,
+    Equatable,
+    Fuel,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    NBTer,
+):
     """A musical block that emits sounds when powered or punched."""
 
     comptime BASE_HASH: UInt64 = HASH_NOTE
@@ -108,3 +121,32 @@ struct Note(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:noteblock", 0)
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`)."""
+        return FuelInfo(15000)
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the NBT (Go `EncodeNBT`)."""
+        _ = tag.put_byte(root, "note", UInt8(self.pitch))
+        _ = tag.put_byte(root, "powered", UInt8(1) if self.powered else 0)
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Decodes the NBT (Go `DecodeNBT`)."""
+        var n = self
+        n.pitch = 0
+        if case .Some(t) = tag.get(root, "note"):
+            n.pitch = Int(tag.as_byte(t))
+        n.powered = False
+        if case .Some(t) = tag.get(root, "powered"):
+            n.powered = tag.as_byte(t) != 0
+        return n
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Note(pitch=24)]

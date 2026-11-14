@@ -1,27 +1,37 @@
 """`RedstoneOre`, ported from Dragonfly `server/block/redstone_ore.go`.
 
-TODO(world-runtime): Activate, Punch, EntityStepOn, RandomTick, EncodeItem,
-SmeltInfo and the drops.
+TODO(world-runtime): Activate, Punch, EntityStepOn, RandomTick and the drops.
 """
 
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block, LightEmitter
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    HARVEST_LEVEL_IRON,
-    PICKAXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    HARVEST_LEVEL_IRON,
+    PICKAXE_EFFECTIVE,
     new_break_info,
     pickaxe_harvestable_from,
 )
 from .hash import HASH_REDSTONE_ORE
 from .model.solid import Solid as SolidModel
 from .ore_type import OreType, ore_types
+from .redstone_wire import RedstoneWire
 
 
 struct RedstoneOre(
-    Block, Breakable, Equatable, ImplicitlyCopyable, LightEmitter, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    LightEmitter,
+    ModelledBlock,
+    Smeltable,
 ):
     """A common ore that lights up when touched."""
 
@@ -136,3 +146,21 @@ struct RedstoneOre(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(
+            String(t"minecraft:{self.type.prefix()}redstone_ore"), 0
+        )
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(RedstoneWire(), 1), 0.7, ores=True)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in ore_types():
+            out.append(RedstoneOre(type=v))
+        return out^

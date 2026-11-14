@@ -1,24 +1,32 @@
 """`TNT`, ported from Dragonfly `server/block/tnt.go`.
 
 TODO(world-runtime): RedstoneNonConductive, RedstonePowerAction, Activate,
-Ignite, Explode, spawnTnt, FlammabilityInfo, EncodeItem and the drops.
+Ignite, Explode, spawnTnt, FlammabilityInfo and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    NOTHING_EFFECTIVE,
     BreakInfo,
     Breakable,
+    NOTHING_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_TNT
 from .model.solid import Solid as SolidModel
 
 
-struct TNT(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct TNT(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+):
     """An explosive block that can be primed to generate an explosion."""
 
     comptime BASE_HASH: UInt64 = HASH_TNT
@@ -96,3 +104,12 @@ struct TNT(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:tnt", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

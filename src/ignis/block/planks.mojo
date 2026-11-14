@@ -1,12 +1,13 @@
 """`Planks`, ported from Dragonfly `server/block/planks.go`.
 
-TODO(world-runtime): EncodeItem, FlammabilityInfo, FuelInfo and the drops,
-RepairsWoodTools.
+TODO(world-runtime): FlammabilityInfo, the drops and RepairsWoodTools.
 """
 
+from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
     AXE_EFFECTIVE,
@@ -19,7 +20,15 @@ from .model.solid import Solid as SolidModel
 from .wood_type import WoodType, wood_types
 
 
-struct Planks(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Planks(
+    Block,
+    Breakable,
+    Equatable,
+    Fuel,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+):
     """Common blocks used in crafting recipes, made by crafting logs into planks.
     """
 
@@ -107,3 +116,21 @@ struct Planks(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.wood}_planks"), 0)
+
+    def fuel_info(self) -> FuelInfo:
+        """Returns the fuel info (Go `FuelInfo`); none for nether wood."""
+        if not self.wood.flammable():
+            return FuelInfo()
+        return FuelInfo(15000)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in wood_types():
+            out.append(Planks(wood=v))
+        return out^

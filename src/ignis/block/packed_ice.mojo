@@ -1,16 +1,17 @@
 """`PackedIce`, ported from Dragonfly `server/block/packed_ice.go`.
 
-TODO(world-runtime): Instrument, Friction, EncodeItem and the drops.
+TODO(world-runtime): Instrument, Friction and the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    PICKAXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
     new_break_info,
 )
 from .hash import HASH_PACKED_ICE
@@ -18,7 +19,12 @@ from .model.solid import Solid as SolidModel
 
 
 struct PackedIce(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """An opaque solid block variant of ice that does not melt."""
 
@@ -94,3 +100,12 @@ struct PackedIce(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:packed_ice", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]

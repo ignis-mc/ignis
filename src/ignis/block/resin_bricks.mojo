@@ -1,16 +1,17 @@
 """`ResinBricks`, ported from Dragonfly `server/block/resin_bricks.go`.
 
-TODO(world-runtime): EncodeItem and the drops.
+TODO(world-runtime): the drops.
 """
 
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .hash import HASH_RESIN_BRICKS
@@ -18,7 +19,12 @@ from .model.solid import Solid as SolidModel
 
 
 struct ResinBricks(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
 ):
     """A decorative block crafted from resin bricks."""
 
@@ -105,3 +111,14 @@ struct ResinBricks(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        if self.chiseled:
+            return EncodedItem("minecraft:chiseled_resin_bricks", 0)
+        return EncodedItem("minecraft:resin_bricks", 0)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [ResinBricks(chiseled=True), ResinBricks()]

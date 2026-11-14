@@ -3,21 +3,24 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): the inventory, viewer and animation fields,
-NewShulkerBox, Inventory, WithName, AddViewer, RemoveViewer, Activate,
-UseOnBlock, Tick, open/close, Model, SideClosed, DecodeNBT, EncodeNBT,
-EncodeItem and the drops.
+TODO(world-runtime): the inventory, viewer, animation fields, NewShulkerBox,
+Inventory, WithName, AddViewer, RemoveViewer, Activate, UseOnBlock, Tick,
+open/close, Model, SideClosed and the drops.
 """
 
+from minecraft.nbt.tree import Tag, Tree
+
+from ..item.item import MaxCounter
 from ..item.optional_colour import OptionalColour, optional_colours
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    PICKAXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
     new_break_info,
 )
 from .cube.face import Face
@@ -30,8 +33,11 @@ struct ShulkerBox(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Item,
     LightDiffuser,
+    MaxCounter,
     ModelledBlock,
+    NBTer,
 ):
     """A dye-able block that stores items; unlike other containers it keeps them when broken.
     """
@@ -147,3 +153,39 @@ struct ShulkerBox(
             The model.
         """
         return ShulkerModel(facing=self.facing, progress=0)
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(self.encode_block().name, 0)
+
+    def max_count(self) -> Int:
+        """Returns the maximum count (Go `MaxCount`)."""
+        return 1
+
+    def encode_nbt(self, mut tag: Tree, root: Tag) raises:
+        """Writes the NBT (Go `EncodeNBT`)."""
+        # The inventory is not ported: Go writes a new box's, which is empty.
+        _ = tag.put_list(root, "Items")
+        _ = tag.put_string(root, "id", "ShulkerBox")
+        _ = tag.put_byte(root, "facing", UInt8(Int(self.facing)))
+        if self.custom_name.byte_length() != 0:
+            _ = tag.put_string(root, "CustomName", self.custom_name)
+
+    def decode_nbt(self, tag: Tree, root: Tag) raises -> Self:
+        """Decodes the NBT (Go `DecodeNBT`); the items are not ported."""
+        var s = self
+        s.facing = Face(0)
+        if case .Some(t) = tag.get(root, "facing"):
+            s.facing = Face(Int(tag.as_byte(t)))
+        s.custom_name = String()
+        if case .Some(t) = tag.get(root, "CustomName"):
+            s.custom_name = tag.as_string(t)
+        return s
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in optional_colours():
+            out.append(ShulkerBox(colour=v))
+        return out^

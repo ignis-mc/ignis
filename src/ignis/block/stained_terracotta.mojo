@@ -1,26 +1,36 @@
 """`StainedTerracotta`, ported from Dragonfly
 `server/block/stained_terracotta.go`.
 
-TODO(world-runtime): SoilFor, EncodeItem and the drops.
+TODO(world-runtime): SoilFor and the drops.
 """
 
 from ..item.colour import Colour, colours
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
+from .glazed_terracotta import GlazedTerracotta
 from .hash import HASH_STAINED_TERRACOTTA
 from .model.solid import Solid as SolidModel
 
 
 struct StainedTerracotta(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
 ):
     """A block formed from clay, with a hardness and blast resistance comparable to stone.
     """
@@ -107,3 +117,19 @@ struct StainedTerracotta(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem(String(t"minecraft:{self.colour}_terracotta"), 0)
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(GlazedTerracotta(colour=self.colour), 1), 0.1)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        var out = List[Self]()
+        for v in colours():
+            out.append(StainedTerracotta(colour=v))
+        return out^

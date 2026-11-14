@@ -1,16 +1,20 @@
 """`NetherQuartzOre`, ported from Dragonfly `server/block/quartz_ore.go`.
 
-TODO(world-runtime): EncodeItem, SmeltInfo and the drops.
+TODO(world-runtime): the drops.
 """
 
+from ..item.nether_quartz import NetherQuartz
+from ..item.smelting_info import SmeltInfo, Smeltable
+from ..item.stack import Stack
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
+from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .hash import HASH_NETHER_QUARTZ_ORE
@@ -18,7 +22,13 @@ from .model.solid import Solid as SolidModel
 
 
 struct NetherQuartzOre(
-    Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    Item,
+    ModelledBlock,
+    Smeltable,
 ):
     """An ore found in the nether."""
 
@@ -96,3 +106,16 @@ struct NetherQuartzOre(
             The model.
         """
         return SolidModel()
+
+    def encode_item(self) -> EncodedItem:
+        """Encodes the block as an item (Go `EncodeItem`)."""
+        return EncodedItem("minecraft:quartz_ore", 0)
+
+    def smelt_info(self) -> SmeltInfo:
+        """Returns the smelt info (Go `SmeltInfo`)."""
+        return SmeltInfo(Stack(NetherQuartz(), 1), 0.2, ores=True)
+
+    @staticmethod
+    def all_items() -> List[Self]:
+        """Returns the values registered as items (Go `register.go`)."""
+        return [Self()]
