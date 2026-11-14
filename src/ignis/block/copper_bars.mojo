@@ -7,25 +7,26 @@ TODO(world-runtime): NeighbourUpdateTick, DeriveState, SideClosed, Wax, Strip,
 RandomTick (attemptOxidation) and the drops.
 """
 
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, LiquidDisplacer, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    PICKAXE_EFFECTIVE,
-    PICKAXE_HARVESTABLE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
+    PICKAXE_HARVESTABLE,
     new_break_info,
 )
 from .connections import Connections, all_connections
-from .hash import HASH_COPPER_BARS
+from .hash import AnyBlock, HASH_COPPER_BARS
 from .model.thin import Thin as ThinModel
 from .oxidation_type import OxidationType, oxidation_types
-from .oxidizable import Oxidisable, copper_block_name
-from ..world.block import LiquidDisplacer
-from .hash import AnyBlock
+from .oxidizable import Oxidisable, attempt_oxidation, copper_block_name
 from .liquid import source_water_can_displace
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
 
 
 struct CopperBars(
@@ -38,6 +39,7 @@ struct CopperBars(
     LiquidDisplacer,
     ModelledBlock,
     Oxidisable,
+    RandomTicker,
 ):
     """A pane-like block made of copper."""
 
@@ -153,3 +155,7 @@ struct CopperBars(
     def can_displace(self, b: AnyBlock) -> Bool:
         """Holds water sources (Go `sourceWaterDisplacer`)."""
         return source_water_can_displace(b)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May oxidise (Go `RandomTick`)."""
+        attempt_oxidation(pos, tx, self)

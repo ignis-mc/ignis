@@ -4,7 +4,12 @@ TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RandomTick, BoneMeal,
 FuelInfo, FlammabilityInfo, EncodeItem and the drops.
 """
 
-from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    NeighbourUpdateTicker,
+    RandomTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from .break_info import (
@@ -22,8 +27,10 @@ from .liquid import LiquidRemovable
 from ..world.world import World, WorldTypes
 from .cube.pos import Pos
 from .cube.face import Face
-from .block import face_solid_at, is_air
+from .block import face_solid_at, is_air, replaceable_with
 from .dirt import supports_vegetation
+from .bamboo import Bamboo
+from .bamboo_leaf_size import BambooLeafSize
 
 
 struct BambooSapling(
@@ -35,6 +42,7 @@ struct BambooSapling(
     LiquidRemovable,
     ModelledBlock,
     NeighbourUpdateTicker,
+    RandomTicker,
 ):
     """A sapling that grows into bamboo."""
 
@@ -102,3 +110,13 @@ struct BambooSapling(
             AnyBlock(self), tx.block(pos.side(Face.DOWN)), tx
         ):
             break_block(self, pos, tx)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May grow into bamboo when lit (Go `RandomTick`)."""
+        if tx.light(pos) >= 9 and tx.rand().int_n(3) == 0:
+            if not replaceable_with(tx, pos.side(Face.UP), AnyBlock(self)):
+                return
+            tx.set_block(pos, Bamboo())
+            tx.set_block(
+                pos.side(Face.UP), Bamboo(leaf_size=BambooLeafSize.SMALL_LEAVES)
+            )

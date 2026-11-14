@@ -5,7 +5,7 @@ TODO(world-runtime): Activate, Punch, EntityStepOn, RandomTick and the drops.
 
 from ..item.smelting_info import SmeltInfo, Smeltable
 from ..item.stack import Stack
-from ..world.block import Block, LightEmitter
+from ..world.block import Block, LightEmitter, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
@@ -21,6 +21,9 @@ from .hash import HASH_REDSTONE_ORE
 from .model.solid import Solid as SolidModel
 from .ore_type import OreType, ore_types
 from .redstone_wire import RedstoneWire
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
 
 
 struct RedstoneOre(
@@ -31,6 +34,7 @@ struct RedstoneOre(
     Item,
     LightEmitter,
     ModelledBlock,
+    RandomTicker,
     Smeltable,
 ):
     """A common ore that lights up when touched."""
@@ -121,3 +125,11 @@ struct RedstoneOre(
         for v in ore_types():
             out.append(RedstoneOre(type=v))
         return out^
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Stops glowing (Go `RandomTick`, `fade`)."""
+        if not self.lit:
+            return
+        var r = self.copy()
+        r.lit = False
+        tx.set_block(pos, r)

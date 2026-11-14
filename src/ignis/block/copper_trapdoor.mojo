@@ -17,25 +17,23 @@ from .cube.rotation import Rotation
 from ..mgl64 import Vec3
 from ..world.world import World, WorldTypes
 from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
-from .hash import AnyBlock
-from ..world.block import Block, LightDiffuser
+from .hash import AnyBlock, HASH_COPPER_TRAPDOOR
+from ..world.block import Block, LightDiffuser, LiquidDisplacer, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    HARVEST_LEVEL_STONE,
-    PICKAXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    HARVEST_LEVEL_STONE,
+    PICKAXE_EFFECTIVE,
     new_break_info,
     pickaxe_harvestable_from,
 )
 from .cube.direction import Direction, directions
-from .hash import HASH_COPPER_TRAPDOOR
 from .model.trapdoor import Trapdoor as TrapdoorModel
 from .oxidation_type import OxidationType, oxidation_types
-from .oxidizable import Oxidisable, copper_block_name
-from ..world.block import LiquidDisplacer
+from .oxidizable import Oxidisable, attempt_oxidation, copper_block_name
 from .liquid import source_water_can_displace
 
 
@@ -49,6 +47,7 @@ struct CopperTrapdoor(
     LiquidDisplacer,
     ModelledBlock,
     Oxidisable,
+    RandomTicker,
     UsableOnBlock,
 ):
     """A copper trapdoor, opened and closed by players."""
@@ -213,3 +212,7 @@ struct CopperTrapdoor(
     def can_displace(self, b: AnyBlock) -> Bool:
         """Holds water sources (Go `sourceWaterDisplacer`)."""
         return source_water_can_displace(b)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May oxidise (Go `RandomTick`)."""
+        attempt_oxidation(pos, tx, self)

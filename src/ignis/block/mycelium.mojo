@@ -3,7 +3,7 @@
 TODO(world-runtime): SoilFor, RandomTick, Shovel and the drops.
 """
 
-from ..world.block import Block
+from ..world.block import Block, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
@@ -31,7 +31,10 @@ from .hash import (
     HASH_SUGAR_CANE,
 )
 from .model.solid import Solid as SolidModel
-from .dirt import Soil
+from .dirt import Soil, spread_dirt
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
 
 
 struct Mycelium(
@@ -41,6 +44,7 @@ struct Mycelium(
     ImplicitlyCopyable,
     Item,
     ModelledBlock,
+    RandomTicker,
     Soil,
 ):
     """A spreading dirt-type block found in mushroom fields."""
@@ -110,3 +114,8 @@ struct Mycelium(
             or k == HASH_BAMBOO
             or k == HASH_RED_SHRUB
         )
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Spreads onto dirt around it, or dies in the dark (Go `RandomTick`).
+        """
+        spread_dirt(self, pos, tx, -2)

@@ -13,6 +13,7 @@ from ..world.block import (
     LightEmitter,
     LiquidDisplacer,
     NeighbourUpdateTicker,
+    RandomTicker,
 )
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
@@ -29,7 +30,7 @@ from .break_info import (
 from .hash import AnyBlock, HASH_COPPER_LANTERN
 from .model.lantern import Lantern as LanternModel
 from .oxidation_type import OxidationType, oxidation_types
-from .oxidizable import Oxidisable, copper_block_name
+from .oxidizable import Oxidisable, attempt_oxidation, copper_block_name
 from .liquid import source_water_can_displace
 from ..world.world import World, WorldTypes
 from .cube.pos import Pos
@@ -50,6 +51,7 @@ struct CopperLantern(
     ModelledBlock,
     NeighbourUpdateTicker,
     Oxidisable,
+    RandomTicker,
 ):
     """A light emitting block made of copper."""
 
@@ -182,3 +184,7 @@ struct CopperLantern(
                 break_block(self, pos, tx)
         elif not face_solid_at(tx, pos.side(Face.DOWN), Face.UP):
             break_block(self, pos, tx)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May oxidise (Go `RandomTick`)."""
+        attempt_oxidation(pos, tx, self)

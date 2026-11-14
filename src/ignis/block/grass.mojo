@@ -4,13 +4,13 @@ TODO(world-runtime): RandomTick, BoneMeal, SoilFor, Till and Shovel.
 """
 
 from ..item.item import Compostable
-from ..world.block import Block
+from ..world.block import Block, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from ..item.stack import Stack
 from ..item.tool import ToolInfo
-from .dirt import Dirt, Soil
+from .dirt import Dirt, Soil, spread_dirt
 from .break_info import (
     ALWAYS_HARVESTABLE,
     BreakInfo,
@@ -37,6 +37,9 @@ from .hash import (
     HASH_SUGAR_CANE,
 )
 from .model.solid import Solid as SolidModel
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
 
 
 @fieldwise_init
@@ -49,6 +52,7 @@ struct Grass(
     ImplicitlyCopyable,
     Item,
     ModelledBlock,
+    RandomTicker,
     Soil,
 ):
     """Grass blocks generate abundantly across the surface of the world."""
@@ -122,3 +126,8 @@ struct Grass(
             or k == HASH_SAPLING
             or k == HASH_RED_SHRUB
         )
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Spreads onto dirt around it, or dies in the dark (Go `RandomTick`).
+        """
+        spread_dirt(self, pos, tx, -3)

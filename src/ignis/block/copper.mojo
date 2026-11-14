@@ -3,15 +3,15 @@
 TODO(world-runtime): Wax, Strip, RandomTick (attemptOxidation) and the drops.
 """
 
-from ..world.block import Block
+from ..world.block import Block, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
 from ..world.item import EncodedItem, Item
 from .break_info import (
-    HARVEST_LEVEL_STONE,
-    PICKAXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    HARVEST_LEVEL_STONE,
+    PICKAXE_EFFECTIVE,
     new_break_info,
     pickaxe_harvestable_from,
 )
@@ -19,7 +19,10 @@ from .copper_type import CopperType, copper_types
 from .hash import HASH_COPPER
 from .model.solid import Solid as SolidModel
 from .oxidation_type import OxidationType, oxidation_types
-from .oxidizable import Oxidisable
+from .oxidizable import Oxidisable, attempt_oxidation
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
 
 
 struct Copper(
@@ -30,6 +33,7 @@ struct Copper(
     Item,
     ModelledBlock,
     Oxidisable,
+    RandomTicker,
 ):
     """A solid block commonly found in deserts and beaches underneath sand."""
 
@@ -156,3 +160,7 @@ struct Copper(
                 out.append(Self(type=c, oxidation=o))
                 out.append(Self(type=c, oxidation=o, waxed=True))
         return out^
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May oxidise (Go `RandomTick`)."""
+        attempt_oxidation(pos, tx, self)

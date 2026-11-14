@@ -29,6 +29,7 @@ from ..world.block import (
     LightDiffuser,
     LiquidDisplacer,
     NeighbourUpdateTicker,
+    RandomTicker,
 )
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
@@ -47,7 +48,7 @@ from .break_info import (
 from .cube.direction import Direction, directions
 from .model.door import Door as DoorModel
 from .oxidation_type import OxidationType, oxidation_types
-from .oxidizable import Oxidisable, copper_block_name
+from .oxidizable import Oxidisable, attempt_oxidation, copper_block_name
 from .liquid import source_water_can_displace
 from ..item.stack import Stack
 
@@ -63,6 +64,7 @@ struct CopperDoor(
     ModelledBlock,
     NeighbourUpdateTicker,
     Oxidisable,
+    RandomTicker,
     UsableOnBlock,
 ):
     """A copper door that blocks entities, opened and closed by players."""
@@ -285,3 +287,7 @@ struct CopperDoor(
                 d.oxidation = b.value().oxidation
                 d.waxed = b.value().waxed
                 tx.set_block(pos, d)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May oxidise (Go `RandomTick`)."""
+        attempt_oxidation(pos, tx, self)

@@ -11,15 +11,15 @@ RandomTick (attemptOxidation) and the drops.
 from minecraft.nbt.tree import Tag, Tree
 
 from ..internal.nbtconv.read import get_int32
-from ..world.block import Block, LightDiffuser, NBTer
+from ..world.block import Block, LightDiffuser, NBTer, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
 from .break_info import (
     ALWAYS_HARVESTABLE,
-    PICKAXE_EFFECTIVE,
     BreakInfo,
     Breakable,
+    PICKAXE_EFFECTIVE,
     new_break_info,
 )
 from .copper_golem_pose import CopperGolemPose
@@ -27,7 +27,10 @@ from .cube.direction import Direction, directions
 from .hash import HASH_COPPER_GOLEM_STATUE
 from .model.solid import Solid as SolidModel
 from .oxidation_type import OxidationType, oxidation_types
-from .oxidizable import Oxidisable, copper_block_name
+from .oxidizable import Oxidisable, attempt_oxidation, copper_block_name
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
 
 
 struct CopperGolemStatue(
@@ -40,6 +43,7 @@ struct CopperGolemStatue(
     ModelledBlock,
     NBTer,
     Oxidisable,
+    RandomTicker,
 ):
     """A decorative statue left behind by a copper golem."""
 
@@ -173,3 +177,7 @@ struct CopperGolemStatue(
         var c = self.copy()
         c.pose = CopperGolemPose(Int(get_int32(tag, root, "Pose")))
         return c^
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May oxidise (Go `RandomTick`)."""
+        attempt_oxidation(pos, tx, self)

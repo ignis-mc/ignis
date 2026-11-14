@@ -15,6 +15,7 @@ from ..world.block import (
     LightDiffuser,
     LiquidDisplacer,
     NeighbourUpdateTicker,
+    RandomTicker,
 )
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
@@ -24,16 +25,26 @@ from .break_info import (
     BreakInfo,
     Breakable,
     ToolFilter,
+    drop_item,
     new_break_info,
 )
 from .hash import AnyBlock, HASH_LEAVES
 from .leaves_type import LeavesType, leaves_types, poplar_leaves_types
 from .model.leaves import Leaves as LeavesModel
-from .wood_type import wood_types
+from .wood_type import WoodType, wood_types
 from .liquid import source_water_can_displace
 from ..world.world import World, WorldTypes
 from .cube.pos import Pos
 from .cube.face import Face
+from std.collections import Set
+
+from ..item.apple import Apple
+from ..item.stack import Stack
+from ..item.stick import Stick
+from ..world.tx import Context
+from .log import Log
+from .sapling import Sapling
+from .wood import Wood
 
 
 struct Leaves(
@@ -47,6 +58,7 @@ struct Leaves(
     LiquidDisplacer,
     ModelledBlock,
     NeighbourUpdateTicker,
+    RandomTicker,
 ):
     """Blocks that grow as part of trees which mainly drop saplings and sticks.
     """
@@ -169,3 +181,65 @@ struct Leaves(
             var l = self.copy()
             l.should_update = True
             tx.set_block(pos, l)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Decays without a log nearby (Go `RandomTick`)."""
+        if self.persistent or not self.should_update:
+            return
+        var l = self.copy()
+        if _find_log(pos, tx):
+            l.should_update = False
+            tx.set_block(pos, l)
+            return
+        var ctx = Context()
+        tx.handle_leaves_decay(ctx, pos)
+        if ctx.cancelled():
+            l.should_update = False
+            tx.set_block(pos, l)
+            return
+        tx.set_block_runtime_id(pos, tx.block_registry()[].air_runtime_id())
+        for ref d in _leaves_drops(l, tx):
+            drop_item(tx, d, pos.vec3_centre())
+
+
+def _find_log[T: WorldTypes](pos: Pos, mut tx: World[T]) -> Bool:
+    # Go `findLog`: a log or wood within 4 leaves.
+    var visited = Set[Pos]()
+    visited.add(pos)
+    var step = List[Pos]()
+    step.append(pos)
+    var distance = 0
+    while len(step) > 0:
+        var next = List[Pos]()
+        for at in step:
+            if tx.block_as[Log](at) or tx.block_as[Wood](at):
+                return True
+            if not tx.block_as[Leaves](at) or distance >= 4:
+                continue
+            for neighbour in at.neighbours(tx.range()):
+                if neighbour in visited:
+                    continue
+                visited.add(neighbour)
+                next.append(neighbour)
+        step = next^
+        distance += 1
+    return False
+
+
+def _leaves_drops[T: WorldTypes](l: Leaves, mut tx: World[T]) -> List[Stack]:
+    # Go's leaves drop function without a tool or fortune; it draws from
+    # Go's global source.
+    var drops = List[Stack]()
+    if case .Some(sapling) = l.type.sapling():
+        var chance = 0.05
+        if l.type == LeavesType.JUNGLE:
+            chance = 0.025
+        if tx.global_rand().float64() < chance:
+            drops.append(Stack(Sapling(type=sapling), 1))
+    if tx.global_rand().float64() < 0.02:
+        drops.append(Stack(Stick(), tx.global_rand().int_n(2) + 1))
+    if case .Some(wood) = l.type.wood():
+        if wood == WoodType.OAK or wood == WoodType.DARK_OAK:
+            if tx.global_rand().float64() < 0.005:
+                drops.append(Stack(Apple(), 1))
+    return drops^

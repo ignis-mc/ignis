@@ -17,6 +17,16 @@ runs Dragonfly's own ticks and records what happened:
   entities) and other entities. Checked by
   `test/ignis/block/test_neighbour_ticks.mojo`. Anvils are left out: their
   wear when they land is drawn from Go's global random source.
+- `random_ticks.txt` (`randomticks.go`): one-chunk worlds whose blocks
+  are placed while generating (so the light calculated on load sees them),
+  ticked with random ticks: grass and mycelium, crops and stems, sugar
+  cane, cacti, bamboo, kelp, cocoa, nether wart, redstone ore, leaves,
+  farmland, ice and copper. The file also holds each world's placements
+  (`tick -1 place`) and tick speed, from which
+  `test/ignis/block/test_random_ticks.mojo` builds it. Dragonfly picks
+  random blocks chunk by chunk in map order, so only worlds of one loaded
+  chunk are deterministic: everything stays more than four blocks inside
+  chunk (0, 0).
 - `light.txt` (`light.go`, `features.go`): the sky and block light of a
   world whose features are placed while generating, after loading chunks
   -2..2. Checked by `test/ignis/world/chunk/test_light.mojo`.

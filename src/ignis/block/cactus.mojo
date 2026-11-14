@@ -5,7 +5,12 @@ DamageSource, CanDisplace, SideClosed, Model and the drops.
 """
 
 from ..item.item import Compostable
-from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    NeighbourUpdateTicker,
+    RandomTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -37,6 +42,7 @@ struct Cactus(
     LightDiffuser,
     ModelledBlock,
     NeighbourUpdateTicker,
+    RandomTicker,
 ):
     """A plant block that generates naturally in dry areas and causes damage."""
 
@@ -112,6 +118,23 @@ struct Cactus(
         """Breaks where it cannot grow (Go `NeighbourUpdateTick`)."""
         if not _cactus_can_grow_here(pos, tx, True):
             break_block(self, pos, tx)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Grows a block taller every 16 ticks (Go `RandomTick`)."""
+        var c = self.copy()
+        if c.age < 15:
+            c.age += 1
+        elif c.age == 15:
+            c.age = 0
+            if _cactus_can_grow_here(pos.side(Face.DOWN), tx, False):
+                for y in range(1, 3):
+                    var p = pos.add(Pos(0, y, 0))
+                    if is_air(tx, p):
+                        tx.set_block(p, Cactus())
+                        break
+                    elif not tx.block_as[Cactus](p):
+                        break
+        tx.set_block(pos, c)
 
 
 def _cactus_can_grow_here[

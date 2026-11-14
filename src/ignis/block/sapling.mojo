@@ -7,7 +7,12 @@ the drops.
 
 from ..item.item import Compostable
 from ..item.smelting_info import Fuel, FuelInfo
-from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    NeighbourUpdateTicker,
+    RandomTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -43,6 +48,7 @@ struct Sapling(
     LiquidRemovable,
     ModelledBlock,
     NeighbourUpdateTicker,
+    RandomTicker,
 ):
     """A plant that grows into a tree."""
 
@@ -142,3 +148,14 @@ struct Sapling(
             AnyBlock(self), tx.block(pos.side(Face.DOWN)), tx
         ):
             break_block(self, pos, tx)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May age, then grow into a tree, when lit (Go `RandomTick`)."""
+        if tx.light(pos) >= 8 and tx.rand().int_n(7) == 0:
+            # Go `grow`.
+            if not self.aged:
+                var s = self.copy()
+                s.aged = True
+                tx.set_block(pos, s)
+                return
+            # TODO(#tree-growth): Go `growTree` (sapling_tree.go).

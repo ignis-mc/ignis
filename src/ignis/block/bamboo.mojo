@@ -5,7 +5,7 @@ grow, Model, FlammabilityInfo and the drops.
 """
 
 from ..item.smelting_info import Fuel, FuelInfo
-from ..world.block import Block, LightDiffuser
+from ..world.block import Block, LightDiffuser, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -17,8 +17,12 @@ from .break_info import (
     Breakable,
     new_break_info,
 )
-from .hash import HASH_BAMBOO
+from .hash import AnyBlock, HASH_BAMBOO
 from .model.bamboo import Bamboo as BambooModel
+from .block import replaceable_with
+from ..world.world import World, WorldTypes
+from .cube.pos import Pos
+from .cube.face import Face
 
 
 struct Bamboo(
@@ -30,6 +34,7 @@ struct Bamboo(
     Item,
     LightDiffuser,
     ModelledBlock,
+    RandomTicker,
 ):
     """A woody plant that grows quickly."""
 
@@ -126,3 +131,62 @@ struct Bamboo(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May grow when lit (Go `RandomTick`)."""
+        if tx.light(pos) >= 9 and tx.rand().int_n(3) == 0:
+            _ = _bamboo_grow(self, pos, 1, _bamboo_max_height(pos), tx)
+
+
+def _bamboo_max_height(pos: Pos) -> Int:
+    # Go `Bamboo.maxHeight`.
+    var seed = UInt32(3129871) * UInt32(pos.x()) ^ UInt32(116129781) * UInt32(
+        pos.z()
+    )
+    seed *= UInt32(42317861) * seed + 11
+    return 12 + Int(seed >> 24) % 5
+
+
+def _bamboo_grow[
+    T: WorldTypes
+](b: Bamboo, pos: Pos, amount: Int, max_height: Int, mut tx: World[T]) -> Bool:
+    # Go `Bamboo.grow`.
+    if not replaceable_with(tx, pos.side(Face.UP), AnyBlock(b)):
+        return False
+    var height = 1
+    while True:
+        if not tx.block_as[Bamboo](pos.sub(Pos(0, height, 0))):
+            break
+        height += 1
+        if height >= max_height:
+            return False
+    var layout = _growth_layout(b, height + amount, amount)
+    for i in range(len(layout)):
+        tx.set_block(pos.sub(Pos(0, i - amount, 0)), layout[i])
+    return True
+
+
+def _growth_layout(b: Bamboo, new_height: Int, amount: Int) -> List[Bamboo]:
+    # Go `Bamboo.growthLayout`.
+    var thick = b.thick or new_height >= 4
+    var stem = Bamboo(thick=thick)
+    var small = Bamboo(thick=thick, leaf_size=BambooLeafSize.SMALL_LEAVES)
+    var big = Bamboo(thick=thick, leaf_size=BambooLeafSize.LARGE_LEAVES)
+    var out = List[Bamboo]()
+    if new_height == 2:
+        out.append(small)
+    elif new_height == 3:
+        out.append(small)
+        out.append(small)
+    elif new_height == 4:
+        out.append(big)
+        out.append(small)
+        out.append(stem)
+        out.append(stem)
+    elif new_height > 4:
+        out.append(big)
+        out.append(big)
+        out.append(small)
+        for _ in range(min(amount, new_height - 3)):
+            out.append(stem)
+    return out^

@@ -4,7 +4,12 @@ TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, RandomTick, BoneMeal,
 canGrowHere and the drops.
 """
 
-from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    NeighbourUpdateTicker,
+    RandomTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -38,6 +43,7 @@ struct SugarCane(
     LiquidRemovable,
     ModelledBlock,
     NeighbourUpdateTicker,
+    RandomTicker,
 ):
     """A plant block that generates naturally near water."""
 
@@ -113,6 +119,27 @@ struct SugarCane(
         """Breaks where it cannot grow (Go `NeighbourUpdateTick`)."""
         if not _sugar_cane_can_grow_here(pos, tx, True):
             break_block(self, pos, tx)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Grows a block taller every 16 ticks while it can grow (Go
+        `RandomTick`)."""
+        if not _sugar_cane_can_grow_here(pos, tx, True):
+            break_block(self, pos, tx)
+            return
+        var c = self.copy()
+        if c.age < 15:
+            c.age += 1
+        elif c.age == 15:
+            c.age = 0
+            if _sugar_cane_can_grow_here(pos.side(Face.DOWN), tx, False):
+                for y in range(1, 3):
+                    var p = pos.add(Pos(0, y, 0))
+                    if is_air(tx, p):
+                        tx.set_block(p, SugarCane())
+                        break
+                    elif not tx.block_as[SugarCane](p):
+                        break
+        tx.set_block(pos, c)
 
 
 def _sugar_cane_can_grow_here[

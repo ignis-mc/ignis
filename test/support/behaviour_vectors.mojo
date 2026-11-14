@@ -49,13 +49,42 @@ struct BehaviourVectors(Movable):
                 self._lines[key] = List[String]()
                 if name not in self._ticks:
                     self._ticks[name] = List[Int]()
-                self._ticks[name].append(tick)
+                if tick >= 0:
+                    self._ticks[name].append(tick)
             var rest = String("\t").join(parts[2:])
             self._lines[key].append(rest)
 
     def ticks(self, name: String) raises -> List[Int]:
         """Returns the checkpoint ticks of a scenario."""
         return self._ticks[name].copy()
+
+    def speed(self, name: String) raises -> Int:
+        """Returns the random tick speed recorded for a scenario."""
+        for l in self.lines(name, -1):
+            var parts = l.split("\t")
+            if String(parts[0]) == "speed":
+                return Int(String(parts[1]))
+        raise Error(t"no speed for {name}")
+
+    def placements(self, name: String) raises -> List[Placement]:
+        """Returns the blocks recorded as placed while generating."""
+        var out = List[Placement]()
+        for l in self.lines(name, -1):
+            var parts = l.split("\t")
+            if String(parts[0]) != "place":
+                continue
+            var xyz = String(parts[1]).split(",")
+            out.append(
+                Placement(
+                    Pos(
+                        Int(String(xyz[0])),
+                        Int(String(xyz[1])),
+                        Int(String(xyz[2])),
+                    ),
+                    UInt32(Int(String(parts[2]))),
+                )
+            )
+        return out^
 
     def lines(self, name: String, tick: Int) raises -> List[String]:
         """Returns the recorded lines of a scenario at a tick."""
@@ -240,9 +269,10 @@ struct ScenarioRun(Movable):
                 for d in w.take_item_drops():
                     self.items += d.stack.count()
                 self.tick += 1
-            var got = dump_region(w, self.lo, self.hi, self.items)
-            assert_region_equal(
-                got,
-                expected_lines(self.vectors, self.name, cp),
-                String(t"{self.name}@{cp}"),
-            )
+            var want = expected_lines(self.vectors, self.name, cp)
+            var items = self.items
+            if want[len(want) - 1].endswith("\t-1\t0"):
+                # Drawn from Go's global random source.
+                items = -1
+            var got = dump_region(w, self.lo, self.hi, items)
+            assert_region_equal(got, want, String(t"{self.name}@{cp}"))

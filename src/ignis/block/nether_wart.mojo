@@ -5,7 +5,12 @@ NeighbourUpdateTick and the drops (fortune).
 """
 
 from ..item.item import Compostable
-from ..world.block import Block, LightDiffuser, NeighbourUpdateTicker
+from ..world.block import (
+    Block,
+    LightDiffuser,
+    NeighbourUpdateTicker,
+    RandomTicker,
+)
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -39,6 +44,7 @@ struct NetherWart(
     LiquidRemovable,
     ModelledBlock,
     NeighbourUpdateTicker,
+    RandomTicker,
 ):
     """A fungus found in the nether that is vital in the creation of potions."""
 
@@ -118,3 +124,10 @@ struct NetherWart(
         """Breaks unless on soul sand (Go `NeighbourUpdateTick`)."""
         if not tx.block_as[SoulSand](pos.side(Face.DOWN)):
             break_block(self, pos, tx)
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """May grow (Go `RandomTick`)."""
+        if self.age < 3 and tx.rand().float64() < 0.1:
+            var n = self.copy()
+            n.age += 1
+            tx.set_block(pos, n)

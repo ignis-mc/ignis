@@ -4,7 +4,7 @@ TODO(world-runtime): SoilFor, NeighbourUpdateTick, RandomTick (with hydrated),
 EntityLand and the drops.
 """
 
-from ..world.block import Block, NeighbourUpdateTicker
+from ..world.block import Block, NeighbourUpdateTicker, RandomTicker
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -37,6 +37,7 @@ from .cube.pos import Pos
 from .cube.face import Face
 from .block import face_solid_at, is_air
 from .dirt import Dirt, Soil
+from .water import Water
 
 
 struct Farmland(
@@ -47,6 +48,7 @@ struct Farmland(
     Item,
     ModelledBlock,
     NeighbourUpdateTicker,
+    RandomTicker,
     Soil,
 ):
     """A block that crops are grown on, created by using a hoe on dirt or grass.
@@ -131,3 +133,34 @@ struct Farmland(
             or k == HASH_SAPLING
             or k == HASH_RED_SHRUB
         )
+
+    def random_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Dries out away from water, turning into dirt without a crop
+        on it (Go `RandomTick`)."""
+        var f = self.copy()
+        if not _hydrated(pos, tx):
+            if f.hydration > 0:
+                f.hydration -= 1
+                tx.set_block(pos, f)
+            else:
+                var above = tx.block(pos.side(Face.UP))
+                var br = tx.block_registry()
+                if not T.Blocks.is_crop(
+                    br[].kind(above), br[].state_hash(above)
+                ):
+                    tx.set_block(pos, Dirt())
+        else:
+            f.hydration = 7
+            tx.set_block(pos, f)
+
+
+def _hydrated[T: WorldTypes](pos: Pos, mut tx: World[T]) -> Bool:
+    # Go `Farmland.hydrated`: water within 4 blocks, at or one above.
+    var br = tx.block_registry()
+    for y in range(0, 2):
+        for x in range(-4, 5):
+            for z in range(-4, 5):
+                var l = tx.liquid(pos.add(Pos(x, y, z)))
+                if l and br[].is_block[Water](l.value()):
+                    return True
+    return False

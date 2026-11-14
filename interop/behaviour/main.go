@@ -39,6 +39,7 @@ type scenario struct {
 	change      func(tx *world.Tx)
 	later       []int
 	gen         world.Generator
+	noItems     bool
 }
 
 func main() {
@@ -53,6 +54,7 @@ func main() {
 	n := neighbourScenarios()
 	n[1].change, n[1].later = popsChanges, popsLater
 	write(filepath.Join(*out, "neighbours.txt"), n)
+	write(filepath.Join(*out, "random_ticks.txt"), randomTickScenarios())
 }
 
 func write(path string, scenarios []scenario) {
@@ -71,6 +73,13 @@ func flat() world.Generator {
 }
 
 func run(b *strings.Builder, s scenario) {
+	if g, ok := s.gen.(featureFlat); ok {
+		// The Mojo test builds the world from these lines.
+		fmt.Fprintf(b, "%s\t-1\tspeed\t%d\n", s.name, s.speed)
+		for _, p := range g.placements {
+			fmt.Fprintf(b, "%s\t-1\tplace\t%d,%d,%d\t%d\n", s.name, p.pos[0], p.pos[1], p.pos[2], br.BlockRuntimeID(p.b))
+		}
+	}
 	w := world.Config{
 		Synchronous:     true,
 		RandSource:      rand.NewPCG(1, 2),
@@ -78,7 +87,12 @@ func run(b *strings.Builder, s scenario) {
 		RandomTickSpeed: s.speed,
 		Entities:        entity.DefaultRegistry,
 	}.New()
-	w.Do(s.setup)
+	if s.setup != nil {
+		w.Do(s.setup)
+	} else {
+		// Load the chunk, so that it ticks from the first tick.
+		w.Do(func(tx *world.Tx) { tx.Block(cube.Pos{0, 0, 0}) })
+	}
 	tick := 0
 	advance := func(cps []int) {
 		for _, cp := range cps {
@@ -152,6 +166,10 @@ func dump(b *strings.Builder, s scenario, tick int, tx *world.Tx) {
 		default:
 			other++
 		}
+	}
+	if s.noItems {
+		// Drawn from Go's global random source.
+		items = -1
 	}
 	fmt.Fprintf(b, "%s\t%d\tentities\t%d\t%d\t%d\n", s.name, tick, falling, items, other)
 }
