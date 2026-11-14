@@ -47,6 +47,7 @@ from ..block.break_info import (
     break_duration_ms,
     breaks_instantly,
 )
+from ..block.block import UseContext
 from ..block.cube.face import Face
 from ..block.cube.pos import Pos
 from ..block.register import VanillaBlocks
@@ -314,6 +315,17 @@ def use_item_on_block(mut srv: Server, i: Int, u: UseOnBlock):
         resend_nearby_blocks(srv, i, pos, [face])
         return
     var held = srv.sessions[i].invs.held_item()
+    var kind = br[].kind(rid)
+    if VanillaBlocks.is_activatable(kind) and (
+        not srv.sessions[i].player.sneaking() or held.empty()
+    ):
+        # Blocks such as doors take precedence over the held item; a
+        # sneaking player with an item in hand uses the item instead.
+        var ctx = use_context(srv, i)
+        if VanillaBlocks.activate(kind, pos, face, srv.world, ctx):
+            swing_arm(srv, i)
+            apply_use_context(srv, i, ctx, pos)
+            return
     if held.empty():
         return
     var it = held.item().value()
@@ -350,7 +362,11 @@ def use_item_on_block(mut srv: Server, i: Int, u: UseOnBlock):
     var at = srv.world.block(replaced)
     if not VanillaBlocks.replaceable_by(br[].kind(at), br[].state_hash(at), by):
         return
-    var place = br[].runtime_id_of(it.kind, it.hash)
+    # Go `world.StateDeriver`: stairs corners, fences and panes.
+    var derived = VanillaBlocks.derive_state(
+        it.kind, it.hash, replaced, srv.world
+    )
+    var place = br[].runtime_id_of(derived.kind, derived.state)
     if not place:
         return
     if not place_block(srv, i, replaced, place.value()):
@@ -358,6 +374,50 @@ def use_item_on_block(mut srv: Server, i: Int, u: UseOnBlock):
     if srv.sessions[i].player.game_mode().creative_inventory():
         return
     srv.sessions[i].invs.set_held_item(held.grow(-1))
+
+
+def use_context(mut srv: Server, i: Int) -> UseContext:
+    """Builds the context a block's `activate` gets (Go `useContext` with
+    the player as `item.User`)."""
+    ref p = srv.sessions[i].player
+    var ctx = UseContext()
+    ctx.user = p.uuid()
+    ctx.user_pos = p.position()
+    ctx.user_rot = p.rotation()
+    ctx.held = srv.sessions[i].invs.held_item()
+    ctx.sneaking = p.sneaking()
+    ctx.creative = p.game_mode().creative_inventory()
+    return ctx^
+
+
+def apply_use_context(mut srv: Server, i: Int, ctx: UseContext, pos: Pos):
+    """Applies what an activated block asked of its user (Go's
+    `SetHeldItems(subtractItem(damageItem(...)))`, `addNewItem` and the
+    `item.User` interfaces)."""
+    var creative = srv.sessions[i].player.game_mode().creative_inventory()
+    var held = srv.sessions[i].invs.held_item()
+    if not creative and not held.empty():
+        if ctx.damage != 0 and held.max_durability() != -1:
+            held = held.damage(ctx.damage)
+        if ctx.count_sub != 0:
+            held = held.grow(-ctx.count_sub)
+        srv.sessions[i].invs.set_held_item(held)
+    if not ctx.new_item.empty() and not (
+        ctx.new_item_survival_only and creative
+    ):
+        if srv.sessions[i].invs.held_item().empty():
+            srv.sessions[i].invs.set_held_item(ctx.new_item)
+        else:
+            var n = srv.sessions[i].invs.inv.add_item(ctx.new_item.copy())
+            if n < ctx.new_item.count():
+                srv.drop_item(i, ctx.new_item.grow(-n))
+    for m in ctx.messages:
+        srv.sessions[i].send_translation(m, List[String]())
+    if ctx.popup.byte_length() != 0:
+        srv.sessions[i].send_jukebox_popup(ctx.popup)
+    # Go `Saturate`: hunger is not ported, so food is not restored.
+    if ctx.open_container:
+        srv.sessions[i].open_block_container(pos, srv.world)
 
 
 def place_block(

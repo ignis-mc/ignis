@@ -17,6 +17,8 @@ from ignis.block.stone import Stone
 from ignis.entity.text import Text
 from ignis.block.register import VanillaBlocks, vanilla_block_registry
 from ignis.entity.register import VanillaEntities
+from ignis.item.register import vanilla_item_registry
+from ignis.item.stack import Stack
 from ignis.mgl64 import Vec3
 from ignis.world.biome.plains import Plains
 from ignis.world.block import (
@@ -227,6 +229,18 @@ struct RecordingViewer(Defaultable, Viewer):
     def view_world_spawn(mut self, pos: Pos):
         self.events.append(String(t"spawn {pos}"))
 
+    def view_block_entity(mut self, pos: Pos, nbt: Tree):
+        self.events.append(String(t"block_entity {pos}"))
+
+    def view_block_action(mut self, pos: Pos, action: Int):
+        self.events.append(String(t"block_action {pos} {action}"))
+
+    def view_slot_change(mut self, slot: Int, it: Stack):
+        self.events.append(String(t"slot {slot} {it.count()}"))
+
+    def view_container_removed(mut self):
+        self.events.append("container_removed")
+
     def view_weather(mut self, raining: Bool, thunder: Bool):
         self.events.append(String(t"weather {raining} {thunder}"))
 
@@ -324,10 +338,12 @@ struct VanillaWorld(WorldTypes):
 
 
 def new_vanilla_world(
-    random_tick_speed: Int = 3,
+    random_tick_speed: Int = 3, items: Bool = False
 ) raises -> World[VanillaWorld]:
     var br = ArcPointer(vanilla_block_registry("resources/block_states.nbt"))
     var conf = Config[VanillaWorld](flat(br[]), MemoryProvider(), br)
+    if items:
+        conf.items = ArcPointer(vanilla_item_registry())
     conf.seed = (UInt64(1), UInt64(2))
     conf.synchronous = True
     conf.random_tick_speed = random_tick_speed

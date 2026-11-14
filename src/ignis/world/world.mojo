@@ -49,12 +49,17 @@ from ..block.cube.rotation import Rotation
 from ..internal.rand import Rand
 from ..mgl64 import Vec3
 from ..block.hash import AnyBlock
+from minecraft.nbt.tree import Tree
+
+from ..item.inventory.inventory import Inventory, StackIDs
 from ..item.stack import Stack
-from .block import Block, LiquidInfo
+from .block import Block, LiquidInfo, NBTer
+from .block_entity import BlockEntityState, inv_from_nbt, inv_to_nbt
 from .block_registry import BasicBlockRegistry
-from .block_set import BlockTypes
+from .block_set import BlockTypes, decode_block_nbt, encode_block_nbt
 from .block_source import BlockSource
 from .chunk.chunk import Chunk
+from .chunk.column import BlockEntity as ChunkBlockEntity
 from .chunk.column import Column as ChunkColumn
 from .chunk.column import Entity as ChunkEntity
 from .chunk.column import ScheduledBlockUpdate
@@ -66,6 +71,7 @@ from .entity import EntityHandle, EntityTypes
 from .game_mode import GameMode
 from .generator import Generator
 from .handler import Handler
+from .item import ItemRegistry
 from .loader import Loader, LoaderID
 from .position import ChunkPos, chunk_pos_from_block_pos, chunk_pos_from_vec3
 from .provider import Provider, uuid_key
@@ -141,6 +147,8 @@ struct Column(Movable):
     """The keys (`uuid_key`) of the entities in the chunk."""
     var viewers: List[LoaderID]
     """The loaders viewing the chunk (Go keeps viewers and loaders)."""
+    var block_entities: Dict[Pos, BlockEntityState]
+    """The block entities by position (Go `BlockEntities`)."""
     var broken: Bool
     """The provider failed to load the chunk; it is empty and never saved
     (Go hands out an unregistered empty column instead)."""
@@ -152,6 +160,7 @@ struct Column(Movable):
         self.chunk = chunk^
         self.entities = List[UInt128]()
         self.viewers = List[LoaderID]()
+        self.block_entities = Dict[Pos, BlockEntityState]()
         self.broken = False
 
 
@@ -180,6 +189,9 @@ struct World[T: WorldTypes](Movable):
     var _save_interval_ms: Int
     var _chunk_unload_interval_ms: Int
     var _br: ArcPointer[BasicBlockRegistry]
+    var _items: ArcPointer[ItemRegistry]
+    var _stack_ids: ArcPointer[StackIDs]
+    var _changed_containers: List[Pos]
     var _generator: Self.T.Generator
     var _provider: Self.T.Provider
     var _handler: Optional[Self.T.Handler]
@@ -212,6 +224,7 @@ struct World[T: WorldTypes](Movable):
         var generator: Self.T.Generator,
         var provider: Self.T.Provider,
         blocks: ArcPointer[BasicBlockRegistry],
+        items: ArcPointer[ItemRegistry],
         read_only: Bool,
         save_interval_ms: Int,
         chunk_unload_interval_ms: Int,
@@ -240,6 +253,9 @@ struct World[T: WorldTypes](Movable):
         self._save_interval_ms = save_interval_ms
         self._chunk_unload_interval_ms = chunk_unload_interval_ms
         self._br = blocks
+        self._items = items
+        self._stack_ids = ArcPointer(StackIDs())
+        self._changed_containers = List[Pos]()
         self._generator = generator^
         self._provider = provider^
         self._handler = None
@@ -285,6 +301,16 @@ struct World[T: WorldTypes](Movable):
     def block_registry(self) -> ArcPointer[BasicBlockRegistry]:
         """Returns the block registry (Go `BlockRegistry`)."""
         return self._br
+
+    def item_registry(self) -> ArcPointer[ItemRegistry]:
+        """Returns the item registry block entities encode their items
+        with."""
+        return self._items
+
+    def stack_ids(self) -> ArcPointer[StackIDs]:
+        """Returns the stack network ID source of container inventories;
+        sessions share it so IDs stay unique (Go: one global counter)."""
+        return self._stack_ids
 
     def settings(ref self) -> ref[self._set] Settings:
         """Returns the world's settings."""
@@ -343,9 +369,19 @@ struct World[T: WorldTypes](Movable):
 
     def block_as[B: Block](mut self, pos: Pos) -> Optional[B]:
         """Returns the block at a position as a `B` (Go
-        `tx.Block(pos).(B)`)."""
+        `tx.Block(pos).(B)`), with its block entity NBT decoded into it."""
         var rid = self.block(pos)
-        return self._br[].block[B](rid)
+        var b = self._br[].block[B](rid)
+        comptime if conforms_to(B, NBTer):
+            if b:
+                var ci = self._chunk(chunk_pos_from_block_pos(pos))
+                if pos in self._cols[ci].block_entities:
+                    try:
+                        ref e = self._cols[ci].block_entities[pos]
+                        return decode_block_nbt(b.value(), e.nbt)
+                    except:
+                        pass
+        return b^
 
     def block_loaded(self, pos: Pos) -> Optional[UInt32]:
         """Returns the block at a position only if its chunk is loaded (Go
@@ -361,15 +397,29 @@ struct World[T: WorldTypes](Movable):
     def set_block[
         B: Block
     ](mut self, pos: Pos, b: B, opts: SetOpts = SetOpts()):
-        """Sets a block (Go `Tx.SetBlock`)."""
-        self.set_block_runtime_id(pos, self._br[].block_runtime_id(b), opts)
+        """Sets a block (Go `Tx.SetBlock`); a block with NBT stores it in
+        its block entity, keeping the inventory of the same block type."""
+        var nbt: Optional[Tree] = None
+        comptime if conforms_to(B, NBTer):
+            nbt = encode_block_nbt(b)
+        self._set_block(pos, self._br[].block_runtime_id(b), opts, nbt^)
 
     def set_block_runtime_id(
         mut self, pos: Pos, rid: UInt32, opts: SetOpts = SetOpts()
     ):
         """Sets a block given its runtime ID (Go `Tx.SetBlock`): viewers of
         the chunk see the change, a liquid on layer 1 is kept consistent,
-        and the block and its neighbours get a neighbour update next tick."""
+        and the block and its neighbours get a neighbour update next tick.
+        A block entity of the same block type is kept."""
+        self._set_block(pos, rid, opts, None)
+
+    def _set_block(
+        mut self,
+        pos: Pos,
+        rid: UInt32,
+        opts: SetOpts,
+        var nbt: Optional[Tree],
+    ):
         if pos.out_of_bounds(self._ra):
             return
         var x = UInt8(pos.x() & 0xF)
@@ -419,6 +469,7 @@ struct World[T: WorldTypes](Movable):
         if height != old_height or self._light_info(ci, x, y, z) != old_light:
             self._relight(ci, pos, Int(old_height))
         self._notify_block(ci, pos, shown, 0)
+        self._update_block_entity(ci, pos, rid, nbt^)
         if not opts.disable_block_updates:
             self._do_block_updates_around(pos)
 
@@ -496,6 +547,267 @@ struct World[T: WorldTypes](Movable):
         var ids = self._cols[ci].viewers.copy()
         for id in ids:
             self._loader(id).viewer.view_block_update(pos, rid, layer)
+
+    # ===------------------------------------------------------------------=== #
+    # Block entities
+    # ===------------------------------------------------------------------=== #
+
+    def _update_block_entity(
+        mut self, ci: Int, pos: Pos, rid: UInt32, var nbt: Optional[Tree]
+    ):
+        # Go `setBlock`: a block with NBT is kept as a block entity, other
+        # blocks drop the one at their position.
+        if not self._br[].nbt_block(rid):
+            if pos in self._cols[ci].block_entities:
+                self._remove_block_entity(ci, pos)
+            return
+        var kind = self._br[].kind(rid)
+        var hash = self._br[].state_hash(rid)
+        if pos in self._cols[ci].block_entities:
+            try:
+                ref e = self._cols[ci].block_entities[pos]
+                if e.kind == kind:
+                    if nbt:
+                        e.nbt = nbt.take()
+                    self._notify_block_entity(ci, pos)
+                    return
+            except:
+                pass
+            self._remove_block_entity(ci, pos)
+        var data = nbt.take() if nbt else Self.T.Blocks.block_entity_nbt(
+            kind, hash
+        ).or_else(Tree())
+        var e = BlockEntityState(kind, data^)
+        var size = Self.T.Blocks.inventory_size(kind, hash)
+        if size > 0:
+            e.inv = Inventory(size, self._stack_ids)
+        self._cols[ci].block_entities[pos] = e^
+        self._notify_block_entity(ci, pos)
+
+    def _remove_block_entity(mut self, ci: Int, pos: Pos):
+        # Viewers of a removed container lose their window; Go leaves them
+        # looking at a detached inventory.
+        try:
+            var e = self._cols[ci].block_entities.pop(pos)
+            for id in e.viewers:
+                if self._valid_loader(id):
+                    self._loader(id).viewer.view_container_removed()
+        except:
+            pass
+
+    def _load_block_entity(mut self, ci: Int, pos: Pos, data: Tree):
+        # Go `columnFrom`. The NBT is kept as stored, so fields Ignis does
+        # not decode survive a save.
+        var x = UInt8(pos.x() & 0xF)
+        var z = UInt8(pos.z() & 0xF)
+        var rid = self._cols[ci].chunk.block(x, Int16(pos.y()), z, 0)
+        if not self._br[].nbt_block(rid):
+            return
+        var kind = self._br[].kind(rid)
+        var e = BlockEntityState(kind, data.copy())
+        var size = Self.T.Blocks.inventory_size(
+            kind, self._br[].state_hash(rid)
+        )
+        if size > 0:
+            var inv = Inventory(size, self._stack_ids)
+            try:
+                inv_from_nbt(self._items[], e.nbt, e.nbt.root(), inv)
+                _ = e.nbt.remove(e.nbt.root(), "Items")
+            except err:
+                self.last_error = String(t"block entity at {pos}: {err}")
+            _ = inv.take_changes()
+            e.inv = inv^
+        self._cols[ci].block_entities[pos] = e^
+
+    def _saved_block_entity(self, pos: Pos, e: BlockEntityState) raises -> Tree:
+        # Go `columnTo`: the block's NBT with its position.
+        var t = e.nbt.copy()
+        if t.is_empty():
+            t = Tree()
+        var root = t.root()
+        if e.inv:
+            inv_to_nbt[Self.T.Blocks](
+                self._br[], self._items[], e.inv.value(), t, root
+            )
+        _ = t.remove(root, "x")
+        _ = t.remove(root, "y")
+        _ = t.remove(root, "z")
+        _ = t.put_int(root, "x", Int32(pos.x()))
+        _ = t.put_int(root, "y", Int32(pos.y()))
+        _ = t.put_int(root, "z", Int32(pos.z()))
+        return t^
+
+    def _saved_block_entity_at(self, ci: Int, pos: Pos) raises -> Tree:
+        return self._saved_block_entity(pos, self._cols[ci].block_entities[pos])
+
+    def _notify_block_entity(mut self, ci: Int, pos: Pos):
+        try:
+            var t = self._saved_block_entity_at(ci, pos)
+            var ids = self._cols[ci].viewers.copy()
+            for id in ids:
+                self._loader(id).viewer.view_block_entity(pos, t)
+        except err:
+            self.last_error = String(t"block entity at {pos}: {err}")
+
+    def _entity_index(mut self, pos: Pos) -> Optional[Int]:
+        if pos.out_of_bounds(self._ra):
+            return None
+        var ci = self._chunk(chunk_pos_from_block_pos(pos))
+        if pos in self._cols[ci].block_entities:
+            return ci
+        return None
+
+    def block_entity_nbt(mut self, pos: Pos) -> Optional[Tree]:
+        """Returns the NBT of the block entity at a position, without the
+        contents of a container."""
+        if case .Some(ci) = self._entity_index(pos):
+            try:
+                return self._cols[ci].block_entities[pos].nbt.copy()
+            except:
+                pass
+        return None
+
+    def set_block_entity_nbt(mut self, pos: Pos, var nbt: Tree):
+        """Replaces the NBT of the block entity at a position, keeping the
+        inventory; viewers of the chunk see it. Prefer `set_block`."""
+        if case .Some(ci) = self._entity_index(pos):
+            try:
+                self._cols[ci].block_entities[pos].nbt = nbt^
+                self._cols[ci].modified = True
+                self._notify_block_entity(ci, pos)
+            except:
+                pass
+
+    def inventory(mut self, pos: Pos) -> Optional[Inventory]:
+        """Returns a copy of the inventory of the container at a position
+        (Go `Container.Inventory`); store changes with `set_inventory`."""
+        if case .Some(ci) = self._entity_index(pos):
+            try:
+                return self._cols[ci].block_entities[pos].inv.copy()
+            except:
+                pass
+        return None
+
+    def set_inventory(mut self, pos: Pos, var inv: Inventory):
+        """Stores the inventory of the container at a position. The slots
+        it changed reach the container's viewers with
+        `flush_container_changes`."""
+        if case .Some(ci) = self._entity_index(pos):
+            try:
+                ref e = self._cols[ci].block_entities[pos]
+                if not e.inv:
+                    return
+                if inv.changed():
+                    self._changed_containers.append(pos)
+                e.inv = inv^
+                self._cols[ci].modified = True
+            except:
+                pass
+
+    def container_viewers(mut self, pos: Pos) -> List[LoaderID]:
+        """Returns the loaders that opened the container at a position."""
+        if case .Some(ci) = self._entity_index(pos):
+            try:
+                return self._cols[ci].block_entities[pos].viewers.copy()
+            except:
+                pass
+        return List[LoaderID]()
+
+    def add_container_viewer(mut self, pos: Pos, id: LoaderID) -> Int:
+        """Adds a viewer to the block entity at a position (Go
+        `AddViewer`) and returns how many viewed it before; -1 without a
+        block entity."""
+        if case .Some(ci) = self._entity_index(pos):
+            try:
+                ref e = self._cols[ci].block_entities[pos]
+                var n = len(e.viewers)
+                for v in e.viewers:
+                    if v == id:
+                        return n
+                e.viewers.append(id)
+                return n
+            except:
+                pass
+        return -1
+
+    def remove_container_viewer(mut self, pos: Pos, id: LoaderID) -> Int:
+        """Removes a viewer from the block entity at a position (Go
+        `RemoveViewer`) and returns how many still view it; -1 if it was
+        not a viewer."""
+        if case .Some(ci) = self._entity_index(pos):
+            try:
+                ref e = self._cols[ci].block_entities[pos]
+                for i in range(len(e.viewers)):
+                    if e.viewers[i] == id:
+                        _ = e.viewers.pop(i)
+                        return len(e.viewers)
+            except:
+                pass
+        return -1
+
+    def flush_container_changes(mut self, exclude: Optional[LoaderID] = None):
+        """Shows the slots changed through `set_inventory` to the viewers of
+        each container (Go's inventory slot funcs), except `exclude`, whose
+        client made the change itself (Go `inTransaction`)."""
+        var changed = self._changed_containers^
+        self._changed_containers = List[Pos]()
+        for pos in changed:
+            var ci = self._entity_index(pos)
+            if not ci:
+                continue
+            var slots: List[Int]
+            var inv: Inventory
+            var viewers: List[LoaderID]
+            var offset: Int
+            try:
+                ref e = self._cols[ci.value()].block_entities[pos]
+                if not e.inv:
+                    continue
+                slots = e.inv.value().take_changes()
+                inv = e.inv.value().copy()
+                viewers = e.viewers.copy()
+                offset = e.slot_offset
+            except:
+                continue
+            for id in viewers:
+                if exclude and exclude.value() == id:
+                    continue
+                if not self._valid_loader(id):
+                    continue
+                for slot in slots:
+                    try:
+                        self._loader(id).viewer.view_slot_change(
+                            slot + offset, inv.item(slot)
+                        )
+                    except:
+                        pass
+
+    def set_viewer_slot_offset(mut self, pos: Pos, offset: Int):
+        """Sets the offset of the container's slots in the window its
+        viewers see: 27 for the right half of a paired chest."""
+        if case .Some(ci) = self._entity_index(pos):
+            try:
+                self._cols[ci].block_entities[pos].slot_offset = offset
+            except:
+                pass
+
+    def network_block_entities(mut self, cp: ChunkPos, sub: Int) -> List[Tree]:
+        """Returns the network NBT of the block entities in a sub-chunk of a
+        loaded chunk (Go `subChunkEntry`); `sub` counts from the bottom."""
+        var out = List[Tree]()
+        if cp not in self._col_index:
+            return out^
+        var ci = self._chunk(cp)
+        var lo = self._ra.min() + sub * 16
+        for item in self._cols[ci].block_entities.items():
+            var pos = item.key
+            if pos.y() < lo or pos.y() >= lo + 16:
+                continue
+            try:
+                out.append(self._saved_block_entity(pos, item.value))
+            except:
+                pass
+        return out^
 
     def biome(mut self, pos: Pos) -> Int:
         """Returns the biome ID at a position (Go `Tx.Biome`)."""
@@ -1354,6 +1666,8 @@ struct World[T: WorldTypes](Movable):
         one.append(chunk_pointer(self._cols[ci].chunk))
         var area = LightArea(self._br[], one^, Int(pos.x()), Int(pos.z()))
         area.fill()
+        for ref be in c.block_entities:
+            self._load_block_entity(ci, be.pos, be.data)
         for ref se in c.entities:
             try:
                 var maybe = EntityHandle[Self.T.Entities].decode_nbt(
@@ -1417,6 +1731,12 @@ struct World[T: WorldTypes](Movable):
             if case .Some(i) = self._ent_index.get(key):
                 ref h = self._ents[i].handle
                 c.entities.append(ChunkEntity(h.saved_id(), h.encode_nbt()))
+        for item in self._cols[ci].block_entities.items():
+            c.block_entities.append(
+                ChunkBlockEntity(
+                    item.key, self._saved_block_entity(item.key, item.value)
+                )
+            )
         for t in self._scheduled.from_chunk(pos):
             c.scheduled_blocks.append(ScheduledBlockUpdate(t.pos, t.rid, t.t))
         c.tick = self._scheduled.current_tick

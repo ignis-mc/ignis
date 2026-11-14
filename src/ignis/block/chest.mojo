@@ -13,7 +13,7 @@ from minecraft.nbt.tree import Tag, Tree
 
 from ..internal.nbtconv.read import get_string
 from ..item.smelting_info import Fuel, FuelInfo
-from ..world.block import Block, LightDiffuser, NBTer
+from ..world.block import Block, Container, LightDiffuser, NBTer
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
 from ..world.item import EncodedItem, Item
@@ -35,6 +35,7 @@ from .liquid import source_water_can_displace
 struct Chest(
     Block,
     Breakable,
+    Container,
     Equatable,
     Fuel,
     ImplicitlyCopyable,
@@ -124,6 +125,10 @@ struct Chest(
     def all_items() -> List[Self]:
         """Returns the values registered as items (Go `register.go`)."""
         return [Self()]
+
+    def inventory_size(self) -> Int:
+        """Returns the 27 slots one chest stores (Go `inventory.New(27)`)."""
+        return 27
 
     def encode_nbt(self, mut tag: Tree, root: Tag) raises:
         """Writes the block entity NBT (Go `EncodeNBT`)."""

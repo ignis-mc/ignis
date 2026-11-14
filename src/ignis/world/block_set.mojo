@@ -23,7 +23,15 @@ where `_random_tick[T: RandomTicker]` is a plain generic function. Inside the
 a type to the set is all a new block needs.
 """
 
-from ..block.block import Placement, Replaceable, UsableOnBlock
+from ..block.block import (
+    Activatable,
+    Openable,
+    Placement,
+    Replaceable,
+    StateDeriver,
+    UsableOnBlock,
+    UseContext,
+)
 from ..block.cube.rotation import Rotation
 from ..mgl64 import Vec3
 from ..block.break_info import BreakInfo, Breakable, Dropper
@@ -40,8 +48,12 @@ from ..block.dirt import Soil
 from ..block.liquid import LiquidRemovable
 from ..block.oxidation_type import OxidationType
 from ..block.oxidizable import Oxidisable
+from minecraft.nbt.tree import Tree
+
 from .block import (
     Block,
+    Container,
+    NBTer,
     LightDiffuser,
     Liquid,
     LiquidDisplacer,
@@ -244,6 +256,54 @@ trait BlockTypes:
     @staticmethod
     def encode_block_item(kind: UInt64, hash: UInt64) -> Optional[EncodedItem]:
         """Encodes a block as an item."""
+        ...
+
+    @staticmethod
+    def block_entity_nbt(kind: UInt64, hash: UInt64) -> Optional[Tree]:
+        """Returns the NBT a new block entity of an `NBTer` block starts
+        with (Go `EncodeNBT` of the block value); None for other blocks."""
+        ...
+
+    @staticmethod
+    def is_activatable(kind: UInt64) -> Bool:
+        """Reports whether blocks of a type are `Activatable`."""
+        ...
+
+    @staticmethod
+    def activate[
+        T: WorldTypes
+    ](
+        kind: UInt64,
+        pos: Pos,
+        face: Face,
+        mut tx: World[T],
+        mut ctx: UseContext,
+    ) -> Bool:
+        """Activates the block at `pos` (Go `Activate`), reading it with
+        its block entity NBT; False for other blocks."""
+        ...
+
+    @staticmethod
+    def derive_state[
+        T: WorldTypes
+    ](kind: UInt64, hash: UInt64, pos: Pos, mut tx: World[T]) -> AnyBlock:
+        """Returns the state a `StateDeriver` block takes at `pos` (Go
+        `DeriveState`); other blocks unchanged."""
+        ...
+
+    @staticmethod
+    def opened[T: WorldTypes](kind: UInt64, pos: Pos, mut tx: World[T]):
+        """Calls `Openable.opened` of the block at `pos`."""
+        ...
+
+    @staticmethod
+    def closed[T: WorldTypes](kind: UInt64, pos: Pos, mut tx: World[T]):
+        """Calls `Openable.closed` of the block at `pos`."""
+        ...
+
+    @staticmethod
+    def inventory_size(kind: UInt64, hash: UInt64) -> Int:
+        """Returns the slots a `Container` block stores; 0 for others."""
         ...
 
 
@@ -505,6 +565,91 @@ struct BlockSet[*Ts: Block](BlockTypes):
         return None
 
     @staticmethod
+    def block_entity_nbt(kind: UInt64, hash: UInt64) -> Optional[Tree]:
+        """Returns the NBT a new block entity starts with, or None."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, NBTer):
+                if kind == T.BASE_HASH:
+                    return encode_block_nbt(T.from_hash(hash))
+        return None
+
+    @staticmethod
+    def is_activatable(kind: UInt64) -> Bool:
+        """Reports whether blocks of a type are `Activatable`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Activatable):
+                if kind == T.BASE_HASH:
+                    return True
+        return False
+
+    @staticmethod
+    def activate[
+        W: WorldTypes
+    ](
+        kind: UInt64,
+        pos: Pos,
+        face: Face,
+        mut tx: World[W],
+        mut ctx: UseContext,
+    ) -> Bool:
+        """Activates the block at `pos`, read with its block entity NBT."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Activatable):
+                if kind == T.BASE_HASH:
+                    var b = tx.block_as[T](pos)
+                    if not b:
+                        return False
+                    return _activate(b.value(), pos, face, tx, ctx)
+        return False
+
+    @staticmethod
+    def derive_state[
+        W: WorldTypes
+    ](kind: UInt64, hash: UInt64, pos: Pos, mut tx: World[W]) -> AnyBlock:
+        """Returns the state a `StateDeriver` block takes at `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, StateDeriver):
+                if kind == T.BASE_HASH:
+                    return _derive_state(T.from_hash(hash), pos, tx)
+        return AnyBlock(kind=kind, state=hash)
+
+    @staticmethod
+    def opened[W: WorldTypes](kind: UInt64, pos: Pos, mut tx: World[W]):
+        """Calls `Openable.opened` of the block at `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Openable):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        _opened(b, pos, tx)
+                    return
+
+    @staticmethod
+    def closed[W: WorldTypes](kind: UInt64, pos: Pos, mut tx: World[W]):
+        """Calls `Openable.closed` of the block at `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Openable):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        _closed(b, pos, tx)
+                    return
+
+    @staticmethod
+    def inventory_size(kind: UInt64, hash: UInt64) -> Int:
+        """Returns the slots a `Container` block stores; 0 for others."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, Container):
+                if kind == T.BASE_HASH:
+                    return _inventory_size(T.from_hash(hash))
+        return 0
+
+    @staticmethod
     def scheduled_tick[
         T: WorldTypes
     ](kind: UInt64, hash: UInt64, pos: Pos, mut tx: World[T]) -> Bool:
@@ -613,6 +758,52 @@ def _use_on_block[
     b: B, pos: Pos, face: Face, click: Vec3, user: Rotation, mut tx: World[T]
 ) -> List[Placement]:
     return b.use_on_block(pos, face, click, user, tx)
+
+
+def encode_block_nbt[B: NBTer](b: B) -> Tree:
+    """Returns a block's NBT (Go `EncodeNBT`); empty if encoding fails."""
+    var t = Tree()
+    try:
+        b.encode_nbt(t, t.root())
+    except:
+        return Tree()
+    return t^
+
+
+def decode_block_nbt[B: NBTer](b: B, t: Tree) -> B:
+    """Returns a block with NBT decoded into it (Go `DecodeNBT`); the block
+    unchanged if the NBT is malformed."""
+    if t.is_empty():
+        return b.copy()
+    try:
+        return b.decode_nbt(t, t.root())
+    except:
+        return b.copy()
+
+
+def _inventory_size[B: Container](b: B) -> Int:
+    return b.inventory_size()
+
+
+def _activate[
+    B: Activatable, W: WorldTypes
+](b: B, pos: Pos, face: Face, mut tx: World[W], mut ctx: UseContext) -> Bool:
+    return b.activate(pos, face, tx, ctx)
+
+
+def _opened[B: Openable, W: WorldTypes](b: B, pos: Pos, mut tx: World[W]):
+    b.opened(pos, tx)
+
+
+def _closed[B: Openable, W: WorldTypes](b: B, pos: Pos, mut tx: World[W]):
+    b.closed(pos, tx)
+
+
+def _derive_state[
+    B: StateDeriver, W: WorldTypes
+](b: B, pos: Pos, mut tx: World[W]) -> AnyBlock:
+    var d = b.derive_state(pos, tx.source())
+    return AnyBlock(kind=B.BASE_HASH, state=d.hash())
 
 
 def _liquid_info[B: Liquid](b: B) -> LiquidInfo:

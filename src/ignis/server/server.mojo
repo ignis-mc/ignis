@@ -329,7 +329,11 @@ def termination_signals() raises -> SignalFD:
     return SignalFD([SIGINT, SIGTERM])
 
 
-def open_world(conf: Config, now_ms: Int) raises -> World[ServerWorld]:
+def open_world(
+    conf: Config,
+    now_ms: Int,
+    items: Optional[ArcPointer[ItemRegistry]] = None,
+) raises -> World[ServerWorld]:
     """Opens the world in `conf.world_folder` (or one in memory) with
     Dragonfly's default flat generator of grass, two dirt layers and
     bedrock for chunks that are not stored (Go `createWorld`)."""
@@ -351,6 +355,8 @@ def open_world(conf: Config, now_ms: Int) raises -> World[ServerWorld]:
     if not new_world:
         tick_speed = provider.random_tick_speed()
     var wc = WorldConfig[ServerWorld](gen^, provider^, br)
+    if items:
+        wc.items = items.value()
     # The server saves on its own schedule (`Server._save`).
     wc.save_interval_ms = -1
     if case .Some(speed) = tick_speed:
@@ -414,12 +420,14 @@ struct Server(Movable):
     def __init__(out self, var conf: Config) raises:
         """Loads the world data and starts listening (Go `Config.New` and
         `Listen`)."""
-        var world = open_world(conf, monotonic_ms())
+        var item_reg = ArcPointer(
+            vanilla_item_registry(conf.vanilla_items_path)
+        )
+        var world = open_world(conf, monotonic_ms(), item_reg)
         var players = Optional[PlayerProvider](None)
         if case .Some(folder) = conf.players_folder:
             players = PlayerProvider(folder)
         var items = item_entries(conf.vanilla_items_path)
-        var item_reg = vanilla_item_registry(conf.vanilla_items_path)
         var biomes = biome_definition_packet(vanilla_biome_registry())
         var item_pks = item_packets(
             world.block_registry()[], conf.vanilla_items_path
@@ -438,7 +446,7 @@ struct Server(Movable):
         self.commands = Registry[CommandSource]()
         register_builtin_commands(self.commands)
         self._items = items^
-        self.item_registry = ArcPointer(item_reg^)
+        self.item_registry = item_reg^
         self.creative_items = ArcPointer(item_pks[3].copy())
         self._biomes = biomes^
         self._creative = item_pks[0].copy()
@@ -892,6 +900,7 @@ struct Server(Movable):
         sc.blocks = self.world.block_registry()
         sc.items = self.item_registry
         sc.creative_items = self.creative_items
+        sc.stack_ids = self.world.stack_ids()
         sc.creative_content = self._creative.copy()
         sc.crafting_data = self._crafting.copy()
         sc.trim_data = self._trim.copy()
@@ -1027,7 +1036,7 @@ struct Server(Movable):
             return
         var nbt: Tree
         try:
-            nbt = write_disk_nbt(
+            nbt = write_disk_nbt[VanillaBlocks](
                 self.world.block_registry()[], self.item_registry[], s
             )
         except e:

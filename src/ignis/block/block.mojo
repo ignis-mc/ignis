@@ -6,8 +6,12 @@ The embedded helper structs of that file (`solid`, `transparent`,
 `docs/architecture.md`.
 """
 
+from minecraft.protocol.uuid import UUID
+
+from ..item.stack import Stack
 from ..mgl64 import Vec3
 from ..world.block import Block
+from ..world.block_source import BlockSource
 from ..world.world import World, WorldTypes
 from .cube.direction import Direction
 from .cube.face import Face
@@ -64,6 +68,110 @@ trait UsableOnBlock(Block):
         the block at `pos`, clicked at `click` by a user looking at
         `user`; empty if it cannot be placed (Go `UseOnBlock` up to its
         `place` calls)."""
+        ...
+
+
+struct UseContext(Copyable):
+    """What activating a block knows about its user and asks of it: Go's
+    `item.UseContext` plus the `item.User` parts blocks use, which the
+    world cannot reach here (`ContainerOpener`, `Saturate`, `Messaget`,
+    jukebox popups). The caller applies the results after `activate`."""
+
+    var user: UUID
+    """The user (Go `u.UUID()`, for `SetPlayerSpawn`)."""
+    var user_pos: Vec3
+    """The user's position (Go `u.Position()`)."""
+    var user_rot: Rotation
+    """The user's rotation (Go `u.Rotation()`)."""
+    var held: Stack
+    """The main hand item (Go `u.HeldItems()`)."""
+    var sneaking: Bool
+    """Go `Sneaking()`."""
+    var creative: Bool
+    """The user's game mode has a creative inventory."""
+    var damage: Int
+    """Durability to take from the held item (Go `Damage`)."""
+    var count_sub: Int
+    """Items to take from the held stack (Go `CountSub`)."""
+    var new_item: Stack
+    """An item to give the user (Go `NewItem`)."""
+    var new_item_survival_only: Bool
+    """Give `new_item` only outside creative (Go `NewItemSurvivalOnly`)."""
+    var open_container: Bool
+    """Open the block's window (Go `ContainerOpener.OpenBlockContainer`)."""
+    var food: Int
+    """Food to restore (Go `Saturate`)."""
+    var saturation: Float64
+    """Saturation to restore (Go `Saturate`)."""
+    var messages: List[String]
+    """Translation keys to show the user (Go `Messaget`)."""
+    var popup: String
+    """A jukebox popup text (Go `SendJukeboxPopup`)."""
+
+    def __init__(out self):
+        """Creates a context for an anonymous user with an empty hand."""
+        self.user = UUID()
+        self.user_pos = Vec3()
+        self.user_rot = Rotation()
+        self.held = Stack()
+        self.sneaking = False
+        self.creative = False
+        self.damage = 0
+        self.count_sub = 0
+        self.new_item = Stack()
+        self.new_item_survival_only = False
+        self.open_container = False
+        self.food = 0
+        self.saturation = 0
+        self.messages = List[String]()
+        self.popup = String()
+
+    def subtract_from_count(mut self, n: Int):
+        """Takes `n` more items from the held stack (Go
+        `SubtractFromCount`)."""
+        self.count_sub += n
+
+    def damage_item(mut self, d: Int):
+        """Takes `d` more durability from the held item (Go
+        `DamageItem`)."""
+        self.damage += d
+
+
+trait Activatable(Block):
+    """A block that does something when used (Go `block.Activatable`)."""
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Activates the block at `pos`, clicked on `face`; True if it was
+        used, which stops the held item from being used (Go `Activate`).
+        `self` carries the block entity's NBT."""
+        ...
+
+
+trait Openable(Block):
+    """A block whose window viewers open, with an animation when the first
+    opens and the last closes (Go's `open` and `close` in the
+    `AddViewer` and `RemoveViewer` of chests, barrels, ender chests and
+    shulker boxes)."""
+
+    def opened[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """The first viewer opened the block (Go `open`)."""
+        ...
+
+    def closed[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """The last viewer closed the block (Go `close`)."""
+        ...
+
+
+trait StateDeriver(Block):
+    """A block whose state depends on its neighbours (Go
+    `world.StateDeriver`); placing it derives the state first."""
+
+    def derive_state[S: BlockSource](self, pos: Pos, src: S) -> Self:
+        """Returns the block as it should be at `pos` (Go `DeriveState`)."""
         ...
 
 

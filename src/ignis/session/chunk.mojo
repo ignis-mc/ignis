@@ -9,6 +9,9 @@ entities, which come with the block entity port (Go appends their NBT after
 the sub-chunk payload).
 """
 
+from minecraft.nbt.encode import encode
+from minecraft.nbt.nbt import NETWORK_LITTLE_ENDIAN
+from minecraft.nbt.tree import Tree
 from minecraft.protocol.block_pos import ChunkPos as ProtocolChunkPos
 from minecraft.protocol.packet.level_chunk import LevelChunk
 from minecraft.protocol.sub_chunk import (
@@ -58,9 +61,16 @@ def sub_chunk_index(
 
 def sub_chunk_entry[
     R: BlockRegistry
-](offset: SubChunkOffset, ind: Int16, mut col: Chunk, br: R) -> SubChunkEntry:
+](
+    offset: SubChunkOffset,
+    ind: Int16,
+    mut col: Chunk,
+    br: R,
+    block_entities: List[Tree] = List[Tree](),
+) -> SubChunkEntry:
     """Builds the `SubChunk` entry for one sub-chunk of a loaded chunk (Go
-    `subChunkEntry`, without the blob cache)."""
+    `subChunkEntry`, without the blob cache); the network NBT of its block
+    entities follows the blocks."""
     var chunk_map = col.height_map(br)
     var sub_map_type = HEIGHT_MAP_DATA_HAS_DATA
     var sub_map = ProtocolHeightMap()
@@ -96,5 +106,11 @@ def sub_chunk_entry[
         entry.result = SUB_CHUNK_RESULT_SUCCESS_ALL_AIR
         return entry^
     entry.result = SUB_CHUNK_RESULT_SUCCESS
-    entry.raw_payload = encode_sub_chunk(col, NetworkEncoding(), Int(ind))
+    var payload = encode_sub_chunk(col, NetworkEncoding(), Int(ind))
+    for t in block_entities:
+        try:
+            payload += encode(t, NETWORK_LITTLE_ENDIAN)
+        except:
+            pass
+    entry.raw_payload = payload^
     return entry^

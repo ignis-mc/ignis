@@ -22,8 +22,8 @@ from minecraft.nbt.nbt import (
 )
 from minecraft.nbt.tree import Tag, Tree
 
-from ..block.register import VanillaBlocks
 from ..world.block_registry import BasicBlockRegistry
+from ..world.block_set import BlockTypes
 from ..world.chunk.encoding import encode_disk_block_state
 from ..world.item import EncodedItem, ItemRegistry
 from .stack import Enchantment, Stack
@@ -129,9 +129,9 @@ def _int(data: Tree, t: Tag, key: StringSpan, tag_type: UInt8) raises -> Int64:
     return 0
 
 
-def write_disk_nbt(
-    br: BasicBlockRegistry, reg: ItemRegistry, s: Stack
-) raises -> Tree:
+def write_disk_nbt[
+    B: BlockTypes
+](br: BasicBlockRegistry, reg: ItemRegistry, s: Stack) raises -> Tree:
     """Encodes a stack for disk (Go `WriteNBT(s, true)`); an empty compound
     for an empty stack. Raises if the item has no name."""
     var t = Tree(TAG_COMPOUND)
@@ -140,7 +140,7 @@ def write_disk_nbt(
     var it = s.item().value()
     var enc: Optional[EncodedItem]
     if it.block:
-        enc = VanillaBlocks.encode_block_item(it.kind, it.hash)
+        enc = B.encode_block_item(it.kind, it.hash)
     else:
         enc = reg.encode_item(it)
     if not enc:

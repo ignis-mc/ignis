@@ -14,6 +14,7 @@ from nethernet.os.random import fill_random
 
 from .block_registry import BasicBlockRegistry
 from .dimension import OVERWORLD, Dimension
+from .item import ItemRegistry
 from .world import World, WorldTypes
 
 
@@ -28,6 +29,9 @@ struct Config[T: WorldTypes](Movable):
     """Generates chunks the provider does not have."""
     var blocks: ArcPointer[BasicBlockRegistry]
     """The finalized block registry."""
+    var items: ArcPointer[ItemRegistry]
+    """The items block entities encode their contents with; empty by
+    default, which drops container contents on save."""
     var read_only: Bool
     """Never write to the provider."""
     var save_interval_ms: Int
@@ -55,6 +59,7 @@ struct Config[T: WorldTypes](Movable):
         self.provider = provider^
         self.generator = generator^
         self.blocks = blocks
+        self.items = ArcPointer(ItemRegistry())
         self.read_only = False
         self.save_interval_ms = 10 * 60 * 1000
         self.chunk_unload_interval_ms = 2 * 60 * 1000
@@ -91,6 +96,7 @@ struct Config[T: WorldTypes](Movable):
             self.generator^,
             self.provider^,
             self.blocks,
+            self.items,
             self.read_only,
             save,
             unload,

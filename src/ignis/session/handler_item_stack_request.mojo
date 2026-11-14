@@ -55,7 +55,13 @@ from minecraft.protocol.packet.item_stack_response import (
 )
 
 from ..item.stack import Stack
-from .inventory import INV_OFF_HAND, Inventories, inventory_kind
+from .inventory import (
+    INV_OFF_HAND,
+    Inventories,
+    inventory_kind,
+    window_inventory_kind,
+)
+from .window import Window
 
 comptime CRAFTING_RESULT = 50
 """The UI slot of a crafting result (Go `craftingResult`)."""
@@ -102,6 +108,7 @@ struct ItemStackRequestHandler(Defaultable, Movable):
     var _current: Int
     var _ignore_destroy: Bool
     var _creative: Bool
+    var _window: Window
 
     def __init__(out self):
         """Creates a handler with no pending changes."""
@@ -113,6 +120,7 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         self._current = 0
         self._ignore_destroy = False
         self._creative = False
+        self._window = Window.none()
 
     def handle(
         mut self,
@@ -129,6 +137,7 @@ struct ItemStackRequestHandler(Defaultable, Movable):
         dropped stacks are appended to `drops`."""
         self._current = now_ms
         self._creative = creative_inventory
+        self._window = invs.window
         var out = ItemStackResponsePacket()
         for ref req in pk.requests:
             self._current_request = req.request_id
@@ -304,6 +313,10 @@ struct ItemStackRequestHandler(Defaultable, Movable):
 
     def _kind(self, slot: StackRequestSlotInfo) raises -> Int:
         var kind = inventory_kind(slot.container.container_id)
+        if not kind:
+            kind = window_inventory_kind(
+                slot.container.container_id, self._window
+            )
         if not kind:
             raise Error(
                 t"unable to find container with ID"
