@@ -88,6 +88,7 @@ func sources() []struct {
 func main() {
 	out := flag.String("out", "../../test/data/health", "output directory")
 	flag.Parse()
+	world.DefaultBlockRegistry.Finalize()
 	if err := os.MkdirAll(*out, 0o755); err != nil {
 		panic(err)
 	}
@@ -108,6 +109,9 @@ func main() {
 		fmt.Fprintf(&b, "xp\t%d\t%d\t%s\n", amount, lvl, bits(prog))
 	}
 	if err := os.WriteFile(filepath.Join(*out, "damage.txt"), []byte(b.String()), 0o644); err != nil {
+		panic(err)
+	}
+	if err := os.WriteFile(filepath.Join(*out, "living.txt"), []byte(living()), 0o644); err != nil {
 		panic(err)
 	}
 }
