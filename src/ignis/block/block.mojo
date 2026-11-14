@@ -6,6 +6,7 @@ The embedded helper structs of that file (`solid`, `transparent`,
 `docs/architecture.md`.
 """
 
+from minecraft.nbt.tree import Tree
 from minecraft.protocol.uuid import UUID
 
 from ..item.stack import Stack
@@ -37,7 +38,6 @@ trait Replaceable:
         ...
 
 
-@fieldwise_init
 struct Placement(Copyable):
     """A block a `UsableOnBlock` block places (one call of Go's `place`)."""
 
@@ -48,6 +48,28 @@ struct Placement(Copyable):
     var ignore_bbox: Bool
     """Place even if an entity is in the way (Go `UseContext.IgnoreBBox`,
     set by doors)."""
+    var nbt: Optional[Tree]
+    """The block entity NBT the block is placed with, if any."""
+    var update: Bool
+    """Set the block without the placement checks once the other blocks
+    were placed (Go's `tx.SetBlock` after `place`, as chests update the
+    chest they pair with)."""
+
+    def __init__(
+        out self,
+        pos: Pos,
+        block: AnyBlock,
+        ignore_bbox: Bool = False,
+        *,
+        var nbt: Optional[Tree] = None,
+        update: Bool = False,
+    ):
+        """Creates a placement."""
+        self.pos = pos
+        self.block = block
+        self.ignore_bbox = ignore_bbox
+        self.nbt = nbt^
+        self.update = update
 
 
 trait UsableOnBlock(Block):
@@ -163,6 +185,18 @@ trait Openable(Block):
 
     def closed[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
         """The last viewer closed the block (Go `close`)."""
+        ...
+
+
+trait BreakHandler(Block):
+    """A block that does something as it is broken (Go
+    `BreakInfo.withBreakHandler`), such as spilling its contents."""
+
+    def on_break[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T], harvest: Bool):
+        """Runs before the block is removed; `harvest` is False when the
+        breaker gets no drops (creative). `self` carries its NBT."""
         ...
 
 

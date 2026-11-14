@@ -117,6 +117,17 @@ trait RandomTicker(Block):
         ...
 
 
+trait TickerBlock(Block):
+    """A block entity that does something every tick (Go `TickerBlock`),
+    such as a furnace smelting."""
+
+    def tick[
+        T: WorldTypes
+    ](self, current_tick: Int64, pos: Pos, mut tx: World[T]):
+        """Ticks the block; `self` carries its block entity NBT."""
+        ...
+
+
 trait ScheduledTicker(Block):
     """A block that does something when an update scheduled for it is due
     (Go `ScheduledTicker`)."""

@@ -25,6 +25,7 @@ a type to the set is all a new block needs.
 
 from ..block.block import (
     Activatable,
+    BreakHandler,
     Openable,
     Placement,
     Replaceable,
@@ -61,6 +62,7 @@ from .block import (
     NeighbourUpdateTicker,
     RandomTicker,
     ScheduledTicker,
+    TickerBlock,
     liquid_info,
 )
 from .block_model import ModelledBlock, UnknownModel
@@ -294,6 +296,20 @@ trait BlockTypes:
     @staticmethod
     def opened[T: WorldTypes](kind: UInt64, pos: Pos, mut tx: World[T]):
         """Calls `Openable.opened` of the block at `pos`."""
+        ...
+
+    @staticmethod
+    def tick_block[
+        T: WorldTypes
+    ](kind: UInt64, current_tick: Int64, pos: Pos, mut tx: World[T]):
+        """Calls `TickerBlock.tick` of the block at `pos`."""
+        ...
+
+    @staticmethod
+    def handle_break[
+        T: WorldTypes
+    ](kind: UInt64, pos: Pos, mut tx: World[T], harvest: Bool):
+        """Calls `BreakHandler.on_break` of the block at `pos`."""
         ...
 
     @staticmethod
@@ -618,6 +634,32 @@ struct BlockSet[*Ts: Block](BlockTypes):
         return AnyBlock(kind=kind, state=hash)
 
     @staticmethod
+    def handle_break[
+        W: WorldTypes
+    ](kind: UInt64, pos: Pos, mut tx: World[W], harvest: Bool):
+        """Calls `BreakHandler.on_break` of the block at `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, BreakHandler):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        _on_break(b, pos, tx, harvest)
+                    return
+
+    @staticmethod
+    def tick_block[
+        W: WorldTypes
+    ](kind: UInt64, current_tick: Int64, pos: Pos, mut tx: World[W]):
+        """Calls `TickerBlock.tick` of the block at `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, TickerBlock):
+                if kind == T.BASE_HASH:
+                    if case .Some(b) = tx.block_as[T](pos):
+                        _tick_block(b, current_tick, pos, tx)
+                    return
+
+    @staticmethod
     def opened[W: WorldTypes](kind: UInt64, pos: Pos, mut tx: World[W]):
         """Calls `Openable.opened` of the block at `pos`."""
         comptime for i in range(len(Self.Ts)):
@@ -789,6 +831,18 @@ def _activate[
     B: Activatable, W: WorldTypes
 ](b: B, pos: Pos, face: Face, mut tx: World[W], mut ctx: UseContext) -> Bool:
     return b.activate(pos, face, tx, ctx)
+
+
+def _on_break[
+    B: BreakHandler, W: WorldTypes
+](b: B, pos: Pos, mut tx: World[W], harvest: Bool):
+    b.on_break(pos, tx, harvest)
+
+
+def _tick_block[
+    B: TickerBlock, W: WorldTypes
+](b: B, current_tick: Int64, pos: Pos, mut tx: World[W]):
+    b.tick(current_tick, pos, tx)
 
 
 def _opened[B: Openable, W: WorldTypes](b: B, pos: Pos, mut tx: World[W]):

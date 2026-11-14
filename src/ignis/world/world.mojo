@@ -745,6 +745,21 @@ struct World[T: WorldTypes](Movable):
                 pass
         return -1
 
+    def close_container_viewers(mut self, pos: Pos):
+        """Closes the window of every viewer of the container at `pos`, as
+        when a paired chest loses its other half."""
+        if case .Some(ci) = self._entity_index(pos):
+            var ids: List[LoaderID]
+            try:
+                ref e = self._cols[ci].block_entities[pos]
+                ids = e.viewers.copy()
+                e.viewers.clear()
+            except:
+                return
+            for id in ids:
+                if self._valid_loader(id):
+                    self._loader(id).viewer.view_container_removed()
+
     def flush_container_changes(mut self, exclude: Optional[LoaderID] = None):
         """Shows the slots changed through `set_inventory` to the viewers of
         each container (Go's inventory slot funcs), except `exclude`, whose
@@ -2054,10 +2069,10 @@ struct World[T: WorldTypes](Movable):
                 )
 
     def _tick_blocks_randomly(mut self, tick: Int64):
-        # Go `ticker.tickBlocksRandomly`. Block entity ticks (`TickerBlock`)
-        # come with block entities.
+        # Go `ticker.tickBlocksRandomly`, which also ticks the block
+        # entities (`TickerBlock`) of chunks in range after the random ticks.
         var r = self._set.tick_range
-        if r == 0 or self._random_tick_speed <= 0:
+        if r == 0:
             return
         var loaded = List[ChunkPos]()
         if self._synchronous:
@@ -2067,10 +2082,15 @@ struct World[T: WorldTypes](Movable):
                 loaded.append(self._loader(id).pos)
         var g = RandUint4()
         var random_blocks = List[Pos]()
+        var block_entities = List[Pos]()
         var min_sub = self._ra.min() >> 4
         for ci in range(len(self._cols)):
             var pos = self._cols[ci].pos
             if not any_within_distance(pos, loaded, r):
+                continue
+            for k in self._cols[ci].block_entities.keys():
+                block_entities.append(k)
+            if self._random_tick_speed <= 0:
                 continue
             var cx = Int(pos.x()) << 4
             var cz = Int(pos.z()) << 4
@@ -2096,6 +2116,10 @@ struct World[T: WorldTypes](Movable):
             _ = Self.T.Blocks.random_tick(
                 self._br[].kind(rid), self._br[].state_hash(rid), pos, self
             )
+        for pos in block_entities:
+            var rid = self.block(pos)
+            Self.T.Blocks.tick_block(self._br[].kind(rid), tick, pos, self)
+        self.flush_container_changes()
 
 
 struct WorldSource[o: MutOrigin, T: WorldTypes](
