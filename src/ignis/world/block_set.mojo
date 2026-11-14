@@ -23,7 +23,9 @@ where `_random_tick[T: RandomTicker]` is a plain generic function. Inside the
 a type to the set is all a new block needs.
 """
 
-from ..block.block import Replaceable
+from ..block.block import Placement, Replaceable, UsableOnBlock
+from ..block.cube.rotation import Rotation
+from ..mgl64 import Vec3
 from ..block.break_info import BreakInfo, Breakable, Dropper
 from ..item.stack import Stack
 from ..item.tool import ToolInfo
@@ -192,6 +194,23 @@ trait BlockTypes:
         ...
 
     @staticmethod
+    def use_on_block[
+        T: WorldTypes
+    ](
+        kind: UInt64,
+        hash: UInt64,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: Rotation,
+        mut tx: World[T],
+    ) -> Optional[List[Placement]]:
+        """Returns what a `UsableOnBlock` block item places (possibly
+        nothing), or None for other blocks, which the placer puts on the
+        clicked face (Go: `UseOnBlock` before the `world.Block` case)."""
+        ...
+
+    @staticmethod
     def block_item(kind: UInt64, hash: UInt64) -> Optional[RegisteredItem]:
         """Returns a block as an item, if its type is an item.
 
@@ -324,6 +343,28 @@ struct BlockSet[*Ts: Block](BlockTypes):
             comptime if conforms_to(B, Dropper):
                 if kind == B.BASE_HASH:
                     return _drops(B.from_hash(hash), tool, silk_touch)
+        return None
+
+    @staticmethod
+    def use_on_block[
+        T: WorldTypes
+    ](
+        kind: UInt64,
+        hash: UInt64,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: Rotation,
+        mut tx: World[T],
+    ) -> Optional[List[Placement]]:
+        """Returns what a `UsableOnBlock` block item places, or None."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, UsableOnBlock):
+                if kind == B.BASE_HASH:
+                    return _use_on_block(
+                        B.from_hash(hash), pos, face, click, user, tx
+                    )
         return None
 
     @staticmethod
@@ -512,6 +553,14 @@ def _replaceable_by[B: Replaceable](b: B, by: AnyBlock) -> Bool:
 
 def _drops[B: Dropper](b: B, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
     return b.drops(tool, silk_touch)
+
+
+def _use_on_block[
+    B: UsableOnBlock, T: WorldTypes
+](
+    b: B, pos: Pos, face: Face, click: Vec3, user: Rotation, mut tx: World[T]
+) -> List[Placement]:
+    return b.use_on_block(pos, face, click, user, tx)
 
 
 def _block_item[T: Item](b: T) -> RegisteredItem:

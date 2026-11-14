@@ -1,9 +1,16 @@
 """`Log`, ported from Dragonfly `server/block/log.go`.
 
-TODO(world-runtime): UseOnBlock, Strip, EncodeItem, FlammabilityInfo,
+TODO(world-runtime): Strip, EncodeItem, FlammabilityInfo,
 FuelInfo and the drops.
 """
 
+from .cube.face import Face
+from .cube.pos import Pos
+from .cube.rotation import Rotation
+from ..mgl64 import Vec3
+from ..world.world import World, WorldTypes
+from .block import Placement, UsableOnBlock, first_replaceable, replaceable_with
+from .hash import AnyBlock
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState, Properties
@@ -20,7 +27,14 @@ from .model.solid import Solid as SolidModel
 from .wood_type import WoodType, wood_types
 
 
-struct Log(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
+struct Log(
+    Block,
+    Breakable,
+    Equatable,
+    ImplicitlyCopyable,
+    ModelledBlock,
+    UsableOnBlock,
+):
     """A naturally occurring block found in trees, used to craft other blocks.
     """
 
@@ -142,3 +156,25 @@ struct Log(Block, Breakable, Equatable, ImplicitlyCopyable, ModelledBlock):
             The model.
         """
         return SolidModel()
+
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: Rotation,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places the log along the clicked face's axis (Go `UseOnBlock`)."""
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var b = self
+        b.axis = at.value()[1].axis()
+        return [
+            Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()), False)
+        ]

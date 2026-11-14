@@ -13,9 +13,11 @@ As in Dragonfly, the break time is computed for the crack animation shown
 to viewers and the client decides when the block breaks (`PredictDestroy`
 or `StopBreak`); the server does not check the timing.
 
-Placing: block items are placed on the clicked face, or into the clicked
-block if it is replaceable by them. Not ported yet: `Activatable` blocks,
-items used on blocks (`UsableOnBlock`), `StateDeriver`.
+Placing: blocks that are `UsableOnBlock` (logs, stairs, slabs, doors,
+trapdoors) decide their position and state; other block items are placed
+on the clicked face, or into the clicked block if it is replaceable by
+them. Not ported yet: `Activatable` blocks, non-block items used on blocks,
+`StateDeriver`.
 
 Not ported yet: fire extinguishing, `Punchable` blocks, `BreakHandler`,
 XP orbs, exhaustion, the `HandleStartBreak`/`HandleBlockBreak` handler
@@ -317,6 +319,25 @@ def use_item_on_block(mut srv: Server, i: Int, u: UseOnBlock):
     var it = held.item().value()
     if not it.block:
         return
+    var rot = srv.sessions[i].player.rotation()
+    var placements = VanillaBlocks.use_on_block(
+        it.kind, it.hash, pos, face, u.click, rot, srv.world
+    )
+    if case .Some(list) = placements:
+        # The block places itself (Go `item.UsableOnBlock`).
+        var placed = False
+        for ref pl in list:
+            var prid = br[].runtime_id_of(pl.block.kind, pl.block.state)
+            if prid and place_block(
+                srv, i, pl.pos, prid.value(), pl.ignore_bbox
+            ):
+                placed = True
+        if (
+            placed
+            and not srv.sessions[i].player.game_mode().creative_inventory()
+        ):
+            srv.sessions[i].invs.set_held_item(held.grow(-1))
+        return
     var by = AnyBlock(it.kind, it.hash)
     var replaced = pos
     if not VanillaBlocks.replaceable_by(
@@ -339,7 +360,9 @@ def use_item_on_block(mut srv: Server, i: Int, u: UseOnBlock):
     srv.sessions[i].invs.set_held_item(held.grow(-1))
 
 
-def place_block(mut srv: Server, i: Int, pos: Pos, rid: UInt32) -> Bool:
+def place_block(
+    mut srv: Server, i: Int, pos: Pos, rid: UInt32, ignore_bbox: Bool = False
+) -> Bool:
     """Go `placeBlock`: places a block if the player may and no entity is in
     the way; plays the place sound to viewers."""
     ref p = srv.sessions[i].player
@@ -347,7 +370,7 @@ def place_block(mut srv: Server, i: Int, pos: Pos, rid: UInt32) -> Bool:
         resend_nearby_blocks(srv, i, pos, _all_faces())
         return False
     var o = obstructed(srv, i, pos, rid)
-    if o[0]:
+    if o[0] and not ignore_bbox:
         if not o[1]:
             # Resending blocks placed inside the player itself desyncs it.
             resend_nearby_blocks(srv, i, pos, _all_faces())
