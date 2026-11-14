@@ -19,7 +19,8 @@ from .cube.pos import Pos
 from .cube.rotation import Rotation
 from ..entity.falling_block import FallingBlock
 from ..world.entity import EntityHandle, EntitySpawnOpts
-from .hash import AnyBlock
+from .hash import AnyBlock, HASH_BAMBOO_MOSAIC, HASH_PLANKS, HASH_WOOL
+from ..world.sound.instrument import Instrument
 
 comptime UNKNOWN_DIRECTION = Direction(4)
 """A direction past the four real ones, for blocks that may face none (Go
@@ -173,6 +174,25 @@ trait StateDeriver(Block):
     def derive_state[S: BlockSource](self, pos: Pos, src: S) -> Self:
         """Returns the block as it should be at `pos` (Go `DeriveState`)."""
         ...
+
+
+trait Instrumented:
+    """A block that picks the instrument of a note block above it (the
+    `Instrument()` interface Go's `Note.instrument` asserts)."""
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument (Go `Instrument`)."""
+        ...
+
+
+def slab_instrument(b: AnyBlock) -> Instrument:
+    """Returns the instrument of slabs and stairs made of `b` (Go
+    `Slab.Instrument` and `Stairs.Instrument`)."""
+    if b.kind == HASH_PLANKS or b.kind == HASH_BAMBOO_MOSAIC:
+        return Instrument.BASS
+    if b.kind == HASH_WOOL:
+        return Instrument.GUITAR
+    return Instrument.BASS_DRUM
 
 
 def replaceable_with[

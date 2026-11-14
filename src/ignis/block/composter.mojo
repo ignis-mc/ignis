@@ -3,9 +3,29 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): InsertItem, ExtractItem, Model, Activate, fill,
-ScheduledTick, FlammabilityInfo, the break handler and the drops.
+TODO(world-runtime): InsertItem, ExtractItem (hoppers), FlammabilityInfo, the
+break handler dropping bone meal and the drops.
 """
+
+from ..item.bone_meal import BoneMeal
+from ..item.register import VanillaBlockItems, VanillaItems
+from ..item.stack import Stack
+from ..world.block import ScheduledTicker
+from ..world.particle.block import BoneMeal as BoneMealParticle
+from ..world.sound.block import (
+    ComposterEmpty,
+    ComposterFill,
+    ComposterFillLayer,
+    ComposterReady,
+)
+from ..world.world import World, WorldTypes
+from .block import Activatable, UseContext
+from .cube.face import Face
+from .cube.pos import Pos
+
+
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
 
 from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
@@ -27,15 +47,18 @@ from .liquid import source_water_can_displace
 
 
 struct Composter(
+    Activatable,
     Block,
     Breakable,
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     LiquidDisplacer,
     ModelledBlock,
+    ScheduledTicker,
 ):
     """A block that turns organic items into bone meal."""
 
@@ -54,6 +77,69 @@ struct Composter(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Empties a full composter or composts the held item (Go
+        `Activate`)."""
+        if self.level >= 7:
+            if self.level == 8:
+                var c = self
+                c.level = 0
+                tx.set_block(pos, c)
+                tx.drop_item(
+                    pos.side(Face.UP).vec3_middle(), Stack(BoneMeal(), 1)
+                )
+                tx.play_sound(pos.vec3(), ComposterEmpty())
+                # The bone meal was collected, so the held item is not used.
+                return True
+            return False
+        if self.fill(ctx.held, pos, tx):
+            ctx.subtract_from_count(1)
+            return True
+        return False
+
+    def fill[
+        T: WorldTypes
+    ](self, it: Stack, pos: Pos, mut tx: World[T]) -> Bool:
+        """Composts an item, adding a layer with its compost chance (Go
+        `fill`)."""
+        if it.empty():
+            return False
+        var item = it.item().value()
+        var chance: Optional[Float64]
+        if item.block:
+            chance = VanillaBlockItems.compost_chance(item.kind, item.hash)
+        else:
+            chance = VanillaItems.compost_chance(item.kind, item.hash)
+        if not chance:
+            return False
+        tx.add_particle(pos.vec3(), BoneMealParticle())
+        if tx.global_rand().float64() > chance.value():
+            tx.play_sound(pos.vec3(), ComposterFill())
+            return True
+        var c = self
+        c.level += 1
+        tx.set_block(pos, c)
+        tx.play_sound(pos.vec3(), ComposterFillLayer())
+        if c.level == 7:
+            tx.schedule_block_update(pos, c, 1000)
+        return True
+
+    def scheduled_tick[T: WorldTypes](self, pos: Pos, mut tx: World[T]):
+        """Turns a level 7 composter into a full one (Go `ScheduledTick`)."""
+        if self.level == 7:
+            var c = self
+            c.level = 8
+            tx.set_block(pos, c)
+            tx.play_sound(pos.vec3(), ComposterReady())
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

@@ -8,6 +8,9 @@ glow, owner), Ink, Wax, Activate, EditingFace, UseOnBlock, NeighbourUpdateTick,
 FlammabilityInfo and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from minecraft.nbt.tree import Tag, Tree
 
 from ..item.item import MaxCounter
@@ -45,6 +48,7 @@ struct Sign(
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     LiquidDisplacer,
@@ -81,6 +85,10 @@ struct Sign(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash() and self.waxed == other.waxed
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

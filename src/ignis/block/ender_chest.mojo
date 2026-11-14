@@ -7,6 +7,9 @@ TODO(world-runtime): the viewer count, NewEnderChest, Activate, UseOnBlock,
 AddViewer, RemoveViewer, open/close and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from minecraft.nbt.tree import Tag, Tree
 
 from ..world.block import Block, LightDiffuser, LightEmitter, NBTer
@@ -33,6 +36,7 @@ struct EnderChest(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     LightEmitter,
@@ -58,6 +62,10 @@ struct EnderChest(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

@@ -3,9 +3,26 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): UseOnBlock, NeighbourUpdateTick, Activate, Model,
-FlammabilityInfo and the drops.
+TODO(world-runtime): FlammabilityInfo and the drops.
 """
+
+from ..world.sound.instrument import Instrument
+from .block import (
+    Activatable,
+    Instrumented,
+    Placement,
+    UsableOnBlock,
+    UseContext,
+    first_replaceable,
+)
+from .cube.face import Face
+from .cube.pos import Pos
+from .cube.rotation import Rotation
+from .wall import Wall
+from ..mgl64 import Vec3
+from ..world.block import NeighbourUpdateTicker
+from ..world.sound.block import FenceGateClose, FenceGateOpen
+from ..world.world import World, WorldTypes
 
 from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block, LightDiffuser
@@ -29,15 +46,19 @@ from .liquid import source_water_can_displace
 
 
 struct WoodFenceGate(
+    Activatable,
     Block,
     Breakable,
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     LiquidDisplacer,
     ModelledBlock,
+    NeighbourUpdateTicker,
+    UsableOnBlock,
 ):
     """A wooden fence gate that blocks entities, opened and closed by players.
     """
@@ -73,6 +94,10 @@ struct WoodFenceGate(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -138,6 +163,66 @@ struct WoodFenceGate(
     def model(self) -> FenceGateModel:
         """Returns the model of the block (Go `Model`)."""
         return FenceGateModel(facing=self.facing, open=self.open)
+
+    def use_on_block[
+        T: WorldTypes
+    ](
+        self,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: Rotation,
+        mut tx: World[T],
+    ) -> List[Placement]:
+        """Places the gate facing away from the user, lowered between walls
+        (Go `UseOnBlock`)."""
+        var at = first_replaceable(
+            tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
+        )
+        if not at:
+            return List[Placement]()
+        var p = at.value()[0]
+        var f = self
+        f.facing = user.direction()
+        f.lowered = f.should_be_lowered(p, tx)
+        return [Placement(p, AnyBlock(Self.BASE_HASH, f.hash()), False)]
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Lowers or raises the gate as walls come and go (Go
+        `NeighbourUpdateTick`)."""
+        if self.should_be_lowered(pos, tx) != self.lowered:
+            var f = self
+            f.lowered = not f.lowered
+            tx.set_block(pos, f)
+
+    def should_be_lowered[
+        T: WorldTypes
+    ](self, pos: Pos, mut tx: World[T]) -> Bool:
+        """Reports whether a wall is beside the gate (Go `shouldBeLowered`)."""
+        var left_side = self.facing.rotate_left().face()
+        var left = Bool(tx.block_as[Wall](pos.side(left_side)))
+        var right = Bool(tx.block_as[Wall](pos.side(left_side.opposite())))
+        return left or right
+
+    def activate[
+        T: WorldTypes
+    ](
+        self, pos: Pos, face: Face, mut tx: World[T], mut ctx: UseContext
+    ) -> Bool:
+        """Opens or closes the gate, swinging away from the user (Go
+        `Activate`)."""
+        var f = self
+        f.open = not f.open
+        if f.open and f.facing.opposite() == ctx.user_rot.direction():
+            f.facing = f.facing.opposite()
+        tx.set_block(pos, f)
+        if f.open:
+            tx.play_sound(pos.vec3_centre(), FenceGateOpen(block=AnyBlock(f)))
+            return True
+        tx.play_sound(pos.vec3_centre(), FenceGateClose(block=AnyBlock(f)))
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

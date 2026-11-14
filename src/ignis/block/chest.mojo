@@ -9,6 +9,9 @@ Activate, UseOnBlock, open/close, Paired, pair, unpair, the break handler,
 FlammabilityInfo and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from minecraft.nbt.tree import Tag, Tree
 
 from ..internal.nbtconv.read import get_string
@@ -39,6 +42,7 @@ struct Chest(
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     LiquidDisplacer,
@@ -73,6 +77,10 @@ struct Chest(
             self.hash() == other.hash()
             and self.custom_name == other.custom_name
         )
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

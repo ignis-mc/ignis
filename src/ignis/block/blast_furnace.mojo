@@ -5,6 +5,9 @@ Experience and the XP the break info drops), NewFurnace, Tick, Activate,
 UseOnBlock, the break handler dropping the inventory and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from minecraft.nbt.tree import Tag, Tree
 
 from ..world.block import Block, LightEmitter, NBTer
@@ -28,6 +31,7 @@ struct BlastFurnace(
     Breakable,
     Equatable,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightEmitter,
     ModelledBlock,
@@ -56,6 +60,10 @@ struct BlastFurnace(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bassDrum`)."""
+        return Instrument.BASS_DRUM
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

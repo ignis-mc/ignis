@@ -4,6 +4,10 @@ TODO(world-runtime): Instrument, FlammabilityInfo, CanRedstoneWireStepDown,
 Model and the drops.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+from .block import slab_instrument
+
 from .cube.face import Face
 from .cube.pos import Pos
 from .cube.rotation import Rotation
@@ -54,6 +58,7 @@ struct Slab(
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     LiquidDisplacer,
@@ -86,6 +91,11 @@ struct Slab(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `Instrument`: by the block it is made of).
+        """
+        return slab_instrument(self.block)
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

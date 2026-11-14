@@ -3,6 +3,9 @@
 TODO(world-runtime): FlammabilityInfo and the drops, RepairsWoodTools.
 """
 
+from ..world.sound.instrument import Instrument
+from .block import Instrumented
+
 from ..item.smelting_info import Fuel, FuelInfo
 from ..world.block import Block
 from ..world.block_model import ModelledBlock
@@ -20,7 +23,14 @@ from .model.solid import Solid as SolidModel
 
 
 struct BambooMosaic(
-    Block, Breakable, Equatable, Fuel, ImplicitlyCopyable, Item, ModelledBlock
+    Block,
+    Breakable,
+    Equatable,
+    Fuel,
+    ImplicitlyCopyable,
+    Instrumented,
+    Item,
+    ModelledBlock,
 ):
     """A decorative wooden block crafted from bamboo slabs."""
 
@@ -36,6 +46,10 @@ struct BambooMosaic(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `bass`)."""
+        return Instrument.BASS
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""

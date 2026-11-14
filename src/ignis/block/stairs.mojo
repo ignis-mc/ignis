@@ -3,9 +3,15 @@
 Go's `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes
 with liquids.
 
-TODO(world-runtime): NeighbourUpdateTick, DeriveState, calculateCorner,
-continued, Model, Instrument, FlammabilityInfo and the drops.
+TODO(world-runtime): FlammabilityInfo and the drops.
 """
+
+from ..world.sound.instrument import Instrument
+from .block import Instrumented, StateDeriver
+from ..world.block import NeighbourUpdateTicker
+from ..world.block_source import BlockSource
+from .register import block_at
+from .block import slab_instrument
 
 from .cube.face import Face
 from .cube.pos import Pos
@@ -44,10 +50,13 @@ struct Stairs(
     Equatable,
     Fuel,
     ImplicitlyCopyable,
+    Instrumented,
     Item,
     LightDiffuser,
     LiquidDisplacer,
     ModelledBlock,
+    NeighbourUpdateTicker,
+    StateDeriver,
     UsableOnBlock,
 ):
     """A block that allows entities to walk up blocks without jumping."""
@@ -84,6 +93,11 @@ struct Stairs(
     def __eq__(self, other: Self) -> Bool:
         """Compares two blocks."""
         return self.hash() == other.hash()
+
+    def instrument(self) -> Instrument:
+        """Returns the instrument of note blocks above it (Go `Instrument`: by the block it is made of).
+        """
+        return slab_instrument(self.block)
 
     def encode_block(self) -> BlockState:
         """Encodes the block (Go `EncodeBlock`)."""
@@ -165,8 +179,8 @@ struct Stairs(
         mut tx: World[T],
     ) -> List[Placement]:
         """Places the stairs facing away from the user, upside down when
-        clicked on the upper half of a side or under a block (Go
-        `UseOnBlock`; the corner is not derived from neighbours yet)."""
+        clicked on the upper half of a side or under a block, with the corner
+        its neighbours form (Go `UseOnBlock`)."""
         var at = first_replaceable(
             tx, pos, face, AnyBlock(Self.BASE_HASH, self.hash())
         )
@@ -177,9 +191,66 @@ struct Stairs(
         b.facing = user.direction()
         if f == Face.DOWN or (click.y() > 0.5 and f != Face.UP):
             b.upside_down = True
+        b.corner = b.calculate_corner(tx.source(), at.value()[0])
         return [
             Placement(at.value()[0], AnyBlock(Self.BASE_HASH, b.hash()), False)
         ]
+
+    def neighbour_update_tick[
+        T: WorldTypes
+    ](self, pos: Pos, changed_neighbour: Pos, mut tx: World[T]):
+        """Updates the corner when a neighbour changes (Go
+        `NeighbourUpdateTick`)."""
+        var corner = self.calculate_corner(tx.source(), pos)
+        if corner != self.corner:
+            var s = self.copy()
+            s.corner = corner
+            tx.set_block(pos, s)
+
+    def derive_state[S: BlockSource](self, pos: Pos, src: S) -> Self:
+        """Returns the stairs with the corner they form at `pos` (Go
+        `DeriveState`)."""
+        var s = self.copy()
+        s.corner = self.calculate_corner(src, pos)
+        return s^
+
+    def calculate_corner[
+        S: BlockSource
+    ](self, src: S, pos: Pos) -> StairsCorner:
+        """Returns the corner the stairs form with the stairs around them (Go
+        `calculateCorner`)."""
+        var left = self.facing.rotate_left()
+        var right = self.facing.rotate_right()
+        var front = block_at(src, pos.side(self.facing.face())).get[Stairs]()
+        if case .Some(f) = front:
+            if f.upside_down == self.upside_down:
+                if f.facing == left and not self.continued(src, pos, right):
+                    return StairsCorner.OUTER_LEFT
+                elif f.facing == right and not self.continued(src, pos, left):
+                    return StairsCorner.OUTER_RIGHT
+        var back = block_at(src, pos.side(self.facing.opposite().face())).get[
+            Stairs
+        ]()
+        if case .Some(b) = back:
+            if b.upside_down == self.upside_down:
+                if b.facing == left and not self.continued(src, pos, left):
+                    return StairsCorner.INNER_LEFT
+                elif b.facing == right and not self.continued(src, pos, right):
+                    return StairsCorner.INNER_RIGHT
+        return StairsCorner.NONE
+
+    def continued[S: BlockSource](self, src: S, pos: Pos, d: Direction) -> Bool:
+        """Reports whether stairs of the same type facing the same way
+        continue in direction `d`, so no corner forms there (Go
+        `continued`)."""
+        if case .Some(side) = block_at(src, pos.side(d.face())).get[Stairs]():
+            return (
+                side.facing == self.facing
+                and side.upside_down == self.upside_down
+                and encode_stairs_block(side.block)
+                == encode_stairs_block(self.block)
+            )
+        return False
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""
