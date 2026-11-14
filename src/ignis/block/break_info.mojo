@@ -8,6 +8,10 @@ drop helpers (`oneOf`, `silkTouchOneOf`, fortune) need items and `world.Tx`:
 TODO(world-runtime) port them with `item.Tool`, `item.Stack` and `Tx`.
 """
 
+from std.math import ceil
+
+from ..item.enchantment.efficiency import Efficiency
+from ..item.stack import Stack
 from ..item.tool import (
     TYPE_AXE,
     TYPE_HOE,
@@ -16,6 +20,7 @@ from ..item.tool import (
     TYPE_SHOVEL,
     TYPE_SWORD,
     Tool,
+    ToolInfo,
     ToolType,
 )
 
@@ -167,3 +172,93 @@ trait Breakable:
         """Returns information related to breaking the block (Go
         `BreakInfo`)."""
         ...
+
+
+trait Dropper:
+    """A block whose drops are not just itself (Go's `BreakInfo.Drops`
+    function; blocks without it drop themselves, Go's `oneOf(b)`)."""
+
+    def drops(self, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+        """Returns what breaking the block with a tool drops."""
+        ...
+
+
+@fieldwise_init
+struct BreakContext(Defaultable, ImplicitlyCopyable):
+    """The status effects and surroundings that change how fast a player
+    breaks blocks (Go `BreakContext`)."""
+
+    var haste_level: Int
+    """The Haste level, 0 without the effect."""
+    var conduit_power_level: Int
+    """The Conduit Power level; does not stack with Haste."""
+    var mining_fatigue_level: Int
+    """The Mining Fatigue level."""
+    var underwater: Bool
+    """The player's head is in water (5x slower without Aqua Affinity)."""
+    var aqua_affinity: Bool
+    """The helmet has Aqua Affinity."""
+    var flying: Bool
+    """The player flies, which cancels the airborne penalty."""
+    var airborne: Bool
+    """The player is not on the ground (5x slower)."""
+
+    def __init__(out self):
+        """Creates the context of a player on the ground without effects."""
+        self = Self(0, 0, 0, False, False, False, False)
+
+
+comptime NEVER_BREAKS_MS = Int.MAX
+"""The duration of a block that is not `Breakable` (Go `math.MaxInt64`)."""
+
+
+def break_duration_ms(
+    info: Optional[BreakInfo],
+    tool: ToolInfo,
+    efficiency_level: Int,
+    ctx: BreakContext,
+) -> Int:
+    """Returns how long breaking a block takes with a tool, in milliseconds
+    (Go `BreakDuration`); `info` is None for blocks that are not `Breakable`
+    and `efficiency_level` is the held item's Efficiency level or 0. See
+    https://minecraft.wiki/w/Breaking#Calculation."""
+    if not info:
+        return NEVER_BREAKS_MS
+    var b = info.value()
+    if b.hardness <= 0:
+        return 0
+    var can_harvest = b.harvestable.matches(tool.tool_type, tool.harvest_level)
+    var speed = 1.0
+    if b.effective.matches(tool.tool_type, tool.harvest_level):
+        speed = tool.efficiency
+        if not can_harvest:
+            # A tool of the right type but too low a tier gives no bonus.
+            speed = 1
+        elif efficiency_level > 0:
+            speed += Efficiency.addend(efficiency_level)
+    var positive = max(ctx.haste_level, ctx.conduit_power_level)
+    if positive > 0:
+        speed *= 0.2 * Float64(positive) + 1
+    if ctx.mining_fatigue_level > 0:
+        speed *= pow(0.3, Float64(ctx.mining_fatigue_level))
+    if ctx.underwater and not ctx.aqua_affinity:
+        speed /= 5
+    if ctx.airborne and not ctx.flying:
+        speed /= 5
+    var damage = speed / b.hardness
+    if can_harvest:
+        damage /= 30
+    else:
+        damage /= 100
+    if positive > 0:
+        damage *= pow(1.2, Float64(positive))
+    if ctx.mining_fatigue_level > 0:
+        damage *= pow(0.7, Float64(ctx.mining_fatigue_level))
+    if damage >= 1:
+        return 0
+    return Int(ceil(1 / damage)) * 50
+
+
+def breaks_instantly(info: Optional[BreakInfo]) -> Bool:
+    """Reports whether a block has no hardness (Go `BreaksInstantly`)."""
+    return Bool(info) and info.value().hardness <= 0

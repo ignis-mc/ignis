@@ -1,6 +1,6 @@
 """`DeadBush`, ported from Dragonfly `server/block/deadbush.go`.
 
-Go's `replaceable` helper (ReplaceableBy) comes with `world.Tx`. Go's
+Go's `replaceable` helper is `Replaceable`. Go's
 `sourceWaterDisplacer` makes it a `LiquidDisplacer`; that trait comes with
 liquids.
 
@@ -8,6 +8,8 @@ TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
 FlammabilityInfo and the drops.
 """
 
+from .block import Replaceable
+from .hash import AnyBlock
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
 from ..world.block_state import BlockState
@@ -31,6 +33,7 @@ struct DeadBush(
     Item,
     LightDiffuser,
     ModelledBlock,
+    Replaceable,
 ):
     """A transparent block in the form of an aesthetic plant."""
 
@@ -77,6 +80,10 @@ struct DeadBush(
     def model(self) -> EmptyModel:
         """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
+
+    def replaceable_by(self, b: AnyBlock) -> Bool:
+        """Any block replaces it (Go's embedded `replaceable`)."""
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

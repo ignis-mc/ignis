@@ -370,6 +370,34 @@ Implemented in `ignis.server` (Go `server.go`, `conf.go`) and
   `server.builtin` registers `/gamemode`, `/tp`, `/time`, `/list` and
   `/say`.
 
+### Inventories and interaction
+
+- **Inventories** (`item.inventory`, Go `item/inventory`) collect changed
+  slots instead of calling a `SlotFunc`; the session sends the changes made
+  outside item stack requests. Stacks get network IDs from a `StackIDs`
+  source shared by a session's inventories; `Stack.grow`/`add_stack` clear
+  the ID as Go draws a new one. The session owns the player's inventories
+  (`session.inventory.Inventories`) so copying a `Player` stays cheap.
+- **Item stack requests** (`session.handler_item_stack_request`) run on
+  `Inventories` alone and return the response, so they are tested without
+  a connection.
+- **Breaking and placing** (`server.interact`) are server functions for
+  the player of a session, as Go's player methods reach the world through
+  their transaction. Like Dragonfly, the server computes break times for
+  the crack animation and trusts the client's finish.
+- **Block behaviour for interaction** goes through `BlockTypes`
+  dispatchers: `model_bbox`, `break_info`, `replaceable_by` (Go
+  `Replaceable`), `drops` (`Dropper`, Go `BreakInfo.Drops`; others drop
+  themselves) and `use_on_block` (`UsableOnBlock`, Go `item.UsableOnBlock`
+  on blocks, returning the `Placement`s). Held tools go through
+  `ItemSet.tool` and `ItemSet.durability_info`.
+- **Item entities** (`entity.item`) tick their own physics
+  (`entity.movement`, Go `MovementComputer`) and keep their stack's disk
+  NBT, because entity NBT callbacks get no registries. Picking up and
+  merging need players and the concrete entity set, so the server does
+  them each tick. A session and its world viewer share entity runtime IDs
+  through their `PacketQueue`.
+
 ## World data
 
 - `resources/block_states.nbt` (with the other Dragonfly resources as they

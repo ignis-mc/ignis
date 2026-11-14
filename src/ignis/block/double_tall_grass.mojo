@@ -1,12 +1,14 @@
 """`DoubleTallGrass`, ported from Dragonfly
 `server/block/double_tall_grass.go`.
 
-Go's `replaceable` helper (ReplaceableBy) comes with `world.Tx`.
+Go's `replaceable` helper is `Replaceable`.
 
 TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
 FlammabilityInfo and the drops.
 """
 
+from .block import Replaceable
+from .hash import AnyBlock
 from ..item.item import Compostable
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
@@ -33,6 +35,7 @@ struct DoubleTallGrass(
     Item,
     LightDiffuser,
     ModelledBlock,
+    Replaceable,
 ):
     """A two block high variety of grass."""
 
@@ -102,6 +105,10 @@ struct DoubleTallGrass(
     def model(self) -> EmptyModel:
         """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
+
+    def replaceable_by(self, b: AnyBlock) -> Bool:
+        """Any block replaces it (Go's embedded `replaceable`)."""
+        return True
 
     def compost_chance(self) -> Float64:
         """Returns the compost chance (Go `CompostChance`)."""

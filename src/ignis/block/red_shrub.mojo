@@ -1,11 +1,13 @@
 """`RedShrub`, ported from Dragonfly `server/block/red_shrub.go`.
 
-Go's `replaceable` helper (ReplaceableBy) comes with `world.Tx`.
+Go's `replaceable` helper is `Replaceable`.
 
 TODO(world-runtime): NeighbourUpdateTick, HasLiquidDrops, UseOnBlock, BoneMeal,
 FlammabilityInfo and the drops.
 """
 
+from .block import Replaceable
+from .hash import AnyBlock
 from ..item.item import Compostable
 from ..world.block import Block, LightDiffuser
 from ..world.block_model import ModelledBlock
@@ -31,6 +33,7 @@ struct RedShrub(
     Item,
     LightDiffuser,
     ModelledBlock,
+    Replaceable,
 ):
     """A decorative plant block."""
 
@@ -77,6 +80,10 @@ struct RedShrub(
     def model(self) -> EmptyModel:
         """Returns the model of the block (Go `Model`)."""
         return EmptyModel()
+
+    def replaceable_by(self, b: AnyBlock) -> Bool:
+        """Any block replaces it (Go's embedded `replaceable`)."""
+        return True
 
     def encode_item(self) -> EncodedItem:
         """Encodes the block as an item (Go `EncodeItem`)."""

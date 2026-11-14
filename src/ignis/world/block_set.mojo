@@ -23,7 +23,15 @@ where `_random_tick[T: RandomTicker]` is a plain generic function. Inside the
 a type to the set is all a new block needs.
 """
 
+from ..block.block import Placement, Replaceable, UsableOnBlock
+from ..block.cube.rotation import Rotation
+from ..mgl64 import Vec3
+from ..block.break_info import BreakInfo, Breakable, Dropper
+from ..item.stack import Stack
+from ..item.tool import ToolInfo
+from ..block.cube.bbox import BBox
 from ..block.cube.face import Face
+from ..block.hash import AnyBlock
 from ..block.cube.pos import Pos
 from ..item.item import item_info
 from .block import Block, NeighbourUpdateTicker, RandomTicker, ScheduledTicker
@@ -89,6 +97,52 @@ trait BlockTypes:
         ...
 
     @staticmethod
+    def model_bbox[
+        S: BlockSource
+    ](kind: UInt64, hash: UInt64, pos: Pos, src: S) -> List[BBox]:
+        """Returns the boxes of a block's model, relative to `pos` (Go
+        `b.Model().BBox(pos, src)`); a full cube for types without a model.
+        """
+        ...
+
+    @staticmethod
+    def break_info(kind: UInt64, hash: UInt64) -> Optional[BreakInfo]:
+        """Returns a block's break info, or None if it is not `Breakable`."""
+        ...
+
+    @staticmethod
+    def replaceable_by(kind: UInt64, hash: UInt64, by: AnyBlock) -> Bool:
+        """Reports whether `by` may replace a block (Go
+        `b.(Replaceable).ReplaceableBy(by)`); False if it is not
+        `Replaceable`."""
+        ...
+
+    @staticmethod
+    def drops(
+        kind: UInt64, hash: UInt64, tool: ToolInfo, silk_touch: Bool
+    ) -> Optional[List[Stack]]:
+        """Returns a `Dropper` block's drops, or None for other blocks,
+        which drop themselves (Go `BreakInfo.Drops`)."""
+        ...
+
+    @staticmethod
+    def use_on_block[
+        T: WorldTypes
+    ](
+        kind: UInt64,
+        hash: UInt64,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: Rotation,
+        mut tx: World[T],
+    ) -> Optional[List[Placement]]:
+        """Returns what a `UsableOnBlock` block item places (possibly
+        nothing), or None for other blocks, which the placer puts on the
+        clicked face (Go: `UseOnBlock` before the `world.Block` case)."""
+        ...
+
+    @staticmethod
     def block_item(kind: UInt64, hash: UInt64) -> Optional[RegisteredItem]:
         """Returns a block as an item, if its type is an item."""
         ...
@@ -130,6 +184,72 @@ struct BlockSet[*Ts: Block](BlockTypes):
                 if kind == B.BASE_HASH:
                     return _face_solid(B.from_hash(hash), pos, face, src)
         return UnknownModel().face_solid(pos, face, src)
+
+    @staticmethod
+    def model_bbox[
+        S: BlockSource
+    ](kind: UInt64, hash: UInt64, pos: Pos, src: S) -> List[BBox]:
+        """Returns the boxes of a block's model, relative to `pos`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, ModelledBlock):
+                if kind == B.BASE_HASH:
+                    return _model_bbox(B.from_hash(hash), pos, src)
+        return UnknownModel().bbox(pos, src)
+
+    @staticmethod
+    def break_info(kind: UInt64, hash: UInt64) -> Optional[BreakInfo]:
+        """Returns a block's break info, or None if it is not `Breakable`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, Breakable):
+                if kind == B.BASE_HASH:
+                    return _break_info(B.from_hash(hash))
+        return None
+
+    @staticmethod
+    def replaceable_by(kind: UInt64, hash: UInt64, by: AnyBlock) -> Bool:
+        """Reports whether `by` may replace a block."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, Replaceable):
+                if kind == B.BASE_HASH:
+                    return _replaceable_by(B.from_hash(hash), by)
+        return False
+
+    @staticmethod
+    def drops(
+        kind: UInt64, hash: UInt64, tool: ToolInfo, silk_touch: Bool
+    ) -> Optional[List[Stack]]:
+        """Returns a `Dropper` block's drops, or None for other blocks."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, Dropper):
+                if kind == B.BASE_HASH:
+                    return _drops(B.from_hash(hash), tool, silk_touch)
+        return None
+
+    @staticmethod
+    def use_on_block[
+        T: WorldTypes
+    ](
+        kind: UInt64,
+        hash: UInt64,
+        pos: Pos,
+        face: Face,
+        click: Vec3,
+        user: Rotation,
+        mut tx: World[T],
+    ) -> Optional[List[Placement]]:
+        """Returns what a `UsableOnBlock` block item places, or None."""
+        comptime for i in range(len(Self.Ts)):
+            comptime B = Self.Ts[i]
+            comptime if conforms_to(B, UsableOnBlock):
+                if kind == B.BASE_HASH:
+                    return _use_on_block(
+                        B.from_hash(hash), pos, face, click, user, tx
+                    )
+        return None
 
     @staticmethod
     def block_item(kind: UInt64, hash: UInt64) -> Optional[RegisteredItem]:
@@ -235,6 +355,32 @@ def _face_solid[
     B: ModelledBlock, S: BlockSource
 ](b: B, pos: Pos, face: Face, src: S) -> Bool:
     return b.model().face_solid(pos, face, src)
+
+
+def _model_bbox[
+    B: ModelledBlock, S: BlockSource
+](b: B, pos: Pos, src: S) -> List[BBox]:
+    return b.model().bbox(pos, src)
+
+
+def _break_info[B: Breakable](b: B) -> BreakInfo:
+    return b.break_info()
+
+
+def _replaceable_by[B: Replaceable](b: B, by: AnyBlock) -> Bool:
+    return b.replaceable_by(by)
+
+
+def _drops[B: Dropper](b: B, tool: ToolInfo, silk_touch: Bool) -> List[Stack]:
+    return b.drops(tool, silk_touch)
+
+
+def _use_on_block[
+    B: UsableOnBlock, T: WorldTypes
+](
+    b: B, pos: Pos, face: Face, click: Vec3, user: Rotation, mut tx: World[T]
+) -> List[Placement]:
+    return b.use_on_block(pos, face, click, user, tx)
 
 
 def _block_item[T: Item](b: T) -> RegisteredItem:

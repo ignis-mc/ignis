@@ -38,6 +38,7 @@ from minecraft.protocol.packet.id import (
     ID_LEVEL_CHUNK,
     ID_NETWORK_CHUNK_PUBLISHER_UPDATE,
     ID_PLAYER_LIST,
+    ID_INVENTORY_CONTENT,
     ID_SET_ACTOR_DATA,
     ID_SET_PLAYER_GAME_TYPE,
     ID_UPDATE_ABILITIES,
@@ -157,6 +158,9 @@ def test_spawn_packets() raises:
     assert_equal(ids[2], ID_SET_PLAYER_GAME_TYPE)
     assert_equal(ids[3], ID_UPDATE_ABILITIES)
     assert_equal(ids[4], ID_SET_ACTOR_DATA)
+    # Go's sendInv: inventory, UI, off-hand, armour.
+    for i in range(5, 9):
+        assert_equal(ids[i], ID_INVENTORY_CONTENT)
     assert_equal(s.conn.last[SetPlayerGameType]().game_type, GAME_TYPE_CREATIVE)
 
 
