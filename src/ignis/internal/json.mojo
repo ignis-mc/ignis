@@ -151,6 +151,13 @@ struct JsonDoc(Movable):
             raise Error("json: value is not a number")
         return Int(self._nodes[i].text)
 
+    def as_float(self, i: Int) raises -> Float64:
+        """Returns a number as a float; raises if the value is not a number.
+        """
+        if self._nodes[i].kind != JSON_NUMBER:
+            raise Error("json: value is not a number")
+        return atof(self._nodes[i].text)
+
     def as_bool(self, i: Int) raises -> Bool:
         """Returns a boolean value.
 
