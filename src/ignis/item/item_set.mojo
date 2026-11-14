@@ -8,6 +8,9 @@ become traits, and their dispatchers loop over `Ts` with
 `comptime if conforms_to(T, Trait)` exactly like `BlockSet` does.
 """
 
+from minecraft.nbt.tree import Tree
+
+from ..world.block import NBTer
 from ..world.item import AnyItem, EncodedItem, Item, ItemRegistry
 from .armour import (
     Armour,
@@ -30,7 +33,7 @@ from .item import (
     item_info,
 )
 from .smelting_info import Fuel, FuelInfo, Smeltable, SmeltInfo
-from .stack import Stack
+from .stack import Stack, has_nbt
 from .tool import Tool, ToolType
 
 
@@ -286,6 +289,20 @@ struct ItemSet[*Ts: Item]:
         return None
 
     @staticmethod
+    def item_nbt(
+        kind: UInt64, hash: UInt64, data: Tree
+    ) raises -> Optional[Tree]:
+        """Returns the `EncodeNBT` of the item after decoding `data` into it
+        (Go `it.(world.NBTer)`); an empty `data` gives the item's own NBT.
+        None if the type is not an `NBTer`."""
+        comptime for i in range(len(Self.Ts)):
+            comptime T = Self.Ts[i]
+            comptime if conforms_to(T, NBTer):
+                if kind == T.BASE_HASH:
+                    return _item_nbt(T.from_hash(hash), data)
+        return None
+
+    @staticmethod
     def encode_item(kind: UInt64, hash: UInt64) -> Optional[EncodedItem]:
         """Encodes an item of any type in the set (Go `it.EncodeItem()`)."""
         comptime for i in range(len(Self.Ts)):
@@ -373,3 +390,12 @@ def _base_mining_efficiency[T: Tool](it: T, block_kind: UInt64) -> Float64:
 
 def _repairable_by[T: Repairable](it: T, i: Stack) -> Bool:
     return it.repairable_by(i)
+
+
+def _item_nbt[T: NBTer](it: T, data: Tree) raises -> Tree:
+    var v = it.copy()
+    if has_nbt(data):
+        v = it.decode_nbt(data, data.root())
+    var out = Tree()
+    v.encode_nbt(out, out.root())
+    return out^

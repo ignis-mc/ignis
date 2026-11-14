@@ -100,3 +100,39 @@ def canonical(t: Tree, tag: Tag) raises -> String:
             parts.append(String(v))
         return "L[" + ",".join(parts) + "]"
     raise Error(t"canonical: tag type {ty}")
+
+
+def sorted_tree(t: Tree) raises -> Tree:
+    """A copy of a compound tree with every compound's keys sorted, as
+    `sortedValue` in `interop/items/creative.go` writes them."""
+    var out = Tree()
+    _copy_sorted(t, t.root(), out, out.root())
+    return out^
+
+
+def _copy_sorted(src: Tree, s: Tag, mut dst: Tree, d: Tag) raises:
+    var kids = src.children(s)
+    var names = List[String]()
+    for c in kids:
+        names.append(src.name(c))
+    var order = List[Int]()
+    for i in range(len(kids)):
+        order.append(i)
+    for i in range(1, len(order)):
+        var j = i
+        while j > 0 and names[order[j]] < names[order[j - 1]]:
+            order.swap_elements(j, j - 1)
+            j -= 1
+    for i in order:
+        var c = kids[i]
+        var ty = src.type_of(c)
+        if ty == TAG_COMPOUND:
+            var nd = dst.put_compound(d, names[i])
+            _copy_sorted(src, c, dst, nd)
+        elif ty == TAG_LIST and src.elem_type(c) == TAG_COMPOUND:
+            var nl = dst.put_list(d, names[i], TAG_COMPOUND)
+            for e in src.children(c):
+                var ne = dst.append_compound(nl)
+                _copy_sorted(src, e, dst, ne)
+        else:
+            _ = dst.put_tree(d, names[i], src, c)

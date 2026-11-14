@@ -274,5 +274,8 @@ func main() {
 	itemTable(v, vanillaItems, *out)
 	stacks(v)
 	itemDefinitions(*out)
+	creative_registerCreativeItems()
+	recipe_registerVanilla()
+	creativeVectors(*out)
 	v.write(filepath.Join(*out, "vectors.txt"))
 }

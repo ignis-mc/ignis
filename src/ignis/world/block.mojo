@@ -76,7 +76,7 @@ trait Block(Copyable, Deinitable):
         ...
 
 
-trait NBTer(Copyable):
+trait NBTer(Copyable, Deinitable):
     """A block, item or entity with NBT data (Go `world.NBTer`).
 
     Go's map becomes a compound in a `Tree`; keys are written in the order
