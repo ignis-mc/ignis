@@ -1,63 +1,7 @@
-from ignis.internal.gojson import format_float
 from ignis.player import form
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from support.ui_vectors import UIVectors
-
-
-struct Recorder(form.Submitter):
-    comptime Tx = List[String]
-
-    var closed: Int
-
-    def __init__(out self):
-        self.closed = 0
-
-    def close_form(mut self):
-        self.closed += 1
-
-
-def _log[T: AnyType](mut tx: T) -> Pointer[List[String], MutUntrackedOrigin]:
-    # The tests' Tx is a List[String].
-    return rebind[Pointer[List[String], MutUntrackedOrigin]](Pointer(to=tx))
-
-
-def _b(v: Bool) -> String:
-    return "true" if v else "false"
-
-
-@fieldwise_init
-struct Survey(form.Closer, form.Submittable):
-    var header: form.Header
-    var name: form.Input
-    var agree: form.Toggle
-    var volume: form.Slider
-    var colour: form.Dropdown
-    var size: form.StepSlider
-    var _note: String
-
-    def submit[S: form.Submitter](mut self, mut submitter: S, mut tx: S.Tx):
-        _log(tx)[].append(
-            String(
-                t"{self.name.value()}|{_b(self.agree.value())}"
-                t"|{format_float(self.volume.value())}|{self.colour.value()}"
-                t"|{self.size.value()}|{self._note}"
-            )
-        )
-
-    def close[S: form.Submitter](mut self, mut submitter: S, mut tx: S.Tx):
-        _log(tx)[].append("closed")
-
-
-def survey() -> Survey:
-    return Survey(
-        form.Header("Questions"),
-        form.Input("Name", "Steve", "your name"),
-        form.Toggle("Agree", True),
-        form.Slider("Volume", 0, 10, 0.5, 2.5),
-        form.Dropdown("Colour", ["red", "green"], 1),
-        form.StepSlider("Size", ["S", "M", "L"], 0),
-        "n",
-    )
+from support.form_support import Recorder, tx_log, survey
 
 
 @fieldwise_init
@@ -82,10 +26,10 @@ struct Menu(form.Closer, form.MenuSubmittable):
     def submit[
         S: form.Submitter
     ](mut self, mut submitter: S, pressed: form.Button, mut tx: S.Tx):
-        _log(tx)[].append("pressed " + pressed.text)
+        tx_log(tx)[].append("pressed " + pressed.text)
 
     def close[S: form.Submitter](mut self, mut submitter: S, mut tx: S.Tx):
-        _log(tx)[].append("closed")
+        tx_log(tx)[].append("closed")
 
 
 @fieldwise_init
@@ -96,7 +40,7 @@ struct Modal(form.ModalSubmittable):
     def submit[
         S: form.Submitter
     ](mut self, mut submitter: S, pressed: form.Button, mut tx: S.Tx):
-        _log(tx)[].append("pressed " + pressed.text)
+        tx_log(tx)[].append("pressed " + pressed.text)
 
 
 def _check_submits[
